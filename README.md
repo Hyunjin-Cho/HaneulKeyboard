@@ -12,9 +12,8 @@
 - **빠른 한/영 전환** — Caps Lock(짧게)으로 즉시 전환. 시스템 native 경로를 사용해 결정적으로 동작합니다.
 - **Caps Lock 대문자 모드** — Caps Lock 길게(3초)로 LED 토글(대문자 모드).
 - **메뉴바에서 제어** — 한국어/영어 전환, 설정, 단축키 변경을 메뉴바 아이콘에서.
-- **단축키 선택** — Caps Lock / R-Option / R-Command / Shift+Space 중 선택 가능.
 
-한↔영 입력에만 집중합니다. 다른 언어, 군더더기 기능은 없습니다.
+한↔영 입력에만 집중합니다. 다른 언어 지원 및 다른 기능은 없습니다.
 
 ### 왜 만들었나
 
@@ -23,7 +22,7 @@ macOS Tahoe (26.x)는 한국어 사용자에게 두 가지 불편함이 있습�
 1. **한글 자모 조합이 때때로 깨짐** — `안녕` 입력 시 `ㅇㅏㄴ녕`처럼 개별 자모가 그대로 출력
 2. **Caps Lock 한/영 전환 불안정** — 전환이 가끔 실패
 
-하늘키보드는 전용 입력 소스를 통해 이 두 문제를 처음부터 끝까지 통제합니다.
+하늘키보드는 전용 입력 소스를 통해 이 두 문제를 처음부터 끝까지 통제하기 위해서 만들어졌습니다.
 
 ## 설치
 
@@ -47,7 +46,6 @@ macOS Tahoe (26.x)는 한국어 사용자에게 두 가지 불편함이 있습�
 - **Caps Lock** 짧게 누름 → 한/영 전환
 - **Caps Lock** 길게 (3초) 누름 → Caps Lock LED 토글 (대문자 모드)
 - 메뉴바 아이콘 → "한국어로 전환" / "영어로 전환" 클릭
-- 메뉴바 아이콘 → "설정..." → 단축키 변경 가능 (Caps Lock / R-Option / R-Command / Shift+Space)
 
 ## 요구사항
 
@@ -60,6 +58,7 @@ macOS Tahoe (26.x)는 한국어 사용자에게 두 가지 불편함이 있습�
 - **현재 두벌식만 지원** — 다른 자판(세벌식 등)이 필요하면 [Issues](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues)로 요청해주세요. 수요가 있으면 추가를 검토합니다.
 - **일부 사이트/앱에서 동작하지 않을 수 있음** — 애초에 자모 결합 입력을 지원하지 않는 특정 웹사이트/앱에서는 입력기 종류와 무관하게 입력이 깨질 수 있습니다.
 - 위와 같은 문제를 겪는 사이트/앱이 있다면 [Issues](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues)에 제보해주시면 큰 도움이 됩니다.
+- 지원되는 OS에서 광범위한 테스트가 필요합니다. 편하게 [Issues](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues)에 제보해주시면 개발에 큰 도움이 됩니다.
 
 ## 버전 체계
 
@@ -145,7 +144,6 @@ Named after my daughter, 하늘 (Haneul) — "sky" in Korean.
 - **Fast Korean/English switching** with Caps Lock (short press), using the system-native path for deterministic behavior.
 - **Caps Lock uppercase mode** with a long press (3s).
 - **Menu bar control** for language switching, settings, and shortcuts.
-- **Selectable shortcut**: Caps Lock / R-Option / R-Command / Shift+Space.
 
 Korean ↔ English input only. No other languages, no extra features.
 
