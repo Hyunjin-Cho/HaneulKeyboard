@@ -31,7 +31,7 @@ macOS Tahoe (26.x)는 한국어 사용자에게 두 가지 불편함이 있습�
 
 ### 설치 방법 (일반 사용자)
 
-1. `HaneulKeyboard.app.zip` 압축 풀고 `HaneulKeyboard.app`을 **응용 프로그램(`/Applications/`)** 폴더로 복사
+1. 다운로드한 `.zip` 압축 풀고 `HaneulKeyboard.app`을 **응용 프로그램(`/Applications/`)** 폴더로 복사
 2. `HaneulKeyboard.app` 더블클릭 → 메뉴바에 아이콘 표시
 3. 메뉴바 아이콘 → **"시작하기..."** → 4단계 온보딩 따라가기
    - 접근성 권한 부여 (단축키 가로채기용)
