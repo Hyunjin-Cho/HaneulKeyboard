@@ -1,0 +1,145 @@
+import SwiftUI
+
+struct OnboardingView: View {
+    @Bindable var core: AppCore
+    @AppStorage("haneul.hasCompletedOnboarding") private var hasCompleted = false
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var step: Int = 0
+    @State private var installError: Error?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            stepIndicator
+
+            Group {
+                switch step {
+                case 0: welcomeStep
+                case 1: imeStep
+                default: doneStep
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Spacer()
+
+            navigationButtons
+        }
+        .padding(24)
+        .frame(width: 540, height: 420)
+    }
+
+    private var stepIndicator: some View {
+        HStack(spacing: 6) {
+            ForEach(0..<3) { index in
+                Circle()
+                    .fill(index == step ? Color.accentColor : Color.secondary.opacity(0.3))
+                    .frame(width: 8, height: 8)
+            }
+            Spacer()
+            Text("단계 \(step + 1) / 3")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var navigationButtons: some View {
+        HStack {
+            if step > 0 && step < 2 {
+                Button("이전") { step -= 1 }
+            }
+            Spacer()
+            if step < 2 {
+                Button(step == 0 ? "시작" : "다음") { step += 1 }
+                    .keyboardShortcut(.defaultAction)
+            } else {
+                Button("완료") {
+                    hasCompleted = true
+                    dismiss()
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+    }
+
+    private var welcomeStep: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Image(systemName: "character.bubble")
+                .font(.system(size: 56))
+                .foregroundStyle(.tint)
+            Text("HaneulKeyboard")
+                .font(.title.bold())
+            Text("한글 자모 깨짐 방지를 위한 macOS 한국어 입력기")
+                .font(.body)
+            Text("2분이면 셋업 끝납니다.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var imeStep: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("1. 한글 입력기 (IME) 설치")
+                .font(.title2.bold())
+            Text("HaneulKeyboard 자체 한국어 입력기를 ~/Library/Input Methods/에 설치합니다. Caps Lock으로 한글/영어 모드를 전환할 수 있습니다.")
+                .font(.body)
+
+            if core.imeInstalled {
+                Label("IME 설치됨", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("다음 단계:")
+                        .font(.subheadline.bold())
+                    Text("• 시스템 설정 → 키보드 → 입력 소스 열기")
+                    Text("• \"+\" → \"한국어\" → \"HaneulKeyboard 한국어\" 추가")
+                    Text("• 기존 시스템 한국어 입력기 제거 권장")
+                }
+                .font(.caption)
+
+                Button("입력 소스 설정 열기") {
+                    IMEInstaller.openInputSourcesSettings()
+                }
+            } else {
+                if let installError {
+                    Text(installError.localizedDescription)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+                Button("IME 설치") {
+                    do {
+                        try IMEInstaller.install()
+                        core.refreshIMEStatus()
+                        installError = nil
+                    } catch {
+                        installError = error
+                    }
+                }
+                .controlSize(.large)
+            }
+        }
+    }
+
+    private var doneStep: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 56))
+                .foregroundStyle(.green)
+            Text("준비 완료")
+                .font(.title.bold())
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("• 메뉴바의 \"한\"/\"A\" 표시가 현재 입력 모드입니다.")
+                Text("• Caps Lock 짧게 누르면 한글/영어 모드가 전환됩니다.")
+                Text("• Caps Lock 길게 누르면 (1초 이상) 대문자 Caps Lock이 켜집니다.")
+                Text("• 시스템 설정에서 \"HaneulKeyboard 한국어\"를 입력 소스로 추가했는지 확인하세요.")
+            }
+            .font(.body)
+
+            Text("작은 앱이지만 정성껏 만들었어요. 좋은 입력 경험 보내세요.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .padding(.top, 8)
+        }
+    }
+}

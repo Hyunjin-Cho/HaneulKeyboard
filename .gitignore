@@ -1,0 +1,41 @@
+# macOS
+.DS_Store
+
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# Personal
+.env
+*.local
+.claude/settings.local.json
+.claude/settings.json
+
+# Code signing — never commit private keys / certs
+*.p12
+*.key
+*.cer
+*.crt
+*.pem
+*.mobileprovision
+
+# XcodeGen output (regenerated from project.yml)
+*.xcodeproj
+Generated/
+
+# Local-only reference materials (fetched from open-source IMEs)
+references/
+
+# Internal dev notes — contain machine paths / cert info; keep local only, not for public repo
+CLAUDE.md
+WORKLOG.md

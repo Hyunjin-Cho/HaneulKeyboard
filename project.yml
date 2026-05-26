@@ -1,0 +1,111 @@
+name: HaneulKeyboard
+options:
+  bundleIdPrefix: com.hyunjincho
+  createIntermediateGroups: true
+  deploymentTarget:
+    macOS: "14.0"
+
+settings:
+  base:
+    MARKETING_VERSION: "0.9.3"
+    CURRENT_PROJECT_VERSION: "24"
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "Developer ID Application: Hyunjin Cho (6RH6FXY82P)"
+    DEVELOPMENT_TEAM: 6RH6FXY82P
+    CODE_SIGNING_REQUIRED: "YES"
+    ENABLE_HARDENED_RUNTIME: "YES"
+    OTHER_CODE_SIGN_FLAGS: "--timestamp"
+
+targets:
+  HaneulKeyboard:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Sources
+      - path: Resources/AppIcon.icns
+        buildPhase: resources
+    dependencies:
+      - target: HaneulKeyboardIM
+        embed: false
+    postBuildScripts:
+      - name: "Embed HaneulKeyboardIM into Contents/Helpers"
+        outputFiles:
+          - $(TARGET_BUILD_DIR)/$(CONTENTS_FOLDER_PATH)/Helpers/HaneulKeyboardIM.app
+        script: |
+          set -e
+          HELPERS_DIR="${TARGET_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Helpers"
+          mkdir -p "$HELPERS_DIR"
+          SRC="${BUILT_PRODUCTS_DIR}/HaneulKeyboardIM.app"
+          if [ -d "$SRC" ]; then
+            rm -rf "$HELPERS_DIR/HaneulKeyboardIM.app"
+            cp -R "$SRC" "$HELPERS_DIR/"
+            echo "Embedded HaneulKeyboardIM.app → $HELPERS_DIR/"
+          else
+            echo "WARN: HaneulKeyboardIM.app not found at $SRC"
+          fi
+    info:
+      path: Generated/Info.plist
+      properties:
+        LSUIElement: true
+        CFBundleIconFile: AppIcon
+        CFBundleName: HaneulKeyboard
+        CFBundleDisplayName: HaneulKeyboard
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSHumanReadableCopyright: "Copyright (c) 2026 Hyunjin Cho"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.hyunjincho.haneulkeyboard
+        CODE_SIGN_ENTITLEMENTS: HaneulKeyboard.entitlements
+
+  HaneulKeyboardIM:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: IMESources
+      - path: Resources/IM
+        buildPhase: resources
+    info:
+      path: Generated/IMInfo.plist
+      properties:
+        LSBackgroundOnly: true
+        LSUIElement: true
+        CFBundleName: HaneulKeyboardIM
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSHumanReadableCopyright: "Copyright (c) 2026 Hyunjin Cho"
+        NSPrincipalClass: NSApplication
+        InputMethodConnectionName: com.hyunjincho.inputmethod.haneul_Connection
+        InputMethodServerControllerClass: HaneulInputController
+        TISIntendedLanguage: ko
+        TICapsLockLanguageSwitchCapable: true
+        TISIconIsTemplate: true
+        tsInputMethodIconFileKey: haneul.png
+        tsInputMethodCharacterRepertoireKey:
+          - Hang
+          - Kore
+        ComponentInputModeDict:
+          tsInputModeListKey:
+            com.hyunjincho.inputmethod.haneul.korean:
+              TISInputSourceID: com.hyunjincho.inputmethod.haneul.korean
+              TISIntendedLanguage: ko
+              TISIconLabels:
+                Primary: 하늘
+              KeyboardLayout: com.apple.inputmethod.Korean.2SetKorean
+              tsInputModeScriptKey: smKorean
+              tsInputModePrimaryInScriptKey: true
+              tsInputModeIsVisibleKey: true
+              tsInputModeDefaultStateKey: true
+              tsInputModeJISKeyboardShortcutKey: 0
+              tsInputModeMenuIconFileKey: haneul.png
+              tsInputModeAlternateMenuIconFileKey: haneul.png
+              tsInputModePaletteIconFileKey: haneul.png
+          tsVisibleInputModeOrderedArrayKey:
+            - com.hyunjincho.inputmethod.haneul.korean
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.hyunjincho.inputmethod.haneul
+        CODE_SIGN_ENTITLEMENTS: HaneulKeyboardIM.entitlements
+
