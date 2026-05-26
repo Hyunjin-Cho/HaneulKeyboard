@@ -123,7 +123,7 @@ MIT License — 자유롭게 사용, 수정, 배포하세요. 자세한 내용�
 - **[McBopomofo](https://github.com/openvanilla/McBopomofo)** (OpenVanilla, MIT) — IME의 TIS(Text Input Services) 등록·설치 패턴에 큰 도움을 받았습니다.
 - **[Claude](https://claude.com/claude-code)** (Anthropic) — 개발 과정에 함께했습니다.
 
-그리고 이 모든 것을 가능케 한, 인류가 쌓아 올린 오픈소스와 지식에 감사합니다. 전체 감사의 글은 [`ACKNOWLEDGEMENTS.md`](./ACKNOWLEDGEMENTS.md)를 참고하세요.
+그리고 이 모든 것을 가능케 한, 인류가 쌓아 올린 오픈소스와 지식에 감사합니다. 전체 내용은 [감사의 글](./ACKNOWLEDGEMENTS.md)을 참고하세요.
 
 ## 제보 / 기여
 
@@ -167,7 +167,7 @@ MIT. See [`LICENSE`](./LICENSE).
 
 ## Acknowledgements
 
-Built on the shoulders of open source — gratitude to [McBopomofo](https://github.com/openvanilla/McBopomofo) (TIS registration patterns), [Claude](https://claude.com/claude-code) (development), and the wider body of human knowledge. See [`ACKNOWLEDGEMENTS.md`](./ACKNOWLEDGEMENTS.md).
+Built on the shoulders of open source — gratitude to [McBopomofo](https://github.com/openvanilla/McBopomofo) (TIS registration patterns), [Claude](https://claude.com/claude-code) (development), and the wider body of human knowledge. See [Acknowledgements](./ACKNOWLEDGEMENTS.md).
 
 ## Feedback
 
