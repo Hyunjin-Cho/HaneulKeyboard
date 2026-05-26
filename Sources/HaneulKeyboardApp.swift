@@ -40,7 +40,7 @@ private struct HaneulMenu: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        Text("HaneulKeyboard 0.1")
+        Text("HaneulKeyboard \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")")
         Text(core.isKoreanActive ? "현재: 한국어" : "현재: 영어")
             .font(.caption)
 

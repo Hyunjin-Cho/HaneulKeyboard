@@ -63,12 +63,12 @@ macOS Tahoe (26.x)는 한국어 사용자에게 두 가지 불편함이 있습�
 
 ## 버전 체계
 
-하늘키보드는 **CalVer(Calendar Versioning)** 를 따릅니다: `연도.월[.핫픽스]`
+하늘키보드는 **CalVer(Calendar Versioning)** 를 따릅니다: `연도.릴리스[.핫픽스]`
 
-- `2026.02` — 2026년 2월 릴리스
-- `2026.02.01`, `2026.02.02` … — 같은 달 릴리스의 **핫픽스(긴급 수정)**. 세 번째 세그먼트가 핫픽스 번호입니다.
+- `2026.01`, `2026.02`, `2026.03` … — `2026`은 **연도**, 두 번째 칸은 **그 해의 릴리스 순번**입니다(달력의 월과 무관). 2026년 첫 릴리스가 `2026.01`, 두 번째가 `2026.02`.
+- `2026.02.01`, `2026.02.02` … — **핫픽스(긴급 수정)가 있을 때만** 세 번째 칸을 덧붙입니다. 예) `2026.02` 출시 후 버그 수정본이 `2026.02.01`.
 
-> 점으로 나뉜 각 칸은 독립된 정수이며 소수가 아닙니다. 예) `2026.02.10`이 `2026.02.9`보다 최신입니다.
+> 점으로 나뉜 각 칸은 독립된 정수이며 소수점이 아닙니다. 예) `2026.02.10`이 `2026.02.9`보다 최신입니다.
 
 ## 개발자용 빌드
 
@@ -159,7 +159,7 @@ macOS Sonoma (14.0) or later. Both Apple Silicon and Intel.
 
 ## Versioning
 
-CalVer: `YEAR.MONTH[.HOTFIX]` (e.g. `2026.02`, then `2026.02.01` for hotfixes). Each dot-separated field is an independent integer, not a decimal.
+CalVer: `YEAR.RELEASE[.HOTFIX]`. The second field is the release number within the year (not the calendar month): `2026.01`, `2026.02`, `2026.03` … A third field is added only for hotfixes (e.g. `2026.02.01`). Each dot-separated field is an independent integer, not a decimal.
 
 ## License
 

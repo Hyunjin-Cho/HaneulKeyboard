@@ -7,7 +7,7 @@ options:
 
 settings:
   base:
-    MARKETING_VERSION: "0.9.3"
+    MARKETING_VERSION: "2026.01"
     CURRENT_PROJECT_VERSION: "24"
     CODE_SIGN_STYLE: Manual
     CODE_SIGN_IDENTITY: "Developer ID Application: Hyunjin Cho (6RH6FXY82P)"

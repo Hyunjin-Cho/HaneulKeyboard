@@ -45,7 +45,7 @@ struct OnboardingView: View {
 
     private var navigationButtons: some View {
         HStack {
-            if step > 0 && step < 2 {
+            if step > 0 {
                 Button("이전") { step -= 1 }
             }
             Spacer()
@@ -71,9 +71,6 @@ struct OnboardingView: View {
                 .font(.title.bold())
             Text("한글 자모 깨짐 방지를 위한 macOS 한국어 입력기")
                 .font(.body)
-            Text("2분이면 셋업 끝납니다.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
         }
     }
 
@@ -133,10 +130,13 @@ struct OnboardingView: View {
                 Text("• Caps Lock 짧게 누르면 한글/영어 모드가 전환됩니다.")
                 Text("• Caps Lock 길게 누르면 (1초 이상) 대문자 Caps Lock이 켜집니다.")
                 Text("• 시스템 설정에서 \"HaneulKeyboard 한국어\"를 입력 소스로 추가했는지 확인하세요.")
+                Text("• 입력 소스에서 기존 \"두벌식\"은 제거해주세요. (자모 깨짐 방지)")
+                Text("• 앱이 안 보이면 런치패드에서 \"haneulkeyboard\"로 검색할 수 있습니다.")
+                Text("• 입력 소스가 확실히 적용되려면 한 번 재부팅하는 것을 권장합니다.")
             }
             .font(.body)
 
-            Text("작은 앱이지만 정성껏 만들었어요. 좋은 입력 경험 보내세요.")
+            Text("여러분의 생산성에 도움이 되었으면 합니다. 많이 이용해주세요.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .padding(.top, 8)

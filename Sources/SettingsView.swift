@@ -21,6 +21,10 @@ struct SettingsView: View {
                     }
                     .font(.caption)
 
+                    Text("정상적으로 설치됐다면, 시스템 입력 소스에서 기존 \"두벌식\"은 제거하세요. (자모 깨짐 방지)")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+
                     HStack {
                         Button("입력 소스 설정 열기") {
                             IMEInstaller.openInputSourcesSettings()
@@ -64,10 +68,8 @@ struct SettingsView: View {
                 }
             }
 
-            Section("위험 영역") {
+            Section("전체 제거") {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("전체 제거")
-                        .font(.subheadline.bold())
                     Text("HaneulKeyboard와 관련된 모든 파일·설정을 정리합니다.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
