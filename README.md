@@ -10,7 +10,7 @@
 
 - **안정적인 한글 조합** — 전용 입력 소스로 자모 깨짐 없이 한글을 조합합니다.
 - **빠른 한/영 전환** — Caps Lock(짧게)으로 즉시 전환. 시스템 native 경로를 사용해 결정적으로 동작합니다.
-- **Caps Lock 대문자 모드** — Caps Lock 길게(3초)로 LED 토글(대문자 모드).
+- **Caps Lock 대문자 모드** — Caps Lock 길게 LED 토글(대문자 모드).
 - **메뉴바에서 제어** — 한국어/영어 전환, 설정, 단축키 변경을 메뉴바 아이콘에서.
 
 한↔영 입력에만 집중합니다. 다른 언어 지원 및 다른 기능은 없습니다.
@@ -44,7 +44,7 @@ macOS Tahoe (26.x)는 한국어 사용자에게 두 가지 불편함이 있습�
 ## 사용법
 
 - **Caps Lock** 짧게 누름 → 한/영 전환
-- **Caps Lock** 길게 (3초) 누름 → Caps Lock LED 토글 (대문자 모드)
+- **Caps Lock** 길게 누름 → Caps Lock LED 토글 (대문자 모드)
 - 메뉴바 아이콘 → "한국어로 전환" / "영어로 전환" 클릭
 
 ## 요구사항
@@ -142,7 +142,7 @@ Named after my daughter, 하늘 (Haneul) — "sky" in Korean.
 
 - **Reliable Hangul composition** via a dedicated input source — no broken jamo.
 - **Fast Korean/English switching** with Caps Lock (short press), using the system-native path for deterministic behavior.
-- **Caps Lock uppercase mode** with a long press (3s).
+- **Caps Lock uppercase mode** with a long press.
 - **Menu bar control** for language switching, settings, and shortcuts.
 
 Korean ↔ English input only. No other languages, no extra features.
