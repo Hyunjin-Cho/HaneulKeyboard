@@ -81,6 +81,19 @@ func typePassive(_ keys: String) -> FakeClient {
     return client
 }
 
+/// Types words separated by space boundaries through ONE composer, so the
+/// English-context rule (직전 단어가 영어) can carry across words.
+func typeWords(_ words: [String]) -> [String] {
+    let client = FakeClient()
+    let composer = KoreanComposer()
+    var committed: [String] = []
+    for w in words {
+        for ch in w { _ = composer.handleInput(String(ch), client: client) }
+        committed.append(composer.commit(to: client, convertEnglish: true))
+    }
+    return committed
+}
+
 // MARK: - Tests
 
 @main
@@ -90,7 +103,12 @@ struct ComposerTests {
         // Must be set before the first shouldConvert call (lazy load).
         let supplementPath = NSTemporaryDirectory() + "haneul_test_supplement.txt"
         try? "google\ngithub\n".write(toFile: supplementPath, atomically: true, encoding: .utf8)
-        EnglishDetector.wordlistPaths = ["/usr/share/dict/words", supplementPath]
+        // 실제 번들 보충 사전도 포함 (xcode/kpop 등) — 테스트는 repo 루트에서 실행됨
+        EnglishDetector.wordlistPaths = [
+            "/usr/share/dict/words",
+            "Resources/IM/english_supplement.txt",
+            supplementPath,
+        ]
 
         // Hangul composition (regression — must match pre-word-buffer behavior)
         expect(type("dkssud").committedText, "안녕", "basic 안녕")
@@ -159,7 +177,10 @@ struct ComposerTests {
         expect(type("gee").committedText, "ㅎㄷㄷ", "consonant-only slang ㅎㄷㄷ untouched")
         expect(type("aw").committedText, "ㅁㅈ", "2-key slang ㅁㅈ untouched")
         expect(type("hi").committedText, "ㅗㅑ", "2-key vowel slang ㅗㅑ untouched")
-        expect(type("ml").committedText, "ㅢ", "standalone ㅢ untouched")
+        // ㅢ(ml)/ㅐㅏ(ok)는 흔한 자모 슬랭 → 무맥락 유지, 영어 문맥서만 변환
+        expect(type("ml").committedText, "ㅢ", "ml: 무맥락 슬랭 ㅢ 보호")
+        expect(type("ok").committedText, "ㅐㅏ", "ok: 무맥락 슬랭 ㅐㅏ 보호")
+        expect(typeWords(["want", "ml"]).last ?? "", "ml", "ml: 영어 문맥서만 변환")
         // (the composer assembles these as ㅡ므/ㅜ무/ㅠ뮤 — same as Apple's
         // IME; the point is the V-C-V palindrome guard blocks conversion)
         expect(type("mam").committedText, "ㅡ므", "kaomoji keys mam not converted")
@@ -180,6 +201,112 @@ struct ComposerTests {
         // they must commit exactly the marked text the user saw.
         expect(typePassive("apple").committedText, "메ㅔㅣㄷ", "passive boundary commits as displayed")
         expect(typePassive("dkssud").committedText, "안녕", "passive boundary commits hangul")
+
+        // ── 영타 v2: 사용자 조건식 (2026-06-06) ──
+
+        // 조건 1: 자음보다 모음이 먼저 = 잘못된 한국어
+        expect(type("i").committedText, "i", "조건1: ㅑ → i")
+        expect(type("md").committedText, "md", "조건1: ㅡㅇ → md")
+        expect(type("email").committedText, "email", "조건1: 모음시작 email")
+
+        // 조건 7: 조합 안 되는 모음 연속 = 영어 / 복모음은 한글
+        expect(type("ui").committedText, "ui", "조건7: ㅕㅑ → ui")
+        expect(type("dml").committedText, "의", "조건7 예외: 의")
+        expect(type("dhk").committedText, "와", "조건7 예외: 와")
+        expect(type("dho").committedText, "왜", "조건7 예외: 왜")
+
+        // 조건 2·5: 직전 단어가 영어면 새→to, ㅁ→a, 무→an
+        expect(typeWords(["want", "to"]).joined(separator: " "), "want to", "조건2: 영어 뒤 새 → to")
+        expect(type("to").committedText, "새", "조건2: 문맥 없으면 새 유지")
+        expect(typeWords(["want", "a"]).last ?? "", "a", "조건5: 영어 뒤 ㅁ → a")
+        expect(type("a").committedText, "ㅁ", "조건5: 문맥 없으면 ㅁ 유지")
+        expect(typeWords(["want", "an"]).last ?? "", "an", "조건5: 영어 뒤 무 → an")
+        expect(
+            typeWords(["i", "want", "to", "make", "a", "keyboard"]).joined(separator: " "),
+            "i want to make a keyboard",
+            "조건2: 문장 전체"
+        )
+
+        // 문맥 리셋: 마침표/엔터/클릭 뒤에는 영어 문맥이 끊긴다
+        do {
+            let client = FakeClient()
+            let composer = KoreanComposer()
+            for ch in "want" { _ = composer.handleInput(String(ch), client: client) }
+            _ = composer.commit(to: client, convertEnglish: true) // "want"
+            composer.resetEnglishContext() // controller가 비공백 경계에서 호출
+            for ch in "to" { _ = composer.handleInput(String(ch), client: client) }
+            expect(composer.commit(to: client, convertEnglish: true), "새", "문맥 리셋 후 새 유지")
+        }
+
+        // 조건 3: 한국어에 실존하지 않는 음절 (솓 ∉ KS X 1001)
+        expect(type("the").committedText, "the", "조건3: 솓 → the")
+
+        // 조건 6: 자음 연속 = 영어 / ㄺ·ㄼ·ㅀ 받침 조합은 한글
+        expect(type("xcode").committedText, "xcode", "조건6: ㅌ챙ㄷ → xcode")
+        expect(type("rmfrek").committedText, "긁다", "조건6 예외: ㄺ 받침")
+        expect(type("Wkfqek").committedText, "짧다", "조건6 예외: ㄼ 받침")
+        expect(type("tlfgek").committedText, "싫다", "조건6 예외: ㅀ 받침")
+
+        // 조건 9 + 추가 사전
+        expect(type("kpop").committedText, "kpop", "조건9: kpop")
+        expect(type("opus").committedText, "opus", "opus")
+        expect(type("readme").committedText, "readme", "조건4: readme")
+
+        // R2는 화이트리스트 전용 (web2 확장은 좀/책/형 파괴 → 되돌림).
+        // 흔한 한국어 보호: 영어 뒤라도 clean Hangul 단어는 안 건드림.
+        expect(typeWords(["good", "wha"]).last ?? "", "좀", "R2 보호: good 뒤 좀 유지")
+        expect(typeWords(["want", "gud"]).last ?? "", "형", "R2 보호: want 뒤 형 유지")
+        expect(typeWords(["really", "cor"]).last ?? "", "책", "R2 보호: really 뒤 책 유지")
+        // 한계 명시: 문장 첫 clean 단어(며새=auto)는 문맥이 없어 유지
+        expect(
+            typeWords(["auto", "mode", "on"]).joined(separator: " "),
+            "며새 mode on",
+            "한계: 문장 첫 clean 단어 며새는 유지 (mode/on은 변환)"
+        )
+
+        // R2 호모그래프 보호 (라운드2): 해/내/애는 영어 뒤에서도 한글 유지
+        expect(typeWords(["apple", "go"]).last ?? "", "해", "R2 보호: apple 뒤 해 유지 (go 아님)")
+        expect(typeWords(["apple", "so"]).last ?? "", "내", "R2 보호: apple 뒤 내 유지 (so 아님)")
+        expect(typeWords(["apple", "do"]).last ?? "", "애", "R2 보호: apple 뒤 애 유지 (do 아님)")
+        // 체이닝 방지: 새→to(문맥-only)는 다음 단어에 영어 문맥을 넘기지 않음
+        expect(
+            typeWords(["git", "to", "go"]).joined(separator: " "),
+            "git to 해",
+            "체이닝 방지: 새→to 뒤 해는 유지"
+        )
+        // R3 슬랭 보호: 햏(아햏햏 문화)은 변환 안 됨
+        expect(type("gog").committedText, "햏", "R3 보호: 햏 → gog 아님")
+
+        // 조건 11: 멀쩡히 조합된 한글이어도 키가 긴 영어 단어면 영어 (curated only)
+        expect(type("entitlement").committedText, "entitlement", "조건11: 두샤시드둣 → entitlement")
+        expect(type("visual").committedText, "visual", "조건8/11: 퍄녀미 → visual")
+        // 조건 11 가드: 진짜 긴 한국어는 안 건드림 (키 시퀀스가 영어가 아님)
+        expect(type("rkatkgkqslek").committedText, "감사합니다", "조건11 가드: 감사합니다 유지")
+        expect(type("tkfkdgo").committedText, "사랑해", "조건11 가드: 사랑해 유지")
+
+        // 조건 10: 깨진 자모 고유명사는 MAIN(사전)이 잡음 — moran은 supplement
+        expect(type("moran").committedText, "moran", "조건10: ㅡㅐㄱ무 → moran")
+
+        // 슬랭 보호 (R4 제거): 초성체+음절 슬랭은 사전에 없어 변환 안 됨
+        expect(type("drfddla").committedText, "ㅇㄱㄹㅇ임", "슬랭 보호: ㅇㄱㄹㅇ임")
+        expect(type("dkzzzfd").committedText, "앜ㅋㅋㄹㅇ", "슬랭 보호: 아ㅋㅋㄹㅇ")
+        expect(type("gjffdzz").committedText, "헐ㄹㅇㅋㅋ", "슬랭 보호: 헐ㄹㅇㅋㅋ")
+        expect(type("sdranjdi").committedText, "ㄴㅇㄱ뭐야", "슬랭 보호: ㄴㅇㄱ뭐야")
+
+        // 백스페이스 후 재변환 루프 방지: 영어 문맥은 커밋텍스트 삭제 시 끊김
+        do {
+            let client = FakeClient()
+            let composer = KoreanComposer()
+            for ch in "want" { _ = composer.handleInput(String(ch), client: client) }
+            _ = composer.commit(to: client, convertEnglish: true) // want, 문맥 ON
+            composer.resetEnglishContext()                         // controller가 backspace 시 호출
+            for ch in "to" { _ = composer.handleInput(String(ch), client: client) }
+            expect(composer.commit(to: client, convertEnglish: true), "새", "백스페이스 리셋 후 새 유지")
+        }
+
+        // 보호 유지: 영어 문맥이 일반 한글을 건드리면 안 됨
+        expect(typeWords(["apple", "rkwk"]).last ?? "", "가자", "문맥 룰이 일반 한글 안 건드림")
+        expect(typeWords(["lol", "bb"]).last ?? "", "ㅠㅠ", "문맥 + 동일키 ㅠㅠ 보호")
 
         // Detector unit tests
         expect(EnglishDetector.shouldConvert(units: ["메", "ㅔ", "ㅣ", "ㄷ"], keys: Array("apple")), true, "detector: apple")

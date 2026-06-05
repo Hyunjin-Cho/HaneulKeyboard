@@ -148,3 +148,14 @@ zip
 readme
 changelog
 todo
+xcode
+vscode
+kpop
+visual
+opus
+npm
+has
+moran
+entitlement
+keyboard
+email

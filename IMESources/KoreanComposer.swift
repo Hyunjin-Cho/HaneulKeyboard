@@ -23,6 +23,16 @@ final class KoreanComposer {
     /// buffering itself is always on.
     var autoEnglishEnabled = true
 
+    /// True when the most recent non-empty commit was English (ASCII
+    /// letters). Feeds EnglishDetector's context rule (사용자 조건 2·5:
+    /// "I want to ..."에서 새→to). The controller resets it on boundaries
+    /// that end the English run (enter/punctuation/focus change).
+    private(set) var lastCommitWasEnglish = false
+
+    func resetEnglishContext() {
+        lastCommitWasEnglish = false
+    }
+
     private var buffer = SyllableBuffer()
     /// Completed units (syllables or standalone jamo) of the current word,
     /// each paired with the keystrokes that produced it.
@@ -55,6 +65,7 @@ final class KoreanComposer {
             let hangul = wordText()
             if !hangul.isEmpty { client.insertText(hangul) }
             word = []
+            lastCommitWasEnglish = false // spill emits Hangul — breaks English context
         }
 
         refreshMarkedText(client: client)
@@ -82,17 +93,30 @@ final class KoreanComposer {
 
         let committed: String
         let keys = word.flatMap(\.keys)
+        let units = word.map(\.text)
         // Conversion may only fire when EVERY unit carries the keys that
         // produced it — an accepted suggestion's units have empty keys, and
         // converting then would commit text that differs from (and drops
         // part of) the marked text the user saw.
         if convertEnglish, autoEnglishEnabled,
            word.allSatisfy({ !$0.keys.isEmpty }),
-           EnglishDetector.shouldConvert(units: word.map(\.text), keys: keys) {
+           EnglishDetector.shouldConvert(
+               units: units,
+               keys: keys,
+               previousWordWasEnglish: lastCommitWasEnglish
+           ) {
             committed = String(keys)
         } else {
             committed = hangul
         }
+        // English context for the NEXT word is carried only by words that are
+        // English on their own structural evidence (real English words) —
+        // never by a clean-Hangul word that converted SOLELY because of
+        // context (새→to). Otherwise a single English word would chain-convert
+        // a whole run of common Korean monosyllables (해/내/애).
+        let isAscii = committed.allSatisfy { $0.isASCII && $0.isLetter }
+        lastCommitWasEnglish = isAscii &&
+            EnglishDetector.shouldConvert(units: units, keys: keys, previousWordWasEnglish: false)
         client.insertText(committed)
         client.setMarkedText("")
         return committed
