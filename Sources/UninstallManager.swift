@@ -111,6 +111,18 @@ enum Uninstaller {
                 suite.removeObject(forKey: key)
             }
         }
+        // The IME helper has its own defaults domain (separate process,
+        // separate bundle id) — clear its haneul.* keys too.
+        if let imeSuite = UserDefaults(suiteName: bundleID) {
+            for key in imeSuite.dictionaryRepresentation().keys where key.hasPrefix("haneul.") {
+                imeSuite.removeObject(forKey: key)
+            }
+        }
+        // Learned prediction data (word frequencies) lives in Application
+        // Support — PRIVACY.md promises 전체 제거 deletes it.
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("HaneulKeyboard")
+        try? FileManager.default.removeItem(at: appSupport)
         return true
     }
 

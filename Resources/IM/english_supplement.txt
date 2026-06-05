@@ -145,3 +145,6 @@ gif
 mp3
 mp4
 zip
+readme
+changelog
+todo

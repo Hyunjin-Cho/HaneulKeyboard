@@ -12,6 +12,10 @@ struct SettingsView: View {
     private static let imeDefaults = UserDefaults(suiteName: "com.hyunjincho.inputmethod.haneul")
     @State private var autoEnglishEnabled: Bool =
         SettingsView.imeDefaults?.object(forKey: "haneul.autoEnglishEnabled") as? Bool ?? true
+    @State private var predictionEnabled: Bool =
+        SettingsView.imeDefaults?.object(forKey: "haneul.predictionEnabled") as? Bool ?? true
+    @State private var showingClearDataConfirm = false
+    @State private var didClearData = false
 
     var body: some View {
         Form {
@@ -76,6 +80,25 @@ struct SettingsView: View {
                 Text("한글 모드에서 영어 단어를 치면 (예: \"메ㅔㅣㄷ\") 스페이스를 누를 때 자동으로 영어(\"apple\")로 바꿔줍니다. 올바른 한글과 ㅋㅋㅋ 같은 자모는 건드리지 않습니다.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
+                Toggle("예측 입력 (자동완성)", isOn: $predictionEnabled)
+                    .onChange(of: predictionEnabled) { _, newValue in
+                        Self.imeDefaults?.set(newValue, forKey: "haneul.predictionEnabled")
+                    }
+                Text("자주 쓰는 한글 단어를 학습해 커서 옆에 연하게 제안합니다. Tab으로 완성. 학습 데이터(한글 단어·빈도)는 이 기기 안에만 저장됩니다 — PRIVACY.md 참조.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                HStack {
+                    Button("학습 데이터 삭제...", role: .destructive) {
+                        showingClearDataConfirm = true
+                    }
+                    if didClearData {
+                        Text("삭제됨")
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                    }
+                }
             }
 
             Section("상태") {
@@ -102,6 +125,20 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .frame(width: 580, height: 600)
+        .alert("학습 데이터를 삭제할까요?", isPresented: $showingClearDataConfirm) {
+            Button("취소", role: .cancel) { }
+            Button("삭제", role: .destructive) {
+                // 파일 삭제 + IME 프로세스의 메모리 사본은 다음 활성화 때
+                // 이 플래그를 보고 비움 (HaneulInputController.activateServer).
+                let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+                    .appendingPathComponent("HaneulKeyboard")
+                try? FileManager.default.removeItem(at: dir)
+                Self.imeDefaults?.set(true, forKey: "haneul.clearLearnedData")
+                didClearData = true
+            }
+        } message: {
+            Text("지금까지 학습한 한글 단어·빈도 기록을 모두 지웁니다. 예측 제안은 다시 처음부터 학습합니다.")
+        }
         .alert("정말 제거하시겠어요?", isPresented: $showingUninstallConfirm) {
             Button("취소", role: .cancel) { }
             Button("제거", role: .destructive) {
