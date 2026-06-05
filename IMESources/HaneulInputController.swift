@@ -65,6 +65,7 @@ final class HaneulInputController: IMKInputController {
         // it deadlocks Chromium-based apps. Defaults reads only.
         composer.autoEnglishEnabled =
             UserDefaults.standard.object(forKey: "haneul.autoEnglishEnabled") as? Bool ?? true
+        composer.resetEnglishContext() // 새 필드/앱 — 영어 문맥은 이어지지 않음
         // 메모리에 남은 학습 데이터 사본까지 비운다 (쓰기 경로들도 같은
         // 훅을 확인하므로 여기서는 즉시성 확보용).
         Self.wordStore.consumeClearRequestIfAny()
@@ -91,6 +92,7 @@ final class HaneulInputController: IMKInputController {
         guard let client = sender as? IMKTextInput else { return }
         Self.suggestionPanel.hide()
         composer.commit(to: IMKComposerClient(client: client))
+        composer.resetEnglishContext() // 클릭/포커스 이동 = 문맥 단절
     }
 
     private func learnIfEnabled(_ word: String) {
@@ -139,6 +141,12 @@ final class HaneulInputController: IMKInputController {
 
         if event.keyCode == 51 {
             let handled = composer.deleteBackward(client: composerClient)
+            // Backspace into already-committed text (composer absorbed
+            // nothing) breaks any English run — otherwise a wrongly-converted
+            // word (새→to) can't be fixed by delete+retype (it re-converts).
+            if !handled {
+                composer.resetEnglishContext()
+            }
             refreshSuggestion(client: client)
             return handled
         }
@@ -148,6 +156,7 @@ final class HaneulInputController: IMKInputController {
            || mods.contains(.function) {
             Self.suggestionPanel.hide()
             composer.commit(to: composerClient) // passive: 학습 안 함
+            composer.resetEnglishContext()      // 커서 이동/단축키 = 문맥 단절
             return false
         }
 
@@ -193,6 +202,12 @@ final class HaneulInputController: IMKInputController {
         composer.autoEnglishEnabled =
             UserDefaults.standard.object(forKey: "haneul.autoEnglishEnabled") as? Bool ?? true
         learnIfEnabled(composer.commit(to: composerClient, convertEnglish: true))
+        // 영어 문맥("I want to...")은 스페이스/쉼표로만 이어진다 — 마침표·
+        // 엔터·기타 문자는 문장 단절로 보고 리셋 ("Nice. 새로운" 보호).
+        let boundary = event.charactersIgnoringModifiers?.first
+        if boundary != " " && boundary != "," {
+            composer.resetEnglishContext()
+        }
         return false
     }
 }

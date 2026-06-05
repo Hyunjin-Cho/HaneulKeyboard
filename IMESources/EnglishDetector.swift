@@ -1,27 +1,40 @@
 import Foundation
+import CoreFoundation
 
 /// Decides, at word-commit time, whether the word typed in Korean mode was
 /// actually an English word typed without switching layouts (메ㅔㅣㄷ ← "apple").
 ///
-/// Conservative by design — conversion only fires when ALL of these hold:
-///   1. at least 3 keystrokes (2-letter dictionary words like "hi"/"re"
-///      collide with everyday jamo slang: ㅗㅑ, ㅐㅏ, ㅂㄱ, ㅢ...),
-///   2. the keystrokes are not a single repeated key (ㅋㅋㅋ / ㅠㅠ / zzz),
-///   3. at least one key maps to a Korean vowel — jamo initialisms
-///      (ㅎㄷㄷ, ㅁㅊㄷ, ㄴㅇㄱ) are consonant-keys-only, while real
-///      wrong-layout English essentially always touches a vowel key,
-///   4. not a vowel-consonant-vowel palindrome (kaomoji: ㅡㅁㅡ, ㅜㅁㅜ, ㅠㅁㅠ),
-///   5. the composed result contains standalone jamo, i.e. it is already
-///      broken as Korean (valid Hangul is never touched), and
-///   6. the raw keystrokes spell a known English word (exact hit or a light
-///      plural/past/-ing inflection of one).
+/// CORE PRINCIPLE (validated by adversarial review): cleanly composed,
+/// real-Korean-shaped Hangul is indistinguishable from genuine Korean by
+/// structure alone — 며새(auto) and 모든(ahems) look identical to the code.
+/// So clean Hangul may convert ONLY via narrow, low-collision channels:
+///   - a CURATED common-English wordlist (R5), never raw /usr/share/dict, or
+///   - an explicit English typing context (R2), whitelist-gated.
+/// Everything broken-as-Korean (standalone jamo, non-existent syllables) is
+/// safe to match against the full dictionary, because the breakage itself
+/// proves it was never valid Korean.
 ///
-/// No data is stored or learned; the wordlist is read-only reference data.
+/// Rules (all behind shared guards — same-key runs ㅋㅋㅋ/ㅠㅠ, V-C-V
+/// kaomoji ㅡㅁㅡ):
+///   MAIN — standalone jamo + ≥3 keys + vowel key + dict hit (메ㅔㅣㄷ←apple,
+///          and broken proper nouns ㅡㅐㄱ무←moran via the bundled list).
+///   R1   — starts with a standalone VOWEL (조건 1: 자음보다 모음이 먼저 =
+///          한국어 불가, ㅑ→i). shortWords (excl. context-only) or dict.
+///   R3   — contains a syllable not in KS X 1001 완성형 (조건 3: 솓←the).
+///          EUC-KR encodability = membership; no data file needed.
+///   R5   — ≥6 keys AND a CURATED common-English hit (조건 8·11: 퍄녀미←
+///          visual, 두샤시드둣←entitlement). Curated list only, so obscure
+///          web2 collisions (야구인=dirndls, 힘찬=glacks) never fire.
+///   R2   — previous committed word was English (조건 2·5: 새→to, ㅁ→a).
+///          The only rule converting clean Hangul on context — whitelist
+///          ONLY, since web2 collides with 좀/책/형/곧.
+///
+/// No data is stored or learned; wordlists are read-only reference data.
 enum EnglishDetector {
     /// Wordlist sources, merged in order. Overridable for tests — must be
-    /// set before the first `shouldConvert` call (the set loads lazily once).
-    /// `/usr/share/dict/words` ships with macOS but is a 1934 vintage list,
-    /// so a bundled supplement covers modern/tech vocabulary.
+    /// set before the first lookup (the sets load lazily once).
+    /// `/usr/share/dict/words` is the broad list (broken-as-Korean rules);
+    /// the rest are CURATED supplements (also the only source for R5).
     static var wordlistPaths: [String] = {
         var paths = ["/usr/share/dict/words"]
         if let bundled = Bundle.main.path(forResource: "english_supplement", ofType: "txt") {
@@ -30,28 +43,95 @@ enum EnglishDetector {
         return paths
     }()
 
-    static func shouldConvert(units: [String], keys: [Character]) -> Bool {
-        guard keys.count >= 3 else { return false }
+    /// The broad dictionary path — entries here are NOT trusted for the
+    /// clean-Hangul R5 rule (full of obscure collisions with real Korean).
+    static var broadDictPath = "/usr/share/dict/words"
+
+    /// High-frequency English words allowed below the 3-key minimum, via
+    /// R1 (vowel-first) and R2 (English context). Hand-curated.
+    ///
+    /// EXCLUDED on purpose — their 2-set Hangul homographs are ultra-common
+    /// standalone Korean words, so auto-converting them after an English
+    /// word destroys real Korean more often than it helps:
+    ///   go→해, so→내, do→애 (해/내/애 are top-frequency). 새(to)/무(an) are
+    /// kept because the user explicitly requested them (조건 2·5).
+    static let shortWords: Set<String> = [
+        "i", "a", "an", "to", "of", "in", "on", "at", "it", "is", "am",
+        "as", "be", "by", "he", "we", "me", "my", "no",
+        "up", "us", "or", "if", "ok", "id", "tv", "pc", "md", "ml", "ui",
+        "os",
+    ]
+
+    /// shortWords whose Hangul forms are everyday jamo slang (ㅢ=ml, ㅐㅏ=ok):
+    /// convertible ONLY in English context (R2), never standalone.
+    static let contextOnlyShortWords: Set<String> = ["ml", "ok"]
+
+    static func shouldConvert(
+        units: [String],
+        keys: [Character],
+        previousWordWasEnglish: Bool = false
+    ) -> Bool {
+        guard !keys.isEmpty else { return false }
 
         let lowered = keys.compactMap { $0.lowercased().first }
-        if Set(lowered).count == 1 { return false }
-
-        guard lowered.contains(where: mapsToVowel) else { return false }
-
+        // Emotive runs (ㅋㅋㅋ, ㅠㅠ, zzz) are intentional — never convert.
+        // (2+ keys only: a single key stays eligible for R1, ㅑ→i.)
+        if lowered.count >= 2, Set(lowered).count == 1 { return false }
+        // Kaomoji faces: vowel-consonant-vowel palindrome (ㅡㅁㅡ, ㅜㅁㅜ).
         if lowered.count == 3, lowered[0] == lowered[2],
            mapsToVowel(lowered[0]), !mapsToVowel(lowered[1]) {
             return false
         }
 
-        guard units.contains(where: containsStandaloneJamo) else { return false }
+        let word = String(lowered)
+        let isContextShortWord = shortWords.contains(word)
+        let isShortWord = isContextShortWord && !contextOnlyShortWords.contains(word)
+        let isDictWord = lowered.count >= 3 && matchesEnglishWord(word)
+        let isCommonWord = lowered.count >= 6 && commonWords.contains(word)
 
-        return matchesEnglishWord(String(lowered))
+        // MAIN: broken-as-Korean + structural guards + broad dictionary.
+        if units.contains(where: containsStandaloneJamo),
+           lowered.count >= 3,
+           lowered.contains(where: mapsToVowel),
+           isDictWord {
+            return true
+        }
+
+        // R1 — 조건 1: a standalone vowel before any consonant is impossible
+        // Korean (ㅑ→i). Broad dict is safe here: vowel-first already
+        // excludes real Korean.
+        if startsWithStandaloneVowel(units), isShortWord || isDictWord {
+            return true
+        }
+
+        // R3 — 조건 3: a syllable that doesn't exist in used Korean (솓).
+        if units.contains(where: containsImplausibleSyllable), isShortWord || isDictWord {
+            return true
+        }
+
+        // R5 — 조건 8·11: long, cleanly composed, CURATED common English
+        // (visual/entitlement). Curated-only so 야구인/힘찬/소개차 are safe.
+        if isCommonWord {
+            return true
+        }
+
+        // R2 — 조건 2·5: high-frequency word after an English word
+        // (새→to). Whitelist ONLY (incl. ml/ok) — broad dict would destroy
+        // 좀/책/형/곧 here.
+        if previousWordWasEnglish, isContextShortWord {
+            return true
+        }
+
+        return false
     }
 
-    /// Call early, off the typing path, so the wordlist is warm before the
-    /// first word boundary needs it.
+    /// Call early, off the typing path, so wordlists are warm before the
+    /// first word boundary needs them.
     static func preload() {
-        DispatchQueue.global(qos: .utility).async { _ = words }
+        DispatchQueue.global(qos: .utility).async {
+            _ = words
+            _ = commonWords
+        }
     }
 
     private static func mapsToVowel(_ key: Character) -> Bool {
@@ -65,8 +145,47 @@ enum EnglishDetector {
         return unit.unicodeScalars.contains { (0x3131...0x3163).contains($0.value) }
     }
 
-    /// Exact wordlist hit, or a light inflection fallback so that
-    /// "apples"/"wanted"/"typing" convert when their stems are known.
+    /// First scalar of the first unit is a standalone VOWEL (ㅏ–ㅣ,
+    /// U+314F–U+3163): Korean words always start with a consonant.
+    private static func startsWithStandaloneVowel(_ units: [String]) -> Bool {
+        guard let first = units.first?.unicodeScalars.first else { return false }
+        return (0x314F...0x3163).contains(first.value)
+    }
+
+    /// Modern Korean slang syllables that live outside KS X 1001 but ARE
+    /// intentionally typed — must not be treated as "implausible" by R3.
+    private static let knownNonKSXSlang: Set<Character> = ["햏"] // DCInside 아햏햏/햏자
+
+    /// Syllables (가-힣) outside KS X 1001 완성형 (the 2,350 syllables chosen
+    /// to cover used Korean) don't occur in real words — 솓, unlike 솥/솟.
+    /// EUC-KR encodability IS KS X 1001 membership, so no data file needed.
+    private static func containsImplausibleSyllable(_ unit: String) -> Bool {
+        return unit.contains { ch in
+            guard let scalar = ch.unicodeScalars.first,
+                  (0xAC00...0xD7A3).contains(scalar.value) else { return false }
+            if knownNonKSXSlang.contains(ch) { return false }
+            return !isInKSX1001(ch)
+        }
+    }
+
+    private static var ksx1001Cache: [Character: Bool] = [:]
+    private static let eucKR = String.Encoding(
+        rawValue: CFStringConvertEncodingToNSStringEncoding(
+            CFStringEncoding(CFStringEncodings.EUC_KR.rawValue)
+        )
+    )
+
+    /// Main-thread confined (detector runs inside the IME's key handling).
+    private static func isInKSX1001(_ syllable: Character) -> Bool {
+        if let cached = ksx1001Cache[syllable] { return cached }
+        let contained = String(syllable).data(using: eucKR) != nil
+        ksx1001Cache[syllable] = contained
+        return contained
+    }
+
+    /// Broad-dictionary hit (web2 + supplements) with a light inflection
+    /// fallback. Used only by rules already gated on broken-as-Korean
+    /// evidence (MAIN/R1/R3), where false positives are structurally bounded.
     private static func matchesEnglishWord(_ w: String) -> Bool {
         if words.contains(w) { return true }
 
@@ -77,7 +196,7 @@ enum EnglishDetector {
         if w.hasSuffix("ed") {
             let stem = String(w.dropLast(2))
             stems.append(stem)            // wanted → want
-            stems.append(stem + "e")      // saved → save (hmm: sav+e)
+            stems.append(stem + "e")      // saved → save
             stems.append(dedoubled(stem)) // stopped → stop
         }
         if w.hasSuffix("ing") {
@@ -96,10 +215,19 @@ enum EnglishDetector {
         return String(chars.dropLast())
     }
 
-    private static let words: Set<String> = {
+    /// Broad list: web2 + all supplements. For broken-as-Korean rules only.
+    private static let words: Set<String> = loadWords(from: wordlistPaths)
+
+    /// Curated list: supplements ONLY (web2 excluded). The clean-Hangul R5
+    /// rule trusts this exclusively — exact match, no inflection — so obscure
+    /// web2 entries can never hijack a real Korean word.
+    private static let commonWords: Set<String> =
+        loadWords(from: wordlistPaths.filter { $0 != broadDictPath })
+
+    private static func loadWords(from paths: [String]) -> Set<String> {
         var set = Set<String>()
         set.reserveCapacity(250_000)
-        for path in wordlistPaths {
+        for path in paths {
             guard let contents = try? String(contentsOfFile: path, encoding: .utf8) else { continue }
             for line in contents.split(separator: "\n") {
                 // Skip capitalized entries: web2 proper nouns/abbreviations
@@ -113,5 +241,5 @@ enum EnglishDetector {
             }
         }
         return set
-    }()
+    }
 }
