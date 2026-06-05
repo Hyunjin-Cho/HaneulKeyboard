@@ -1,68 +1,108 @@
-import Cocoa
-import InputMethodKit
+import Foundation
 
-/// Stateful Hangul syllable composer driven by 2-set jamo input.
+/// Abstraction over the IMK client so the composer stays testable without
+/// InputMethodKit (HaneulInputController wraps IMKTextInput in an adapter).
+protocol ComposerClient {
+    /// Insert finalized text at the cursor (replaces any marked text).
+    func insertText(_ text: String)
+    /// Show composition-in-progress text, cursor pinned at the end.
+    /// An empty string clears the marked text.
+    func setMarkedText(_ text: String)
+}
+
+/// Stateful Hangul word composer driven by 2-set jamo input.
+///
+/// Completed syllables accumulate into a word-level buffer (shown as marked
+/// text) instead of committing eagerly. The whole word commits at a boundary:
+/// space/punctuation/digit, modifier shortcut, focus change, or deactivate.
+/// At that point, if the composed word is broken as Korean and the raw
+/// keystrokes form a known English word (e.g. 메ㅔㅣㄷ ← "apple"), the
+/// original keystrokes are committed instead — see EnglishDetector.
 final class KoreanComposer {
-    private var buffer = SyllableBuffer()
+    /// Gates the English auto-correction at word commit. The word-level
+    /// buffering itself is always on.
+    var autoEnglishEnabled = true
 
-    func handleInput(_ input: String, client: IMKTextInput) -> Bool {
+    private var buffer = SyllableBuffer()
+    /// Completed units (syllables or standalone jamo) of the current word,
+    /// each paired with the keystrokes that produced it.
+    private var word: [(text: String, keys: [Character])] = []
+    /// Keystrokes that produced the current in-flight syllable buffer.
+    private var pendingKeys: [Character] = []
+
+    /// Safety cap — a run this long without a boundary is not a word. Spill
+    /// it as Hangul rather than growing the marked text without bound.
+    private let maxWordUnits = 40
+
+    func handleInput(_ input: String, client: ComposerClient) -> Bool {
         guard let scalar = input.unicodeScalars.first else { return false }
         let character = Character(scalar)
 
         guard let jamo = KeyboardLayout2Set.jamo(for: character) else {
-            flushBuffer(to: client)
+            commit(to: client, convertEnglish: true)
             return false
         }
 
         switch jamo {
         case .consonant(let c):
-            appendConsonant(c, client: client)
+            appendConsonant(c)
         case .vowel(let v):
-            appendVowel(v, client: client)
+            appendVowel(v)
+        }
+        pendingKeys.append(character)
+
+        if word.count >= maxWordUnits {
+            let hangul = wordText()
+            if !hangul.isEmpty { client.insertText(hangul) }
+            word = []
         }
 
-        updateMarkedText(client: client)
+        refreshMarkedText(client: client)
         return true
     }
 
-    func commit(to client: IMKTextInput) {
-        flushBuffer(to: client)
+    /// Word boundary: commit the buffered word once.
+    ///
+    /// `convertEnglish` is true only for ACTIVE boundaries — a space,
+    /// punctuation, digit, or Enter the user actually typed. Passive
+    /// boundaries (focus change, mouse click, input-source switch, modifier
+    /// shortcuts) must commit exactly the marked text the user saw on
+    /// screen, never something different.
+    func commit(to client: ComposerClient, convertEnglish: Bool = false) {
+        stashBuffer()
+        defer { word = [] }
+
+        let hangul = wordText()
+        guard !hangul.isEmpty else {
+            client.setMarkedText("")
+            return
+        }
+
+        let keys = word.flatMap(\.keys)
+        if convertEnglish, autoEnglishEnabled,
+           EnglishDetector.shouldConvert(units: word.map(\.text), keys: keys) {
+            client.insertText(String(keys))
+        } else {
+            client.insertText(hangul)
+        }
+        client.setMarkedText("")
     }
 
-    /// Peels one jamo from the in-flight syllable. Returns true if the buffer
-    /// absorbed the backspace; false means the buffer was empty and the system
-    /// should perform a normal delete on the text behind the cursor.
-    func deleteBackward(client: IMKTextInput) -> Bool {
-        if buffer.isEmpty { return false }
-
-        if let final = buffer.final {
-            switch final {
-            case .compound(let first, _):
-                buffer.final = .single(first)
-            case .single:
-                buffer.final = nil
-            }
-            updateMarkedText(client: client)
+    /// Peels one jamo from the in-flight syllable, or one whole unit from the
+    /// word buffer. Returns true if the composer absorbed the backspace;
+    /// false means everything was empty and the system should perform a
+    /// normal delete on the text behind the cursor.
+    func deleteBackward(client: ComposerClient) -> Bool {
+        if !buffer.isEmpty {
+            peelJamo()
+            if !pendingKeys.isEmpty { pendingKeys.removeLast() }
+            refreshMarkedText(client: client)
             return true
         }
 
-        if let medial = buffer.medial {
-            if let decomposed = decomposeVowel(medial) {
-                buffer.medial = decomposed
-            } else {
-                buffer.medial = nil
-            }
-            if buffer.isEmpty {
-                clearMarkedText(client: client)
-            } else {
-                updateMarkedText(client: client)
-            }
-            return true
-        }
-
-        if buffer.initial != nil {
-            buffer.initial = nil
-            clearMarkedText(client: client)
+        if !word.isEmpty {
+            word.removeLast()
+            refreshMarkedText(client: client)
             return true
         }
 
@@ -71,11 +111,21 @@ final class KoreanComposer {
 
     // MARK: - State transitions
 
-    private func appendConsonant(_ c: Consonant, client: IMKTextInput) {
+    private func appendConsonant(_ c: Consonant) {
         if buffer.medial == nil {
             if buffer.initial != nil {
-                flushBuffer(to: client)
+                stashBuffer()
             }
+            buffer.initial = c
+            return
+        }
+
+        // Bare vowel (no initial) followed by a consonant — e.g. English
+        // typed in the wrong layout. Start a new unit; attaching the
+        // consonant as a final would silently drop it, since a syllable
+        // block can't assemble without an initial.
+        if buffer.initial == nil {
+            stashBuffer()
             buffer.initial = c
             return
         }
@@ -84,7 +134,7 @@ final class KoreanComposer {
             if c.finalIndex != nil {
                 buffer.final = .single(c)
             } else {
-                flushBuffer(to: client)
+                stashBuffer()
                 buffer.initial = c
             }
             return
@@ -96,20 +146,24 @@ final class KoreanComposer {
             return
         }
 
-        flushBuffer(to: client)
+        stashBuffer()
         buffer.initial = c
     }
 
-    private func appendVowel(_ v: Vowel, client: IMKTextInput) {
+    private func appendVowel(_ v: Vowel) {
         if let final = buffer.final {
+            // 도깨비불: the final consonant carries into the next syllable.
+            // Its key is always the most recent one in pendingKeys.
             let (committedFinal, carry) = splitFinal(final)
             let committed = SyllableBuffer(
                 initial: buffer.initial,
                 medial: buffer.medial,
                 final: committedFinal
             )
-            insertAssembled(committed, client: client)
+            let carryKey = pendingKeys.last
+            stash(committed, keys: Array(pendingKeys.dropLast()))
             buffer = SyllableBuffer(initial: carry, medial: v, final: nil)
+            pendingKeys = carryKey.map { [$0] } ?? []
             return
         }
 
@@ -117,7 +171,7 @@ final class KoreanComposer {
             if let combined = Vowel.combine(existing, v) {
                 buffer.medial = combined
             } else {
-                flushBuffer(to: client)
+                stashBuffer()
                 buffer.medial = v
             }
             return
@@ -146,41 +200,53 @@ final class KoreanComposer {
         }
     }
 
+    /// One backspace = one jamo off the in-flight syllable.
+    private func peelJamo() {
+        if let final = buffer.final {
+            switch final {
+            case .compound(let first, _):
+                buffer.final = .single(first)
+            case .single:
+                buffer.final = nil
+            }
+            return
+        }
+
+        if let medial = buffer.medial {
+            buffer.medial = decomposeVowel(medial)
+            return
+        }
+
+        if buffer.initial != nil {
+            buffer.initial = nil
+        }
+    }
+
+    // MARK: - Word buffer
+
+    private func stashBuffer() {
+        if !buffer.isEmpty {
+            stash(buffer, keys: pendingKeys)
+        }
+        buffer.reset()
+        pendingKeys = []
+    }
+
+    private func stash(_ syllable: SyllableBuffer, keys: [Character]) {
+        let text = syllable.assembled()
+        if !text.isEmpty {
+            word.append((text, keys))
+        }
+    }
+
+    private func wordText() -> String {
+        return word.map(\.text).joined()
+    }
+
     // MARK: - Output
 
-    private func updateMarkedText(client: IMKTextInput) {
-        let preview = buffer.previewString()
-        client.setMarkedText(
-            preview as NSString,
-            selectionRange: NSRange(location: (preview as NSString).length, length: 0),
-            replacementRange: NSRange(location: NSNotFound, length: 0)
-        )
-    }
-
-    private func clearMarkedText(client: IMKTextInput) {
-        client.setMarkedText(
-            "",
-            selectionRange: NSRange(location: 0, length: 0),
-            replacementRange: NSRange(location: NSNotFound, length: 0)
-        )
-    }
-
-    private func flushBuffer(to client: IMKTextInput) {
-        if !buffer.isEmpty {
-            insertAssembled(buffer, client: client)
-            buffer.reset()
-        }
-        clearMarkedText(client: client)
-    }
-
-    private func insertAssembled(_ buffer: SyllableBuffer, client: IMKTextInput) {
-        let text = buffer.assembled()
-        if !text.isEmpty {
-            client.insertText(
-                text,
-                replacementRange: NSRange(location: NSNotFound, length: 0)
-            )
-        }
+    private func refreshMarkedText(client: ComposerClient) {
+        client.setMarkedText(wordText() + buffer.previewString())
     }
 }
 

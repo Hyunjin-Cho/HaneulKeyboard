@@ -39,3 +39,4 @@ references/
 # Internal dev notes — contain machine paths / cert info; keep local only, not for public repo
 CLAUDE.md
 WORKLOG.md
+.claude/scheduled_tasks.lock
