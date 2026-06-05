@@ -159,3 +159,4 @@ moran
 entitlement
 keyboard
 email
+mini

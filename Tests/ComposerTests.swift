@@ -252,6 +252,17 @@ struct ComposerTests {
         expect(type("opus").committedText, "opus", "opus")
         expect(type("readme").committedText, "readme", "조건4: readme")
 
+        // 조건 10(모음 반복): 떠 있는 모음 + 영어 단어 → MAIN이 변환
+        expect(type("mini").committedText, "mini", "조건10: ㅡㅑㅜㅑ → mini (사전 등재)")
+        expect(type("you").committedText, "you", "조건10: ㅛㅐㅕ → you")
+        // 보호: 영어로 말 안 되는 모음 나열은 사전에 없어 한글 유지
+        expect(type("hni").committedText, "ㅗㅜㅑ", "보호: ㅗㅜㅑ 슬랭 (hni는 영어 아님)")
+        expect(type("nmn").committedText, "ㅜㅡㅜ", "보호: ㅜㅡㅜ 우는 이모티콘")
+        expect(type("hmh").committedText, "ㅗㅡㅗ", "보호: ㅗㅡㅗ 이모티콘")
+        // 보호: 자음 슬랭·정상 조합
+        expect(type("drfddla").committedText, "ㅇㄱㄹㅇ임", "보호: 자음 슬랭")
+        expect(type("dhksrjsk").committedText, "완거나", "보호: 정상 조합")
+
         // R2는 화이트리스트 전용 (web2 확장은 좀/책/형 파괴 → 되돌림).
         // 흔한 한국어 보호: 영어 뒤라도 clean Hangul 단어는 안 건드림.
         expect(typeWords(["good", "wha"]).last ?? "", "좀", "R2 보호: good 뒤 좀 유지")

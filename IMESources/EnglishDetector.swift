@@ -115,6 +115,12 @@ enum EnglishDetector {
             return true
         }
 
+        // 조건 10(모음 반복)은 별도 룰이 필요 없다: 떠 있는 모음도 "깨진
+        // 자모"라 MAIN이 (모음 + 영어 사전 일치)로 잡는다. mini=ㅡㅑㅜㅑ(사전
+        // 등재 → MAIN), kpop=ㅏㅔㅐㅔ. 반대로 ㅗㅜㅑ(hni)·ㅜㅡㅜ(nmn)처럼
+        // 영어로 말이 안 되는 모음 나열은 사전에 없으니 자동으로 한글로 남는다.
+        // (사전 없이 모음 3개를 무조건 변환하면 이런 슬랭/이모티콘이 깨졌음.)
+
         // R2 — 조건 2·5: high-frequency word after an English word
         // (새→to). Whitelist ONLY (incl. ml/ok) — broad dict would destroy
         // 좀/책/형/곧 here.
