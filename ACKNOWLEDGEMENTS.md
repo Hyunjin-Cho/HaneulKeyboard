@@ -30,7 +30,7 @@ plist·entitlements 구조와 IME 아키텍처를 비교·학습하는 데 참�
 
 # Acknowledgements (English)
 
-HaneulKeyboard stands on the shoulders of the open-source projects, tools, and people who came before it.
+HaneulKeyboard builds on the work of the open-source projects, tools, and people who came before it.
 
 ## Direct help
 
@@ -44,6 +44,6 @@ HaneulKeyboard stands on the shoulders of the open-source projects, tools, and p
 
 ## And
 
-Even a small keyboard rests on an operating system, compilers, languages, fonts, decades of Hangul input research, and countless open-source projects. Deep gratitude to all the knowledge and tools that humanity has built together.
+HaneulKeyboard is built on operating systems, compilers, programming languages, fonts, decades of Hangul input research, and countless open-source projects. Deep gratitude to the people who built and shared these foundations.
 
 — Hyunjin Cho
