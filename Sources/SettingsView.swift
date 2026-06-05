@@ -6,6 +6,13 @@ struct SettingsView: View {
     @State private var showingUninstallConfirm = false
     @State private var uninstallResult: Uninstaller.Outcome?
 
+    /// The IME helper runs as its own process with its own defaults domain
+    /// (com.hyunjincho.inputmethod.haneul) — UserDefaults.standard here would
+    /// write to the main app's domain and the IME would never see it.
+    private static let imeDefaults = UserDefaults(suiteName: "com.hyunjincho.inputmethod.haneul")
+    @State private var autoEnglishEnabled: Bool =
+        SettingsView.imeDefaults?.object(forKey: "haneul.autoEnglishEnabled") as? Bool ?? true
+
     var body: some View {
         Form {
             Section("한글 입력기 (IME)") {
@@ -59,6 +66,16 @@ struct SettingsView: View {
                         }
                     }
                 }
+            }
+
+            Section("입력") {
+                Toggle("영타 자동 변환", isOn: $autoEnglishEnabled)
+                    .onChange(of: autoEnglishEnabled) { _, newValue in
+                        Self.imeDefaults?.set(newValue, forKey: "haneul.autoEnglishEnabled")
+                    }
+                Text("한글 모드에서 영어 단어를 치면 (예: \"메ㅔㅣㄷ\") 스페이스를 누를 때 자동으로 영어(\"apple\")로 바꿔줍니다. 올바른 한글과 ㅋㅋㅋ 같은 자모는 건드리지 않습니다.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section("상태") {

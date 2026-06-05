@@ -15,4 +15,8 @@ guard IMKServer(name: connectionName, bundleIdentifier: bundleIdentifier) != nil
     exit(EXIT_FAILURE)
 }
 
+// Warm the English wordlist off the typing path (used by the wrong-layout
+// auto-correction at word boundaries).
+EnglishDetector.preload()
+
 NSApplication.shared.run()

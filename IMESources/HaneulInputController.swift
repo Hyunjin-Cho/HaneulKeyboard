@@ -2,6 +2,26 @@ import Cocoa
 import InputMethodKit
 import os.log
 
+/// Bridges the Foundation-only KoreanComposer to the IMK client.
+private struct IMKComposerClient: ComposerClient {
+    let client: IMKTextInput
+
+    func insertText(_ text: String) {
+        client.insertText(
+            text,
+            replacementRange: NSRange(location: NSNotFound, length: 0)
+        )
+    }
+
+    func setMarkedText(_ text: String) {
+        client.setMarkedText(
+            text as NSString,
+            selectionRange: NSRange(location: (text as NSString).length, length: 0),
+            replacementRange: NSRange(location: NSNotFound, length: 0)
+        )
+    }
+}
+
 @objc(HaneulInputController)
 final class HaneulInputController: IMKInputController {
     private let log = Logger(subsystem: "com.hyunjincho.haneulkeyboard", category: "ime")
@@ -20,6 +40,8 @@ final class HaneulInputController: IMKInputController {
 
     override func activateServer(_ sender: Any!) {
         log.log("activateServer")
+        composer.autoEnglishEnabled =
+            UserDefaults.standard.object(forKey: "haneul.autoEnglishEnabled") as? Bool ?? true
         if let client = sender as? IMKTextInput {
             client.overrideKeyboard(withKeyboardNamed: "com.apple.keylayout.ABC")
             didOverrideKeyboard = true
@@ -29,14 +51,14 @@ final class HaneulInputController: IMKInputController {
     override func deactivateServer(_ sender: Any!) {
         log.log("deactivateServer")
         if let client = sender as? IMKTextInput {
-            composer.commit(to: client)
+            composer.commit(to: IMKComposerClient(client: client))
         }
         super.deactivateServer(sender)
     }
 
     override func commitComposition(_ sender: Any!) {
         guard let client = sender as? IMKTextInput else { return }
-        composer.commit(to: client)
+        composer.commit(to: IMKComposerClient(client: client))
     }
 
     override func handle(_ event: NSEvent!, client sender: Any!) -> Bool {
@@ -51,14 +73,16 @@ final class HaneulInputController: IMKInputController {
             didOverrideKeyboard = true
         }
 
+        let composerClient = IMKComposerClient(client: client)
+
         if event.keyCode == 51 {
-            return composer.deleteBackward(client: client)
+            return composer.deleteBackward(client: composerClient)
         }
 
         if mods.contains(.control) || mods.contains(.command)
            || mods.contains(.option) || mods.contains(.numericPad)
            || mods.contains(.function) {
-            composer.commit(to: client)
+            composer.commit(to: composerClient)
             return false
         }
 
@@ -70,7 +94,7 @@ final class HaneulInputController: IMKInputController {
                 ? Character(String(lower).uppercased())
                 : lower
             if KeyboardLayout2Set.jamo(for: inputChar) != nil {
-                return composer.handleInput(String(inputChar), client: client)
+                return composer.handleInput(String(inputChar), client: composerClient)
             }
         } else if let raw = event.characters?.lowercased().first,
                   raw.isASCII, raw.isLetter {
@@ -78,11 +102,16 @@ final class HaneulInputController: IMKInputController {
                 ? Character(String(raw).uppercased())
                 : raw
             if KeyboardLayout2Set.jamo(for: inputChar) != nil {
-                return composer.handleInput(String(inputChar), client: client)
+                return composer.handleInput(String(inputChar), client: composerClient)
             }
         }
 
-        composer.commit(to: client)
+        // Active boundary: the user typed a non-jamo key (space, punctuation,
+        // digit, Enter...) — the only path where English auto-conversion may
+        // fire. Re-read the toggle so Settings changes apply immediately.
+        composer.autoEnglishEnabled =
+            UserDefaults.standard.object(forKey: "haneul.autoEnglishEnabled") as? Bool ?? true
+        composer.commit(to: composerClient, convertEnglish: true)
         return false
     }
 }
