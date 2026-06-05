@@ -61,31 +61,62 @@ final class KoreanComposer {
         return true
     }
 
-    /// Word boundary: commit the buffered word once.
+    /// Word boundary: commit the buffered word once. Returns the text that
+    /// was actually inserted (callers use it to feed word learning).
     ///
     /// `convertEnglish` is true only for ACTIVE boundaries — a space,
     /// punctuation, digit, or Enter the user actually typed. Passive
     /// boundaries (focus change, mouse click, input-source switch, modifier
     /// shortcuts) must commit exactly the marked text the user saw on
     /// screen, never something different.
-    func commit(to client: ComposerClient, convertEnglish: Bool = false) {
+    @discardableResult
+    func commit(to client: ComposerClient, convertEnglish: Bool = false) -> String {
         stashBuffer()
         defer { word = [] }
 
         let hangul = wordText()
         guard !hangul.isEmpty else {
             client.setMarkedText("")
-            return
+            return ""
         }
 
+        let committed: String
         let keys = word.flatMap(\.keys)
+        // Conversion may only fire when EVERY unit carries the keys that
+        // produced it — an accepted suggestion's units have empty keys, and
+        // converting then would commit text that differs from (and drops
+        // part of) the marked text the user saw.
         if convertEnglish, autoEnglishEnabled,
+           word.allSatisfy({ !$0.keys.isEmpty }),
            EnglishDetector.shouldConvert(units: word.map(\.text), keys: keys) {
-            client.insertText(String(keys))
+            committed = String(keys)
         } else {
-            client.insertText(hangul)
+            committed = hangul
         }
+        client.insertText(committed)
         client.setMarkedText("")
+        return committed
+    }
+
+    /// Current composition as displayed (word so far + in-flight syllable).
+    /// The prediction layer uses this as the prefix to complete.
+    func currentPreview() -> String {
+        return wordText() + buffer.previewString()
+    }
+
+    /// Replaces the in-progress composition with an accepted suggestion (the
+    /// FULL word). It stays marked — the user commits it like any other word
+    /// (space/enter), so all boundary logic stays uniform.
+    ///
+    /// Stored per-syllable so backspace peels one syllable at a time, like
+    /// any other composed word. The units carry empty keys, which commit()
+    /// treats as "never English-convert this word" — even if the user keeps
+    /// typing wrong-layout English after accepting.
+    func acceptSuggestion(_ fullWord: String, client: ComposerClient) {
+        buffer.reset()
+        pendingKeys = []
+        word = fullWord.map { (String($0), [Character]()) }
+        refreshMarkedText(client: client)
     }
 
     /// Peels one jamo from the in-flight syllable, or one whole unit from the
