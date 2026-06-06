@@ -106,12 +106,40 @@ enum IMEInstaller {
     /// rejects the IME in the picker if TISEnableInputSource is not called
     /// from inside a signed+notarized GUI NSApplication context — which is
     /// exactly what this main app provides when launched by the user.
+    ///
+    /// IDEMPOTENT BY CONTRACT (2026-06-06): repeated TISRegisterInputSource /
+    /// TISEnableInputSource calls pile DUPLICATE instances into Tahoe's
+    /// input-source cache — the user's enabled list ballooned to 597 rows.
+    /// So: register only if TIS doesn't already know our bundle, enable only
+    /// modes that are currently disabled, and nudge only when something
+    /// actually changed.
     private static func registerWithTIS(at url: URL) {
-        _ = TISRegisterInputSource(url as CFURL)
-        enableAllModes(forBundleID: "com.hyunjincho.inputmethod.haneul")
-        nudgeMenuBarPicker(forBundleID: "com.hyunjincho.inputmethod.haneul")
+        let bundleID = "com.hyunjincho.inputmethod.haneul"
+        if !tisKnowsBundle(bundleID) {
+            _ = TISRegisterInputSource(url as CFURL)
+        }
+        let newlyEnabled = enableAllModes(forBundleID: bundleID)
+        if newlyEnabled > 0 {
+            nudgeMenuBarPicker(forBundleID: bundleID)
+        }
     }
 
+    /// True if TIS already has any input source for our bundle — calling
+    /// TISRegisterInputSource again in that state duplicates cache entries.
+    private static func tisKnowsBundle(_ targetBundleID: String) -> Bool {
+        guard let all = TISCreateInputSourceList(nil, true)?.takeRetainedValue() as? [TISInputSource] else {
+            return false
+        }
+        for source in all {
+            guard let bundleIDPtr = TISGetInputSourceProperty(source, kTISPropertyBundleID) else { continue }
+            let bundleID = Unmanaged<CFString>.fromOpaque(bundleIDPtr).takeUnretainedValue() as String
+            if bundleID == targetBundleID { return true }
+        }
+        return false
+    }
+
+    /// Enables only modes that are currently DISABLED; already-enabled modes
+    /// are left untouched. Returns how many were newly enabled.
     @discardableResult
     private static func enableAllModes(forBundleID targetBundleID: String) -> Int {
         guard let all = TISCreateInputSourceList(nil, true)?.takeRetainedValue() as? [TISInputSource] else {
@@ -124,10 +152,17 @@ enum IMEInstaller {
                 continue
             }
             let bundleID = Unmanaged<CFString>.fromOpaque(bundleIDPtr).takeUnretainedValue() as String
-            if bundleID == targetBundleID {
-                if TISEnableInputSource(source) == noErr {
-                    enabledCount += 1
-                }
+            guard bundleID == targetBundleID else { continue }
+
+            // Skip modes that are already enabled — re-enabling is what
+            // multiplies rows in the System Settings list.
+            if let enabledPtr = TISGetInputSourceProperty(source, kTISPropertyInputSourceIsEnabled) {
+                let isEnabled = Unmanaged<CFBoolean>.fromOpaque(enabledPtr).takeUnretainedValue()
+                if CFBooleanGetValue(isEnabled) { continue }
+            }
+
+            if TISEnableInputSource(source) == noErr {
+                enabledCount += 1
             }
         }
         return enabledCount
