@@ -70,8 +70,43 @@ enum IMEInstaller {
     }
 
     static func uninstall() throws {
-        guard FileManager.default.fileExists(atPath: installURL.path) else { return }
-        try FileManager.default.removeItem(at: installURL)
+        var removedAny = false
+
+        // System-domain install is root-owned — ask for admin rights via the
+        // standard macOS password prompt. (The old code only handled the
+        // user-domain path and silently did NOTHING for system installs.)
+        if FileManager.default.fileExists(atPath: systemInstallURL.path) {
+            try removeWithAdminPrivileges(path: systemInstallURL.path)
+            unregisterFromLaunchServices(at: systemInstallURL)
+            removedAny = true
+        }
+
+        if FileManager.default.fileExists(atPath: installURL.path) {
+            try FileManager.default.removeItem(at: installURL)
+            unregisterFromLaunchServices(at: installURL)
+            removedAny = true
+        }
+
+        if !removedAny {
+            throw IMEInstallError.nothingToRemove
+        }
+    }
+
+    /// `do shell script ... with administrator privileges` — shows the
+    /// standard macOS admin password dialog. Throws if the user cancels.
+    /// (internal: Uninstaller's 전체 제거 reuses this for the system bundle.)
+    static func removeWithAdminPrivileges(path: String) throws {
+        let escaped = path.replacingOccurrences(of: "'", with: "'\\''")
+        let source = "do shell script \"rm -rf '\(escaped)'\" with administrator privileges"
+        var errorInfo: NSDictionary?
+        guard let script = NSAppleScript(source: source) else {
+            throw IMEInstallError.uninstallFailed("관리자 권한 요청 스크립트 생성 실패")
+        }
+        script.executeAndReturnError(&errorInfo)
+        if let errorInfo {
+            let message = errorInfo[NSAppleScript.errorMessage] as? String ?? "알 수 없는 오류"
+            throw IMEInstallError.uninstallFailed(message)
+        }
     }
 
     static func openInputSourcesSettings() {
@@ -215,11 +250,17 @@ enum IMEInstaller {
 
 enum IMEInstallError: LocalizedError {
     case bundleNotFound
+    case nothingToRemove
+    case uninstallFailed(String)
 
     var errorDescription: String? {
         switch self {
         case .bundleNotFound:
             return "HaneulKeyboardIM.app을 찾을 수 없습니다. 메인 앱과 같은 폴더(또는 Contents/Helpers)에 IME 번들이 있어야 합니다. (HaneulKeyboardIM.app not found — the IME bundle must sit next to the main app or under Contents/Helpers.)"
+        case .nothingToRemove:
+            return "제거할 IME가 없습니다. (이미 제거되었습니다.)"
+        case .uninstallFailed(let reason):
+            return "IME 제거 실패: \(reason)"
         }
     }
 }
