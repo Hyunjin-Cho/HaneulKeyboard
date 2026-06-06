@@ -18,18 +18,28 @@ final class AppCore {
             self?.refreshLanguage()
         }
 
-        autoInstallIMEIfNeeded()
+        ensureIMEActive()
     }
 
-    private func autoInstallIMEIfNeeded() {
-        guard !IMEInstaller.isInstalled else { return }
+    /// Guarantees install + TIS ACTIVATION on every app launch.
+    ///
+    /// macOS 26 only shows an IME in the input-source picker after
+    /// TISEnableInputSource runs inside a signed GUI app — the install
+    /// script (CLI) cannot do that, so this app is the activation vehicle.
+    /// A previous version skipped entirely when already installed, which
+    /// left script-installed bundles invisible in the picker (2026-06-06).
+    /// install() is idempotent: already-active → no-op (no list bloat);
+    /// system install present → no copy, just register/enable as needed.
+    private func ensureIMEActive() {
         DispatchQueue.main.async { [weak self] in
             do {
-                try IMEInstaller.install()
+                let url = try IMEInstaller.install()
                 self?.refreshIMEStatus()
-                haneulLog("HaneulKeyboard: auto-installed IME to \(IMEInstaller.installURL.path)")
+                haneulLog("HaneulKeyboard: IME ensured active at \(url.path)")
+            } catch IMEInstallError.bundleNotFound {
+                haneulLog("HaneulKeyboard: IME bundle not found — ensure skipped")
             } catch {
-                haneulLog("HaneulKeyboard: auto-install failed — \(error.localizedDescription)")
+                haneulLog("HaneulKeyboard: IME ensure failed — \(error.localizedDescription)")
             }
         }
     }
