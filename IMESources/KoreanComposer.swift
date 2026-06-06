@@ -23,14 +23,17 @@ final class KoreanComposer {
     /// buffering itself is always on.
     var autoEnglishEnabled = true
 
-    /// True when the most recent non-empty commit was English (ASCII
-    /// letters). Feeds EnglishDetector's context rule (사용자 조건 2·5:
-    /// "I want to ..."에서 새→to). The controller resets it on boundaries
-    /// that end the English run (enter/punctuation/focus change).
-    private(set) var lastCommitWasEnglish = false
+    /// The most recent commit, when it was English (lowercased; nil = the
+    /// last commit was Korean or context was reset). Feeds EnglishDetector's
+    /// context rules — the WORD itself matters now (whitelistTriggers:
+    /// "want"+새→to fires, "github"+새 stays Korean). The controller resets
+    /// it on boundaries that end the English run.
+    private(set) var lastEnglishWord: String?
+
+    var lastCommitWasEnglish: Bool { lastEnglishWord != nil }
 
     func resetEnglishContext() {
-        lastCommitWasEnglish = false
+        lastEnglishWord = nil
     }
 
     private var buffer = SyllableBuffer()
@@ -65,7 +68,7 @@ final class KoreanComposer {
             let hangul = wordText()
             if !hangul.isEmpty { client.insertText(hangul) }
             word = []
-            lastCommitWasEnglish = false // spill emits Hangul — breaks English context
+            lastEnglishWord = nil // spill emits Hangul — breaks English context
         }
 
         refreshMarkedText(client: client)
@@ -103,20 +106,28 @@ final class KoreanComposer {
            EnglishDetector.shouldConvert(
                units: units,
                keys: keys,
-               previousWordWasEnglish: lastCommitWasEnglish
+               previousEnglishWord: lastEnglishWord
            ) {
             committed = String(keys)
         } else {
             committed = hangul
         }
-        // English context for the NEXT word is carried only by words that are
-        // English on their own structural evidence (real English words) —
-        // never by a clean-Hangul word that converted SOLELY because of
-        // context (새→to). Otherwise a single English word would chain-convert
-        // a whole run of common Korean monosyllables (해/내/애).
-        let isAscii = committed.allSatisfy { $0.isASCII && $0.isLetter }
-        lastCommitWasEnglish = isAscii &&
-            EnglishDetector.shouldConvert(units: units, keys: keys, previousWordWasEnglish: false)
+        // English context chains through every CONVERTED word ("that was
+        // great" — was must arm great), EXCEPT clean-Hangul whitelist hits
+        // (새→to): those exist only because of context and must not start
+        // chains of their own (a run of 새/무 homographs would otherwise
+        // cascade). Korean commits always break the run.
+        let isAscii = !committed.isEmpty && committed.allSatisfy { $0.isASCII && $0.isLetter }
+        if isAscii {
+            let wordLower = String(keys.compactMap { $0.lowercased().first })
+            let cleanHangul = !units.contains { unit in
+                unit.unicodeScalars.contains { (0x3131...0x3163).contains($0.value) }
+            }
+            let whitelistOnly = EnglishDetector.shortWords.contains(wordLower) && cleanHangul
+            lastEnglishWord = whitelistOnly ? nil : wordLower
+        } else {
+            lastEnglishWord = nil
+        }
         client.insertText(committed)
         client.setMarkedText("")
         return committed

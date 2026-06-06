@@ -66,12 +66,50 @@ enum EnglishDetector {
     /// convertible ONLY in English context (R2), never standalone.
     static let contextOnlyShortWords: Set<String> = ["ml", "ok"]
 
+    /// 자음 초성체 슬랭 보호 목록 — 한국어 사전(완성 한글만)에는 없지만
+    /// 의도적으로 치는 표현들. 영어 문맥 뒤에서도 절대 변환하지 않는다
+    /// (ㅎㄷㄷ가 "gee"로 깨지는 것 방지). 한글 조합 결과 기준.
+    /// (ㅢ는 넣지 않는다 — R2 화이트리스트의 ml이 의도된 변환이라 우선.)
+    static let protectedSlang: Set<String> = [
+        "ㅎㄷㄷ", "ㅁㅊ", "ㅂㅅ", "ㅅㅂ", "ㅇㅈ", "ㄹㅇ", "ㄱㅅ", "ㅈㅅ",
+        "ㄷㄷ", "ㅎㄹ", "ㅁㅈ", "ㅇㅇ", "ㄴㄴ", "ㄱㄱ", "ㅂㅂ", "ㅇㅋ",
+        "ㄴㅇㄱ", "ㅁㅊㄷ", "ㅇㄱㄹㅇ", "ㅈㄴ", "ㄲㅈ", "ㅊㅋ", "ㅊㅊ",
+        "ㅎㅇ", "ㅂㄱ", "ㄷㅊ", "ㄱㄷ", "ㅇㄷ", "ㅁㄴㅇㄹ", "ㅗㅜㅑ", "ㅗㅑ",
+    ]
+
+    /// 화이트리스트 중 한글형이 "흔한 실존 한국어"인 항목(새=to, 무=an,
+    /// ㅁ=a) — 이들은 아무 영어 단어 뒤가 아니라, 영어 기능어/동사
+    /// (whitelistTriggers) 직후에만 발동한다. "GitHub 새 기능"의 새를
+    /// 지키면서 "want to"는 살리는 정밀화 (v3 리뷰 반영).
+    static let koreanHomographShortWords: Set<String> = ["to", "an", "a"]
+
+    /// 새→to/무→an을 발동시키는 직전 영어 단어들 (조동사/본동사/기능어).
+    static let whitelistTriggers: Set<String> = [
+        "want", "wants", "wanted", "need", "needs", "needed",
+        "have", "has", "had", "how", "is", "was", "are", "were",
+        "be", "been", "being", "going", "get", "gets", "used",
+        "trying", "like", "likes", "liked", "about", "make", "makes",
+        "supposed", "ought", "such", "what", "not", "of",
+    ]
+
+    /// 한글형이 "희귀 한자어 표제어"라 veto에 막히는 고빈도 영어 단어 —
+    /// 영어 문맥에서는 영어 의도가 압도적이라 veto를 우회한다.
+    /// (when=조두, then=소두, than=소무, also=미내, form=래그, works=재간,
+    /// down=애주 — 전부 일상에서 안 쓰는 한자어.)
+    /// 의도적 제외(흔한 한국어 우선): did=양, got=햇, god=행, end=둥,
+    /// work=재가, rock=개차, for=랙.
+    static let contextOverrideEnglish: Set<String> = [
+        "when", "then", "than", "also", "form", "works", "down",
+    ]
+
     static func shouldConvert(
         units: [String],
         keys: [Character],
-        previousWordWasEnglish: Bool = false
+        previousWordWasEnglish: Bool = false,
+        previousEnglishWord: String? = nil
     ) -> Bool {
         guard !keys.isEmpty else { return false }
+        let prevEnglish = previousWordWasEnglish || previousEnglishWord != nil
 
         let lowered = keys.compactMap { $0.lowercased().first }
         // Emotive runs (ㅋㅋㅋ, ㅠㅠ, zzz) are intentional — never convert.
@@ -88,6 +126,35 @@ enum EnglishDetector {
         let isShortWord = isContextShortWord && !contextOnlyShortWords.contains(word)
         let isDictWord = lowered.count >= 3 && matchesEnglishWord(word)
         let isCommonWord = lowered.count >= 6 && commonWords.contains(word)
+        let hangul = units.joined()
+
+        // R2-화이트리스트 (조건 2·5, 사용자 명시): veto보다 먼저 평가.
+        // 단, 한글형이 흔한 한국어인 항목(새=to/무=an/ㅁ=a)은 트리거
+        // 단어(want/need/how...) 직후에만 — "GitHub 새 기능" 보호.
+        if prevEnglish, isContextShortWord, !protectedSlang.contains(hangul) {
+            if koreanHomographShortWords.contains(word) {
+                if let prev = previousEnglishWord, whitelistTriggers.contains(prev) {
+                    return true
+                }
+            } else {
+                return true
+            }
+        }
+        // 희귀 한자어와만 충돌하는 고빈도 영어(when/then/than...)도 veto 우회.
+        if prevEnglish, contextOverrideEnglish.contains(word) {
+            return true
+        }
+
+        // ★ 한국어 사전 veto (v3): 조합 결과가 실존 한국어 단어(우리말샘
+        // 67.7만)면 어떤 룰로도 변환하지 않는다. 며새(사전에 없음)는
+        // 통과해 영어 후보가 되고, 모든/랙/좀/책(있음)은 절대 안전.
+        if KoreanDictionary.contains(hangul) {
+            return false
+        }
+        // 초성체 슬랭도 동급 보호 (사전엔 완성 한글만 있어서 별도 목록).
+        if protectedSlang.contains(hangul) {
+            return false
+        }
 
         // MAIN: broken-as-Korean + structural guards + broad dictionary.
         if units.contains(where: containsStandaloneJamo),
@@ -121,11 +188,32 @@ enum EnglishDetector {
         // 영어로 말이 안 되는 모음 나열은 사전에 없으니 자동으로 한글로 남는다.
         // (사전 없이 모음 3개를 무조건 변환하면 이런 슬랭/이모티콘이 깨졌음.)
 
-        // R2 — 조건 2·5: high-frequency word after an English word
-        // (새→to). Whitelist ONLY (incl. ml/ok) — broad dict would destroy
-        // 좀/책/형/곧 here.
-        if previousWordWasEnglish, isContextShortWord {
-            return true
+        // R2-확장 (v3, 리뷰로 정밀화) — 영어 문맥에서의 추가 변환.
+        // 3중 가드 (활용형/구어가 표제어 사전에 없어 veto를 빠져나가는
+        // 것에 대한 구조적 방어 — 해준=gowns, 했=goT, 걍=rid 클래스):
+        //   ① Shift 키 포함 금지 — 쌍자음(ㅆㄲㄸㅃㅉ)/ㅒㅖ를 일부러 쳤다는
+        //     건 한국어 의도의 구조적 증거 (했=goT, 쟤가=wOrk 전멸)
+        //   ② 단음절 한글 금지 — 한 음절이 영어 의도일 가능성은 화이트
+        //     리스트가 이미 처리 (걍/믿/닫 보호)
+        //   ③ 멀쩡한 한글(깨진 자모 없음)은 curated 사전(exact)만 —
+        //     broad web2의 꼬리 단어(gowns/glacks/throck/cork)가 절대
+        //     활용형·조사결합형을 건드릴 수 없게.
+        //   how [are] you → ㅁㄱㄷ(깨짐, broad OK) → are
+        //   the [auto]    → 며새(clean, curated 등재) → auto
+        if prevEnglish {
+            let hasShiftKey = keys.contains { $0.isUppercase }
+            let brokenAsKorean = units.contains(where: containsStandaloneJamo)
+                || startsWithStandaloneVowel(units)
+                || units.contains(where: containsImplausibleSyllable)
+            if !hasShiftKey {
+                if brokenAsKorean, isDictWord {
+                    return true
+                }
+                if !brokenAsKorean, units.count >= 2, lowered.count >= 3,
+                   commonWords.contains(word) {
+                    return true
+                }
+            }
         }
 
         return false
@@ -230,20 +318,34 @@ enum EnglishDetector {
     private static let commonWords: Set<String> =
         loadWords(from: wordlistPaths.filter { $0 != broadDictPath })
 
+    /// mmap + 바이트 스캔 (KoreanDictionary와 동일 이유 — 임시 버퍼가
+    /// malloc 캐시에 상주하는 것 방지). 필터는 기존과 동일: 첫 글자가
+    /// ASCII 소문자인 줄만(고유명사/주석 제외), 3자+, ASCII 알파벳만.
     private static func loadWords(from paths: [String]) -> Set<String> {
         var set = Set<String>()
         set.reserveCapacity(250_000)
+        let newline = UInt8(ascii: "\n")
         for path in paths {
-            guard let contents = try? String(contentsOfFile: path, encoding: .utf8) else { continue }
-            for line in contents.split(separator: "\n") {
-                // Skip capitalized entries: web2 proper nouns/abbreviations
-                // (Mam, Bab, Td...) would otherwise hijack jamo sequences.
-                // Also skips comment lines in the supplement.
-                guard let first = line.first, first.isLowercase else { continue }
-                let word = line.trimmingCharacters(in: .whitespaces)
-                if word.count >= 3, word.allSatisfy({ $0.isASCII && $0.isLetter }) {
-                    set.insert(word.lowercased())
+            guard let data = try? Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe) else { continue }
+            data.withUnsafeBytes { (buf: UnsafeRawBufferPointer) in
+                let bytes = buf.bindMemory(to: UInt8.self)
+                var start = 0
+                func consume(_ range: Range<Int>) {
+                    guard range.count >= 3 else { return }
+                    let first = bytes[range.lowerBound]
+                    guard first >= 0x61, first <= 0x7A else { return } // a-z
+                    for i in range where !((bytes[i] >= 0x61 && bytes[i] <= 0x7A)
+                        || (bytes[i] >= 0x41 && bytes[i] <= 0x5A)) {
+                        return // 비알파벳 포함 줄 스킵
+                    }
+                    let word = String(decoding: bytes[range], as: UTF8.self).lowercased()
+                    set.insert(word)
                 }
+                for i in 0..<bytes.count where bytes[i] == newline {
+                    consume(start..<i)
+                    start = i + 1
+                }
+                if start < bytes.count { consume(start..<bytes.count) }
             }
         }
         return set

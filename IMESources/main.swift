@@ -15,8 +15,9 @@ guard IMKServer(name: connectionName, bundleIdentifier: bundleIdentifier) != nil
     exit(EXIT_FAILURE)
 }
 
-// Warm the English wordlist off the typing path (used by the wrong-layout
-// auto-correction at word boundaries).
+// Warm the wordlists off the typing path (used by the wrong-layout
+// auto-correction at word boundaries): English dict + 한국어 veto 사전.
 EnglishDetector.preload()
+KoreanDictionary.preload()
 
 NSApplication.shared.run()
