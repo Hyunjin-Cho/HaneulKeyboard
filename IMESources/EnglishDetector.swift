@@ -50,11 +50,11 @@ enum EnglishDetector {
     /// High-frequency English words allowed below the 3-key minimum, via
     /// R1 (vowel-first) and R2 (English context). Hand-curated.
     ///
-    /// EXCLUDED on purpose — their 2-set Hangul homographs are ultra-common
-    /// standalone Korean words, so auto-converting them after an English
-    /// word destroys real Korean more often than it helps:
-    ///   go→해, so→내, do→애 (해/내/애 are top-frequency). 새(to)/무(an) are
-    /// kept because the user explicitly requested them (조건 2·5).
+    /// Korean-homograph entries (새=to, 무=an, ㅁ=a, 내=so, 랙=for) are
+    /// included but TRIGGER-GATED via koreanHomographShortWords — they fire
+    /// only right after whitelistTriggers words (v3.1, 사용자 명시 요청).
+    /// go(해)/do(애) remain EXCLUDED: 해/애 are top-frequency standalone
+    /// Korean and were not requested.
     static let shortWords: Set<String> = [
         "i", "a", "an", "to", "of", "in", "on", "at", "it", "is", "am",
         "as", "be", "by", "he", "we", "me", "my", "no",

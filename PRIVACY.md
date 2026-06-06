@@ -2,7 +2,7 @@
 
 입력기(IME)는 키보드 입력을 다루는 민감한 소프트웨어입니다. 하늘키보드가 무엇을 보고, 무엇을 저장하고, 무엇을 하지 않는지 명확하게 적습니다. 아래 모든 내용은 [공개된 소스 코드](https://github.com/Hyunjin-Cho/HaneulKeyboard)로 직접 검증할 수 있습니다.
 
-_최종 수정: 2026-06-05_
+_최종 수정: 2026-06-07_
 
 ## 한눈에 보기
 
@@ -27,8 +27,8 @@ _최종 수정: 2026-06-05_
 ### 3. 영타 자동 변환 (메ㅔㅣㄷ → apple)
 
 - 판정은 단어 확정 시점에 **메모리에서만** 일어나며, 입력 내용을 어디에도 저장하거나 학습하지 않습니다.
-- 판정에는 **읽기 전용 사전**만 사용합니다: macOS에 기본 포함된 `/usr/share/dict/words` + 앱에 번들된 보충 단어 목록(`english_supplement.txt`).
-- 구현: [`IMESources/EnglishDetector.swift`](./IMESources/EnglishDetector.swift)
+- 판정에는 **읽기 전용 사전**만 사용합니다: macOS에 기본 포함된 `/usr/share/dict/words` + 앱에 번들된 보충 단어 목록(`english_supplement.txt`) + 한국어 실존 단어 확인용 **우리말샘 표제어 목록**(`korean_words.txt`, 국립국어원, CC-BY-SA 2.0 KR). 세 파일 모두 읽기만 하며 어떤 입력도 기록하지 않습니다.
+- 구현: [`IMESources/EnglishDetector.swift`](./IMESources/EnglishDetector.swift), [`IMESources/KoreanDictionary.swift`](./IMESources/KoreanDictionary.swift)
 
 ### 4. 예측 입력 (자동완성)
 
@@ -57,7 +57,7 @@ _최종 수정: 2026-06-05_
 
 An IME is sensitive software — it handles your keyboard input. This document states plainly what HaneulKeyboard sees, what it stores, and what it does not do. Every claim below is verifiable against the [public source code](https://github.com/Hyunjin-Cho/HaneulKeyboard).
 
-_Last updated: 2026-06-05_
+_Last updated: 2026-06-07_
 
 ## At a Glance
 
@@ -82,8 +82,8 @@ The source code (`Sources/`, `IMESources/`) contains no networking code whatsoev
 ### 3. Wrong-layout auto-conversion (메ㅔㅣㄷ → apple)
 
 - The decision happens **in memory** at word-commit time; nothing is stored or learned.
-- It only consults **read-only dictionaries**: macOS's built-in `/usr/share/dict/words` plus a bundled supplement list (`english_supplement.txt`).
-- Implementation: [`IMESources/EnglishDetector.swift`](./IMESources/EnglishDetector.swift)
+- It only consults **read-only dictionaries**: macOS's built-in `/usr/share/dict/words`, a bundled supplement list (`english_supplement.txt`), and a bundled Korean headword list (`korean_words.txt`, from 국립국어원 우리말샘, CC-BY-SA 2.0 KR) used to verify real Korean words. All three are read-only; nothing you type is ever written to them.
+- Implementation: [`IMESources/EnglishDetector.swift`](./IMESources/EnglishDetector.swift), [`IMESources/KoreanDictionary.swift`](./IMESources/KoreanDictionary.swift)
 
 ### 4. Predictive input (autocomplete)
 
