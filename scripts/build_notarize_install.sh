@@ -76,7 +76,9 @@ echo "  ✓ Build succeeded"
 echo
 
 # Locate produced .app
-RELEASE_APP=$(find ~/Library/Developer/Xcode/DerivedData/HaneulKeyboard-*/Build/Products/Release -maxdepth 1 -name "$TARGET.app" -type d 2>/dev/null | head -1)
+# DerivedData가 Spotlight 제외를 위해 DerivedData.noindex로 이동됨(2026-06-06)
+# — 와일드카드로 두 위치 모두 커버.
+RELEASE_APP=$(find ~/Library/Developer/Xcode/DerivedData*/HaneulKeyboard-*/Build/Products/Release -maxdepth 1 -name "$TARGET.app" -type d 2>/dev/null | head -1)
 if [[ -z "$RELEASE_APP" ]]; then
     echo "  ✗ Could not locate $TARGET.app in DerivedData"
     exit 1
