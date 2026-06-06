@@ -109,6 +109,8 @@ struct ComposerTests {
             "Resources/IM/english_supplement.txt",
             supplementPath,
         ]
+        // v3 한국어 veto 사전 (우리말샘 추출본, repo 루트 기준)
+        KoreanDictionary.wordlistPath = "Resources/IM/korean_words.txt"
 
         // Hangul composition (regression — must match pre-word-buffer behavior)
         expect(type("dkssud").committedText, "안녕", "basic 안녕")
@@ -275,16 +277,57 @@ struct ComposerTests {
             "한계: 문장 첫 clean 단어 며새는 유지 (mode/on은 변환)"
         )
 
+        // ── v3: 한국어 사전 veto + R2 사전 확장 (실기기 실패 케이스) ──
+        // 자음-only 영단어: 영어 문맥에서 변환 (사전 veto 통과 — 한글 아님)
+        expect(typeWords(["how", "are"]).last ?? "", "are", "v3: how 뒤 ㅁㄱㄷ → are")
+        expect(typeWords(["how", "great"]).last ?? "", "great", "v3: ㅎㄱㄷㅁㅅ → great")
+        expect(typeWords(["wallet", "was"]).last ?? "", "was", "v3: ㅈㅁㄴ → was")
+        // clean 한글이지만 사전에 없는 단어: 영어 문맥에서 변환
+        expect(typeWords(["the", "auto"]).last ?? "", "auto", "v3: 며새(사전 없음) → auto")
+        // 실존 한국어는 영어 문맥에서도 절대 보호 (veto)
+        expect(typeWords(["good", "wha"]).last ?? "", "좀", "v3 veto: 좀 보호")
+        expect(typeWords(["really", "cor"]).last ?? "", "책", "v3 veto: 책 보호")
+        expect(typeWords(["want", "gud"]).last ?? "", "형", "v3 veto: 형 보호")
+        expect(typeWords(["thanks", "for"]).last ?? "", "랙", "v3 veto: 랙(외래어 표제어) 보호 — for 포기")
+        // 초성체 슬랭은 영어 문맥에서도 보호 (보호 목록)
+        expect(typeWords(["lol", "gee"]).last ?? "", "ㅎㄷㄷ", "v3 슬랭: ㅎㄷㄷ 보호")
+        expect(typeWords(["lol", "ace"]).last ?? "", "ㅁㅊㄷ", "v3 슬랭: ㅁㅊㄷ 보호")
+        // 사용자 명시 화이트리스트(새→to)는 veto보다 우선
+        expect(typeWords(["want", "to"]).last ?? "", "to", "v3: 새→to 유지 (명시 조건)")
+        // 무맥락은 여전히 보수적 (문장 첫 며새는 유지)
+        expect(type("auto").committedText, "며새", "v3: 무맥락 며새 유지")
+
         // R2 호모그래프 보호 (라운드2): 해/내/애는 영어 뒤에서도 한글 유지
         expect(typeWords(["apple", "go"]).last ?? "", "해", "R2 보호: apple 뒤 해 유지 (go 아님)")
         expect(typeWords(["apple", "so"]).last ?? "", "내", "R2 보호: apple 뒤 내 유지 (so 아님)")
         expect(typeWords(["apple", "do"]).last ?? "", "애", "R2 보호: apple 뒤 애 유지 (do 아님)")
         // 체이닝 방지: 새→to(문맥-only)는 다음 단어에 영어 문맥을 넘기지 않음
         expect(
-            typeWords(["git", "to", "go"]).joined(separator: " "),
-            "git to 해",
+            typeWords(["want", "to", "go"]).joined(separator: " "),
+            "want to 해",
             "체이닝 방지: 새→to 뒤 해는 유지"
         )
+        // R2x 체이닝: 구조적 변환(was)은 다음 단어(great)에 문맥을 넘김
+        expect(
+            typeWords(["that", "was", "great"]).joined(separator: " "),
+            "that was great",
+            "체이닝: was → great 연쇄"
+        )
+        // 화이트리스트 트리거: want 뒤 새→to는 되고, github 뒤 새는 유지
+        expect(typeWords(["github", "to"]).last ?? "", "새", "트리거: github 뒤 새 유지")
+
+        // ── v3 리뷰 회귀: 활용형/구어 보호 3중 가드 ──
+        expect(typeWords(["commit", "goT"]).last ?? "", "했", "Shift 가드: 했 보호")
+        expect(typeWords(["game", "wuT"]).last ?? "", "졌", "Shift 가드: 졌 보호")
+        expect(typeWords(["the", "rid"]).last ?? "", "걍", "단음절 가드: 걍 보호")
+        expect(typeWords(["merge", "gowns"]).last ?? "", "해준", "curated 가드: 해준 보호")
+        expect(typeWords(["really", "glacks"]).last ?? "", "힘찬", "curated 가드: 힘찬 보호")
+        expect(typeWords(["the", "throck"]).last ?? "", "소개차", "curated 가드: 소개차 보호")
+        // veto 우회 override: 희귀 한자어 동형 고빈도 영어
+        expect(typeWords(["more", "than"]).last ?? "", "than", "override: 소무 → than")
+        expect(typeWords(["back", "when"]).last ?? "", "when", "override: 조두 → when")
+        // override 의도적 제외: 흔한 한국어 우선
+        expect(typeWords(["what", "did"]).last ?? "", "양", "override 제외: 양 보호")
         // R3 슬랭 보호: 햏(아햏햏 문화)은 변환 안 됨
         expect(type("gog").committedText, "햏", "R3 보호: 햏 → gog 아님")
 
