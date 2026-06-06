@@ -59,7 +59,7 @@ enum EnglishDetector {
         "i", "a", "an", "to", "of", "in", "on", "at", "it", "is", "am",
         "as", "be", "by", "he", "we", "me", "my", "no",
         "up", "us", "or", "if", "ok", "id", "tv", "pc", "md", "ml", "ui",
-        "os",
+        "os", "so", "for",
     ]
 
     /// shortWords whose Hangul forms are everyday jamo slang (ㅢ=ml, ㅐㅏ=ok):
@@ -78,18 +78,20 @@ enum EnglishDetector {
     ]
 
     /// 화이트리스트 중 한글형이 "흔한 실존 한국어"인 항목(새=to, 무=an,
-    /// ㅁ=a) — 이들은 아무 영어 단어 뒤가 아니라, 영어 기능어/동사
-    /// (whitelistTriggers) 직후에만 발동한다. "GitHub 새 기능"의 새를
-    /// 지키면서 "want to"는 살리는 정밀화 (v3 리뷰 반영).
-    static let koreanHomographShortWords: Set<String> = ["to", "an", "a"]
+    /// ㅁ=a, 내=so, 랙=for) — 이들은 아무 영어 단어 뒤가 아니라, 영어
+    /// 기능어/동사(whitelistTriggers) 직후에만 발동한다. "GitHub 새 기능"
+    /// 의 새를 지키면서 "want to"/"thank you so much for"는 살리는 정밀화.
+    static let koreanHomographShortWords: Set<String> = ["to", "an", "a", "so", "for"]
 
-    /// 새→to/무→an을 발동시키는 직전 영어 단어들 (조동사/본동사/기능어).
+    /// 새→to/무→an/내→so/랙→for를 발동시키는 직전 영어 단어들.
     static let whitelistTriggers: Set<String> = [
         "want", "wants", "wanted", "need", "needs", "needed",
         "have", "has", "had", "how", "is", "was", "are", "were",
         "be", "been", "being", "going", "get", "gets", "used",
         "trying", "like", "likes", "liked", "about", "make", "makes",
         "supposed", "ought", "such", "what", "not", "of",
+        "you", "thank", "thanks", "much", "very", "too",
+        "looking", "waiting", "asking", "time",
     ]
 
     /// 한글형이 "희귀 한자어 표제어"라 veto에 막히는 고빈도 영어 단어 —
@@ -160,6 +162,18 @@ enum EnglishDetector {
         if units.contains(where: containsStandaloneJamo),
            lowered.count >= 3,
            lowered.contains(where: mapsToVowel),
+           isDictWord {
+            return true
+        }
+
+        // R-자음열 — 사용자 조건 (2026-06-06): standalone 자음만 4개 이상
+        // 이고 영어 사전에 있으면 무맥락에서도 영어 (great=ㅎㄱㄷㅁㅅ —
+        // 문장 첫 단어라 문맥이 없어도 잡아야 함). 초성체 슬랭은
+        // ①protectedSlang(상단 차단) ②사전 게이트(ㅇㄱㄹㅇ=drfd는 영어
+        // 단어가 아님)의 이중 방어. 3자(was/are)는 문맥 룰(R2x) 관할.
+        if units.count >= 4,
+           !lowered.contains(where: mapsToVowel),
+           units.allSatisfy({ $0.unicodeScalars.allSatisfy { (0x3131...0x314E).contains($0.value) } }),
            isDictWord {
             return true
         }

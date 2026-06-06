@@ -288,7 +288,8 @@ struct ComposerTests {
         expect(typeWords(["good", "wha"]).last ?? "", "좀", "v3 veto: 좀 보호")
         expect(typeWords(["really", "cor"]).last ?? "", "책", "v3 veto: 책 보호")
         expect(typeWords(["want", "gud"]).last ?? "", "형", "v3 veto: 형 보호")
-        expect(typeWords(["thanks", "for"]).last ?? "", "랙", "v3 veto: 랙(외래어 표제어) 보호 — for 포기")
+        // (v3.1: 사용자 요청으로 뒤집힘 — 랙도 영어 문맥에선 for로)
+        expect(typeWords(["thanks", "for"]).last ?? "", "for", "v3.1: thanks 뒤 랙 → for")
         // 초성체 슬랭은 영어 문맥에서도 보호 (보호 목록)
         expect(typeWords(["lol", "gee"]).last ?? "", "ㅎㄷㄷ", "v3 슬랭: ㅎㄷㄷ 보호")
         expect(typeWords(["lol", "ace"]).last ?? "", "ㅁㅊㄷ", "v3 슬랭: ㅁㅊㄷ 보호")
@@ -328,6 +329,22 @@ struct ComposerTests {
         expect(typeWords(["back", "when"]).last ?? "", "when", "override: 조두 → when")
         // override 의도적 제외: 흔한 한국어 우선
         expect(typeWords(["what", "did"]).last ?? "", "양", "override 제외: 양 보호")
+
+        // ── v3.1: 실기기 후속 3건 (2026-06-06) ──
+        // 자음열 4+ 무맥락 변환 (great이 문장 첫 단어여도)
+        expect(type("great").committedText, "great", "v3.1: 무맥락 ㅎㄱㄷㅁㅅ → great")
+        // 단 3자(was/are)는 여전히 문맥 필요 — 초성체 보호 우선
+        expect(type("was").committedText, "ㅈㅁㄴ", "v3.1: 무맥락 3자는 유지")
+        // 4자+ 자음 슬랭은 사전 게이트로 보호
+        expect(type("drfd").committedText, "ㅇㄱㄹㅇ", "v3.1: ㅇㄱㄹㅇ 보호")
+        expect(type("asdf").committedText, "ㅁㄴㅇㄹ", "v3.1: ㅁㄴㅇㄹ 보호")
+        // 내→so, 랙→for (트리거 뒤에서만)
+        expect(
+            typeWords(["thank", "you", "so", "much", "for", "helping", "me"]).joined(separator: " "),
+            "thank you so much for helping me",
+            "v3.1: 사용자 실패 문장 풀 변환"
+        )
+        expect(typeWords(["apple", "so"]).last ?? "", "내", "v3.1: 비트리거(apple) 뒤 내 보호")
         // R3 슬랭 보호: 햏(아햏햏 문화)은 변환 안 됨
         expect(type("gog").committedText, "햏", "R3 보호: 햏 → gog 아님")
 
