@@ -36,6 +36,11 @@ enum Uninstaller {
             .appendingPathComponent("Library/Input Methods/\(imeBundleName)")
     }
 
+    /// System-domain install (root-owned) — where the build script installs.
+    static var systemInstallURL: URL {
+        URL(fileURLWithPath: "/Library/Input Methods/\(imeBundleName)")
+    }
+
     @discardableResult
     static func run() -> Outcome {
         let killed = killIMEProcess()
@@ -71,32 +76,45 @@ enum Uninstaller {
     }
 
     private static func removeBundle() -> Bool {
-        guard FileManager.default.fileExists(atPath: installURL.path) else {
-            return true // already absent
+        var ok = true
+        // System-domain bundle (root-owned): admin password prompt.
+        // The old code only checked the user domain and reported success
+        // while the real install stayed behind (2026-06-06 bug).
+        if FileManager.default.fileExists(atPath: systemInstallURL.path) {
+            do {
+                try IMEInstaller.removeWithAdminPrivileges(path: systemInstallURL.path)
+            } catch {
+                ok = false
+            }
         }
-        do {
-            try FileManager.default.removeItem(at: installURL)
-            return true
-        } catch {
-            return false
+        if FileManager.default.fileExists(atPath: installURL.path) {
+            do {
+                try FileManager.default.removeItem(at: installURL)
+            } catch {
+                ok = false
+            }
         }
+        return ok
     }
 
     private static let lsregisterPath = "/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister"
 
     private static func unregisterFromLaunchServices() -> Bool {
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: lsregisterPath)
-        task.arguments = ["-u", installURL.path]
-        task.standardOutput = Pipe()
-        task.standardError = Pipe()
-        do {
-            try task.run()
-            task.waitUntilExit()
-            return true
-        } catch {
-            return false
+        var ok = true
+        for url in [systemInstallURL, installURL] {
+            let task = Process()
+            task.executableURL = URL(fileURLWithPath: lsregisterPath)
+            task.arguments = ["-u", url.path]
+            task.standardOutput = Pipe()
+            task.standardError = Pipe()
+            do {
+                try task.run()
+                task.waitUntilExit()
+            } catch {
+                ok = false
+            }
         }
+        return ok
     }
 
     private static func clearUserDefaults() -> Bool {
