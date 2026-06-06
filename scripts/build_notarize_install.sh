@@ -138,8 +138,23 @@ echo "  ✓ Copied"
 echo
 
 echo "→ Re-register with LaunchServices (system domain)"
-sudo /System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister -f -R -trusted -domain system "$INSTALL_PATH"
+LSREG=/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister
+sudo "$LSREG" -f -R -trusted -domain system "$INSTALL_PATH"
 echo "  ✓ Registered"
+echo
+
+# ─── 8.5 Dedup: 비정본 복사본 등록 해제 ──────────────
+# 정본(/Library/Input Methods, /Applications) 외의 IME 복사본이
+# LaunchServices에 등록돼 있으면 입력 소스 목록에 같은 이름이 줄줄이
+# 생긴다(2026-06-06 학습: DerivedData 산출물, 임베드 복사본, user 도메인
+# 이중 설치가 원인). 설치 때마다 자동 정리한다. 파일은 건드리지 않고
+# 등록(DB)만 뺀다 — DerivedData 산출물은 다음 빌드에 그대로 쓰인다.
+echo "→ Dedup: unregister non-canonical copies"
+"$LSREG" -u "$RELEASE_APP" >/dev/null 2>&1 || true
+"$LSREG" -u "$RELEASE_APP/Contents/Helpers/HaneulKeyboardIM.app" >/dev/null 2>&1 || true
+"$LSREG" -u "$INSTALL_PATH/Contents/Helpers/HaneulKeyboardIM.app" >/dev/null 2>&1 || true
+"$LSREG" -u "$HOME/Library/Input Methods/HaneulKeyboardIM.app" >/dev/null 2>&1 || true
+echo "  ✓ Deduped (canonical registrations only)"
 echo
 
 # ─── 9. Launch the app ──────────────────────────────

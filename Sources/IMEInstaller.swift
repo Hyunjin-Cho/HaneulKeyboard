@@ -10,6 +10,14 @@ enum IMEInstaller {
             .appendingPathComponent("Library/Input Methods/\(bundleName)")
     }
 
+    /// System-wide install path — where scripts/build_notarize_install.sh
+    /// puts the IME. When this exists it is the CANONICAL install; creating
+    /// a second copy in the user domain produces duplicate rows in the
+    /// System Settings input-source list (learned 2026-06-06).
+    static var systemInstallURL: URL {
+        URL(fileURLWithPath: "/Library/Input Methods/\(bundleName)")
+    }
+
     /// IME bundle that ships next to the main app — both Debug builds land in
     /// the same DerivedData/Products folder, and a released app would carry
     /// the IME inside its Contents/Helpers folder. We probe both.
@@ -23,11 +31,27 @@ enum IMEInstaller {
     }
 
     static var isInstalled: Bool {
-        FileManager.default.fileExists(atPath: installURL.path)
+        FileManager.default.fileExists(atPath: systemInstallURL.path)
+            || FileManager.default.fileExists(atPath: installURL.path)
     }
 
     @discardableResult
     static func install() throws -> URL {
+        // A system-domain install (from the build script) is canonical.
+        // NEVER lay a second copy in the user domain on top of it — that's
+        // exactly what produced the duplicated input-source rows. Instead,
+        // clean any user-domain leftover and just (re)activate the canonical
+        // bundle with TIS.
+        if FileManager.default.fileExists(atPath: systemInstallURL.path) {
+            if FileManager.default.fileExists(atPath: installURL.path) {
+                try? FileManager.default.removeItem(at: installURL)
+                unregisterFromLaunchServices(at: installURL)
+            }
+            try registerWithLaunchServices(at: systemInstallURL)
+            registerWithTIS(at: systemInstallURL)
+            return systemInstallURL
+        }
+
         guard let source = bundledIMEURL else {
             throw IMEInstallError.bundleNotFound
         }
@@ -63,6 +87,16 @@ enum IMEInstaller {
         task.executableURL = URL(fileURLWithPath: lsregisterPath)
         task.arguments = ["-f", "-R", "-trusted", url.path]
         try task.run()
+        task.waitUntilExit()
+    }
+
+    /// Removes a stale copy from the LaunchServices database so it stops
+    /// appearing as an extra row in the input-source list.
+    private static func unregisterFromLaunchServices(at url: URL) {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: lsregisterPath)
+        task.arguments = ["-u", url.path]
+        try? task.run()
         task.waitUntilExit()
     }
 
