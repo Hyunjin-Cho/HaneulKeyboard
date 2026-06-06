@@ -9,6 +9,11 @@
 - 라이선스: MIT
 - 대만어(주음) 입력기. macOS의 TIS(Text Input Services) 입력기 **등록·설치 메커니즘**을 이해하고 구현하는 데 결정적인 참고가 되었습니다. 사인·노타리된 메인 앱이 입력기 번들을 설치하는 패턴이 특히 큰 도움이 되었습니다.
 
+### 국립국어원 우리말샘
+- https://opendict.korean.go.kr
+- 라이선스: CC-BY-SA 2.0 KR
+- 영타 자동 변환이 "이 글자가 실존하는 한국어 단어인가"를 판정할 때 쓰는 **표제어 67.7만 개**([`Resources/IM/korean_words.txt`](./Resources/IM/korean_words.txt))의 출처입니다. 우리말의 보고를 모두에게 열어준 국립국어원과 우리말샘 참여자들께 감사드립니다.
+
 ### Claude (Anthropic)
 - https://claude.com/claude-code
 - 설계 논의, 디버깅, 문서 작성 등 개발 과정 전반에 함께했습니다.
@@ -35,6 +40,7 @@ HaneulKeyboard builds on the work of the open-source projects, tools, and people
 ## Direct help
 
 - **[McBopomofo](https://github.com/openvanilla/McBopomofo)** (OpenVanilla, MIT) — A Bopomofo input method for Taiwanese Mandarin. Its approach to **registering and installing a TIS (Text Input Services) input method on macOS** — a signed, notarized host app that installs the IME bundle — was a decisive reference.
+- **[Urimalsaem (우리말샘)](https://opendict.korean.go.kr)** (National Institute of Korean Language, CC-BY-SA 2.0 KR) — Source of the 677k Korean headwords used by the wrong-layout auto-correction to verify real Korean words.
 - **[Claude](https://claude.com/claude-code)** (Anthropic) — A companion throughout design, debugging, and documentation.
 
 ## Studied for reference
