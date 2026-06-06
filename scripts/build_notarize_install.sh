@@ -129,7 +129,10 @@ echo
 INSTALL_PATH="$INSTALL_DIR/$TARGET.app"
 echo "→ Install to $INSTALL_PATH (sudo)"
 if [[ -e "$INSTALL_PATH" ]]; then
-    BAK="$INSTALL_PATH.bak.$(date +%s)"
+    # 백업은 반드시 Input Methods/Applications 폴더 "밖"(/tmp)으로 —
+    # 같은 폴더의 .bak은 TIS/Spotlight가 또 하나의 앱으로 집어서
+    # 유령 항목을 만든다(2026-06-06). /tmp는 재부팅 시 자동 청소.
+    BAK="/tmp/$TARGET.app.bak.$(date +%s)"
     echo "  → backing up existing → $BAK"
     sudo mv "$INSTALL_PATH" "$BAK"
 fi
