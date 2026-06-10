@@ -213,4 +213,4 @@ zymurgy
   이름 + **SCOWL 70/US**(아포스트로피 단어 제외·소문자 정규화 — web2 대비 +75,665어, §4).
   깨진 한글 경로는 구조적으로 안전하므로 폭넓게.
 - Census는 대문자, SSA는 Capitalized → 양쪽 다 소문자 정규화 필요.
-- `dict_work/names_extra_draft.txt`: 위 두 소스(미국 중심)가 못 덮는 국제 유명인 단어 시드 초안.
+- `Resources/IM/english_names_extra.txt`: 위 두 소스(미국 중심)가 못 덮는 국제 유명인 단어 시드 50개 — 검역(전원 Tier C) 후 머지된 최종본 (초안 파일은 정리됨).
