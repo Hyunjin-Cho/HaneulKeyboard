@@ -127,7 +127,12 @@ HaneulKeyboard.app              # 메뉴바 앱
 
 MIT License — 자유롭게 사용, 수정, 배포하세요. 자세한 내용은 [`LICENSE`](./LICENSE) 파일을 참고하세요.
 
-**데이터 파일 예외**: 한국어 단어 목록([`Resources/IM/korean_words.txt`](./Resources/IM/korean_words.txt))은 국립국어원 **우리말샘**에서 추출한 것으로 [**CC-BY-SA 2.0 KR**](https://creativecommons.org/licenses/by-sa/2.0/kr/) 라이선스를 따릅니다 (앱 코드는 MIT 그대로).
+**데이터 파일 예외** (앱 코드는 MIT 그대로, 번들 데이터만 파일별 라이선스):
+
+- 한국어 단어 목록([`Resources/IM/korean_words.txt`](./Resources/IM/korean_words.txt)) — 국립국어원 **우리말샘**에서 추출, [**CC-BY-SA 2.0 KR**](https://creativecommons.org/licenses/by-sa/2.0/kr/)
+- 현대 영어 단어 목록 — **NGSL**(New General Service List, Browne·Culligan·Phillips)에서 추출, [**CC BY-SA 4.0**](https://creativecommons.org/licenses/by-sa/4.0/)
+- 영어 단어 목록 보강 — **SCOWL/ESDB**([English Speller Database](https://wordlist.aspell.net), Kevin Atkinson)에서 추출, **MIT-like** (Copyright 2000-2026 by Kevin Atkinson)
+- 영어 인명 목록 — **미국 인구조사국**(2010 Census 성씨)·**미국 사회보장국**(Baby Names) 데이터에서 추출, **public domain**
 
 ## 감사의 글
 
@@ -180,7 +185,12 @@ CalVer: `YEAR.RELEASE[.HOTFIX]`. The second field is the release number within t
 
 MIT. See [`LICENSE`](./LICENSE).
 
-**Data exception**: the bundled Korean wordlist ([`Resources/IM/korean_words.txt`](./Resources/IM/korean_words.txt)) is extracted from the National Institute of Korean Language's **Urimalsaem (우리말샘)** dictionary and is licensed [**CC-BY-SA 2.0 KR**](https://creativecommons.org/licenses/by-sa/2.0/kr/) (the app code remains MIT).
+**Data exceptions** (the app code remains MIT; only bundled data files carry their own licenses):
+
+- Korean wordlist ([`Resources/IM/korean_words.txt`](./Resources/IM/korean_words.txt)) — extracted from the National Institute of Korean Language's **Urimalsaem (우리말샘)**, [**CC-BY-SA 2.0 KR**](https://creativecommons.org/licenses/by-sa/2.0/kr/)
+- Modern English wordlist — derived from the **NGSL** (New General Service List, Browne, Culligan & Phillips), [**CC BY-SA 4.0**](https://creativecommons.org/licenses/by-sa/4.0/)
+- English wordlist augmentation — derived from **SCOWL/ESDB** ([English Speller Database](https://wordlist.aspell.net), Kevin Atkinson), **MIT-like** (Copyright 2000-2026 by Kevin Atkinson)
+- English name lists — derived from **US Census Bureau** (2010 Census surnames) and **US Social Security Administration** (Baby Names) data, **public domain**
 
 ## Acknowledgements
 

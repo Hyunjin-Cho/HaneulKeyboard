@@ -103,12 +103,43 @@ struct ComposerTests {
         // Must be set before the first shouldConvert call (lazy load).
         let supplementPath = NSTemporaryDirectory() + "haneul_test_supplement.txt"
         try? "google\ngithub\n".write(toFile: supplementPath, atomically: true, encoding: .utf8)
+        // curatedPaths 격리 검증용 names 픽스처 (broad 전용 — curated 미등록):
+        //   goawor(햄잭, clean 6키, 우리말샘 미등재) — R5/R2-clean 절대 금지
+        //   zvinci(ㅋ퍄ㅜ챠, 깨짐)                  — MAIN 변환 OK (broad 로드 증명)
+        let namesFixturePath = NSTemporaryDirectory() + "haneul_test_names_fixture.txt"
+        try? "goawor\nzvinci\n".write(toFile: namesFixturePath, atomically: true, encoding: .utf8)
+
+        // ── 머지 대기 사전 (1순위: 영어 사전 현대화) — 파일 존재 시 자동 활성화 ──
+        // english_common.txt(NGSL)·english_names*.txt가 검역 통과 후
+        // Resources/IM/에 머지되면, 별도 수정 없이 다음 실행부터 아래
+        // wordlistPaths에 합류하고 "머지대기" 테스트 블록이 살아난다.
+        let pendingCommon = "Resources/IM/english_common.txt"
+        let pendingModern = "Resources/IM/english_modern.txt" // SCOWL — broad 전용
+        let pendingNames = "Resources/IM/english_names.txt"
+        let pendingNamesExtra = "Resources/IM/english_names_extra.txt"
+        let hasCommon = FileManager.default.fileExists(atPath: pendingCommon)
+        let hasModern = FileManager.default.fileExists(atPath: pendingModern)
+        let hasNames = FileManager.default.fileExists(atPath: pendingNames)
+        let hasNamesExtra = FileManager.default.fileExists(atPath: pendingNamesExtra)
+
         // 실제 번들 보충 사전도 포함 (xcode/kpop 등) — 테스트는 repo 루트에서 실행됨
-        EnglishDetector.wordlistPaths = [
+        var wordlists = [
             "/usr/share/dict/words",
             "Resources/IM/english_supplement.txt",
             supplementPath,
+            namesFixturePath, // broad 전용 — 아래 curated에 미등록 (의도)
         ]
+        // 화이트리스트 방식(fail-safe): curated로 신뢰할 경로만 명시 등록.
+        var curated: Set<String> = [
+            "Resources/IM/english_supplement.txt",
+            supplementPath,
+        ]
+        if hasCommon { wordlists.append(pendingCommon); curated.insert(pendingCommon) }
+        if hasModern { wordlists.append(pendingModern) } // broad 전용 — curated 미등록
+        if hasNames { wordlists.append(pendingNames) }
+        if hasNamesExtra { wordlists.append(pendingNamesExtra) }
+        EnglishDetector.wordlistPaths = wordlists
+        EnglishDetector.curatedPaths = curated
         // v3 한국어 veto 사전 (우리말샘 추출본, repo 루트 기준)
         KoreanDictionary.wordlistPath = "Resources/IM/korean_words.txt"
 
@@ -347,6 +378,102 @@ struct ComposerTests {
         expect(typeWords(["apple", "so"]).last ?? "", "내", "v3.1: 비트리거(apple) 뒤 내 보호")
         // R3 슬랭 보호: 햏(아햏햏 문화)은 변환 안 됨
         expect(type("gog").committedText, "햏", "R3 보호: 햏 → gog 아님")
+
+        // ── 사전 확장 1단계 (2026-06-10): and + curated 화이트리스트 격리 ──
+        // and(뭉): 우리말샘 미등재 + clean 1음절 = 어떤 룰에도 도달 못 하던
+        // 구멍. shortWords 등재로 영어 문맥에서만 변환, 무맥락은 보수 유지.
+        expect(typeWords(["apples", "and"]).joined(separator: " "), "apples and", "and: 영어 뒤 뭉 → and")
+        expect(type("and").committedText, "뭉", "and: 무맥락 뭉 유지 (보수)")
+        expect(type("andcl").committedText, "뭉치", "and: 뭉치 veto 보호")
+        expect(typeWords(["want", "andcl"]).last ?? "", "뭉치", "and: 영어 문맥서도 뭉치 보호")
+        expect(type("andzmf").committedText, "뭉클", "and: 뭉클 veto 보호")
+        // and는 트리거 게이트 없음(뭉이 실존 한국어가 아니라서) — 비트리거
+        // 영어(apples) 뒤에서도 발동. 단 화이트리스트-only 변환이므로 다음
+        // 단어에 영어 문맥을 넘기지 않는다 (KoreanComposer whitelistOnly).
+        expect(
+            typeWords(["apples", "and", "was"]).joined(separator: " "),
+            "apples and ㅈㅁㄴ",
+            "and: 문맥 비전달 (뒤 was는 ㅈㅁㄴ 유지)"
+        )
+
+        // curatedPaths 격리 보증: broad 전용 파일(names 픽스처)의 clean 6키+
+        // 단어는 R5(무맥락)·R2-clean(문맥) 어디서도 변환되지 않는다.
+        expect(type("goawor").committedText, "햄잭", "격리: broad 전용 goawor(햄잭) 무맥락 유지")
+        expect(typeWords(["the", "goawor"]).last ?? "", "햄잭", "격리: broad 전용 goawor 문맥서도 유지")
+        // 같은 픽스처의 깨진 단어는 MAIN으로 변환 — broad 로드 자체는 증명
+        expect(type("zvinci").committedText, "zvinci", "격리: 같은 픽스처 zvinci(깨짐)는 MAIN 변환")
+
+        // ═══ 머지 대기 (영어 사전 현대화) — 실파일 머지 시 자동 활성화 ═══
+        // 활성화 방법: 검역 통과한 english_common.txt / english_names.txt /
+        // english_names_extra.txt를 Resources/IM/에 넣기만 하면 됨 (이 파일
+        // 수정 불필요). 단어가 최종 목록에 실제로 들어갔을 때만 expect하고,
+        // 빠졌으면 NOTE를 출력한다 — 목록 구성 차이로 하네스가 레드가 되지
+        // 않게 하되, 빠진 단어는 NOTE로 드러나 supplement 추가를 검토한다.
+        func wordsInFile(_ path: String) -> Set<String> {
+            guard let content = try? String(contentsOfFile: path, encoding: .utf8) else { return [] }
+            return Set(
+                content.split(separator: "\n")
+                    .map { $0.trimmingCharacters(in: .whitespaces) }
+                    .filter { !$0.isEmpty && !$0.hasPrefix("#") }
+            )
+        }
+        if hasCommon {
+            let commonSet = wordsInFile(pendingCommon)
+            // city(챠쇼)/with(쟈소): clean 한글 — 문맥에서만 변환(R2-clean),
+            // 무맥락은 4키라 R5 미달로 보수 유지가 맞다.
+            for (keys, hangul) in [("city", "챠쇼"), ("with", "쟈소")] {
+                if commonSet.contains(keys) {
+                    expect(typeWords(["the", keys]).last ?? "", keys, "머지대기: the 뒤 \(hangul) → \(keys)")
+                    expect(type(keys).committedText, hangul, "머지대기: 무맥락 \(hangul) 유지 (보수)")
+                } else {
+                    print("NOTE(머지대기): english_common에 \(keys) 없음 — supplement 추가 검토")
+                }
+            }
+        } else {
+            print("SKIP(머지대기): english_common.txt 없음 — city/with 비활성")
+        }
+        // playlist(ㅔㅣ묘ㅣㅑㄴㅅ)·selfie: 깨진 형 현대어 — NGSL엔 없고
+        // SCOWL(english_modern, broad 전용)이 관할. 합집합으로 확인.
+        if hasCommon || hasModern {
+            // supplement 포함: dedup 파이프라인이 supplement 기존재 단어를
+            // modern에서 제거하므로(selfie), 합집합에 넣어야 거짓 NOTE가 없다.
+            let modernUnion = wordsInFile(pendingCommon)
+                .union(wordsInFile(pendingModern))
+                .union(wordsInFile("Resources/IM/english_supplement.txt"))
+            for w in ["playlist", "selfie"] {
+                if modernUnion.contains(w) {
+                    expect(type(w).committedText, w, "머지대기: \(w)(깨짐, 현대어) 무맥락 변환")
+                } else {
+                    print("NOTE(머지대기): common/modern에 \(w) 없음 — supplement 추가 검토")
+                }
+            }
+        } else {
+            print("SKIP(머지대기): common/modern 없음 — playlist/selfie 비활성")
+        }
+        if hasNamesExtra {
+            let extraSet = wordsInFile(pendingNamesExtra)
+            // davinci(ㅇㅁ퍄ㅜ챠)/ronaldo(개ㅜ미애): 깨진 인명 — 무맥락 MAIN 변환
+            for name in ["davinci", "ronaldo"] {
+                if extraSet.contains(name) {
+                    expect(type(name).committedText, name, "머지대기: \(name)(깨짐 인명) 무맥락 변환")
+                } else {
+                    print("NOTE(머지대기): english_names_extra에 \(name) 없음")
+                }
+            }
+        } else {
+            print("SKIP(머지대기): english_names_extra.txt 없음 — davinci/ronaldo 비활성")
+        }
+        if hasNames {
+            let namesSet = wordsInFile(pendingNames)
+            // garcia(ㅎㅁㄱ챰): 깨진 성씨 — 무맥락 MAIN 변환 (Census top-10)
+            if namesSet.contains("garcia") {
+                expect(type("garcia").committedText, "garcia", "머지대기: garcia(깨짐 성씨) 무맥락 변환")
+            } else {
+                print("NOTE(머지대기): english_names에 garcia 없음 — cutoff 확인")
+            }
+        } else {
+            print("SKIP(머지대기): english_names.txt 없음 — garcia 비활성")
+        }
 
         // 조건 11: 멀쩡히 조합된 한글이어도 키가 긴 영어 단어면 영어 (curated only)
         expect(type("entitlement").committedText, "entitlement", "조건11: 두샤시드둣 → entitlement")

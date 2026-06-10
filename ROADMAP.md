@@ -95,9 +95,13 @@ v1 출하됨(빈도 학습 + 고스트 패널 + Tab). 렌더링은 floating pane
 
 사용자 결정: v3.1로 며칠 실사용 → 발견되는 것 수집 후 재개. 재개 시 우선순위:
 
-### 1순위 — 영어 사전 현대화 + 인명 사전 (사용자 케이스: davinci/ronaldo/playlist/city)
+### 1순위 — 영어 사전 현대화 + 인명 사전 (사용자 케이스: davinci/ronaldo/playlist/city) — ✅ 구현 완료 (2026-06-10, v3.2)
+> **결과**: 사전 5종 체제(`english_common`=NGSL curated / `english_modern`=SCOWL broad / `english_names`+`extra`=인명 broad / `supplement`) + `curatedPaths` fail-safe 리팩터 + shortWords "and"(뭉 구멍 수리). 검역 도구(`scripts/audit_wordlist.sh`)로 전수 검증 — Tier A 리뷰 1건 탈락(theory=소대교), 인명 Tier A/B 0 실측. 테스트 150→168 그린. 상세: WORKLOG 2026-06-10, RULES.md v3.2.
 - 문제: `/usr/share/dict/words`는 1934년판 — 현대어(playlist)·인명(davinci, ronaldo)·일상어 일부(city는 curated에 없어 clean-hangul 경로 미커버) 부족.
-- 재료: 현대 영어 빈도 리스트(예: google-10000-english, MIT) → **curated(clean-hangul용) top-N**으로, 인명 리스트(US Census, public domain) + 확장 단어 리스트 → **broad(깨진-hangul용)**로.
+- ~~재료: 현대 영어 빈도 리스트(예: google-10000-english, MIT)~~ **전제 정정 (2026-06-10)**: google-10000-english는 MIT가 아님 — 데이터가 **LDC 라이선스**(Google Web Trillion Word Corpus, 재배포 제약) 파생이라 탈락. → **NGSL**(New General Service List 1.2, lemma 2,809개, **CC BY-SA 4.0**)로 교체 결정 (architect 검토).
+- 확정 재료: **NGSL 1.2**(고빈도 현대 영어) → curated(clean-hangul용) top-N, **US Census 2010 성씨**(16.2만, public domain) + **SSA Baby Names**(이름, public domain) + NGSL 굴절형 → broad(깨진-hangul용).
+- **진행 (2026-06-10)**: 소스 3종 다운로드·내용 검증 완료 (`~/Downloads/HaneulDictSources/`). city/with/and/about/world NGSL 수록 확인, **playlist·internet은 NGSL에도 없음 → supplement 수동 추가 필요**. 형식 명세는 [`dict_work/SOURCE_FORMATS.md`](./dict_work/SOURCE_FORMATS.md) (가공 스크립트 `scripts/build_english_wordlists.py`가 참조). 유명인 단어 시드 초안: `dict_work/names_extra_draft.txt`. 문서(ACKNOWLEDGEMENTS/PRIVACY/README) 라이선스 반영 완료.
+- **SCOWL broad 보강 앞당김 — 사용자 결정 2026-06-10** (보류 사유였던 "빌드 필요"가 공식 생성기 `app.aspell.net/create` 확인으로 해소). ESDB(구 SCOWLv2, MIT-like) size 70/US/variant 0/special 없음/diacritic strip — 16.7만 단어 다운로드·검증 완료. **web2 대비 신규 75,665단어**(굴절형 다수), **playlist·internet 수록 → NGSL 누락분의 supplement 수동 추가 불필요해짐**. 명세·통계는 SOURCE_FORMATS.md §4.
 - 안전성: 깨진 한글 경로는 구조적으로 안전(이름들 대부분 깨짐), clean 경로는 top-N+우리말샘 veto 이중 게이트. 추가 전 한국어 충돌 스윕(우리말샘 파이프라인 재사용) + Opus 리뷰 필수.
 - 참고 비일관 사례: cit(챳, 완성형 미포함→R3 변환)은 되는데 city(챠쇼, clean)는 안 됨 — curated 확장으로 해소.
 
