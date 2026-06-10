@@ -214,3 +214,12 @@ zymurgy
   깨진 한글 경로는 구조적으로 안전하므로 폭넓게.
 - Census는 대문자, SSA는 Capitalized → 양쪽 다 소문자 정규화 필요.
 - `Resources/IM/english_names_extra.txt`: 위 두 소스(미국 중심)가 못 덮는 국제 유명인 단어 시드 50개 — 검역(전원 Tier C) 후 머지된 최종본 (초안 파일은 정리됨).
+
+## 부록: exclusions 정본 위치 (2026-06-10)
+
+검역 탈락 결정 기록의 정본은 이 폴더에 보존된다 — `~/Downloads/HaneulDictSources/`는
+재다운로드 가능한 원본+재생성 가능한 검역 CSV뿐이므로 통째로 지워도 된다.
+- `dict_work/exclusions.txt` — theory(소대교 충돌) + 인명 전부-자모 2,685
+- `dict_work/scowl_exclusions_alljamo4.txt` — SCOWL ≤4자모 전부-자모 826 (btw·lol류)
+재생성 시: `build_english_wordlists.py --exclude dict_work/exclusions.txt`,
+SCOWL diff에는 `comm -23 ... dict_work/scowl_exclusions_alljamo4.txt` (위 §4 레시피).
