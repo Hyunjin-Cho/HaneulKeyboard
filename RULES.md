@@ -1,8 +1,20 @@
-# 영타 자동 변환 규칙 (한 장 요약) — v3.1
+# 영타 자동 변환 규칙 (한 장 요약) — v3.2
 
 > 한글 모드에서 영어 단어를 잘못 친 걸(메ㅔㅣㄷ → apple) 자동으로 바로잡는 규칙.
 > "이 입력이 왜 이렇게 됐지?"를 이 표 하나로 추적할 수 있게 정리.
 > 구현: [`IMESources/EnglishDetector.swift`](./IMESources/EnglishDetector.swift) `shouldConvert()`.
+
+## 사전 3계층 (v3.2 — 2026-06-10 현대화)
+
+| 계층 | 파일 | 누가 믿나 |
+|---|---|---|
+| **broad** (깨진 한글 전용) | web2(1934) + `english_common`(NGSL 2,786) + `english_modern`(SCOWL 70/US 신규 7.1만 — playlist·internet·굴절형) + `english_names`(Census 성씨 3만+SSA 이름 1만) + `english_names_extra`(유명인 50) + `english_supplement`(수작업 163) | MAIN·자음열4+·R1·R3·R2-깨짐 — 깨짐 자체가 한국어가 아니라는 증거라 큰 사전이 안전 |
+| **curated** (멀쩡한 한글도 허용) | `english_supplement` + `english_common`만 (`curatedPaths` 화이트리스트 등록제) | R5·R2-clean — 전수 검역(Tier A/B 리뷰) 통과본만. 인명·SCOWL은 롱테일이라 **의도적 미등록** |
+| **veto** (최종 거부권) | `korean_words.txt` (우리말샘 67.7만) | 모든 룰 위에서 — 실존 한국어면 무조건 변환 금지 |
+
+검역 도구: `scripts/audit_wordlist.sh` (실코드 컴파일 — 후보를 넣기 전/후 diff로
+"실제로 뭐가 새로 변환되나"를 Tier A/B/C로 분류). 사전 재생성:
+`scripts/build_english_wordlists.py` + `dict_work/SOURCE_FORMATS.md` 레시피.
 
 ## 큰 원칙 한 줄
 
@@ -21,6 +33,14 @@
 **새→to, 무→an, ㅁ→a, 내→so, 랙→for**. 이들은 진짜 한국어 단어이기도 하지만,
 "thank you 내 much 랙"처럼 영어 흐름 안에서는 영어 의도가 우세하다고 보고 변환.
 트리거가 아닌 영어 뒤(예: "github 새 기능")에서는 발동하지 않음.
+
+**뭉→and**(v3.2)는 트리거 없이 **아무 영어 단어 뒤**에서 발동 — 뭉은 우리말샘에
+없는 비단어라 게이트가 불필요하고, and의 주 위치(명사 뒤: "salt and pepper")는
+트리거로 열거 불가능해서다. 무맥락 단독 뭉은 보수적으로 유지.
+
+> ⚠️ 불변식: shortWords/override에 단어 추가 = veto 우회 채널 확장. 추가 전
+> 그 한글형의 우리말샘 등재를 확인하고(`scripts/audit_wordlist.sh`), 등재어면
+> 트리거 게이트 강제. (EnglishDetector.swift 주석과 동일 규칙.)
 
 ### 2. ★ 한국어 사전 veto
 조합 결과가 **우리말샘 표제어 67.7만**(1~6음절 일반어, 8.3MB 번들)에 있으면
@@ -56,7 +76,11 @@
 | `ㅗㅜㅑ`가 그대로 | 의도된 동작 — hni는 영어 단어가 아님. "영어로 말 될 때만 변환" |
 | `했`/`걍`이 영어 뒤에서도 유지 | 의도된 보호 — Shift 가드(했)·단음절 가드(걍) |
 | `양`(did)/`햇`(got)이 유지 | 사전 veto — 흔한 한국어가 우선 (override 의도적 제외 목록) |
-| 현대어/이름(playlist, davinci)이 안 바뀜 | 영어 broad 사전이 1934년판이라 미등재 — 사전 현대화 예정(ROADMAP) |
+| ~~현대어/이름이 안 바뀜~~ | **v3.2에서 해소** — playlist·internet(SCOWL)·davinci·ronaldo(인명)·city·with(NGSL) 변환됨 |
+| 문장 첫 `챠쇼`(city)가 안 바뀜 | 의도된 한계 — 멀쩡한 한글은 무맥락 변환 금지. "the city"처럼 영어 뒤에선 변환 |
+| `뭉`(and) 단독이 유지 | 의도된 보수 — 영어 단어 뒤에서만 and로 변환 |
+| `btw`/`lol` 같은 약어가 유지 | 의도적 제외 — 한글형이 짧은 자모열(ㅠㅅㅈ·ㅣㅐㅣ)이라 자모 이모티콘·초성체 공간 보호 (4자모 이하 전부-자모 826개 제외) |
+| `theory`(소대교)가 안 바뀜 | 검역 탈락 — "X대교" 교량명 패턴과 충돌 위험 (audit 2026-06-10) |
 
 ## 핵심 직관
 

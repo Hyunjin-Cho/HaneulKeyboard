@@ -1,0 +1,54 @@
+# Hand-curated famous-name supplement (broad-only — NOT in curatedPaths).
+# Reviewed individually 2026-06-10 (supervisor): all 50 Tier C; federer/mozart
+# all-jamo forms kept deliberately — 7+/mixed jamo runs collide with no real
+# 초성체 slang (2-4 chars). One word per line; # lines are ignored.
+beethoven
+bergman
+beyonce
+blanchett
+brando
+chaplin
+coldplay
+coppola
+cumberbatch
+curie
+darwin
+davinci
+deniro
+dicaprio
+einstein
+eminem
+federer
+fellini
+fincher
+galileo
+godard
+hanks
+hepburn
+hitchcock
+kubrick
+kurosawa
+lebron
+madonna
+mbappe
+messi
+michelangelo
+miyazaki
+mozart
+neymar
+newton
+nolan
+pacino
+picasso
+portman
+radiohead
+rihanna
+ronaldo
+schwarzenegger
+scorsese
+spielberg
+streep
+tarantino
+tesla
+villeneuve
+zidane

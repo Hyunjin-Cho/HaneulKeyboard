@@ -33,19 +33,43 @@ import CoreFoundation
 enum EnglishDetector {
     /// Wordlist sources, merged in order. Overridable for tests — must be
     /// set before the first lookup (the sets load lazily once).
-    /// `/usr/share/dict/words` is the broad list (broken-as-Korean rules);
-    /// the rest are CURATED supplements (also the only source for R5).
+    /// ALL paths together form the BROAD set (broken-as-Korean rules only);
+    /// the subset registered in `curatedPaths` additionally feeds the
+    /// CURATED set (the only source clean-Hangul rules R5/R2-clean trust).
+    /// Bundle files not shipped yet are skipped naturally (path nil).
     static var wordlistPaths: [String] = {
         var paths = ["/usr/share/dict/words"]
-        if let bundled = Bundle.main.path(forResource: "english_supplement", ofType: "txt") {
-            paths.append(bundled)
+        // 번들 사전 5종 — 역할 분담:
+        //   english_supplement  : curated + broad (수작업 현대어/기술어)
+        //   english_common      : curated + broad (NGSL 고빈도 일상어)
+        //   english_modern      : broad 전용 (SCOWL 70/US — web2에 없는 현대어)
+        //   english_names       : broad 전용 (Census/SSA 인명)
+        //   english_names_extra : broad 전용 (수작업 유명인)
+        for name in ["english_supplement", "english_common", "english_modern",
+                     "english_names", "english_names_extra"] {
+            if let bundled = Bundle.main.path(forResource: name, ofType: "txt") {
+                paths.append(bundled)
+            }
         }
         return paths
     }()
 
-    /// The broad dictionary path — entries here are NOT trusted for the
-    /// clean-Hangul R5 rule (full of obscure collisions with real Korean).
-    static var broadDictPath = "/usr/share/dict/words"
+    /// CURATED 경로 화이트리스트 — fail-safe 교체 (기존 `broadDictPath`
+    /// "제외" 방식 → "명시 등록" 방식). clean-Hangul 룰(R5/R2-clean)은
+    /// 여기 등록된 파일만 신뢰한다. 새 사전 파일을 추가하며 등록을
+    /// 깜빡하면 broad 전용(깨진 한글 룰만, 저위험)으로 떨어진다 — 실수가
+    /// 과변환이 아니라 미변환 쪽으로 새는 구조. 인명(english_names*)·현대어
+    /// (english_modern)는 의도적 미등록: 롱테일이라 clean 한글 충돌 검증이
+    /// 불가능하다 (NGSL 2,786개만 전수 검역을 통과해 curated 자격).
+    static var curatedPaths: Set<String> = {
+        var set = Set<String>()
+        for name in ["english_supplement", "english_common"] {
+            if let bundled = Bundle.main.path(forResource: name, ofType: "txt") {
+                set.insert(bundled)
+            }
+        }
+        return set
+    }()
 
     /// High-frequency English words allowed below the 3-key minimum, via
     /// R1 (vowel-first) and R2 (English context). Hand-curated.
@@ -55,11 +79,22 @@ enum EnglishDetector {
     /// only right after whitelistTriggers words (v3.1, 사용자 명시 요청).
     /// go(해)/do(애) remain EXCLUDED: 해/애 are top-frequency standalone
     /// Korean and were not requested.
+    ///
+    /// ⚠️ 불변식: shortWords/contextOverrideEnglish에 단어 추가 = veto 우회
+    /// 채널 확장. 추가 전 그 단어의 한글형이 우리말샘에 등재돼 있는지 반드시
+    /// 확인할 것(`scripts/audit_wordlist.sh`로 검증 가능) — 등재어면
+    /// koreanHomographShortWords 게이트(트리거 직후만 발동)를 강제해야 한다.
+    /// 미등재 한글형(뭉=and)이면 일반 shortWords로 충분하다.
     static let shortWords: Set<String> = [
         "i", "a", "an", "to", "of", "in", "on", "at", "it", "is", "am",
         "as", "be", "by", "he", "we", "me", "my", "no",
         "up", "us", "or", "if", "ok", "id", "tv", "pc", "md", "ml", "ui",
         "os", "so", "for",
+        // and(뭉): 우리말샘 미등재 + clean 1음절이라 어떤 구조 룰에도 도달
+        // 못 하던 구멍(2026-06 실사용 발견). 영어 문맥(R2-화이트리스트)
+        // 에서만 변환되고, 무맥락 단독 뭉은 보수적으로 유지된다. 뭉이
+        // 실존 한국어가 아니므로 트리거 게이트는 불필요.
+        "and",
     ]
 
     /// shortWords whose Hangul forms are everyday jamo slang (ㅢ=ml, ㅐㅏ=ok):
@@ -326,18 +361,19 @@ enum EnglishDetector {
     /// Broad list: web2 + all supplements. For broken-as-Korean rules only.
     private static let words: Set<String> = loadWords(from: wordlistPaths)
 
-    /// Curated list: supplements ONLY (web2 excluded). The clean-Hangul R5
-    /// rule trusts this exclusively — exact match, no inflection — so obscure
-    /// web2 entries can never hijack a real Korean word.
+    /// Curated list: curatedPaths-registered files ONLY (web2와 인명 파일
+    /// 제외). The clean-Hangul R5 rule trusts this exclusively — exact
+    /// match, no inflection — so obscure broad entries can never hijack a
+    /// real Korean word.
     private static let commonWords: Set<String> =
-        loadWords(from: wordlistPaths.filter { $0 != broadDictPath })
+        loadWords(from: wordlistPaths.filter { curatedPaths.contains($0) })
 
     /// mmap + 바이트 스캔 (KoreanDictionary와 동일 이유 — 임시 버퍼가
     /// malloc 캐시에 상주하는 것 방지). 필터는 기존과 동일: 첫 글자가
     /// ASCII 소문자인 줄만(고유명사/주석 제외), 3자+, ASCII 알파벳만.
     private static func loadWords(from paths: [String]) -> Set<String> {
         var set = Set<String>()
-        set.reserveCapacity(250_000)
+        set.reserveCapacity(320_000) // web2 소문자 ~21만 + 번들 5종 ~10.3만 = ~31.3만 (리해시 0회)
         let newline = UInt8(ascii: "\n")
         for path in paths {
             guard let data = try? Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe) else { continue }
