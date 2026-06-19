@@ -74,9 +74,10 @@ enum EnglishDetector {
     /// High-frequency English words allowed below the 3-key minimum, via
     /// R1 (vowel-first) and R2 (English context). Hand-curated.
     ///
-    /// Korean-homograph entries (새=to, 무=an, ㅁ=a, 내=so, 랙=for) are
-    /// included but TRIGGER-GATED via koreanHomographShortWords — they fire
-    /// only right after whitelistTriggers words (v3.1, 사용자 명시 요청).
+    /// Korean-homograph entries (새=to, 무=an, ㅁ=a, 내=so) are included but
+    /// TRIGGER-GATED via koreanHomographShortWords — they fire only right
+    /// after whitelistTriggers words (v3.1, 사용자 명시 요청). for(랙) was
+    /// un-gated 2026-06-19 — it now fires after ANY English word.
     /// go(해)/do(애) remain EXCLUDED: 해/애 are top-frequency standalone
     /// Korean and were not requested.
     ///
@@ -113,10 +114,16 @@ enum EnglishDetector {
     ]
 
     /// 화이트리스트 중 한글형이 "흔한 실존 한국어"인 항목(새=to, 무=an,
-    /// ㅁ=a, 내=so, 랙=for) — 이들은 아무 영어 단어 뒤가 아니라, 영어
-    /// 기능어/동사(whitelistTriggers) 직후에만 발동한다. "GitHub 새 기능"
-    /// 의 새를 지키면서 "want to"/"thank you so much for"는 살리는 정밀화.
-    static let koreanHomographShortWords: Set<String> = ["to", "an", "a", "so", "for"]
+    /// ㅁ=a, 내=so) — 이들은 아무 영어 단어 뒤가 아니라, 영어 기능어/동사
+    /// (whitelistTriggers) 직후에만 발동한다. "GitHub 새 기능"의 새를
+    /// 지키면서 "want to"는 살리는 정밀화.
+    ///
+    /// for(랙)은 2026-06-19 이 게이트에서 제외 — "랙"은 우리말샘 등재어지만
+    /// 일상에서 단독으로 거의 안 쓰이고(영어 단어 뒤 "랙"이 서버 rack을
+    /// 가리키는 경우는 1% 미만), 영어 흐름에서 for의 빈도가 압도적이라
+    /// 사용자 결정으로 "아무 영어 단어 뒤" 변환(greeting for you, good for
+    /// you). 일반 shortWords로 처리되어 prevEnglish만으로 발동.
+    static let koreanHomographShortWords: Set<String> = ["to", "an", "a", "so"]
 
     /// 새→to/무→an/내→so/랙→for를 발동시키는 직전 영어 단어들.
     static let whitelistTriggers: Set<String> = [
@@ -162,8 +169,11 @@ enum EnglishDetector {
         let isContextShortWord = shortWords.contains(word)
         let isShortWord = isContextShortWord && !contextOnlyShortWords.contains(word)
         let isDictWord = lowered.count >= 3 && matchesEnglishWord(word)
-        let isCommonWord = lowered.count >= 6 && commonWords.contains(word)
         let hangul = units.joined()
+        // "한국어로서 깨짐" 구조 판정 — R5(무맥락 clean 게이트)와 R2-확장이 공유.
+        let brokenAsKorean = units.contains(where: containsStandaloneJamo)
+            || startsWithStandaloneVowel(units)
+            || units.contains(where: containsImplausibleSyllable)
 
         // R2-화이트리스트 (조건 2·5, 사용자 명시): veto보다 먼저 평가.
         // 단, 한글형이 흔한 한국어인 항목(새=to/무=an/ㅁ=a)은 트리거
@@ -225,9 +235,15 @@ enum EnglishDetector {
             return true
         }
 
-        // R5 — 조건 8·11: long, cleanly composed, CURATED common English
-        // (visual/entitlement). Curated-only so 야구인/힘찬/소개차 are safe.
-        if isCommonWord {
+        // R5 — cleanly composed Hangul + CURATED common English, 무맥락.
+        // (2026-06-19) "6키+" 제한 → "멀쩡한 한글 2음절+"로 완화. veto가 위에서
+        // 실존 한국어를 이미 걸렀으므로, 도달한 clean 한글은 한국어가 아니다
+        // → curated(supplement+NGSL) exact면 변환 (챠쇼→city, 재깅→world,
+        // 퍄녀미→visual). curated-only라 broad 꼬리단어(야구인=dirndls,
+        // 힘찬=glacks)는 commonWords에 없어 차단. ★ 2음절 가드 = 1음절 슬랭
+        // (걍=rid 등 우리말샘 미등재) 보호 — 검역(2026-06-19): NGSL 62개 무맥락
+        // 후보 중 걍이 유일한 진짜 한국어로 확인.
+        if !brokenAsKorean, units.count >= 2, commonWords.contains(word) {
             return true
         }
 
@@ -251,9 +267,6 @@ enum EnglishDetector {
         //   the [auto]    → 며새(clean, curated 등재) → auto
         if prevEnglish {
             let hasShiftKey = keys.contains { $0.isUppercase }
-            let brokenAsKorean = units.contains(where: containsStandaloneJamo)
-                || startsWithStandaloneVowel(units)
-                || units.contains(where: containsImplausibleSyllable)
             if !hasShiftKey {
                 if brokenAsKorean, isDictWord {
                     return true

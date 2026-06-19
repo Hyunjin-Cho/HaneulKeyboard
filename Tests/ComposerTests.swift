@@ -301,11 +301,12 @@ struct ComposerTests {
         expect(typeWords(["good", "wha"]).last ?? "", "좀", "R2 보호: good 뒤 좀 유지")
         expect(typeWords(["want", "gud"]).last ?? "", "형", "R2 보호: want 뒤 형 유지")
         expect(typeWords(["really", "cor"]).last ?? "", "책", "R2 보호: really 뒤 책 유지")
-        // 한계 명시: 문장 첫 clean 단어(며새=auto)는 문맥이 없어 유지
+        // (2026-06-19) 무맥락 clean 변환 완화 — 며새(auto)도 변환됨
+        // (veto통과 + curated + 2음절+). 문장 첫 단어도 영어로.
         expect(
             typeWords(["auto", "mode", "on"]).joined(separator: " "),
-            "며새 mode on",
-            "한계: 문장 첫 clean 단어 며새는 유지 (mode/on은 변환)"
+            "auto mode on",
+            "무맥락 완화: 며새→auto (문장 첫 단어 포함)"
         )
 
         // ── v3: 한국어 사전 veto + R2 사전 확장 (실기기 실패 케이스) ──
@@ -326,8 +327,8 @@ struct ComposerTests {
         expect(typeWords(["lol", "ace"]).last ?? "", "ㅁㅊㄷ", "v3 슬랭: ㅁㅊㄷ 보호")
         // 사용자 명시 화이트리스트(새→to)는 veto보다 우선
         expect(typeWords(["want", "to"]).last ?? "", "to", "v3: 새→to 유지 (명시 조건)")
-        // 무맥락은 여전히 보수적 (문장 첫 며새는 유지)
-        expect(type("auto").committedText, "며새", "v3: 무맥락 며새 유지")
+        // (2026-06-19) 무맥락 며새→auto 변환 (veto통과 + curated + 2음절+)
+        expect(type("auto").committedText, "auto", "무맥락 완화: 며새→auto")
 
         // R2 호모그래프 보호 (라운드2): 해/내/애는 영어 뒤에서도 한글 유지
         expect(typeWords(["apple", "go"]).last ?? "", "해", "R2 보호: apple 뒤 해 유지 (go 아님)")
@@ -419,12 +420,12 @@ struct ComposerTests {
         }
         if hasCommon {
             let commonSet = wordsInFile(pendingCommon)
-            // city(챠쇼)/with(쟈소): clean 한글 — 문맥에서만 변환(R2-clean),
-            // 무맥락은 4키라 R5 미달로 보수 유지가 맞다.
+            // city(챠쇼)/with(쟈소): clean 한글 — 문맥(R2-clean)도, 무맥락도
+            // 변환 (2026-06-19 R5 "멀쩡한 한글 2음절+" 완화).
             for (keys, hangul) in [("city", "챠쇼"), ("with", "쟈소")] {
                 if commonSet.contains(keys) {
-                    expect(typeWords(["the", keys]).last ?? "", keys, "머지대기: the 뒤 \(hangul) → \(keys)")
-                    expect(type(keys).committedText, hangul, "머지대기: 무맥락 \(hangul) 유지 (보수)")
+                    expect(typeWords(["the", keys]).last ?? "", keys, "the 뒤 \(hangul) → \(keys)")
+                    expect(type(keys).committedText, keys, "무맥락 완화: \(hangul)→\(keys) (2음절+)")
                 } else {
                     print("NOTE(머지대기): english_common에 \(keys) 없음 — supplement 추가 검토")
                 }
@@ -512,6 +513,22 @@ struct ComposerTests {
         expect(EnglishDetector.shouldConvert(units: ["ㅠ", "ㅠ"], keys: Array("bb")), false, "detector: same-key run")
         expect(EnglishDetector.shouldConvert(units: ["ㄴ", "ㅇ", "ㄱ"], keys: Array("sdr")), false, "detector: not a word")
         expect(EnglishDetector.shouldConvert(units: ["ㄷ"], keys: Array("e")), false, "detector: single key")
+
+        // for(랙) un-gated (2026-06-19): 아무 영어 단어 뒤 → for 무조건
+        expect(EnglishDetector.shouldConvert(units: ["랙"], keys: Array("for"), previousEnglishWord: "good"), true, "for: good 뒤 변환")
+        expect(EnglishDetector.shouldConvert(units: ["랙"], keys: Array("for"), previousEnglishWord: "greeting"), true, "for: greeting 뒤 변환")
+        expect(EnglishDetector.shouldConvert(units: ["랙"], keys: Array("for"), previousEnglishWord: "you"), true, "for: you 뒤(기존도 유지)")
+        expect(EnglishDetector.shouldConvert(units: ["랙"], keys: Array("for"), previousEnglishWord: nil), false, "for: 무맥락은 랙 유지(한글 뒤·문장 첫)")
+        // 회귀: 다른 homograph(새=to)는 여전히 트리거 게이트 — github 뒤는 유지, want 뒤만 변환
+        expect(EnglishDetector.shouldConvert(units: ["새"], keys: Array("to"), previousEnglishWord: "github"), false, "to: 비트리거(github) 뒤는 새 유지")
+        expect(EnglishDetector.shouldConvert(units: ["새"], keys: Array("to"), previousEnglishWord: "want"), true, "to: 트리거(want) 뒤 변환")
+
+        // 무맥락 멀쩡한 한글 변환 완화 (2026-06-19): veto통과 + curated + 2음절+
+        expect(EnglishDetector.shouldConvert(units: ["챠","쇼"], keys: Array("city")), true, "무맥락: 챠쇼→city")
+        expect(EnglishDetector.shouldConvert(units: ["재","깅"], keys: Array("world")), true, "무맥락: 재깅→world")
+        expect(EnglishDetector.shouldConvert(units: ["퍄","녀","미"], keys: Array("visual")), true, "무맥락: 퍄녀미→visual(기존 R5 회귀)")
+        expect(EnglishDetector.shouldConvert(units: ["걍"], keys: Array("rid")), false, "무맥락: 걍(rid) 보호 — 1음절 슬랭")
+        expect(EnglishDetector.shouldConvert(units: ["모","든"], keys: Array("ahems")), false, "무맥락: 모든 veto 보호")
 
         print("\(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
