@@ -74,18 +74,18 @@ enum EnglishDetector {
     /// High-frequency English words allowed below the 3-key minimum, via
     /// R1 (vowel-first) and R2 (English context). Hand-curated.
     ///
-    /// Korean-homograph entries (새=to, 무=an, ㅁ=a, 내=so) are included but
-    /// TRIGGER-GATED via koreanHomographShortWords — they fire only right
-    /// after whitelistTriggers words (v3.1, 사용자 명시 요청). for(랙) was
-    /// un-gated 2026-06-19 — it now fires after ANY English word.
+    /// (2026-06-19) homograph(새=to, 무=an, ㅁ=a, 내=so, 랙=for)의 트리거
+    /// 게이트는 전부 제거됨 — 직전 단어가 영어면 무조건 변환(R2-화이트리스트).
+    /// 한국어 용법(내 책/새 기능)은 앞이 한글이라 prevEnglish=false로 보호되고,
+    /// 오변환은 shift+space 되돌리기가 최종 안전망. (해=go/애=do만 최빈어라
+    /// goDoTriggers로 별도 보수 처리.)
     /// go(해)/do(애) remain EXCLUDED: 해/애 are top-frequency standalone
     /// Korean and were not requested.
     ///
     /// ⚠️ 불변식: shortWords/contextOverrideEnglish에 단어 추가 = veto 우회
-    /// 채널 확장. 추가 전 그 단어의 한글형이 우리말샘에 등재돼 있는지 반드시
-    /// 확인할 것(`scripts/audit_wordlist.sh`로 검증 가능) — 등재어면
-    /// koreanHomographShortWords 게이트(트리거 직후만 발동)를 강제해야 한다.
-    /// 미등재 한글형(뭉=and)이면 일반 shortWords로 충분하다.
+    /// 채널 확장. 추가 전 그 단어의 한글형이 우리말샘에 등재돼 있는지 확인할 것
+    /// (`scripts/audit_wordlist.sh`). 흔한 한국어일수록 영어 뒤 오변환이 잦아
+    /// shift+space 되돌리기 의존도가 커지니 신중히.
     static let shortWords: Set<String> = [
         "i", "a", "an", "to", "of", "in", "on", "at", "it", "is", "am",
         "as", "be", "by", "he", "we", "me", "my", "no",
@@ -168,11 +168,10 @@ enum EnglishDetector {
     static func shouldConvert(
         units: [String],
         keys: [Character],
-        previousWordWasEnglish: Bool = false,
         previousEnglishWord: String? = nil
     ) -> Bool {
         guard !keys.isEmpty else { return false }
-        let prevEnglish = previousWordWasEnglish || previousEnglishWord != nil
+        let prevEnglish = previousEnglishWord != nil
 
         let lowered = keys.compactMap { $0.lowercased().first }
         // Emotive runs (ㅋㅋㅋ, ㅠㅠ, zzz) are intentional — never convert.
@@ -250,9 +249,11 @@ enum EnglishDetector {
         }
 
         // ㅑ 1음절 — 1음절에 ㅑ(중성)가 들어가면 한국어 뜻일 확률 거의 0
-        // (먕=aid, 먁=air). veto가 위에서 향/양/약/야/샷 등 진짜 단어를 이미
-        // 걸렀으므로(우리말샘 1음절 ㅑ 29개), 미등재 ㅑ 1음절 + 영어 사전이면
-        // 변환. 걍(rid)도 변환되나 shift+space 되돌리기로 커버(2026-06-19).
+        // (먕=aid, 먁=air). veto가 향/양/약/야/샷 등 진짜 단어를 이미 걸렀고
+        // (우리말샘 1음절 ㅑ 29개), 미등재 ㅑ 1음절 + 영어 사전이면 변환.
+        // ★ (M3) R5(clean)는 curated만 신뢰하지만 여기는 의도적으로 broad
+        // (isDictWord) 예외 — "1음절+ㅑ"는 한국어가 거의 없어 broad가 안전.
+        // 걍(rid) 등 미등재 슬랭은 변환되나 shift+space 되돌리기로 커버.
         if units.count == 1, isDictWord, hasMedialYa(units[0]) {
             return true
         }
