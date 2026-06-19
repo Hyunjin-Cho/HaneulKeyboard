@@ -52,3 +52,6 @@ tarantino
 tesla
 villeneuve
 zidane
+kia
+lenovo
+xeon
