@@ -31,19 +31,14 @@ final class KoreanComposer {
     private(set) var lastEnglishWord: String?
 
     /// 직전에 영어로 변환된 단어 — (변환 전 한글, 변환 후 영어). shift+space로
-    /// 방금 변환을 한글로 되돌릴 때 쓴다(㉠ 직후만). 다음 입력(자모/백스페이스)
-    /// 이 들어오면 nil로 리셋 = "변환 직후, 다음 글자 치기 전"에만 유효.
+    /// 영어↔한글을 토글할 때 쓴다(㉠ 직후만). 다음 입력(자모/백스페이스)이
+    /// 들어오면 nil로 리셋 = "변환 직후, 다음 글자 치기 전"에만 유효.
     private(set) var lastConversion: (hangul: String, english: String)?
 
     var lastCommitWasEnglish: Bool { lastEnglishWord != nil }
 
     func resetEnglishContext() {
         lastEnglishWord = nil
-    }
-
-    /// shift+space 되돌리기가 lastConversion을 소비한 뒤 호출 — 재되돌리기 방지.
-    func consumeLastConversion() {
-        lastConversion = nil
     }
 
     private var buffer = SyllableBuffer()
