@@ -39,6 +39,44 @@ final class KoreanComposer {
 
     func resetEnglishContext() {
         lastEnglishWord = nil
+        // (H1) 커서 이동이 동반되는 경계(클릭·포커스이동·단축키·화살표·마침표·
+        // 엔터)에서 이 메서드가 호출된다 — 그때 lastConversion도 함께 비워
+        // stale 상태로 엉뚱한 위치를 교체하는 사고를 막는다. 스페이스·쉼표
+        // 경계는 resetEnglishContext를 부르지 않으므로 되돌리기는 유지된다.
+        lastConversion = nil
+    }
+
+    /// (M1) shift+space 되돌리기의 순수 매칭 로직 — IMKTextInput 비의존이라
+    /// 단위테스트 가능. 커서 직전 텍스트(before)에서 trailing boundary를
+    /// 건너뛰고 english/hangul을 "좌측이 단어경계"인 위치에서만 매칭해, 교체할
+    /// (text, 교체길이, 커서에서 거슬러 갈 거리)를 돌려준다. 매칭 실패·불안전
+    /// (brand의 끝 and 등)이면 nil. atDocStart=before의 시작(읽기 시작점)이
+    /// 문서 맨 앞인지 — 아니면 읽기 경계에 붙은 단어는 좌측을 알 수 없어 nil.
+    static func resolveToggle(before: String, english: String, hangul: String,
+                              atDocStart: Bool) -> (text: String, replaceLen: Int, offsetFromEnd: Int)? {
+        let s = before as NSString
+        func isWordChar(_ c: unichar) -> Bool {
+            (c >= 0x61 && c <= 0x7A) || (c >= 0x41 && c <= 0x5A) || (c >= 0xAC00 && c <= 0xD7A3)
+        }
+        var end = s.length
+        while end > 0, !isWordChar(s.character(at: end - 1)) { end -= 1 }
+        let trailing = s.length - end
+        func leftIsBoundary(_ matchLen: Int) -> Bool {
+            let i = end - matchLen
+            if i <= 0 { return atDocStart }
+            return !isWordChar(s.character(at: i - 1))
+        }
+        let eng = english as NSString
+        let han = hangul as NSString
+        if end >= eng.length, leftIsBoundary(eng.length),
+           s.substring(with: NSRange(location: end - eng.length, length: eng.length)) == english {
+            return (hangul, eng.length, eng.length + trailing)
+        }
+        if end >= han.length, leftIsBoundary(han.length),
+           s.substring(with: NSRange(location: end - han.length, length: han.length)) == hangul {
+            return (english, han.length, han.length + trailing)
+        }
+        return nil
     }
 
     private var buffer = SyllableBuffer()
@@ -129,7 +167,12 @@ final class KoreanComposer {
             let cleanHangul = !units.contains { unit in
                 unit.unicodeScalars.contains { (0x3131...0x3163).contains($0.value) }
             }
+            // whitelistOnly = clean homograph(새→to 등)는 다음 단어에 영어 문맥을
+            // 넘기지 않는다(체이닝 방지). 단 (H2) goDoTriggers 멤버(to 등)는 예외 —
+            // "to go"의 go가 문맥을 받아 변환되게 한다(사용자 결정). 다음 단어가
+            // 한국어면 어차피 변환 안 되므로 안전.
             let whitelistOnly = EnglishDetector.shortWords.contains(wordLower) && cleanHangul
+                && !EnglishDetector.goDoTriggers.contains(wordLower)
             lastEnglishWord = whitelistOnly ? nil : wordLower
             // 방금 영어로 변환됨 — shift+space 즉시 되돌리기용(㉠ 직후만).
             lastConversion = (hangul: hangul, english: committed)

@@ -334,11 +334,11 @@ struct ComposerTests {
         expect(typeWords(["apple", "go"]).last ?? "", "해", "R2 보호: apple 뒤 해 유지 (go 아님)")
         expect(typeWords(["apple", "so"]).last ?? "", "so", "앞 영어: apple 뒤 내 → so (게이트 제거)")
         expect(typeWords(["apple", "do"]).last ?? "", "애", "R2 보호: apple 뒤 애 유지 (do 아님)")
-        // 체이닝 방지: 새→to(문맥-only)는 다음 단어에 영어 문맥을 넘기지 않음
+        // (H2) to는 goDoTriggers라 문맥을 넘긴다 → "want to go" (해도 변환됨)
         expect(
             typeWords(["want", "to", "go"]).joined(separator: " "),
-            "want to 해",
-            "체이닝 방지: 새→to 뒤 해는 유지"
+            "want to go",
+            "H2: want to go — to가 문맥 넘겨 go 변환"
         )
         // R2x 체이닝: 구조적 변환(was)은 다음 단어(great)에 문맥을 넘김
         expect(
@@ -571,6 +571,16 @@ struct ComposerTests {
         expect(EnglishDetector.shouldConvert(units: ["해"], keys: Array("go")), false, "go: 무맥락 해 보호")
         expect(EnglishDetector.shouldConvert(units: ["ㅣ","ㅎ"], keys: Array("lg")), true, "모음먼저+자음: ㅣㅎ→lg")
         expect(EnglishDetector.shouldConvert(units: ["ㅔ","ㅇ"], keys: Array("pd")), true, "모음먼저+자음: ㅔㅇ→pd")
+
+        // (M1) shift+space 되돌리기 좌표 로직 단위테스트 (순수함수 resolveToggle)
+        let t1 = KoreanComposer.resolveToggle(before: "and ", english: "and", hangul: "뭉", atDocStart: true)
+        expect(t1?.text ?? "", "뭉", "resolveToggle: and→뭉 토글")
+        expect((t1?.replaceLen ?? -1) == 3 && (t1?.offsetFromEnd ?? -1) == 4, true, "resolveToggle: 교체 3글자·커서서 4")
+        expect(KoreanComposer.resolveToggle(before: "brand ", english: "and", hangul: "뭉", atDocStart: true) == nil, true, "resolveToggle: brand의 끝 and = 좌측경계 위반 nil")
+        expect(KoreanComposer.resolveToggle(before: "뭉 ", english: "and", hangul: "뭉", atDocStart: true)?.text ?? "", "and", "resolveToggle: 뭉→and 역토글")
+        expect(KoreanComposer.resolveToggle(before: "xyz ", english: "and", hangul: "뭉", atDocStart: true) == nil, true, "resolveToggle: 매칭 실패 nil")
+        expect(KoreanComposer.resolveToggle(before: "and ", english: "and", hangul: "뭉", atDocStart: false) == nil, true, "resolveToggle: 읽기경계 붙음+문서시작 아님 → 안전 nil")
+        expect(KoreanComposer.resolveToggle(before: "go and ", english: "and", hangul: "뭉", atDocStart: false)?.text ?? "", "뭉", "resolveToggle: 'go and ' 공백경계 → 뭉")
 
         print("\(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)

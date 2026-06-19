@@ -101,30 +101,27 @@ final class HaneulInputController: IMKInputController {
         // shift+space로 영↔한을 반복 토글(다음 글자 입력/백스페이스 시 리셋).
         if event.keyCode == 49, mods == .shift, let conv = composer.lastConversion {
             let sel = client.selectedRange()
-            if sel.location != NSNotFound {
-                let eng = conv.english as NSString
-                let han = conv.hangul as NSString
-                let span = max(eng.length, han.length) + 3
+            // (L3) 드래그 선택 중(length>0)이거나 커서 위치를 모르면 손대지 않음.
+            if sel.location != NSNotFound, sel.length == 0 {
+                let span = max((conv.english as NSString).length, (conv.hangul as NSString).length) + 4
                 let readStart = max(0, sel.location - span)
+                let reqLen = sel.location - readStart
                 let before = (client.attributedSubstring(
-                    from: NSRange(location: readStart, length: sel.location - readStart)
-                )?.string ?? "") as NSString
-                // 끝의 boundary(공백 0x20·쉼표 0x2C·마침표 0x2E·개행 0x0A) 건너뛰기
-                var end = before.length
-                while end > 0, [0x20, 0x2C, 0x2E, 0x0A].contains(Int(before.character(at: end - 1))) {
-                    end -= 1
-                }
-                if end >= eng.length,
-                   before.substring(with: NSRange(location: end - eng.length, length: eng.length)) == conv.english {
-                    client.insertText(conv.hangul as NSString,
-                        replacementRange: NSRange(location: readStart + end - eng.length, length: eng.length))
-                } else if end >= han.length,
-                          before.substring(with: NSRange(location: end - han.length, length: han.length)) == conv.hangul {
-                    client.insertText(conv.english as NSString,
-                        replacementRange: NSRange(location: readStart + end - han.length, length: han.length))
+                    from: NSRange(location: readStart, length: reqLen))?.string ?? "") as NSString
+                // (H1) Chromium/Electron 등이 substring을 잘라 반환하면 좌표가
+                // 어긋나 인접 글자를 덮어쓴다 — 요청 길이와 다르면 안전하게 포기.
+                // boundary skip·좌측경계·매칭은 순수함수 resolveToggle이 담당
+                // (M1: IMK 비의존이라 단위테스트로 검증).
+                if before.length == reqLen,
+                   let r = KoreanComposer.resolveToggle(before: before as String,
+                       english: conv.english, hangul: conv.hangul, atDocStart: readStart == 0) {
+                    client.insertText(r.text as NSString,
+                        replacementRange: NSRange(location: sel.location - r.offsetFromEnd, length: r.replaceLen))
+                    return true
                 }
             }
-            return true // lastConversion 유지 → 연속 토글
+            // (M2) 매칭 실패/불안전 → 토글하지 않고 아래 일반 경계 처리로 흘려보낸다
+            // (키를 먹지 않게 — 최소한 스페이스는 입력됨).
         }
 
         if mods.contains(.control) || mods.contains(.command)
