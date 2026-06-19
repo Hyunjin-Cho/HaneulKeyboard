@@ -92,11 +92,18 @@ enum EnglishDetector {
         "up", "us", "or", "if", "ok", "id", "tv", "pc", "md", "ml", "ui",
         "os", "so", "for",
         // and(뭉): 우리말샘 미등재 + clean 1음절이라 어떤 구조 룰에도 도달
-        // 못 하던 구멍(2026-06 실사용 발견). 영어 문맥(R2-화이트리스트)
-        // 에서만 변환되고, 무맥락 단독 뭉은 보수적으로 유지된다. 뭉이
-        // 실존 한국어가 아니므로 트리거 게이트는 불필요.
+        // 못 하던 구멍. 무맥락 단독·영어 사이·영어 뒤 모두 변환된다
+        // (2026-06-19 standaloneShortWords로 항상 변환 — 아래 정의).
         "and",
     ]
+
+    /// 무맥락 단독에서도 변환하는 1음절 비단어 화이트리스트 (and=뭉).
+    /// 한국어에 단독으로 쓰이지 않는 단어라 veto 통과 시 좌우 문맥과
+    /// 무관하게 변환한다("salt 뭉 pepper", "jane 뭉 john", 문장 첫 "뭉 ").
+    /// R5(멀쩡한 한글 2음절+)가 못 잡는 1음절 구멍을 메운다 — 임의의
+    /// 1음절 전체가 아니라 *명시 목록*이라, 걍(rid) 등 1음절 슬랭은
+    /// 여기 없으므로 veto 미등재여도 그대로 한글 유지(보호).
+    static let standaloneShortWords: Set<String> = ["and"]
 
     /// shortWords whose Hangul forms are everyday jamo slang (ㅢ=ml, ㅐㅏ=ok):
     /// convertible ONLY in English context (R2), never standalone.
@@ -203,6 +210,13 @@ enum EnglishDetector {
             return false
         }
 
+        // 무맥락 단독 화이트리스트 (and=뭉): veto 통과한 1음절 비단어를 좌우
+        // 문맥 무관하게 변환. R5(2음절+)가 못 잡는 1음절 구멍 — 명시 목록
+        // 이라 걍 등 다른 1음절 슬랭은 건드리지 않는다.
+        if standaloneShortWords.contains(word) {
+            return true
+        }
+
         // MAIN: broken-as-Korean + structural guards + broad dictionary.
         if units.contains(where: containsStandaloneJamo),
            lowered.count >= 3,
@@ -211,15 +225,22 @@ enum EnglishDetector {
             return true
         }
 
-        // R-자음열 — 사용자 조건 (2026-06-06): standalone 자음만 4개 이상
-        // 이고 영어 사전에 있으면 무맥락에서도 영어 (great=ㅎㄱㄷㅁㅅ —
-        // 문장 첫 단어라 문맥이 없어도 잡아야 함). 초성체 슬랭은
-        // ①protectedSlang(상단 차단) ②사전 게이트(ㅇㄱㄹㅇ=drfd는 영어
-        // 단어가 아님)의 이중 방어. 3자(was/are)는 문맥 룰(R2x) 관할.
-        if units.count >= 4,
-           !lowered.contains(where: mapsToVowel),
-           units.allSatisfy({ $0.unicodeScalars.allSatisfy { (0x3131...0x314E).contains($0.value) } }),
-           isDictWord {
+        // R-자음열 — standalone 자음만 + 영어 사전. 4개+는 broad(great=
+        // ㅎㄱㄷㅁㅅ; 자음 4+면 우연 충돌 적어 안전), 3개는 curated만
+        // (was/are류 broad 꼬리 차단 — red=ㄱㄷㅇ는 NGSL에 있음. 2026-06-19
+        // 사용자 요청으로 3자 확장). ㅋㅋㅋ는 보호막이, 초성체(ㅇㄱㄹ=drf)는
+        // protectedSlang + "영어단어 아님" 사전 게이트가 이중 방어.
+        if !lowered.contains(where: mapsToVowel),
+           units.allSatisfy({ $0.unicodeScalars.allSatisfy { (0x3131...0x314E).contains($0.value) } }) {
+            if units.count >= 4, isDictWord { return true }
+            if units.count == 3, commonWords.contains(word) { return true }
+        }
+
+        // ㅑ 1음절 — 1음절에 ㅑ(중성)가 들어가면 한국어 뜻일 확률 거의 0
+        // (먕=aid, 먁=air). veto가 위에서 향/양/약/야/샷 등 진짜 단어를 이미
+        // 걸렀으므로(우리말샘 1음절 ㅑ 29개), 미등재 ㅑ 1음절 + 영어 사전이면
+        // 변환. 걍(rid)도 변환되나 shift+space 되돌리기로 커버(2026-06-19).
+        if units.count == 1, isDictWord, hasMedialYa(units[0]) {
             return true
         }
 
@@ -293,6 +314,13 @@ enum EnglishDetector {
     private static func mapsToVowel(_ key: Character) -> Bool {
         if case .vowel = KeyboardLayout2Set.jamo(for: key) { return true }
         return false
+    }
+
+    /// 음절의 중성이 ㅑ(medial index 2)인지 — ㅑ 1음절 영어 변환 룰용.
+    private static func hasMedialYa(_ syllable: String) -> Bool {
+        guard let scalar = syllable.unicodeScalars.first,
+              (0xAC00...0xD7A3).contains(scalar.value) else { return false }
+        return (Int(scalar.value) - 0xAC00) / 28 % 21 == 2
     }
 
     /// Compatibility-jamo block (U+3131–U+3163): a scalar here means an
