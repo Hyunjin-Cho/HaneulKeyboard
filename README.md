@@ -11,9 +11,8 @@
 - **안정적인 한글 조합** — 전용 입력 소스로 자모 깨짐 없이 한글을 조합합니다.
 - **빠른 한/영 전환** — Caps Lock(짧게)으로 즉시 전환. 시스템 native 경로를 사용해 결정적으로 동작합니다.
 - **영타 자동 변환** *(2026.02 신규 · 2026.03 사전 현대화)* — 한글 모드인 줄 모르고 영어를 쳤을 때, 스페이스를 누르는 순간 자동으로 영어로 바꿔줍니다. `메ㅔㅣㄷ`→`apple`, `ㅡ드ㅐ교`→`memory`, `how ㅁㄱㄷ you`→`how are you`. 올바른 한글과 ㅋㅋㅋ·ㅗㅜㅑ 같은 표현은 건드리지 않습니다 — **우리말샘 표제어 67.7만 개**로 실존 한국어를 확인합니다 (단 하나의 예외: 영어 문맥 직후의 새→to·무→an·내→so·랙→for·뭉→and 명시 목록). 2026.03부터 `and`·`city`·`playlist` 같은 기본·현대어와 `davinci`·`ronaldo` 같은 인명까지 변환합니다. 판정 규칙 전체는 [`RULES.md`](./RULES.md) 한 장에 정리.
-- **예측 입력 (자동완성)** *(2026.02 신규)* — 자주 쓰는 한글 단어를 학습해 커서 옆에 연하게 제안하고, Tab으로 완성합니다. 학습 데이터는 이 기기 안에만 저장됩니다 — [`PRIVACY.md`](./PRIVACY.md) 참고.
 - **Caps Lock 대문자 모드** — Caps Lock 길게 LED 토글(대문자 모드).
-- **메뉴바에서 제어** — 한국어/영어 전환, 설정, 단축키 변경을 메뉴바 아이콘에서. 영타 변환·예측 입력은 설정에서 켜고 끌 수 있습니다.
+- **메뉴바에서 제어** — 한국어/영어 전환, 설정, 단축키 변경을 메뉴바 아이콘에서. 영타 변환은 설정에서 켜고 끌 수 있습니다.
 
 한↔영 입력에만 집중합니다. 다른 언어 지원 및 다른 기능은 없습니다.
 
@@ -49,16 +48,6 @@
 - *(2026.03)* **영어 사전 현대화** — 1934년판 시스템 사전의 빈자리를 공개 데이터로 보강했습니다: 고빈도 일상어 [NGSL](https://www.newgeneralservicelist.com)(`city`·`with`), 현대어·굴절형 [SCOWL](https://wordlist.aspell.net)(`playlist`·`internet`·`selfie`), 영어 인명 US Census·SSA + 유명인(`davinci`·`ronaldo`·`garcia`). 추가된 모든 단어는 **한국어 충돌 검역**(실제 조합 엔진 시뮬레이션, [`scripts/audit_wordlist.sh`](./scripts/audit_wordlist.sh))을 통과한 것만 — 한국어 보호 원칙은 그대로입니다.
 - 변환은 직접 타이핑한 경계에서만 일어나고, 마우스 클릭·앱 전환 시에는 화면에 보이던 그대로 입력됩니다.
 - 어떤 입력이 왜 변환되는지(혹은 안 되는지)는 [`RULES.md`](./RULES.md) 한 장 표로 확인할 수 있습니다.
-
-### 예측 입력 — 자동완성 (2026.02)
-
-자주 쓰는 한글 단어를 학습해, 일부만 입력하면 **커서 옆에 연한 회색으로 나머지를 제안**합니다.
-
-- 같은 단어를 3회 이상 입력하면 제안이 시작됩니다 (예: "안녕하세요"를 3번 쓴 뒤 "안녕"까지만 입력 → 옆에 "하세요" 표시)
-- **Tab**으로 완성, 무시하고 계속 타이핑해도 됩니다
-- 학습 데이터(한글 단어·빈도)는 **이 기기 안에만** 저장되며, 설정에서 기능 끄기·전체 삭제가 가능합니다 — [`PRIVACY.md`](./PRIVACY.md)
-
-두 기능 모두 메뉴바 → 설정에서 켜고 끌 수 있습니다.
 
 ## 요구사항
 
@@ -164,9 +153,8 @@ Named after my daughter, 하늘 (Haneul) — "sky" in Korean.
 - **Reliable Hangul composition** via a dedicated input source — no broken jamo.
 - **Fast Korean/English switching** with Caps Lock (short press), using the system-native path for deterministic behavior.
 - **Wrong-layout auto-correction** *(new in 2026.02, dictionaries modernized in 2026.03)* — typed English while in Korean mode? It fixes itself on commit: `메ㅔㅣㄷ`→`apple`, `how ㅁㄱㄷ you`→`how are you`. Genuine Korean is left alone — every candidate is checked against **677k Korean headwords** (국립국어원 우리말샘) plus slang/emoticon guards, with one deliberate exception (an explicit whitelist of 새→to/무→an/내→so/랙→for/뭉→and right after English context). 2026.03 modernizes the English dictionaries with [NGSL](https://www.newgeneralservicelist.com) high-frequency words (`city`, `with`), [SCOWL](https://wordlist.aspell.net) modern vocabulary (`playlist`, `internet`, `selfie`), and personal names from US Census/SSA data (`davinci`, `ronaldo`, `garcia`) — every addition passed a Korean-collision audit driven by the real composition engine. Full rule table in [`RULES.md`](./RULES.md).
-- **Predictive input** *(new in 2026.02)* — learns the Hangul words you actually use and ghost-suggests completions next to the caret; accept with Tab. All learned data stays on-device — see [`PRIVACY.md`](./PRIVACY.md).
 - **Caps Lock uppercase mode** with a long press.
-- **Menu bar control** for language switching, settings, and shortcuts. Both new features can be toggled in Settings.
+- **Menu bar control** for language switching, settings, and shortcuts. Wrong-layout auto-correction can be toggled in Settings.
 
 Korean ↔ English input only. No other languages, no extra features.
 

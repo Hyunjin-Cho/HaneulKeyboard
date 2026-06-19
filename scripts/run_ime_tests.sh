@@ -13,7 +13,6 @@ swiftc -o "$BIN" \
   IMESources/KoreanComposer.swift \
   IMESources/EnglishDetector.swift \
   IMESources/KoreanDictionary.swift \
-  IMESources/WordFrequencyStore.swift \
   Tests/ComposerTests.swift
 
 "$BIN"
