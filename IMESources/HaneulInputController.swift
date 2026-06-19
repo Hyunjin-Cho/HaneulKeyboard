@@ -94,6 +94,21 @@ final class HaneulInputController: IMKInputController {
             return handled
         }
 
+        // shift+space: 방금 영어로 변환된 단어를 한글로 되돌린다(㉠ 직후만).
+        // IMK commit은 텍스트를 앱에 이미 넣었으므로, 커서 직전의 영어 길이
+        // 만큼을 한글로 replace. 변환 직후가 아니면 lastConversion이 nil이라
+        // 아래 boundary 경로로 떨어져 일반 스페이스로 처리된다.
+        if event.keyCode == 49, mods == .shift, let conv = composer.lastConversion {
+            let englishLen = (conv.english as NSString).length
+            let sel = client.selectedRange()
+            let replaceRange = (sel.location != NSNotFound && sel.location >= englishLen)
+                ? NSRange(location: sel.location - englishLen, length: englishLen)
+                : NSRange(location: NSNotFound, length: 0)
+            client.insertText(conv.hangul as NSString, replacementRange: replaceRange)
+            composer.consumeLastConversion()
+            return true
+        }
+
         if mods.contains(.control) || mods.contains(.command)
            || mods.contains(.option) || mods.contains(.numericPad)
            || mods.contains(.function) {

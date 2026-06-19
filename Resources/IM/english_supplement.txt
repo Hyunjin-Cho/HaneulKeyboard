@@ -163,3 +163,4 @@ mini
 auto
 cuz
 chanel
+cyan

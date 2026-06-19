@@ -352,7 +352,7 @@ struct ComposerTests {
         // ── v3 리뷰 회귀: 활용형/구어 보호 3중 가드 ──
         expect(typeWords(["commit", "goT"]).last ?? "", "했", "Shift 가드: 했 보호")
         expect(typeWords(["game", "wuT"]).last ?? "", "졌", "Shift 가드: 졌 보호")
-        expect(typeWords(["the", "rid"]).last ?? "", "걍", "단음절 가드: 걍 보호")
+        expect(typeWords(["the", "rid"]).last ?? "", "rid", "ㅑ 1음절: 걍→rid (the 뒤, 되돌리기 커버)")
         expect(typeWords(["merge", "gowns"]).last ?? "", "해준", "curated 가드: 해준 보호")
         expect(typeWords(["really", "glacks"]).last ?? "", "힘찬", "curated 가드: 힘찬 보호")
         expect(typeWords(["the", "throck"]).last ?? "", "소개차", "curated 가드: 소개차 보호")
@@ -384,7 +384,7 @@ struct ComposerTests {
         // and(뭉): 우리말샘 미등재 + clean 1음절 = 어떤 룰에도 도달 못 하던
         // 구멍. shortWords 등재로 영어 문맥에서만 변환, 무맥락은 보수 유지.
         expect(typeWords(["apples", "and"]).joined(separator: " "), "apples and", "and: 영어 뒤 뭉 → and")
-        expect(type("and").committedText, "뭉", "and: 무맥락 뭉 유지 (보수)")
+        expect(type("and").committedText, "and", "and: 무맥락 뭉→and (1음절 화이트리스트)")
         expect(type("andcl").committedText, "뭉치", "and: 뭉치 veto 보호")
         expect(typeWords(["want", "andcl"]).last ?? "", "뭉치", "and: 영어 문맥서도 뭉치 보호")
         expect(type("andzmf").committedText, "뭉클", "and: 뭉클 veto 보호")
@@ -527,8 +527,41 @@ struct ComposerTests {
         expect(EnglishDetector.shouldConvert(units: ["챠","쇼"], keys: Array("city")), true, "무맥락: 챠쇼→city")
         expect(EnglishDetector.shouldConvert(units: ["재","깅"], keys: Array("world")), true, "무맥락: 재깅→world")
         expect(EnglishDetector.shouldConvert(units: ["퍄","녀","미"], keys: Array("visual")), true, "무맥락: 퍄녀미→visual(기존 R5 회귀)")
-        expect(EnglishDetector.shouldConvert(units: ["걍"], keys: Array("rid")), false, "무맥락: 걍(rid) 보호 — 1음절 슬랭")
+        expect(EnglishDetector.shouldConvert(units: ["걍"], keys: Array("rid")), true, "무맥락: 걍→rid (ㅑ 1음절, 되돌리기 커버)")
         expect(EnglishDetector.shouldConvert(units: ["모","든"], keys: Array("ahems")), false, "무맥락: 모든 veto 보호")
+
+        // and(뭉) 무맥락 단독 변환 (2026-06-19 standaloneShortWords) — 1음절 구멍
+        expect(EnglishDetector.shouldConvert(units: ["뭉"], keys: Array("and")), true, "무맥락: 뭉→and 단독")
+        expect(EnglishDetector.shouldConvert(units: ["뭉"], keys: Array("and"), previousEnglishWord: "jane"), true, "영어 사이: jane 뭉 → and")
+        // 걍(rid)은 standaloneShortWords 아니지만 ㅑ 1음절 룰로 변환됨(되돌리기 커버)
+        expect(EnglishDetector.shouldConvert(units: ["걍"], keys: Array("rid")), true, "걍→rid (ㅑ 1음절)")
+
+        // shift+space 되돌리기용 lastConversion 기록·리셋 (2026-06-19, ㉠ 직후만)
+        do {
+            let client = FakeClient()
+            let composer = KoreanComposer()
+            for ch in "and" { _ = composer.handleInput(String(ch), client: client) } // 뭉
+            _ = composer.commit(to: client, convertEnglish: true) // 뭉 → and
+            expect(composer.lastConversion?.hangul ?? "", "뭉", "되돌리기: lastConversion 한글=뭉")
+            expect(composer.lastConversion?.english ?? "", "and", "되돌리기: lastConversion 영어=and")
+            _ = composer.handleInput("d", client: client) // 다음 글자 입력 → 리셋
+            expect(composer.lastConversion == nil, true, "되돌리기: 다음 입력 시 lastConversion 리셋")
+        }
+        // 한국어로 commit되면 lastConversion 안 남음 (되돌릴 영어가 없음)
+        do {
+            let client = FakeClient()
+            let composer = KoreanComposer()
+            for ch in "dkssud" { _ = composer.handleInput(String(ch), client: client) } // 안녕
+            _ = composer.commit(to: client, convertEnglish: true) // 한글 그대로
+            expect(composer.lastConversion == nil, true, "되돌리기: 한글 commit은 기록 안 함")
+        }
+
+        // B·C·D (2026-06-19): red 자음3 + ㅑ1음절 + cyan
+        expect(EnglishDetector.shouldConvert(units: ["ㄱ","ㄷ","ㅇ"], keys: Array("red")), true, "자음3: ㄱㄷㅇ→red")
+        expect(EnglishDetector.shouldConvert(units: ["먕"], keys: Array("aid")), true, "ㅑ1음절: 먕→aid")
+        expect(EnglishDetector.shouldConvert(units: ["먁"], keys: Array("air")), true, "ㅑ1음절: 먁→air")
+        expect(EnglishDetector.shouldConvert(units: ["향"], keys: Array("gid")), false, "ㅑ1음절: 향(veto) 보호")
+        expect(EnglishDetector.shouldConvert(units: ["쵸","무"], keys: Array("cyan")), true, "무맥락: 쵸무→cyan")
 
         print("\(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)

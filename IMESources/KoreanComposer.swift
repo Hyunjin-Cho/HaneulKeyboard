@@ -30,10 +30,20 @@ final class KoreanComposer {
     /// it on boundaries that end the English run.
     private(set) var lastEnglishWord: String?
 
+    /// 직전에 영어로 변환된 단어 — (변환 전 한글, 변환 후 영어). shift+space로
+    /// 방금 변환을 한글로 되돌릴 때 쓴다(㉠ 직후만). 다음 입력(자모/백스페이스)
+    /// 이 들어오면 nil로 리셋 = "변환 직후, 다음 글자 치기 전"에만 유효.
+    private(set) var lastConversion: (hangul: String, english: String)?
+
     var lastCommitWasEnglish: Bool { lastEnglishWord != nil }
 
     func resetEnglishContext() {
         lastEnglishWord = nil
+    }
+
+    /// shift+space 되돌리기가 lastConversion을 소비한 뒤 호출 — 재되돌리기 방지.
+    func consumeLastConversion() {
+        lastConversion = nil
     }
 
     private var buffer = SyllableBuffer()
@@ -50,6 +60,7 @@ final class KoreanComposer {
     func handleInput(_ input: String, client: ComposerClient) -> Bool {
         guard let scalar = input.unicodeScalars.first else { return false }
         let character = Character(scalar)
+        lastConversion = nil // 새 글자 입력 = 되돌리기 기회 끝
 
         guard let jamo = KeyboardLayout2Set.jamo(for: character) else {
             commit(to: client, convertEnglish: true)
@@ -125,8 +136,11 @@ final class KoreanComposer {
             }
             let whitelistOnly = EnglishDetector.shortWords.contains(wordLower) && cleanHangul
             lastEnglishWord = whitelistOnly ? nil : wordLower
+            // 방금 영어로 변환됨 — shift+space 즉시 되돌리기용(㉠ 직후만).
+            lastConversion = (hangul: hangul, english: committed)
         } else {
             lastEnglishWord = nil
+            lastConversion = nil
         }
         client.insertText(committed)
         client.setMarkedText("")
@@ -138,6 +152,7 @@ final class KoreanComposer {
     /// false means everything was empty and the system should perform a
     /// normal delete on the text behind the cursor.
     func deleteBackward(client: ComposerClient) -> Bool {
+        lastConversion = nil // 백스페이스 = 되돌리기 기회 끝
         if !buffer.isEmpty {
             peelJamo()
             if !pendingKeys.isEmpty { pendingKeys.removeLast() }
