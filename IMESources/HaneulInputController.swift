@@ -94,19 +94,37 @@ final class HaneulInputController: IMKInputController {
             return handled
         }
 
-        // shift+space: 방금 영어로 변환된 단어를 한글로 되돌린다(㉠ 직후만).
-        // IMK commit은 텍스트를 앱에 이미 넣었으므로, 커서 직전의 영어 길이
-        // 만큼을 한글로 replace. 변환 직후가 아니면 lastConversion이 nil이라
-        // 아래 boundary 경로로 떨어져 일반 스페이스로 처리된다.
+        // shift+space: 마지막 변환을 영어↔한글 토글로 교체(㉠ 직후만).
+        // 커서 직전 텍스트를 읽어 boundary(스페이스·구두점)를 건너뛰고 영어/
+        // 한글을 정확히 찾아 replace — 변환 시 입력된 공백("i ") 때문에 커서가
+        // 영어 바로 뒤가 아니어도 옳게 동작한다. lastConversion을 유지해 연속
+        // shift+space로 영↔한을 반복 토글(다음 글자 입력/백스페이스 시 리셋).
         if event.keyCode == 49, mods == .shift, let conv = composer.lastConversion {
-            let englishLen = (conv.english as NSString).length
             let sel = client.selectedRange()
-            let replaceRange = (sel.location != NSNotFound && sel.location >= englishLen)
-                ? NSRange(location: sel.location - englishLen, length: englishLen)
-                : NSRange(location: NSNotFound, length: 0)
-            client.insertText(conv.hangul as NSString, replacementRange: replaceRange)
-            composer.consumeLastConversion()
-            return true
+            if sel.location != NSNotFound {
+                let eng = conv.english as NSString
+                let han = conv.hangul as NSString
+                let span = max(eng.length, han.length) + 3
+                let readStart = max(0, sel.location - span)
+                let before = (client.attributedSubstring(
+                    from: NSRange(location: readStart, length: sel.location - readStart)
+                )?.string ?? "") as NSString
+                // 끝의 boundary(공백 0x20·쉼표 0x2C·마침표 0x2E·개행 0x0A) 건너뛰기
+                var end = before.length
+                while end > 0, [0x20, 0x2C, 0x2E, 0x0A].contains(Int(before.character(at: end - 1))) {
+                    end -= 1
+                }
+                if end >= eng.length,
+                   before.substring(with: NSRange(location: end - eng.length, length: eng.length)) == conv.english {
+                    client.insertText(conv.hangul as NSString,
+                        replacementRange: NSRange(location: readStart + end - eng.length, length: eng.length))
+                } else if end >= han.length,
+                          before.substring(with: NSRange(location: end - han.length, length: han.length)) == conv.hangul {
+                    client.insertText(conv.english as NSString,
+                        replacementRange: NSRange(location: readStart + end - han.length, length: han.length))
+                }
+            }
+            return true // lastConversion 유지 → 연속 토글
         }
 
         if mods.contains(.control) || mods.contains(.command)

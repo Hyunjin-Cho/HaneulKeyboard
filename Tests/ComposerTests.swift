@@ -332,7 +332,7 @@ struct ComposerTests {
 
         // R2 호모그래프 보호 (라운드2): 해/내/애는 영어 뒤에서도 한글 유지
         expect(typeWords(["apple", "go"]).last ?? "", "해", "R2 보호: apple 뒤 해 유지 (go 아님)")
-        expect(typeWords(["apple", "so"]).last ?? "", "내", "R2 보호: apple 뒤 내 유지 (so 아님)")
+        expect(typeWords(["apple", "so"]).last ?? "", "so", "앞 영어: apple 뒤 내 → so (게이트 제거)")
         expect(typeWords(["apple", "do"]).last ?? "", "애", "R2 보호: apple 뒤 애 유지 (do 아님)")
         // 체이닝 방지: 새→to(문맥-only)는 다음 단어에 영어 문맥을 넘기지 않음
         expect(
@@ -346,8 +346,8 @@ struct ComposerTests {
             "that was great",
             "체이닝: was → great 연쇄"
         )
-        // 화이트리스트 트리거: want 뒤 새→to는 되고, github 뒤 새는 유지
-        expect(typeWords(["github", "to"]).last ?? "", "새", "트리거: github 뒤 새 유지")
+        // 앞 영어면 무조건(게이트 제거 2026-06-19): want·github 둘 다 영어 뒤라 새→to
+        expect(typeWords(["github", "to"]).last ?? "", "to", "앞 영어: github 뒤 새 → to")
 
         // ── v3 리뷰 회귀: 활용형/구어 보호 3중 가드 ──
         expect(typeWords(["commit", "goT"]).last ?? "", "했", "Shift 가드: 했 보호")
@@ -376,7 +376,7 @@ struct ComposerTests {
             "thank you so much for helping me",
             "v3.1: 사용자 실패 문장 풀 변환"
         )
-        expect(typeWords(["apple", "so"]).last ?? "", "내", "v3.1: 비트리거(apple) 뒤 내 보호")
+        expect(typeWords(["apple", "so"]).last ?? "", "so", "앞 영어: apple 뒤 내 → so")
         // R3 슬랭 보호: 햏(아햏햏 문화)은 변환 안 됨
         expect(type("gog").committedText, "햏", "R3 보호: 햏 → gog 아님")
 
@@ -519,9 +519,9 @@ struct ComposerTests {
         expect(EnglishDetector.shouldConvert(units: ["랙"], keys: Array("for"), previousEnglishWord: "greeting"), true, "for: greeting 뒤 변환")
         expect(EnglishDetector.shouldConvert(units: ["랙"], keys: Array("for"), previousEnglishWord: "you"), true, "for: you 뒤(기존도 유지)")
         expect(EnglishDetector.shouldConvert(units: ["랙"], keys: Array("for"), previousEnglishWord: nil), false, "for: 무맥락은 랙 유지(한글 뒤·문장 첫)")
-        // 회귀: 다른 homograph(새=to)는 여전히 트리거 게이트 — github 뒤는 유지, want 뒤만 변환
-        expect(EnglishDetector.shouldConvert(units: ["새"], keys: Array("to"), previousEnglishWord: "github"), false, "to: 비트리거(github) 뒤는 새 유지")
-        expect(EnglishDetector.shouldConvert(units: ["새"], keys: Array("to"), previousEnglishWord: "want"), true, "to: 트리거(want) 뒤 변환")
+        // 앞 영어면 무조건(게이트 제거 2026-06-19): github·want 둘 다 영어 뒤라 변환
+        expect(EnglishDetector.shouldConvert(units: ["새"], keys: Array("to"), previousEnglishWord: "github"), true, "to: github 뒤 새 → to (앞 영어)")
+        expect(EnglishDetector.shouldConvert(units: ["새"], keys: Array("to"), previousEnglishWord: "want"), true, "to: want 뒤 변환")
 
         // 무맥락 멀쩡한 한글 변환 완화 (2026-06-19): veto통과 + curated + 2음절+
         expect(EnglishDetector.shouldConvert(units: ["챠","쇼"], keys: Array("city")), true, "무맥락: 챠쇼→city")
@@ -562,6 +562,15 @@ struct ComposerTests {
         expect(EnglishDetector.shouldConvert(units: ["먁"], keys: Array("air")), true, "ㅑ1음절: 먁→air")
         expect(EnglishDetector.shouldConvert(units: ["향"], keys: Array("gid")), false, "ㅑ1음절: 향(veto) 보호")
         expect(EnglishDetector.shouldConvert(units: ["쵸","무"], keys: Array("cyan")), true, "무맥락: 쵸무→cyan")
+
+        // 해(go)/애(do) 트리거 게이트 + 모음먼저+자음 약어 (2026-06-19)
+        expect(EnglishDetector.shouldConvert(units: ["해"], keys: Array("go"), previousEnglishWord: "i"), true, "go: I 뒤 해→go")
+        expect(EnglishDetector.shouldConvert(units: ["해"], keys: Array("go"), previousEnglishWord: "to"), true, "go: to 뒤 해→go")
+        expect(EnglishDetector.shouldConvert(units: ["애"], keys: Array("do"), previousEnglishWord: "let"), true, "do: let 뒤 애→do")
+        expect(EnglishDetector.shouldConvert(units: ["해"], keys: Array("go"), previousEnglishWord: "render"), false, "go: render(비트리거) 뒤 해 보호")
+        expect(EnglishDetector.shouldConvert(units: ["해"], keys: Array("go")), false, "go: 무맥락 해 보호")
+        expect(EnglishDetector.shouldConvert(units: ["ㅣ","ㅎ"], keys: Array("lg")), true, "모음먼저+자음: ㅣㅎ→lg")
+        expect(EnglishDetector.shouldConvert(units: ["ㅔ","ㅇ"], keys: Array("pd")), true, "모음먼저+자음: ㅔㅇ→pd")
 
         print("\(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)

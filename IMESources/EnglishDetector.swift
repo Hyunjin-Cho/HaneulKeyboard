@@ -91,6 +91,10 @@ enum EnglishDetector {
         "as", "be", "by", "he", "we", "me", "my", "no",
         "up", "us", "or", "if", "ok", "id", "tv", "pc", "md", "ml", "ui",
         "os", "so", "for",
+        // 모음먼저+자음 약어 (한국어 조합 불가 = 영어 신호): lg=ㅣㅎ, ls=ㅣㄴ,
+        // pd=ㅔㅇ. R1(모음 시작) 게이트로 변환 (2026-06-19). 흔한 약어만
+        // 명시 — 무조건 패턴은 한국어 충돌 위험이라 보수적으로 목록 관리.
+        "lg", "ls", "pd",
         // and(뭉): 우리말샘 미등재 + clean 1음절이라 어떤 구조 룰에도 도달
         // 못 하던 구멍. 무맥락 단독·영어 사이·영어 뒤 모두 변환된다
         // (2026-06-19 standaloneShortWords로 항상 변환 — 아래 정의).
@@ -120,19 +124,15 @@ enum EnglishDetector {
         "ㅎㅇ", "ㅂㄱ", "ㄷㅊ", "ㄱㄷ", "ㅇㄷ", "ㅁㄴㅇㄹ", "ㅗㅜㅑ", "ㅗㅑ",
     ]
 
-    /// 화이트리스트 중 한글형이 "흔한 실존 한국어"인 항목(새=to, 무=an,
-    /// ㅁ=a, 내=so) — 이들은 아무 영어 단어 뒤가 아니라, 영어 기능어/동사
-    /// (whitelistTriggers) 직후에만 발동한다. "GitHub 새 기능"의 새를
-    /// 지키면서 "want to"는 살리는 정밀화.
-    ///
-    /// for(랙)은 2026-06-19 이 게이트에서 제외 — "랙"은 우리말샘 등재어지만
-    /// 일상에서 단독으로 거의 안 쓰이고(영어 단어 뒤 "랙"이 서버 rack을
-    /// 가리키는 경우는 1% 미만), 영어 흐름에서 for의 빈도가 압도적이라
-    /// 사용자 결정으로 "아무 영어 단어 뒤" 변환(greeting for you, good for
-    /// you). 일반 shortWords로 처리되어 prevEnglish만으로 발동.
-    static let koreanHomographShortWords: Set<String> = ["to", "an", "a", "so"]
+    /// (2026-06-19) 트리거 게이트 완전 제거 — 새(to)/무(an)/내(so)/ㅁ(a)/
+    /// 랙(for)을 포함한 shortWords는 "직전 단어가 영어면 무조건" 변환한다
+    /// (사용자 결정). "내 책"·"새 기능"·"무엇"은 앞이 한글이라 prevEnglish=
+    /// false로 자동 보호되고, "render 내(나의)"류 영어+한국어 혼용만 드물게
+    /// 오변환 → shift+space 되돌리기로 커버. homograph 모호성은 "뒤 단어"를
+    /// 모르는 한 원리적으로 완벽 구분 불가이며, 되돌리기가 최종 안전망이다.
 
-    /// 새→to/무→an/내→so/랙→for를 발동시키는 직전 영어 단어들.
+    /// 검역 프로브 호환용 — WordlistAudit의 trigger 시나리오가 참조한다.
+    /// (게이트가 사라져 변환 판정엔 더 이상 쓰이지 않음.)
     static let whitelistTriggers: Set<String> = [
         "want", "wants", "wanted", "need", "needs", "needed",
         "have", "has", "had", "how", "is", "was", "are", "were",
@@ -141,6 +141,18 @@ enum EnglishDetector {
         "supposed", "ought", "such", "what", "not", "of",
         "you", "thank", "thanks", "much", "very", "too",
         "looking", "waiting", "asking", "time",
+    ]
+
+    /// 해(go)/애(do) — 한국어 최빈어(태양·하다·아이)라 무조건 변환은 위험.
+    /// go/do가 영어에서 자연스럽게 따라오는 단어(인칭대명사 주어·to·조동사)
+    /// 직후에만 변환한다(2026-06-19, 사용자 보수 결정). "I go"·"to go"·"let do"
+    /// 는 살리고 "render 해(하다)"·"오늘 해(태양)"는 앞이 트리거가 아니라 보호.
+    static let goDoWords: Set<String> = ["go", "do"]
+    static let goDoTriggers: Set<String> = [
+        "i", "you", "he", "she", "it", "we", "they",
+        "to", "let", "will", "would", "can", "could", "should",
+        "must", "may", "might", "gonna", "gotta", "don't", "didn't",
+        "won't", "can't", "just",
     ]
 
     /// 한글형이 "희귀 한자어 표제어"라 veto에 막히는 고빈도 영어 단어 —
@@ -182,20 +194,21 @@ enum EnglishDetector {
             || startsWithStandaloneVowel(units)
             || units.contains(where: containsImplausibleSyllable)
 
-        // R2-화이트리스트 (조건 2·5, 사용자 명시): veto보다 먼저 평가.
-        // 단, 한글형이 흔한 한국어인 항목(새=to/무=an/ㅁ=a)은 트리거
-        // 단어(want/need/how...) 직후에만 — "GitHub 새 기능" 보호.
+        // R2-화이트리스트 (조건 2·5): 직전 단어가 영어면 shortWords를 변환.
+        // (2026-06-19) 트리거 게이트 제거 — 새/무/내/ㅁ/랙도 "앞 영어면 무조건".
+        // 한국어 용법(내 책/새 기능)은 앞이 한글이라 prevEnglish=false로 보호.
+        // protectedSlang(초성체)만 제외하고, veto보다 먼저 평가한다.
         if prevEnglish, isContextShortWord, !protectedSlang.contains(hangul) {
-            if koreanHomographShortWords.contains(word) {
-                if let prev = previousEnglishWord, whitelistTriggers.contains(prev) {
-                    return true
-                }
-            } else {
-                return true
-            }
+            return true
         }
         // 희귀 한자어와만 충돌하는 고빈도 영어(when/then/than...)도 veto 우회.
         if prevEnglish, contextOverrideEnglish.contains(word) {
+            return true
+        }
+        // 해(go)/애(do) — 트리거(주어·to·조동사) 직후에만 변환(veto 우회).
+        // "I 해"→"I go", "to 애"→"to do"; "render 해"·"오늘 해"는 보호.
+        if prevEnglish, goDoWords.contains(word),
+           let prev = previousEnglishWord, goDoTriggers.contains(prev) {
             return true
         }
 
