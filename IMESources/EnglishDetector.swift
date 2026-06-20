@@ -116,7 +116,7 @@ enum EnglishDetector {
         // 짧은 형태라 사전·일반 규칙으로는 안 잡힌다. 무맥락 화이트리스트로 직접
         // 변환(2026-06-20). veto(위) 후 평가라 — 한글형이 자모거나 우리말샘
         // 미등재면 통과해 변환된다.
-        "esc", "ctrl", "alt", "var", "ufc", "psg",
+        "esc", "ctrl", "alt", "var", "ufc", "psg", "mcp", "ime",
     ]
 
     /// shortWords whose Hangul forms are everyday jamo slang (ㅢ=ml, ㅐㅏ=ok):
@@ -181,6 +181,9 @@ enum EnglishDetector {
         previousEnglishWord: String? = nil
     ) -> Bool {
         guard !keys.isEmpty else { return false }
+        // (H-10) 한국어 veto 사전이 로드 안 됐으면 자동변환을 끈다(fail-closed)
+        // — 사전이 비면 모든 한글이 veto를 통과해 영어로 오변환될 수 있다.
+        guard KoreanDictionary.isLoaded else { return false }
         let prevEnglish = previousEnglishWord != nil
 
         let lowered = keys.compactMap { $0.lowercased().first }

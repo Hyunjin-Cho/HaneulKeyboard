@@ -21,6 +21,13 @@ enum KoreanDictionary {
         return words.contains(word)
     }
 
+    /// (H-10) 사전이 정상 로드됐는지 — 빈 Set이면 로딩 실패(번들 누락·손상·
+    /// 읽기 실패)다. 정상 사전은 67.7만 단어라 비어 있을 수 없다. EnglishDetector
+    /// 가 이 값으로 fail-closed(사전 없으면 자동변환 자체를 끔)를 판단한다.
+    static var isLoaded: Bool {
+        return !words.isEmpty
+    }
+
     /// Call early, off the typing path (main.swift), so the ~0.5s load
     /// never lands on a keystroke.
     static func preload() {

@@ -73,7 +73,7 @@ struct SettingsView: View {
                     .onChange(of: autoEnglishEnabled) { _, newValue in
                         Self.imeDefaults?.set(newValue, forKey: "haneul.autoEnglishEnabled")
                     }
-                Text("한글 모드에서 영어 단어를 치면 (예: \"메ㅔㅣㄷ\") 스페이스를 누를 때 자동으로 영어(\"apple\")로 바꿔줍니다. 올바른 한글과 ㅋㅋㅋ 같은 자모는 건드리지 않습니다.")
+                Text("한글 모드에서 영어 단어를 치면 (예: \"메ㅔㅣㄷ\") 스페이스를 누를 때 자동으로 영어(\"apple\")로 바꿔줍니다. 올바르고 자주 쓰는 한글은 건드리지 않습니다.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

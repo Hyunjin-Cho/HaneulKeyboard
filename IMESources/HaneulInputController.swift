@@ -84,6 +84,14 @@ final class HaneulInputController: IMKInputController {
         let composerClient = IMKComposerClient(client: client)
 
         if event.keyCode == 51 {
+            // (H-08) Cmd/Opt/Ctrl+Backspace(단어·줄 삭제)는 composer가 먹지
+            // 않고 클라이언트가 처리하게 한다 — 조합 중에도 일상 단축키가 한
+            // 자모 삭제로 둔갑하지 않도록. 무수정 Backspace만 자모를 떼어낸다.
+            if mods.contains(.command) || mods.contains(.option) || mods.contains(.control) {
+                composer.commit(to: composerClient)
+                composer.resetEnglishContext()
+                return false
+            }
             let handled = composer.deleteBackward(client: composerClient)
             // Backspace into already-committed text (composer absorbed
             // nothing) breaks any English run — otherwise a wrongly-converted
@@ -106,6 +114,7 @@ final class HaneulInputController: IMKInputController {
         if event.keyCode == 49, mods.subtracting([.capsLock, .function]) == .shift,
            let conv = composer.lastConversion {
             let sel = client.selectedRange()
+            log.log("ss진단A: selLoc=\(sel.location, privacy: .public) selLen=\(sel.length, privacy: .public)")
             // (L3) 드래그 선택 중(length>0)이거나 커서 위치를 모르면 손대지 않음.
             if sel.location != NSNotFound, sel.length == 0 {
                 let span = max((conv.english as NSString).length, (conv.hangul as NSString).length) + 4
@@ -113,6 +122,7 @@ final class HaneulInputController: IMKInputController {
                 let reqLen = sel.location - readStart
                 let before = (client.attributedSubstring(
                     from: NSRange(location: readStart, length: reqLen))?.string ?? "") as NSString
+                log.log("ss진단B: reqLen=\(reqLen, privacy: .public) beforeLen=\(before.length, privacy: .public)")
                 // (H1) Chromium/Electron 등이 substring을 잘라 반환하면 좌표가
                 // 어긋나 인접 글자를 덮어쓴다 — 요청 길이와 다르면 안전하게 포기.
                 // boundary skip·좌측경계·매칭은 순수함수 resolveToggle이 담당
