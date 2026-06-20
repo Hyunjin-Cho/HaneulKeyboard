@@ -45,8 +45,11 @@ enum EnglishDetector {
         //   english_modern      : broad 전용 (SCOWL 70/US — web2에 없는 현대어)
         //   english_names       : broad 전용 (Census/SSA 인명)
         //   english_names_extra : broad 전용 (수작업 유명인)
+        //   english_sports_geo  : broad 전용 (북미·유럽 지명 + 9리그 축구 클럽·
+        //                         선수 + 약어. GeoNames CC-BY + Wikidata CC0.
+        //                         검역 Tier A/B=0 → clean 충돌 없음, broad 전용)
         for name in ["english_supplement", "english_common", "english_modern",
-                     "english_names", "english_names_extra"] {
+                     "english_names", "english_names_extra", "english_sports_geo"] {
             if let bundled = Bundle.main.path(forResource: name, ofType: "txt") {
                 paths.append(bundled)
             }
@@ -107,7 +110,14 @@ enum EnglishDetector {
     /// R5(멀쩡한 한글 2음절+)가 못 잡는 1음절 구멍을 메운다 — 임의의
     /// 1음절 전체가 아니라 *명시 목록*이라, 걍(rid) 등 1음절 슬랭은
     /// 여기 없으므로 veto 미등재여도 그대로 한글 유지(보호).
-    static let standaloneShortWords: Set<String> = ["and"]
+    static let standaloneShortWords: Set<String> = [
+        "and",
+        // 약어(컴퓨터·스포츠) — "전부-자모"(ㄷㄴㅊ=esc, ㅕㄹㅊ=ufc, ㅔㄴㅎ=psg)나
+        // 짧은 형태라 사전·일반 규칙으로는 안 잡힌다. 무맥락 화이트리스트로 직접
+        // 변환(2026-06-20). veto(위) 후 평가라 — 한글형이 자모거나 우리말샘
+        // 미등재면 통과해 변환된다.
+        "esc", "ctrl", "alt", "var", "ufc", "psg",
+    ]
 
     /// shortWords whose Hangul forms are everyday jamo slang (ㅢ=ml, ㅐㅏ=ok):
     /// convertible ONLY in English context (R2), never standalone.

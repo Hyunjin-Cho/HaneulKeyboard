@@ -74,7 +74,7 @@ final class HaneulInputController: IMKInputController {
         // .public (an IME writing keystrokes to the unified log is a
         // keylogger). .private redacts unless private-data logging is
         // deliberately enabled for a debug session.
-        log.log("keyDown code=\(event.keyCode, privacy: .private) shift=\(mods.contains(.shift), privacy: .public)")
+        log.log("keyDown code=\(event.keyCode, privacy: .private) shift=\(mods.contains(.shift), privacy: .public) caps=\(mods.contains(.capsLock), privacy: .public)")
 
         if !didOverrideKeyboard {
             client.overrideKeyboard(withKeyboardNamed: "com.apple.keylayout.ABC")
@@ -99,7 +99,12 @@ final class HaneulInputController: IMKInputController {
         // 한글을 정확히 찾아 replace — 변환 시 입력된 공백("i ") 때문에 커서가
         // 영어 바로 뒤가 아니어도 옳게 동작한다. lastConversion을 유지해 연속
         // shift+space로 영↔한을 반복 토글(다음 글자 입력/백스페이스 시 리셋).
-        if event.keyCode == 49, mods == .shift, let conv = composer.lastConversion {
+        // 한글 모드는 CapsLock 전환 방식이라 keyDown의 modifierFlags에
+        // .capsLock이 상시 포함될 수 있다 — mods == .shift로 엄격 비교하면
+        // 한글 모드에서 shift+space 토글이 발동하지 않는다(영어 모드에선 OK라
+        // 더 헷갈린다). capsLock/function을 빼고 비교해 한글 모드에서도 먹게.
+        if event.keyCode == 49, mods.subtracting([.capsLock, .function]) == .shift,
+           let conv = composer.lastConversion {
             let sel = client.selectedRange()
             // (L3) 드래그 선택 중(length>0)이거나 커서 위치를 모르면 손대지 않음.
             if sel.location != NSNotFound, sel.length == 0 {

@@ -126,20 +126,12 @@ struct OnboardingView: View {
                 .font(.title.bold())
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("• 메뉴바의 \"한\"/\"A\" 표시가 현재 입력 모드입니다.")
-                Text("• Caps Lock 짧게 누르면 한글/영어 모드가 전환됩니다.")
-                Text("• Caps Lock 길게 누르면 (1초 이상) 대문자 Caps Lock이 켜집니다.")
                 Text("• 시스템 설정에서 \"하늘키보드 (두벌식)\"를 입력 소스로 추가했는지 확인하세요.")
                 Text("• 입력 소스에서 기존 \"두벌식\"은 제거해주세요. (자모 깨짐 방지)")
                 Text("• 앱이 안 보이면 런치패드에서 \"haneulkeyboard\"로 검색할 수 있습니다.")
                 Text("• 입력 소스가 확실히 적용되려면 한 번 재부팅하는 것을 권장합니다.")
             }
             .font(.body)
-
-            Text("여러분의 생산성에 도움이 되었으면 합니다. 많이 이용해주세요.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .padding(.top, 8)
         }
     }
 }

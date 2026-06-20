@@ -582,6 +582,12 @@ struct ComposerTests {
         expect(KoreanComposer.resolveToggle(before: "and ", english: "and", hangul: "뭉", atDocStart: false) == nil, true, "resolveToggle: 읽기경계 붙음+문서시작 아님 → 안전 nil")
         expect(KoreanComposer.resolveToggle(before: "go and ", english: "and", hangul: "뭉", atDocStart: false)?.text ?? "", "뭉", "resolveToggle: 'go and ' 공백경계 → 뭉")
 
+        // 약어 무맥락 변환 (standaloneShortWords, 2026-06-20)
+        expect(EnglishDetector.shouldConvert(units: ["ㄷ","ㄴ","ㅊ"], keys: Array("esc")), true, "약어: esc(ㄷㄴㅊ)")
+        expect(EnglishDetector.shouldConvert(units: ["ㅕ","ㄹ","ㅊ"], keys: Array("ufc")), true, "약어: ufc(ㅕㄹㅊ)")
+        expect(EnglishDetector.shouldConvert(units: ["ㅔ","ㄴ","ㅎ"], keys: Array("psg")), true, "약어: psg(ㅔㄴㅎ)")
+        expect(EnglishDetector.shouldConvert(units: ["ㅍ","ㅁ","ㄱ"], keys: Array("var")), true, "약어: var(ㅍㅁㄱ)")
+
         print("\(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
     }

@@ -109,7 +109,7 @@ struct SettingsView: View {
                 core.refreshIMEStatus()
             }
         } message: {
-            Text("HaneulKeyboard의 IME 번들, LaunchServices 등록, 사용자 설정을 모두 지웁니다.")
+            Text("HaneulKeyboard의 메인 앱·IME 번들·LaunchServices 등록·사용자 설정·학습 데이터를 모두 지웁니다. 다시 쓰려면 재설치해야 합니다.")
         }
         .alert("제거 결과", isPresented: Binding(
             get: { uninstallResult != nil },
@@ -117,11 +117,18 @@ struct SettingsView: View {
         )) {
             Button("확인", role: .cancel) {
                 uninstallResult = nil
+                // 전체 제거 후 앱 자신(메뉴바)도 종료 — 파일만 지우면 실행 중인
+                // 프로세스가 남아 메뉴바가 그대로 보인다(#11).
+                NSApp.terminate(nil)
             }
             if uninstallResult?.stillEnabledInPicker == true {
                 Button("시스템 설정 열기") {
                     IMEInstaller.openInputSourcesSettings()
                     uninstallResult = nil
+                    // 설정 창이 뜬 뒤 앱 종료(메뉴바 정리).
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        NSApp.terminate(nil)
+                    }
                 }
             }
         } message: {
@@ -133,8 +140,8 @@ struct SettingsView: View {
                 사용자 설정 초기화: \(r.clearedUserDefaults ? "OK" : "실패")
 
                 \(r.stillEnabledInPicker
-                    ? "마지막 단계 — 시스템 설정 → 키보드 → 입력 소스에서 \"하늘키보드 (두벌식)\"을 \"-\" 로 제거하세요."
-                    : "완료. 메인 앱(HaneulKeyboard.app)을 휴지통으로 이동해 주세요.")
+                    ? "마지막 단계 — 시스템 설정 → 키보드 → 입력 소스에서 \"하늘키보드 (두벌식)\"을 \"-\" 로 제거한 뒤 재부팅하세요."
+                    : "완료. 메인 앱·IME·설정이 모두 삭제됐습니다. 입력 소스 목록을 완전히 비우려면 재부팅하세요.")
                 """
                 Text(status)
             } else {
