@@ -34,6 +34,16 @@
 - 라이선스: MIT-like — Copyright 2000-2026 by Kevin Atkinson (저작권 고지 유지 조건의 퍼미시브 라이선스, 동봉 README 기준)
 - 영타 자동 변환의 broad 영어 사전 보강에 쓰는 **미국식 영어 단어 목록**(size 70, 16.7만 단어 — 현대어와 굴절형 포함)의 출처입니다. 수십 년간 영어 철자 데이터를 다듬어 공개해 온 Kevin Atkinson과 기여자들(12dicts의 Alan Beale 등)께 감사드립니다.
 
+### GeoNames — 전 세계 지명 데이터
+- https://www.geonames.org
+- 라이선스: CC BY 4.0
+- 영타 자동 변환의 **지명 사전**(북미·유럽 4개국의 주/도 + 인구 5만+ 도시, [`Resources/IM/english_sports_geo.txt`](./Resources/IM/english_sports_geo.txt)에 포함)의 출처입니다. 전 세계 지명을 자유롭게 열어준 GeoNames와 기여자들께 감사드립니다.
+
+### Wikidata (Wikimedia)
+- https://www.wikidata.org
+- 라이선스: CC0 1.0 (퍼블릭 도메인)
+- 영타 자동 변환의 **축구 클럽·선수 사전**(잉글랜드·프랑스·스페인·이탈리아 9개 리그)의 출처입니다. 구조화된 지식을 퍼블릭 도메인으로 공개한 Wikidata 커뮤니티에 감사드립니다.
+
 ### Claude (Anthropic)
 - https://claude.com/claude-code
 - 설계 논의, 디버깅, 문서 작성 등 개발 과정 전반에 함께했습니다.
@@ -65,6 +75,8 @@ HaneulKeyboard builds on the work of the open-source projects, tools, and people
 - **[US Census Bureau — 2010 Census Surnames](https://www.census.gov/topics/population/genealogy/data/2010_surnames.html)** (Public Domain) — Source of the 162k surnames used for recognizing personal names.
 - **[US Social Security Administration — Baby Names](https://www.ssa.gov/oact/babynames/)** (Public Domain) — Source of the first-name data (yearly birth registrations since 1880) used for recognizing personal names.
 - **[SCOWL / ESDB (English Speller Database)](https://wordlist.aspell.net)** (Kevin Atkinson, MIT-like license — Copyright 2000-2026 by Kevin Atkinson) — Source of the size-70 American English word list (167k words, modern vocabulary and inflections) used to broaden the English dictionary for wrong-layout auto-correction. Thanks to Kevin Atkinson and contributors (including Alan Beale of 12dicts) for decades of curating English spelling data.
+- **[GeoNames](https://www.geonames.org)** (CC BY 4.0) — Source of the place-name dictionary (North American & European states/provinces + cities with population 50k+) used by the wrong-layout auto-correction.
+- **[Wikidata](https://www.wikidata.org)** (Wikimedia, CC0 1.0 Public Domain) — Source of the football club & player dictionary (9 leagues across England, France, Spain, Italy) used by the wrong-layout auto-correction.
 - **[Claude](https://claude.com/claude-code)** (Anthropic) — A companion throughout design, debugging, and documentation.
 
 ## Studied for reference

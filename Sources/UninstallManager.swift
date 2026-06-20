@@ -41,6 +41,12 @@ enum Uninstaller {
         URL(fileURLWithPath: "/Library/Input Methods/\(imeBundleName)")
     }
 
+    /// 메인 앱 본체 (/Applications). 자동이동(AppMover)이 복사하면 사용자
+    /// 소유, build script(sudo)면 root 소유 — 후자는 admin 프롬프트 필요.
+    static var mainAppURL: URL {
+        URL(fileURLWithPath: "/Applications/HaneulKeyboard.app")
+    }
+
     @discardableResult
     static func run() -> Outcome {
         let killed = killIMEProcess()
@@ -94,6 +100,20 @@ enum Uninstaller {
                 ok = false
             }
         }
+        // (#11) 메인 앱 본체 (/Applications) — 기존 코드는 IME 번들만 지우고
+        // 메인 앱을 안 지워 Launchpad에 남았다(중복/잔재의 핵심 원인). root
+        // 소유면 일반 삭제가 실패하므로 admin 프롬프트로 재시도.
+        if FileManager.default.fileExists(atPath: mainAppURL.path) {
+            do {
+                try FileManager.default.removeItem(at: mainAppURL)
+            } catch {
+                do {
+                    try IMEInstaller.removeWithAdminPrivileges(path: mainAppURL.path)
+                } catch {
+                    ok = false
+                }
+            }
+        }
         return ok
     }
 
@@ -101,7 +121,7 @@ enum Uninstaller {
 
     private static func unregisterFromLaunchServices() -> Bool {
         var ok = true
-        for url in [systemInstallURL, installURL] {
+        for url in [mainAppURL, systemInstallURL, installURL] {
             let task = Process()
             task.executableURL = URL(fileURLWithPath: lsregisterPath)
             task.arguments = ["-u", url.path]

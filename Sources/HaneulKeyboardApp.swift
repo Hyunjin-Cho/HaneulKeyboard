@@ -1,7 +1,18 @@
 import SwiftUI
+import AppKit
+
+/// 메뉴바·IME 초기화보다 먼저(willFinishLaunching) 앱 위치를 점검 — 응용
+/// 프로그램 폴더 밖이면 옮기도록 해 App Translocation으로 첫 실행에 메뉴바가
+/// 안 뜨는 문제를 막는다.
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        AppMover.moveToApplicationsIfNeeded()
+    }
+}
 
 @main
 struct HaneulKeyboardApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var core = AppCore()
     @AppStorage("haneul.hasCompletedOnboarding") private var hasCompleted = false
 
