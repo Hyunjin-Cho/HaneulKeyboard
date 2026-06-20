@@ -27,7 +27,7 @@ _최종 수정: 2026-06-19_
 ### 3. 영타 자동 변환 (메ㅔㅣㄷ → apple)
 
 - 판정은 단어 확정 시점에 **메모리에서만** 일어나며, 입력 내용을 어디에도 저장하거나 학습하지 않습니다.
-- 판정에는 **읽기 전용 사전**만 사용합니다: macOS에 기본 포함된 `/usr/share/dict/words` + 앱에 번들된 영어 단어·인명 목록(보충 목록 `english_supplement.txt` · NGSL 고빈도 목록 `english_common.txt` — CC BY-SA 4.0 · SCOWL 현대 영어 목록 `english_modern.txt` — MIT-like · 미국 인구조사국 성씨/사회보장국 이름 목록 `english_names.txt`·`english_names_extra.txt` — public domain) + 한국어 실존 단어 확인용 **우리말샘 표제어 목록**(`korean_words.txt`, 국립국어원, CC-BY-SA 2.0 KR). **모든 사전 파일은 앱에 정적으로 번들된 읽기 전용 데이터**로, 읽기만 하며 어떤 입력도 기록하지 않고 네트워크로 아무것도 주고받지 않습니다 (실시간 사전 API 같은 것을 쓰지 않습니다).
+- 판정에는 **읽기 전용 사전**만 사용합니다: macOS에 기본 포함된 `/usr/share/dict/words` + 앱에 번들된 영어 단어·인명 목록(보충 목록 `english_supplement.txt` · NGSL 고빈도 목록 `english_common.txt` — CC BY-SA 4.0 · SCOWL 현대 영어 목록 `english_modern.txt` — MIT-like · 미국 인구조사국 성씨/사회보장국 이름 목록 `english_names.txt`·`english_names_extra.txt` — public domain · 북미·유럽 지명과 9개 리그 축구 클럽·선수 목록 `english_sports_geo.txt` — GeoNames CC BY 4.0 / Wikidata CC0) + 한국어 실존 단어 확인용 **우리말샘 표제어 목록**(`korean_words.txt`, 국립국어원, CC-BY-SA 2.0 KR). **모든 사전 파일은 앱에 정적으로 번들된 읽기 전용 데이터**로, 읽기만 하며 어떤 입력도 기록하지 않고 네트워크로 아무것도 주고받지 않습니다 (실시간 사전 API 같은 것을 쓰지 않습니다).
 - 구현: [`IMESources/EnglishDetector.swift`](./IMESources/EnglishDetector.swift), [`IMESources/KoreanDictionary.swift`](./IMESources/KoreanDictionary.swift)
 
 ### 4. 보안 입력 필드 (비밀번호 등)
@@ -74,7 +74,7 @@ The source code (`Sources/`, `IMESources/`) contains no networking code whatsoev
 ### 3. Wrong-layout auto-conversion (메ㅔㅣㄷ → apple)
 
 - The decision happens **in memory** at word-commit time; nothing is stored or learned.
-- It only consults **read-only dictionaries**: macOS's built-in `/usr/share/dict/words`; bundled English word and name lists (a supplement list `english_supplement.txt`; an NGSL-derived high-frequency list `english_common.txt` — CC BY-SA 4.0; a SCOWL-derived modern-English list `english_modern.txt` — MIT-like; and surname/first-name lists `english_names.txt`/`english_names_extra.txt` from the US Census Bureau and the Social Security Administration — public domain); and a bundled Korean headword list (`korean_words.txt`, from 국립국어원 우리말샘, CC-BY-SA 2.0 KR) used to verify real Korean words. **Every dictionary file is static, bundled, read-only data** — nothing you type is ever written to them, and nothing is ever sent or fetched over the network (no live dictionary APIs).
+- It only consults **read-only dictionaries**: macOS's built-in `/usr/share/dict/words`; bundled English word and name lists (a supplement list `english_supplement.txt`; an NGSL-derived high-frequency list `english_common.txt` — CC BY-SA 4.0; a SCOWL-derived modern-English list `english_modern.txt` — MIT-like; and surname/first-name lists `english_names.txt`/`english_names_extra.txt` from the US Census Bureau and the Social Security Administration — public domain; and a place-name & football club/player list `english_sports_geo.txt` from GeoNames (CC BY 4.0) / Wikidata (CC0)); and a bundled Korean headword list (`korean_words.txt`, from 국립국어원 우리말샘, CC-BY-SA 2.0 KR) used to verify real Korean words. **Every dictionary file is static, bundled, read-only data** — nothing you type is ever written to them, and nothing is ever sent or fetched over the network (no live dictionary APIs).
 - Implementation: [`IMESources/EnglishDetector.swift`](./IMESources/EnglishDetector.swift), [`IMESources/KoreanDictionary.swift`](./IMESources/KoreanDictionary.swift)
 
 ### 4. Secure input fields (passwords, etc.)

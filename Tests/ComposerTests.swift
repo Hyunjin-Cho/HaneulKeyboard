@@ -581,6 +581,13 @@ struct ComposerTests {
         expect(KoreanComposer.resolveToggle(before: "xyz ", english: "and", hangul: "뭉", atDocStart: true) == nil, true, "resolveToggle: 매칭 실패 nil")
         expect(KoreanComposer.resolveToggle(before: "and ", english: "and", hangul: "뭉", atDocStart: false) == nil, true, "resolveToggle: 읽기경계 붙음+문서시작 아님 → 안전 nil")
         expect(KoreanComposer.resolveToggle(before: "go and ", english: "and", hangul: "뭉", atDocStart: false)?.text ?? "", "뭉", "resolveToggle: 'go and ' 공백경계 → 뭉")
+        // (낱자모 끝 버그, 2026-06-20) hangul이 낱자모로 끝나는 단어(apple→"메ㅔㅣㄷ",
+        // verona 등)도 양방향 토글돼야 한다 — isWordChar가 완성형(가–힣)만 인정하던
+        // 탓에 trailing이 낱자모 "ㅔㅣㄷ"를 먹어 길이 매칭이 깨졌다(apple·verona는
+        // 스페이스가 샜고, tough·google은 완성형 끝이라 멀쩡했다).
+        expect(KoreanComposer.resolveToggle(before: "apple ", english: "apple", hangul: "메ㅔㅣㄷ", atDocStart: true)?.text ?? "", "메ㅔㅣㄷ", "resolveToggle: apple→메ㅔㅣㄷ 정토글(낱자모 끝)")
+        expect(KoreanComposer.resolveToggle(before: "메ㅔㅣㄷ ", english: "apple", hangul: "메ㅔㅣㄷ", atDocStart: true)?.text ?? "", "apple", "resolveToggle: 메ㅔㅣㄷ→apple 역토글(낱자모 끝 — 이게 버그였음)")
+        expect((KoreanComposer.resolveToggle(before: "메ㅔㅣㄷ ", english: "apple", hangul: "메ㅔㅣㄷ", atDocStart: true)?.offsetFromEnd ?? -1) == 5, true, "resolveToggle: 메ㅔㅣㄷ 역토글 커서 오프셋 5(낱자모4+공백1)")
 
         // 약어 무맥락 변환 (standaloneShortWords, 2026-06-20)
         expect(EnglishDetector.shouldConvert(units: ["ㄷ","ㄴ","ㅊ"], keys: Array("esc")), true, "약어: esc(ㄷㄴㅊ)")

@@ -12,7 +12,7 @@
 - **빠른 한/영 전환** — Caps Lock(짧게)으로 즉시 전환. 시스템 native 경로를 사용해 결정적으로 동작합니다.
 - **영타 자동 변환** *(2026.02 신규 · 2026.03 사전 현대화)* — 한글 모드인 줄 모르고 영어를 쳤을 때, 스페이스를 누르는 순간 자동으로 영어로 바꿔줍니다. `메ㅔㅣㄷ`→`apple`, `ㅡ드ㅐ교`→`memory`, `how ㅁㄱㄷ you`→`how are you`. 올바른 한글과 ㅋㅋㅋ·ㅗㅜㅑ 같은 표현은 건드리지 않습니다 — **우리말샘 표제어 67.7만 개**로 실존 한국어를 확인합니다 (단 하나의 예외: 영어 문맥 직후의 새→to·무→an·내→so·랙→for·뭉→and 명시 목록). 2026.03부터 `and`·`city`·`playlist` 같은 기본·현대어와 `davinci`·`ronaldo` 같은 인명까지 변환합니다. 판정 규칙 전체는 [`RULES.md`](./RULES.md) 한 장에 정리.
 - **Caps Lock 대문자 모드** — Caps Lock 길게 LED 토글(대문자 모드).
-- **메뉴바에서 제어** — 한국어/영어 전환, 설정, 단축키 변경을 메뉴바 아이콘에서. 영타 변환은 설정에서 켜고 끌 수 있습니다.
+- **메뉴바에서 제어** — 한국어/영어 전환, 설정을 메뉴바 아이콘에서. 영타 변환은 설정에서 켜고 끌 수 있습니다.
 
 한↔영 입력에만 집중합니다. 다른 언어 지원 및 다른 기능은 없습니다.
 
@@ -24,14 +24,12 @@
 
 1. 다운로드한 `.zip` 압축 풀고 `HaneulKeyboard.app`을 **응용 프로그램(`/Applications/`)** 폴더로 복사
 2. `HaneulKeyboard.app` 더블클릭 → 메뉴바에 아이콘 표시
-3. 메뉴바 아이콘 → **"시작하기..."** → 4단계 온보딩 따라가기
-   - 접근성 권한 부여 (단축키 가로채기용)
-   - **"IME 설치"** 버튼 클릭 (자동으로 `~/Library/Input Methods/`에 설치)
+3. 메뉴바 아이콘 → **"시작하기..."** → 온보딩 따라가기
+   - **"IME 설치"** 버튼 클릭 (`~/Library/Input Methods/`에 설치)
 4. **시스템 설정 → 키보드 → 입력 소스 → "+" → 한국어 → "하늘키보드 (두벌식)"** 추가
 5. (선택) 기존 시스템 한국어 입력기(두벌식)는 제거 권장 — 자모 깨짐 방지 효과
 
-> **⚠️ 중요**: Caps Lock을 한/영 단축키로 쓰려면 **입력 모니터링 권한**도 필요합니다.
-> (온보딩 1단계에서 접근성 권한만 부여하면 기본 전환은 되지만, 길게 눌러 Caps Lock LED를 켜는 기능을 쓰려면 추가 권한이 필요합니다.)
+> **⚠️ 참고**: 한/영 전환은 **Caps Lock**으로 합니다 — macOS 시스템 기능(`TICapsLockLanguageSwitchCapable`)에 위임하므로 **별도 권한이 필요 없습니다.** 짧게 눌러 한/영 전환, 길게(1초+) 눌러 대문자 Caps Lock.
 
 ## 사용법
 
@@ -110,7 +108,7 @@ HaneulKeyboard.app              # 메뉴바 앱
 
 | 번들 | 역할 | 기술 |
 |---|---|---|
-| `HaneulKeyboard.app` | 메뉴바 앱 — 단축키, 언어 전환, IME 설치, 권한 관리 | SwiftUI, CGEventTap, IOHID, TIS API |
+| `HaneulKeyboard.app` | 메뉴바 앱 — 언어 전환, IME 설치 | SwiftUI, TIS API |
 | `HaneulKeyboardIM.app` | 한글 입력기 — 자모 조합 | IMKit, IMKInputController |
 
 ## 라이선스
@@ -123,6 +121,8 @@ MIT License — 자유롭게 사용, 수정, 배포하세요. 자세한 내용�
 - 현대 영어 단어 목록 — **NGSL**(New General Service List, Browne·Culligan·Phillips)에서 추출, [**CC BY-SA 4.0**](https://creativecommons.org/licenses/by-sa/4.0/)
 - 영어 단어 목록 보강 — **SCOWL/ESDB**([English Speller Database](https://wordlist.aspell.net), Kevin Atkinson)에서 추출, **MIT-like** (Copyright 2000-2026 by Kevin Atkinson)
 - 영어 인명 목록 — **미국 인구조사국**(2010 Census 성씨)·**미국 사회보장국**(Baby Names) 데이터에서 추출, **public domain**
+- 지명 목록([`english_sports_geo.txt`](./Resources/IM/english_sports_geo.txt) 일부) — **[GeoNames](https://www.geonames.org)**(북미·유럽 주/도·도시)에서 추출, [**CC BY 4.0**](https://creativecommons.org/licenses/by/4.0/)
+- 축구 클럽·선수 목록(`english_sports_geo.txt` 일부) — **[Wikidata](https://www.wikidata.org)**(잉글랜드·프랑스·스페인·이탈리아 9개 리그)에서 추출, **CC0 1.0**(퍼블릭 도메인)
 
 ## 감사의 글
 
@@ -180,6 +180,8 @@ MIT. See [`LICENSE`](./LICENSE).
 - Modern English wordlist — derived from the **NGSL** (New General Service List, Browne, Culligan & Phillips), [**CC BY-SA 4.0**](https://creativecommons.org/licenses/by-sa/4.0/)
 - English wordlist augmentation — derived from **SCOWL/ESDB** ([English Speller Database](https://wordlist.aspell.net), Kevin Atkinson), **MIT-like** (Copyright 2000-2026 by Kevin Atkinson)
 - English name lists — derived from **US Census Bureau** (2010 Census surnames) and **US Social Security Administration** (Baby Names) data, **public domain**
+- Place names (part of [`english_sports_geo.txt`](./Resources/IM/english_sports_geo.txt)) — derived from **[GeoNames](https://www.geonames.org)** (North American & European states/cities), [**CC BY 4.0**](https://creativecommons.org/licenses/by/4.0/)
+- Football club & player names (part of `english_sports_geo.txt`) — derived from **[Wikidata](https://www.wikidata.org)** (9 leagues across England, France, Spain, Italy), **CC0 1.0** (public domain)
 
 ## Acknowledgements
 

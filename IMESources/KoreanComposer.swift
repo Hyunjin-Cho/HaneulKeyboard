@@ -56,7 +56,11 @@ final class KoreanComposer {
                               atDocStart: Bool) -> (text: String, replaceLen: Int, offsetFromEnd: Int)? {
         let s = before as NSString
         func isWordChar(_ c: unichar) -> Bool {
-            (c >= 0x61 && c <= 0x7A) || (c >= 0x41 && c <= 0x5A) || (c >= 0xAC00 && c <= 0xD7A3)
+            (c >= 0x61 && c <= 0x7A) || (c >= 0x41 && c <= 0x5A)
+                || (c >= 0xAC00 && c <= 0xD7A3)   // 완성형 음절 가–힣
+                || (c >= 0x3130 && c <= 0x318F)   // 호환 낱자모 ㄱ–ㅣ — hangul이
+                                                  // "메ㅔㅣㄷ"(apple)처럼 낱자모로
+                                                  // 끝나도 trailing이 먹지 않게.
         }
         var end = s.length
         while end > 0, !isWordChar(s.character(at: end - 1)) { end -= 1 }

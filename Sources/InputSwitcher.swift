@@ -3,7 +3,9 @@ import Carbon
 enum InputSwitcher {
     static let englishLayoutID = "com.apple.keylayout.ABC"
     static let koreanModeID = "com.hyunjincho.inputmethod.haneul.korean"
-    static let englishModeID = "com.hyunjincho.inputmethod.haneul.english"
+    // (H-01) 하늘 IME엔 한국어 모드만 있고 자체 영어 모드는 없다. 한→영 전환은
+    // 시스템 ABC(englishLayoutID)로 한다 — 존재하지 않는 english 모드를 선택하려다
+    // toggle이 조용히 no-op이던 버그 수정.
 
     static func currentSourceID() -> String? {
         guard let source = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue() else { return nil }
@@ -20,7 +22,7 @@ enum InputSwitcher {
         guard let current = currentSourceID() else { return false }
         if current.contains("com.hyunjincho.inputmethod.haneul") {
             if looksKorean(current) {
-                return selectMode(englishModeID)
+                return selectEnglish()
             } else {
                 return selectKorean()
             }
@@ -49,14 +51,6 @@ enum InputSwitcher {
             return TISSelectInputSource(any) == noErr
         }
         return false
-    }
-
-    @discardableResult
-    static func selectMode(_ modeID: String) -> Bool {
-        guard let source = availableSources().first(where: { sourceID(of: $0) == modeID }) else {
-            return false
-        }
-        return TISSelectInputSource(source) == noErr
     }
 
     // MARK: - Helpers
