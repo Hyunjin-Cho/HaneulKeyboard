@@ -1,4 +1,5 @@
 import Cocoa
+import Carbon
 import InputMethodKit
 import os.log
 
@@ -182,7 +183,12 @@ final class HaneulInputController: IMKInputController {
         // fire. Re-read the toggle so Settings changes apply immediately.
         composer.autoEnglishEnabled =
             UserDefaults.standard.object(forKey: "haneul.autoEnglishEnabled") as? Bool ?? true
-        composer.commit(to: composerClient, convertEnglish: true)
+        // (secure-input) 보안 입력(비밀번호 등)이 켜져 있으면 영타 자동변환을
+        // 끈다 — 비번이 영어로 바뀌거나 composer 문맥에 남지 않도록. 단 브라우저
+        // 웹 비번칸은 macOS가 secure를 안 켜는 경우가 있어 이 가드가 항상 걸리진
+        // 않는다(플랫폼 한계 — 애플 입력기도 동일. README "알려진 문제" 참고).
+        let secureInput = IsSecureEventInputEnabled()
+        composer.commit(to: composerClient, convertEnglish: !secureInput)
         // 영어 문맥("I want to...")은 스페이스/쉼표로만 이어진다 — 마침표·
         // 엔터·기타 문자는 문장 단절로 보고 리셋 ("Nice. 새로운" 보호).
         let boundary = event.charactersIgnoringModifiers?.first
