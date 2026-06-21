@@ -1,6 +1,7 @@
 import AppKit
 import Carbon
 import Foundation
+import Security
 
 enum IMEInstaller {
     static let bundleName = "HaneulKeyboardIM.app"
@@ -22,17 +23,62 @@ enum IMEInstaller {
     /// the same DerivedData/Products folder, and a released app would carry
     /// the IME inside its Contents/Helpers folder. We probe both.
     static var bundledIMEURL: URL? {
+        let embedded = Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/\(bundleName)")
+        var candidates: [URL] = []
+        #if DEBUG
+        // 개발 편의(Debug 전용): 두 타겟이 같은 DerivedData/Products 폴더에
+        // 떨어지므로 sibling 번들도 후보로 본다. Release에서는 신뢰 경계
+        // 때문에 내장 Helper만 허용한다 (H-01 — 앱 서명 범위 밖 코드 차단).
         let parent = Bundle.main.bundleURL.deletingLastPathComponent()
-        let candidates = [
-            parent.appendingPathComponent(bundleName),
-            Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/\(bundleName)"),
-        ]
+        candidates.append(parent.appendingPathComponent(bundleName))
+        #endif
+        candidates.append(embedded)
         return candidates.first { FileManager.default.fileExists(atPath: $0.path) }
     }
 
     static var isInstalled: Bool {
         FileManager.default.fileExists(atPath: systemInstallURL.path)
             || FileManager.default.fileExists(atPath: installURL.path)
+    }
+
+    /// (H-01) 설치 후보 IME 번들을 신뢰할 수 있는가.
+    /// Release: ① 코드 서명이 유효하고 ② 메인 앱과 **같은 Team Identifier**로
+    /// 서명됐을 때만 true. Team ID를 하드코딩하지 않고 메인 앱 자신의 Team을
+    /// 기준으로 삼으므로, 오픈소스를 포크해 자기 인증서로 빌드한 경우에도
+    /// (메인 앱+IME가 같은 Team이면) 정상 동작하고, 우리와 다른 Team의 외부
+    /// 번들만 거부된다. Debug: 미서명 개발 빌드를 위해 검사를 건너뛴다.
+    static func isTrustedIMEBundle(at url: URL) -> Bool {
+        #if DEBUG
+        return true
+        #else
+        var staticCode: SecStaticCode?
+        guard SecStaticCodeCreateWithPath(url as CFURL, [], &staticCode) == errSecSuccess,
+              let code = staticCode,
+              SecStaticCodeCheckValidity(code, [], nil) == errSecSuccess else {
+            return false
+        }
+        guard let myTeam = teamIdentifier(at: Bundle.main.bundleURL),
+              let candidateTeam = teamIdentifier(at: url),
+              myTeam == candidateTeam else {
+            return false
+        }
+        return true
+        #endif
+    }
+
+    /// 번들의 코드 서명에서 Team Identifier를 읽는다. 미서명/추출 실패 시 nil.
+    private static func teamIdentifier(at url: URL) -> String? {
+        var staticCode: SecStaticCode?
+        guard SecStaticCodeCreateWithPath(url as CFURL, [], &staticCode) == errSecSuccess,
+              let code = staticCode else {
+            return nil
+        }
+        var infoCF: CFDictionary?
+        guard SecCodeCopySigningInformation(code, SecCSFlags(rawValue: kSecCSSigningInformation), &infoCF) == errSecSuccess,
+              let info = infoCF as? [String: Any] else {
+            return nil
+        }
+        return info[kSecCodeInfoTeamIdentifier as String] as? String
     }
 
     @discardableResult
@@ -54,6 +100,12 @@ enum IMEInstaller {
 
         guard let source = bundledIMEURL else {
             throw IMEInstallError.bundleNotFound
+        }
+
+        // (H-01) 외부 코드를 사용자 입력기로 채택하지 않도록, 복사 전에 후보
+        // 번들이 메인 앱과 같은 Team으로 서명됐는지 검증한다.
+        guard isTrustedIMEBundle(at: source) else {
+            throw IMEInstallError.untrustedBundle
         }
 
         let inputMethodsDir = installURL.deletingLastPathComponent()
@@ -250,6 +302,7 @@ enum IMEInstaller {
 
 enum IMEInstallError: LocalizedError {
     case bundleNotFound
+    case untrustedBundle
     case nothingToRemove
     case uninstallFailed(String)
 
@@ -257,6 +310,8 @@ enum IMEInstallError: LocalizedError {
         switch self {
         case .bundleNotFound:
             return "HaneulKeyboardIM.app을 찾을 수 없습니다. 메인 앱과 같은 폴더(또는 Contents/Helpers)에 IME 번들이 있어야 합니다. (HaneulKeyboardIM.app not found — the IME bundle must sit next to the main app or under Contents/Helpers.)"
+        case .untrustedBundle:
+            return "IME 번들의 서명을 신뢰할 수 없습니다. 메인 앱과 동일한 개발자(Team)로 서명된 HaneulKeyboardIM.app만 설치할 수 있습니다. (Refusing to install an IME bundle not signed by the same Team as the main app.)"
         case .nothingToRemove:
             return "제거할 IME가 없습니다. (이미 제거되었습니다.)"
         case .uninstallFailed(let reason):

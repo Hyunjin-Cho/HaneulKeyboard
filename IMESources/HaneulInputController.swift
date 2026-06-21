@@ -72,9 +72,12 @@ final class HaneulInputController: IMKInputController {
         let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         // Key codes/characters are keystroke content — never log them as
         // .public (an IME writing keystrokes to the unified log is a
-        // keylogger). .private redacts unless private-data logging is
-        // deliberately enabled for a debug session.
+        // keylogger). Even with .private redaction, emitting one log record
+        // per keystroke is poor hygiene for an IME — so the whole typing-path
+        // log is Debug-only; release builds write nothing per keystroke.
+        #if DEBUG
         log.log("keyDown code=\(event.keyCode, privacy: .private) shift=\(mods.contains(.shift), privacy: .public) caps=\(mods.contains(.capsLock), privacy: .public)")
+        #endif
 
         if !didOverrideKeyboard {
             client.overrideKeyboard(withKeyboardNamed: "com.apple.keylayout.ABC")
@@ -114,7 +117,9 @@ final class HaneulInputController: IMKInputController {
         if event.keyCode == 49, mods.subtracting([.capsLock, .function]) == .shift,
            let conv = composer.lastConversion {
             let sel = client.selectedRange()
+            #if DEBUG
             log.log("ss진단A: selLoc=\(sel.location, privacy: .public) selLen=\(sel.length, privacy: .public)")
+            #endif
             // (L3) 드래그 선택 중(length>0)이거나 커서 위치를 모르면 손대지 않음.
             if sel.location != NSNotFound, sel.length == 0 {
                 let span = max((conv.english as NSString).length, (conv.hangul as NSString).length) + 4
@@ -122,7 +127,9 @@ final class HaneulInputController: IMKInputController {
                 let reqLen = sel.location - readStart
                 let before = (client.attributedSubstring(
                     from: NSRange(location: readStart, length: reqLen))?.string ?? "") as NSString
+                #if DEBUG
                 log.log("ss진단B: reqLen=\(reqLen, privacy: .public) beforeLen=\(before.length, privacy: .public)")
+                #endif
                 // (H1) Chromium/Electron 등이 substring을 잘라 반환하면 좌표가
                 // 어긋나 인접 글자를 덮어쓴다 — 요청 길이와 다르면 안전하게 포기.
                 // boundary skip·좌측경계·매칭은 순수함수 resolveToggle이 담당
@@ -139,9 +146,12 @@ final class HaneulInputController: IMKInputController {
             // (키를 먹지 않게 — 최소한 스페이스는 입력됨).
         }
 
+        // (M-02) `.numericPad`는 passive 목록에서 뺀다 — 화살표/탐색키는
+        // `.function`도 함께 달려 위에서 passive로 잡히지만, 키패드 숫자·Enter는
+        // `.numericPad`만 달려 예전엔 변환 없이 그대로 확정됐다. 이제 키패드
+        // 문자·Enter는 아래 active boundary로 흘러 영타 변환 대상이 된다.
         if mods.contains(.control) || mods.contains(.command)
-           || mods.contains(.option) || mods.contains(.numericPad)
-           || mods.contains(.function) {
+           || mods.contains(.option) || mods.contains(.function) {
             composer.commit(to: composerClient) // passive: 변환 안 함
             composer.resetEnglishContext()      // 커서 이동/단축키 = 문맥 단절
             return false

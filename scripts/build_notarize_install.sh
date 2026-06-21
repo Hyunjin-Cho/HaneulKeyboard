@@ -71,16 +71,18 @@ xcodegen generate >/dev/null
 echo
 
 echo "→ xcodebuild Release ($TARGET)"
-xcodebuild -scheme "$TARGET" -configuration Release -quiet build
+# (H-05) 결정적 산출물 경로 — 고정 -derivedDataPath를 써서 빌드와 설치가
+# 정확히 같은 산출물을 가리키게 한다. 예전엔 DerivedData*를 와일드카드로
+# 뒤져 `head -1`로 첫 결과를 골라, 옛 산출물(.noindex·다른 프로젝트 해시)이
+# 섞이면 "방금 빌드"가 아닌 걸 notarize/install할 수 있었다.
+DERIVED="$PROJECT_ROOT/.build/DerivedData"
+xcodebuild -scheme "$TARGET" -configuration Release -derivedDataPath "$DERIVED" -quiet build
 echo "  ✓ Build succeeded"
 echo
 
-# Locate produced .app
-# DerivedData가 Spotlight 제외를 위해 DerivedData.noindex로 이동됨(2026-06-06)
-# — 와일드카드로 두 위치 모두 커버.
-RELEASE_APP=$(find ~/Library/Developer/Xcode/DerivedData*/HaneulKeyboard-*/Build/Products/Release -maxdepth 1 -name "$TARGET.app" -type d 2>/dev/null | head -1)
-if [[ -z "$RELEASE_APP" ]]; then
-    echo "  ✗ Could not locate $TARGET.app in DerivedData"
+RELEASE_APP="$DERIVED/Build/Products/Release/$TARGET.app"
+if [[ ! -d "$RELEASE_APP" ]]; then
+    echo "  ✗ Could not locate $TARGET.app at $RELEASE_APP"
     exit 1
 fi
 echo "  → $RELEASE_APP"
@@ -130,6 +132,7 @@ echo
 # ─── 8. Install system-wide ─────────────────────────
 INSTALL_PATH="$INSTALL_DIR/$TARGET.app"
 echo "→ Install to $INSTALL_PATH (sudo)"
+BAK=""
 if [[ -e "$INSTALL_PATH" ]]; then
     # 백업은 반드시 Input Methods/Applications 폴더 "밖"(/tmp)으로 —
     # 같은 폴더의 .bak은 TIS/Spotlight가 또 하나의 앱으로 집어서
@@ -138,6 +141,17 @@ if [[ -e "$INSTALL_PATH" ]]; then
     echo "  → backing up existing → $BAK"
     sudo mv "$INSTALL_PATH" "$BAK"
 fi
+# (H-06) 설치 중 실패하면 백업을 원위치로 되돌린다. 예전엔 rollback trap이
+# 없어 `sudo cp`/등록이 실패하면 정본 경로가 비거나 절반만 복사된 채 남았다.
+rollback_install() {
+    local rc=$?
+    if [[ -n "$BAK" && ! -e "$INSTALL_PATH" ]]; then
+        echo "  ⚠ 설치 실패(rc=$rc) — 백업 복원: $BAK → $INSTALL_PATH" >&2
+        sudo rm -rf "$INSTALL_PATH" 2>/dev/null || true
+        sudo mv "$BAK" "$INSTALL_PATH" 2>/dev/null || true
+    fi
+}
+trap rollback_install ERR
 sudo cp -R "$RELEASE_APP" "$INSTALL_PATH"
 echo "  ✓ Copied"
 echo

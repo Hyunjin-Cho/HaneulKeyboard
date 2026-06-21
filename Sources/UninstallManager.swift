@@ -160,8 +160,17 @@ enum Uninstaller {
         // Support — PRIVACY.md promises 전체 제거 deletes it.
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("HaneulKeyboard")
-        try? FileManager.default.removeItem(at: appSupport)
-        return true
+        // (M-06) 삭제 실패를 성공으로 보고하지 않는다 — 예전엔 try?로 버리고
+        // 무조건 true를 반환해 잔재가 남아도 "모두 삭제"로 표시됐다.
+        var ok = true
+        if FileManager.default.fileExists(atPath: appSupport.path) {
+            do {
+                try FileManager.default.removeItem(at: appSupport)
+            } catch {
+                ok = false
+            }
+        }
+        return ok
     }
 
     /// Walks every TIS input source and checks if any matches our bundle ID
