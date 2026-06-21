@@ -48,13 +48,27 @@ for path in files:
         stats["kept"] += 1
     print(f"  {os.path.basename(path)}: 누적 {len(words):,}개", flush=True)
 
+# (H-04) 최소 엔트리 검증 — 우리말샘 일반어/완성한글 1~6음절은 60만+개다.
+# 이보다 적으면 입력 손상·부분 다운로드로 보고 운영 파일을 건드리지 않는다.
+MIN_WORDS = 500_000
+if len(words) < MIN_WORDS:
+    sys.exit(f"추출 {len(words):,}개 < 최소 {MIN_WORDS:,}개 — 입력 손상/불완전으로 간주, 쓰기 중단")
+
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
-with open(OUT, "w", encoding="utf-8") as out:
+# (H-04) 원자적 쓰기: 임시 파일에 쓰고 fsync 후 rename — 생성이 중단돼도
+# 운영 사전이 절반만 쓰인 상태로 남지 않는다. 헤더의 count로 런타임이 로드 시
+# 실제 개수와 대조해 부분 손상을 fail-closed로 잡는다.
+tmp = OUT + ".tmp"
+with open(tmp, "w", encoding="utf-8") as out:
     out.write("# 우리말샘 표제어 (국립국어원, CC-BY-SA 2.0 KR) — 일반어/완성한글만\n")
     out.write("# 출처: https://opendict.korean.go.kr (전체 내려받기 2026-06-03)\n")
     out.write("# 이 데이터 파일은 CC-BY-SA 2.0 KR 라이선스를 따릅니다 (앱 코드는 MIT).\n")
+    out.write(f"# count: {len(words)}\n")
     for w in sorted(words):
         out.write(w + "\n")
+    out.flush()
+    os.fsync(out.fileno())
+os.replace(tmp, OUT)
 
 size_mb = os.path.getsize(OUT) / 1024 / 1024
 print(f"\n완료: 표제어 {stats['total']:,}개 중 {len(words):,}개 추출 → {OUT} ({size_mb:.1f} MB)")
