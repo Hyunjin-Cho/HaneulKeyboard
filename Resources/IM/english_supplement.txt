@@ -166,3 +166,95 @@ chanel
 cyan
 roadmap
 worklog
+# ── AI·게임 산업 단어 (#18, 2026-06-22) — broad+curated 양쪽 커버 ──
+# AI/LLM 모델
+gemini
+mixtral
+qwen
+deepseek
+kimi
+glm
+nemotron
+minimax
+mimo
+ernie
+hunyuan
+dbrx
+jamba
+olmo
+codestral
+# AI 회사
+mistralai
+huggingface
+# AI 도구·서비스
+imagen
+ollama
+vllm
+langchain
+# AI 개념
+llm
+rag
+asi
+agentic
+finetune
+chatbot
+nlp
+tpu
+onnx
+gguf
+safetensors
+# 게임: 업스케일·프레임생성
+dlss
+fsr
+xess
+mfg
+vsync
+gsync
+freesync
+raytracing
+rtx
+dlaa
+framegen
+pathtracing
+# 게임: 하드웨어
+vram
+radeon
+geforce
+oled
+qled
+hdr
+ryzen
+threadripper
+# 게임: 플랫폼·엔진
+godot
+vulkan
+directx
+opengl
+opencl
+# 게임: 용어
+fov
+rpg
+mmorpg
+moba
+rts
+npc
+dlc
+speedrun
+gacha
+roguelike
+soulslike
+crossplay
+respawn
+ragdoll
+# 게임: 그래픽
+nanite
+msaa
+fxaa
+smaa
+antialiasing
+supersampling
+wireframe
+mipmapping
+# 특수 처리 동반 (gpt=standaloneShortWords, fps=첫자음shift) — EnglishDetector 참조
+gpt
+fps
