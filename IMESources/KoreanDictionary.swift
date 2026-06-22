@@ -10,7 +10,7 @@ import Foundation
 /// 데이터는 읽기 전용이며 어떤 입력도 기록하지 않는다 (PRIVACY.md).
 enum KoreanDictionary {
     /// Overridable for tests — set before first lookup (lazy load).
-    static var wordlistPath: String? =
+    nonisolated(unsafe) static var wordlistPath: String? =
         Bundle.main.path(forResource: "korean_words", ofType: "txt")
 
     /// True if the string is a known Korean headword. Empty/unloaded
@@ -27,14 +27,14 @@ enum KoreanDictionary {
     /// - 헤더에 `# count: N`이 있으면 실제 로드 수와 **정확히 일치**해야 한다
     ///   (부분 손상/절반 패키징/생성 중단을 잡는다). 매직넘버를 하드코딩하지
     ///   않고 파일 자신이 선언한 값과 대조한다.
-    /// - 헤더가 없는 구버전 파일은 "심하게 잘림/빈 파일"만 거른다(낮은 floor).
+    /// - 헤더가 없으면 로드 실패로 본다. production 사전은 count 헤더가 필수다.
     static var isLoaded: Bool {
         let n = words.count        // 로드 트리거 — declaredCount도 이때 채워진다
         guard n > 0 else { return false }
         if declaredCount >= 0 {
             return n == declaredCount
         }
-        return n >= 1000
+        return false
     }
 
     /// Call early, off the typing path (main.swift), so the ~0.5s load
@@ -46,7 +46,7 @@ enum KoreanDictionary {
     /// 사전 헤더 `# count: N`에 선언된 기대 표제어 수 (헤더 없으면 -1).
     /// words 로드와 함께 채워지며, isLoaded가 실제 로드 수와 대조해 부분 손상을
     /// fail-closed로 잡는 데 쓴다. (H-04)
-    private static var declaredCount: Int = -1
+    nonisolated(unsafe) private static var declaredCount: Int = -1
 
     /// mmap + 단일 패스 바이트 스캔 로더. String(contentsOfFile)+split은
     /// 임시 버퍼(파일 String + 67만 Substring 배열)가 malloc 캐시에 갇혀

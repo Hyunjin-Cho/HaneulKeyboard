@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @Bindable var core: AppCore
     @State private var installError: Error?
+    @State private var isInstalling = false
     @State private var showingUninstallConfirm = false
     @State private var uninstallResult: Uninstaller.Outcome?
 
@@ -37,11 +38,14 @@ struct SettingsView: View {
                             IMEInstaller.openInputSourcesSettings()
                         }
                         Button("IME 제거", role: .destructive) {
-                            do {
-                                try IMEInstaller.uninstall()
-                                core.refreshIMEStatus()
-                            } catch {
-                                installError = error
+                            Task {
+                                do {
+                                    try await IMEInstaller.uninstall()
+                                    core.refreshIMEStatus()
+                                    installError = nil
+                                } catch {
+                                    installError = error
+                                }
                             }
                         }
                     }
@@ -49,7 +53,7 @@ struct SettingsView: View {
                     Text("HaneulKeyboard 자체 한국어 입력기를 ~/Library/Input Methods/에 설치합니다. 설치 후 시스템 설정에서 입력 소스로 추가해야 합니다.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    if let installError {
+                    if let installError = installError ?? core.imeActivationError {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(installError.localizedDescription)
                                 .font(.caption)
@@ -57,14 +61,19 @@ struct SettingsView: View {
                         }
                     }
                     Button("IME 설치") {
-                        do {
-                            try IMEInstaller.install()
-                            core.refreshIMEStatus()
-                            installError = nil
-                        } catch {
-                            installError = error
+                        isInstalling = true
+                        Task {
+                            do {
+                                _ = try await IMEInstaller.installBundle()
+                                core.refreshIMEStatus()
+                                installError = nil
+                            } catch {
+                                installError = error
+                            }
+                            isInstalling = false
                         }
                     }
+                    .disabled(isInstalling)
                 }
             }
 

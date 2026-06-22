@@ -36,9 +36,18 @@ enum IMEInstaller {
         return candidates.first { FileManager.default.fileExists(atPath: $0.path) }
     }
 
-    static var isInstalled: Bool {
-        FileManager.default.fileExists(atPath: systemInstallURL.path)
-            || FileManager.default.fileExists(atPath: installURL.path)
+    struct ActivationResult: Sendable {
+        let url: URL
+    }
+
+    /// A bundle on disk is only a candidate. Call `isInstalled()` when
+    /// reporting user-visible installation state; it also verifies TIS state.
+    static func isInstalled() async -> Bool {
+        let trustedBundleExists = await Task.detached(priority: .utility) {
+            installedBundleURL().map { isTrustedIMEBundle(at: $0) } ?? false
+        }.value
+        guard trustedBundleExists else { return false }
+        return await MainActor.run { tisActivationState().isReady }
     }
 
     /// (H-01) 설치 후보 IME 번들을 신뢰할 수 있는가.
@@ -94,31 +103,65 @@ enum IMEInstaller {
     /// killall은 반환돼도 실제 종료를 보장하지 않고 이름 매칭이 부정확하므로,
     /// bundle ID로 정확히 찾아 terminate한 뒤 종료를 확인한다(최대 ~1.5초 폴링,
     /// 안 죽으면 forceTerminate). IMK가 다음 입력 때 새 번들로 재기동한다.
-    private static func stopIMEProcess() {
+    /// 호출 계약: 종료 폴링과 `onMainThread`의 동기 hop 때문에 메인 스레드에서
+    /// 동기 호출하면 안 된다. 호출자는 반드시 백그라운드 작업에서 실행한다.
+    static func stopIMEProcess() {
+        assert(!Thread.isMainThread, "stopIMEProcess() must run off the main thread")
         let imeBundleID = "com.hyunjincho.inputmethod.haneul"
-        let running = NSRunningApplication.runningApplications(withBundleIdentifier: imeBundleID)
+        let running: [NSRunningApplication] = onMainThread {
+            NSRunningApplication.runningApplications(withBundleIdentifier: imeBundleID)
+        }
         guard !running.isEmpty else { return }
-        for app in running { app.terminate() }
+        onMainThread { for app in running { app.terminate() } }
+        let processIDs = running.map(\.processIdentifier)
         let deadline = Date(timeIntervalSinceNow: 1.5)
         while Date() < deadline {
-            if NSRunningApplication.runningApplications(withBundleIdentifier: imeBundleID).isEmpty {
+            if processIDs.allSatisfy({ kill($0, 0) != 0 }) {
                 return
             }
             Thread.sleep(forTimeInterval: 0.05)
         }
-        for app in NSRunningApplication.runningApplications(withBundleIdentifier: imeBundleID) {
-            app.forceTerminate()
+        onMainThread {
+            for app in NSRunningApplication.runningApplications(withBundleIdentifier: imeBundleID) {
+                app.forceTerminate()
+            }
         }
     }
 
+    private static func onMainThread<T>(_ body: @escaping () -> T) -> T {
+        if Thread.isMainThread { return body() }
+        return DispatchQueue.main.sync(execute: body)
+    }
+
+    /// 실행 중인 IME를 멈춘 뒤 trusted source를 staging에 복사하고 원자 교체한다.
+    /// staging 준비나 교체가 실패하면 기존 설치본은 그대로 남는다.
+    private static func atomicallyReplaceIMEBundle(at destination: URL, with source: URL) throws {
+        stopIMEProcess()
+        let staging = destination.deletingLastPathComponent().appendingPathComponent(
+            ".\(destination.lastPathComponent).staging-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: staging) }
+        try FileManager.default.copyItem(at: source, to: staging)
+        _ = try FileManager.default.replaceItemAt(destination, withItemAt: staging)
+    }
+
     @discardableResult
-    static func install() throws -> URL {
+    static func installBundle() async throws -> ActivationResult {
+        let url = try await Task.detached(priority: .userInitiated) {
+            try installBundleOnDisk()
+        }.value
+        return try await activateBundle(at: url)
+    }
+
+    private static func installBundleOnDisk() throws -> URL {
         // A system-domain install (from the build script) is canonical.
         // NEVER lay a second copy in the user domain on top of it — that's
         // exactly what produced the duplicated input-source rows. Instead,
         // clean any user-domain leftover and just (re)activate the canonical
         // bundle with TIS.
         if FileManager.default.fileExists(atPath: systemInstallURL.path) {
+            guard isTrustedIMEBundle(at: systemInstallURL) else {
+                throw IMEInstallError.installedBundleUntrusted(systemInstallURL.path)
+            }
             if FileManager.default.fileExists(atPath: installURL.path) {
                 // (H-03 엣지) user-domain 잔재를 지우기 전에 IME를 정지한다 —
                 // 실행 중인 번들을 삭제하면 강제 종료/불안정 위험이 있다. system이
@@ -130,24 +173,24 @@ enum IMEInstaller {
                 unregisterFromLaunchServices(at: installURL)
             }
             try registerWithLaunchServices(at: systemInstallURL)
-            registerWithTIS(at: systemInstallURL)
             return systemInstallURL
         }
 
-        guard let source = bundledIMEURL else {
-            throw IMEInstallError.bundleNotFound
-        }
-
-        // (H-01) 외부 코드를 사용자 입력기로 채택하지 않도록, 복사 전에 후보
-        // 번들이 메인 앱과 같은 Team으로 서명됐는지 검증한다.
-        guard isTrustedIMEBundle(at: source) else {
-            throw IMEInstallError.untrustedBundle
-        }
+        let source = try trustedBundledIMEURL()
 
         let inputMethodsDir = installURL.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: inputMethodsDir, withIntermediateDirectories: true)
 
         if FileManager.default.fileExists(atPath: installURL.path) {
+            // (H-02) 이미 깔린 user-domain 번들도 재등록 직전에 다시 신뢰 검증한다.
+            // 손상/타 Team 번들이면 TIS에 넣지 말고, 우리가 들고 온 trusted
+            // embedded copy로 교체한 뒤에만 계속 진행한다.
+            if !isTrustedIMEBundle(at: installURL) {
+                try atomicallyReplaceIMEBundle(at: installURL, with: source)
+                unregisterFromLaunchServices(at: installURL)
+                try registerWithLaunchServices(at: installURL)
+                return installURL
+            }
             // (H-03) 버전 가드 — 설치된 IME가 같거나 최신이면 복사하지 않고
             // 재등록/활성화만 한다. 이게 (a)구버전 앱의 다운그레이드 방지 +
             // (b)매 실행 비원자 교체 제거 + (c)실행 중인 IME를 안 건드림을 모두
@@ -157,48 +200,95 @@ enum IMEInstaller {
             let bundledBuild = buildNumber(at: source)
             if let installedBuild, let bundledBuild, installedBuild >= bundledBuild {
                 try registerWithLaunchServices(at: installURL)
-                registerWithTIS(at: installURL)
                 return installURL
             }
             // 진짜 업그레이드(번들 > 설치본) 또는 버전 정보 손상 → 교체한다.
             // 실행 중인 IME 번들을 그대로 바꾸면 OS가 강제 종료할 수 있으므로,
             // 프로세스를 확실히 종료한 뒤(종료 확인) staging에 복사해 원자 교체한다.
-            stopIMEProcess()
-            let staging = inputMethodsDir.appendingPathComponent(
-                ".\(installURL.lastPathComponent).staging-\(UUID().uuidString)")
-            defer { try? FileManager.default.removeItem(at: staging) }
-            try FileManager.default.copyItem(at: source, to: staging)
-            _ = try FileManager.default.replaceItemAt(installURL, withItemAt: staging)
+            try atomicallyReplaceIMEBundle(at: installURL, with: source)
         } else {
             // 첫 설치 — 교체할 기존본이 없으니 바로 복사.
             try FileManager.default.copyItem(at: source, to: installURL)
         }
         try registerWithLaunchServices(at: installURL)
-        registerWithTIS(at: installURL)
         return installURL
     }
 
-    static func uninstall() throws {
-        var removedAny = false
+    @discardableResult
+    static func install() async throws -> ActivationResult {
+        try await installBundle()
+    }
+
+    /// 앱 시작 시에는 "복사"를 절대 하지 않는다. macOS 26 picker 가시성 회귀를
+    /// 막기 위해 GUI 앱 안에서 TIS register/enable은 계속 수행하되, 디스크에
+    /// 새 번들을 만드는 행위는 명시적 설치 버튼 경로로만 제한한다. (H-01)
+    @discardableResult
+    static func activateInstalled() async throws -> ActivationResult? {
+        let url = try await Task.detached(priority: .utility) {
+            try prepareInstalledBundle()
+        }.value
+        guard let url else { return nil }
+        return try await activateBundle(at: url)
+    }
+
+    private static func prepareInstalledBundle() throws -> URL? {
+        if FileManager.default.fileExists(atPath: systemInstallURL.path) {
+            guard isTrustedIMEBundle(at: systemInstallURL) else {
+                throw IMEInstallError.installedBundleUntrusted(systemInstallURL.path)
+            }
+            if FileManager.default.fileExists(atPath: installURL.path) {
+                stopIMEProcess()
+                try? FileManager.default.removeItem(at: installURL)
+                unregisterFromLaunchServices(at: installURL)
+            }
+            try registerWithLaunchServices(at: systemInstallURL)
+            return systemInstallURL
+        }
+
+        guard FileManager.default.fileExists(atPath: installURL.path) else {
+            return nil
+        }
+
+        if !isTrustedIMEBundle(at: installURL) {
+            let source = try trustedBundledIMEURL()
+            try atomicallyReplaceIMEBundle(at: installURL, with: source)
+            unregisterFromLaunchServices(at: installURL)
+        }
+        try registerWithLaunchServices(at: installURL)
+        return installURL
+    }
+
+    @MainActor
+    static func uninstall() async throws {
+        _ = InputSwitcher.selectEnglish()
+
+        let hasSystemInstall = FileManager.default.fileExists(atPath: systemInstallURL.path)
+        let hasUserInstall = FileManager.default.fileExists(atPath: installURL.path)
+        guard hasSystemInstall || hasUserInstall else {
+            throw IMEInstallError.nothingToRemove
+        }
+
+        await Task.detached(priority: .userInitiated) {
+            stopIMEProcess()
+        }.value
 
         // System-domain install is root-owned — ask for admin rights via the
         // standard macOS password prompt. (The old code only handled the
         // user-domain path and silently did NOTHING for system installs.)
-        if FileManager.default.fileExists(atPath: systemInstallURL.path) {
+        // NSAppleScript의 관리자 인증 UI는 메인 액터에서 띄운다.
+        if hasSystemInstall {
             try removeWithAdminPrivileges(path: systemInstallURL.path)
-            unregisterFromLaunchServices(at: systemInstallURL)
-            removedAny = true
         }
 
-        if FileManager.default.fileExists(atPath: installURL.path) {
-            try FileManager.default.removeItem(at: installURL)
-            unregisterFromLaunchServices(at: installURL)
-            removedAny = true
-        }
-
-        if !removedAny {
-            throw IMEInstallError.nothingToRemove
-        }
+        try await Task.detached(priority: .userInitiated) {
+            if hasSystemInstall {
+                unregisterFromLaunchServices(at: systemInstallURL)
+            }
+            if hasUserInstall {
+                try FileManager.default.removeItem(at: installURL)
+                unregisterFromLaunchServices(at: installURL)
+            }
+        }.value
     }
 
     /// `do shell script ... with administrator privileges` — shows the
@@ -222,6 +312,26 @@ enum IMEInstaller {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.keyboard?Text") {
             NSWorkspace.shared.open(url)
         }
+    }
+
+    private static func trustedBundledIMEURL() throws -> URL {
+        guard let source = bundledIMEURL else {
+            throw IMEInstallError.bundleNotFound
+        }
+
+        // (H-01) 외부 코드를 사용자 입력기로 채택하지 않도록, 복사 전에 후보
+        // 번들이 메인 앱과 같은 Team으로 서명됐는지 검증한다.
+        guard isTrustedIMEBundle(at: source) else {
+            throw IMEInstallError.untrustedBundle
+        }
+        return source
+    }
+
+    @discardableResult
+    @MainActor
+    private static func activateBundle(at url: URL) async throws -> ActivationResult {
+        try await registerWithTIS(at: url)
+        return ActivationResult(url: url)
     }
 
     private static let lsregisterPath = "/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister"
@@ -262,15 +372,63 @@ enum IMEInstaller {
     /// So: register only if TIS doesn't already know our bundle, enable only
     /// modes that are currently disabled, and nudge only when something
     /// actually changed.
-    private static func registerWithTIS(at url: URL) {
+    @MainActor
+    private static func registerWithTIS(at url: URL) async throws {
         let bundleID = "com.hyunjincho.inputmethod.haneul"
         if !tisKnowsBundle(bundleID) {
-            _ = TISRegisterInputSource(url as CFURL)
+            let status = TISRegisterInputSource(url as CFURL)
+            guard status == noErr else {
+                throw IMEInstallError.tisRegistrationFailed(status)
+            }
         }
         let newlyEnabled = enableAllModes(forBundleID: bundleID)
         if newlyEnabled > 0 {
             nudgeMenuBarPicker(forBundleID: bundleID)
         }
+        let initialState = tisActivationState()
+        guard initialState.known else { throw IMEInstallError.tisRegistrationMissing }
+        if initialState.enabled { return }
+
+        // TISEnableInputSource 성공 뒤 enabled 플래그가 TIS 캐시에 늦게 반영될
+        // 수 있다. 짧게 재폴링해 정상 설치를 활성화 실패로 오인하지 않는다.
+        for _ in 0..<6 {
+            try await Task.sleep(for: .milliseconds(50))
+            if tisActivationState().enabled { return }
+        }
+        throw IMEInstallError.tisEnableFailed
+    }
+
+    private struct TISActivationState {
+        let known: Bool
+        let enabled: Bool
+        var isReady: Bool { known && enabled }
+    }
+
+    @MainActor
+    private static func tisActivationState() -> TISActivationState {
+        let bundleID = "com.hyunjincho.inputmethod.haneul"
+        guard let all = TISCreateInputSourceList(nil, true)?.takeRetainedValue() as? [TISInputSource] else {
+            return TISActivationState(known: false, enabled: false)
+        }
+        var known = false
+        var enabled = false
+        for source in all {
+            guard let bundleIDPtr = TISGetInputSourceProperty(source, kTISPropertyBundleID) else { continue }
+            let sourceBundleID = Unmanaged<CFString>.fromOpaque(bundleIDPtr).takeUnretainedValue() as String
+            guard sourceBundleID == bundleID else { continue }
+            known = true
+            guard TISGetInputSourceProperty(source, kTISPropertyInputModeID) != nil,
+                  let enabledPtr = TISGetInputSourceProperty(source, kTISPropertyInputSourceIsEnabled) else { continue }
+            let value = Unmanaged<CFBoolean>.fromOpaque(enabledPtr).takeUnretainedValue()
+            enabled = enabled || CFBooleanGetValue(value)
+        }
+        return TISActivationState(known: known, enabled: enabled)
+    }
+
+    private static func installedBundleURL() -> URL? {
+        if FileManager.default.fileExists(atPath: systemInstallURL.path) { return systemInstallURL }
+        if FileManager.default.fileExists(atPath: installURL.path) { return installURL }
+        return nil
     }
 
     /// True if TIS already has any input source for our bundle — calling
@@ -365,6 +523,10 @@ enum IMEInstaller {
 enum IMEInstallError: LocalizedError {
     case bundleNotFound
     case untrustedBundle
+    case installedBundleUntrusted(String)
+    case tisRegistrationFailed(OSStatus)
+    case tisRegistrationMissing
+    case tisEnableFailed
     case nothingToRemove
     case uninstallFailed(String)
 
@@ -374,6 +536,14 @@ enum IMEInstallError: LocalizedError {
             return "HaneulKeyboardIM.app을 찾을 수 없습니다. 메인 앱과 같은 폴더(또는 Contents/Helpers)에 IME 번들이 있어야 합니다. (HaneulKeyboardIM.app not found — the IME bundle must sit next to the main app or under Contents/Helpers.)"
         case .untrustedBundle:
             return "IME 번들의 서명을 신뢰할 수 없습니다. 메인 앱과 동일한 개발자(Team)로 서명된 HaneulKeyboardIM.app만 설치할 수 있습니다. (Refusing to install an IME bundle not signed by the same Team as the main app.)"
+        case .installedBundleUntrusted(let path):
+            return "설치된 IME 번들의 서명/Team 검증에 실패했습니다: \(path). 신뢰할 수 있는 HaneulKeyboardIM.app으로 다시 설치한 뒤 재시도하세요. (Refusing to register an installed IME bundle whose signature or Team no longer matches the main app.)"
+        case .tisRegistrationFailed(let status):
+            return "IME 번들은 설치됐지만 입력 소스 등록에 실패했습니다. (TISRegisterInputSource: \(status))"
+        case .tisRegistrationMissing:
+            return "IME 번들은 설치됐지만 macOS 입력 소스 목록에서 확인되지 않습니다. 다시 설치하거나 로그아웃 후 재시도하세요."
+        case .tisEnableFailed:
+            return "IME는 등록됐지만 활성화되지 않았습니다. 시스템 설정의 키보드 입력 소스에서 HaneulKeyboard를 활성화하세요."
         case .nothingToRemove:
             return "제거할 IME가 없습니다. (이미 제거되었습니다.)"
         case .uninstallFailed(let reason):

@@ -22,7 +22,7 @@
 ### 미국 인구조사국 (US Census Bureau) — 2010 Census 성씨 데이터
 - https://www.census.gov/topics/population/genealogy/data/2010_surnames.html
 - 라이선스: Public Domain (미 연방정부 저작물)
-- 영타 자동 변환의 인명 인식에 쓰는 **성씨 16.2만 개**(2010년 인구 100명 이상)의 출처입니다.
+- **원천 데이터 규모:** 성씨 약 16.2만 개(2010년 인구 100명 이상). 가공·필터링 후 SSA 이름과 합쳐 앱에 탑재합니다.
 
 ### 미국 사회보장국 (SSA) — Baby Names 데이터
 - https://www.ssa.gov/oact/babynames/
@@ -32,7 +32,15 @@
 ### SCOWL / ESDB (English Speller Database) — Kevin Atkinson
 - https://wordlist.aspell.net
 - 라이선스: MIT-like — Copyright 2000-2026 by Kevin Atkinson (저작권 고지 유지 조건의 퍼미시브 라이선스, 동봉 README 기준)
-- 영타 자동 변환의 broad 영어 사전 보강에 쓰는 **미국식 영어 단어 목록**(size 70, 16.7만 단어 — 현대어와 굴절형 포함)의 출처입니다. 수십 년간 영어 철자 데이터를 다듬어 공개해 온 Kevin Atkinson과 기여자들(12dicts의 Alan Beale 등)께 감사드립니다.
+- **원천 데이터 규모:** size 70 미국식 영어 약 16.7만 단어(현대어와 굴절형 포함). 가공·필터링한 후 broad 영어 사전으로 앱에 탑재합니다. 수십 년간 영어 철자 데이터를 다듬어 공개해 온 Kevin Atkinson과 기여자들(12dicts의 Alan Beale 등)께 감사드립니다.
+
+### 가공 후 앱 탑재 규모
+
+| 탑재 파일 | 규모 | 구성 |
+|---|---:|---|
+| `english_names.txt` | 28,378개 | Census 성씨와 SSA 이름을 가공·필터링한 목록 |
+| `english_modern.txt` | 71,348개 | SCOWL size 70을 가공·필터링한 목록 |
+| `english_names_extra.txt` | 수작업 보충 목록 | Census/SSA 출처가 아닌, 유명인을 수작업으로 선별한 목록 |
 
 ### GeoNames — 전 세계 지명 데이터
 - https://www.geonames.org
@@ -72,9 +80,10 @@ HaneulKeyboard builds on the work of the open-source projects, tools, and people
 - **[McBopomofo](https://github.com/openvanilla/McBopomofo)** (OpenVanilla, MIT) — A Bopomofo input method for Taiwanese Mandarin. Its approach to **registering and installing a TIS (Text Input Services) input method on macOS** — a signed, notarized host app that installs the IME bundle — was a decisive reference.
 - **[Urimalsaem (우리말샘)](https://opendict.korean.go.kr)** (National Institute of Korean Language, CC-BY-SA 2.0 KR) — Source of the 677k Korean headwords used by the wrong-layout auto-correction to verify real Korean words.
 - **[New General Service List (NGSL)](https://www.newgeneralservicelist.com)** (Browne, C., Culligan, B., & Phillips, J., CC BY-SA 4.0) — Source of the 2,809 high-frequency modern English lemmas (10k+ word forms) used by the wrong-layout auto-correction to verify real English words.
-- **[US Census Bureau — 2010 Census Surnames](https://www.census.gov/topics/population/genealogy/data/2010_surnames.html)** (Public Domain) — Source of the 162k surnames used for recognizing personal names.
+- **[US Census Bureau — 2010 Census Surnames](https://www.census.gov/topics/population/genealogy/data/2010_surnames.html)** (Public Domain) — The source dataset contains about 162k surnames. After processing and filtering, Census surnames and SSA first names are bundled together in `english_names.txt` (28,378 entries).
 - **[US Social Security Administration — Baby Names](https://www.ssa.gov/oact/babynames/)** (Public Domain) — Source of the first-name data (yearly birth registrations since 1880) used for recognizing personal names.
-- **[SCOWL / ESDB (English Speller Database)](https://wordlist.aspell.net)** (Kevin Atkinson, MIT-like license — Copyright 2000-2026 by Kevin Atkinson) — Source of the size-70 American English word list (167k words, modern vocabulary and inflections) used to broaden the English dictionary for wrong-layout auto-correction. Thanks to Kevin Atkinson and contributors (including Alan Beale of 12dicts) for decades of curating English spelling data.
+- **[SCOWL / ESDB (English Speller Database)](https://wordlist.aspell.net)** (Kevin Atkinson, MIT-like license — Copyright 2000-2026 by Kevin Atkinson) — The source size-70 American English list contains about 167k words; the processed and filtered `english_modern.txt` bundled with the app contains 71,348 entries. Thanks to Kevin Atkinson and contributors (including Alan Beale of 12dicts) for decades of curating English spelling data.
+- **Bundled name data:** `english_names.txt` contains 28,378 processed Census/SSA entries. `english_names_extra.txt` is a hand-curated famous-person supplement and is not sourced from Census or SSA.
 - **[GeoNames](https://www.geonames.org)** (CC BY 4.0) — Source of the place-name dictionary (North American & European states/provinces + cities with population 50k+) used by the wrong-layout auto-correction.
 - **[Wikidata](https://www.wikidata.org)** (Wikimedia, CC0 1.0 Public Domain) — Source of the football club & player dictionary (9 leagues across England, France, Spain, Italy) used by the wrong-layout auto-correction.
 - **[Claude](https://claude.com/claude-code)** (Anthropic) — A companion throughout design, debugging, and documentation.

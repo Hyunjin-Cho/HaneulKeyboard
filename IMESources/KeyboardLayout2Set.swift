@@ -15,6 +15,37 @@ enum KeyboardLayout2Set {
         return table[character]
     }
 
+    /// Resolve an event's Hangul input character without depending on AppKit.
+    /// The physical key code is used only when macOS supplies neither form of
+    /// the event characters.
+    static func inputCharacter(
+        charactersIgnoringModifiers: String?,
+        characters: String?,
+        keyCode: Int,
+        shifted: Bool
+    ) -> Character? {
+        if let chars = charactersIgnoringModifiers,
+           let lower = chars.lowercased().first {
+            let character: Character = shifted
+                ? Character(String(lower).uppercased())
+                : lower
+            return jamo(for: character) == nil ? nil : character
+        }
+
+        if let raw = characters?.lowercased().first,
+           raw.isASCII, raw.isLetter {
+            let character: Character = shifted
+                ? Character(String(raw).uppercased())
+                : raw
+            return jamo(for: character) == nil ? nil : character
+        }
+
+        guard charactersIgnoringModifiers == nil, characters == nil else {
+            return nil
+        }
+        return characterForKeyCode(keyCode, shifted: shifted)
+    }
+
     /// Look up the jamo by physical key code (used as fallback when
     /// `charactersIgnoringModifiers` returns nil on macOS 26+).
     ///

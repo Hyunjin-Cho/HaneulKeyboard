@@ -94,11 +94,43 @@ func typeWords(_ words: [String]) -> [String] {
     return committed
 }
 
+func runDictionaryProbe(_ wordlistPath: String, _ label: String) -> Bool {
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: CommandLine.arguments[0])
+    process.arguments = ["--probe-kdict", wordlistPath]
+    let pipe = Pipe()
+    process.standardOutput = pipe
+    process.standardError = pipe
+    do {
+        try process.run()
+    } catch {
+        failures += 1
+        print("FAIL \(label): probe launch failed: \(error)")
+        return false
+    }
+    process.waitUntilExit()
+    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    let output = String(data: data, encoding: .utf8)?
+        .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    if process.terminationStatus != 0 {
+        failures += 1
+        print("FAIL \(label): probe exit \(process.terminationStatus), output=\(output)")
+        return false
+    }
+    return output == "true"
+}
+
 // MARK: - Tests
 
 @main
 struct ComposerTests {
     static func main() {
+        if CommandLine.arguments.count >= 3, CommandLine.arguments[1] == "--probe-kdict" {
+            KoreanDictionary.wordlistPath = CommandLine.arguments[2]
+            print(KoreanDictionary.isLoaded ? "true" : "false")
+            return
+        }
+
         // Wordlist: system dict + a temp supplement (no app bundle here).
         // Must be set before the first shouldConvert call (lazy load).
         let supplementPath = NSTemporaryDirectory() + "haneul_test_supplement.txt"
@@ -109,10 +141,9 @@ struct ComposerTests {
         let namesFixturePath = NSTemporaryDirectory() + "haneul_test_names_fixture.txt"
         try? "goawor\nzvinci\n".write(toFile: namesFixturePath, atomically: true, encoding: .utf8)
 
-        // ── 머지 대기 사전 (1순위: 영어 사전 현대화) — 파일 존재 시 자동 활성화 ──
-        // english_common.txt(NGSL)·english_names*.txt가 검역 통과 후
-        // Resources/IM/에 머지되면, 별도 수정 없이 다음 실행부터 아래
-        // wordlistPaths에 합류하고 "머지대기" 테스트 블록이 살아난다.
+        // ── 배포 영어 사전 리소스 ──
+        // 아래 파일은 모두 필수 번들 리소스이며, 후반에서 존재와
+        // 대표 단어를 assertion으로 검증한다.
         let pendingCommon = "Resources/IM/english_common.txt"
         let pendingModern = "Resources/IM/english_modern.txt" // SCOWL — broad 전용
         let pendingNames = "Resources/IM/english_names.txt"
@@ -142,6 +173,33 @@ struct ComposerTests {
         EnglishDetector.curatedPaths = curated
         // v3 한국어 veto 사전 (우리말샘 추출본, repo 루트 기준)
         KoreanDictionary.wordlistPath = "Resources/IM/korean_words.txt"
+
+        let dictGoodPath = NSTemporaryDirectory() + "haneul_kdict_good.txt"
+        let dictNoHeaderPath = NSTemporaryDirectory() + "haneul_kdict_no_header.txt"
+        let dictMismatchPath = NSTemporaryDirectory() + "haneul_kdict_mismatch.txt"
+        try? "# count: 2\n# fixture\n가\n나\n가\n".write(
+            toFile: dictGoodPath,
+            atomically: true,
+            encoding: .utf8
+        )
+        try? "# fixture\n가\n나\n가\n".write(
+            toFile: dictNoHeaderPath,
+            atomically: true,
+            encoding: .utf8
+        )
+        try? "# count: 3\n# fixture\n가\n나\n가\n".write(
+            toFile: dictMismatchPath,
+            atomically: true,
+            encoding: .utf8
+        )
+        expect(runDictionaryProbe(dictGoodPath, "kdict: header OK"), true, "kdict: header OK")
+        expect(runDictionaryProbe(dictNoHeaderPath, "kdict: no header"), false, "kdict: no header")
+        expect(runDictionaryProbe(dictMismatchPath, "kdict: count mismatch"), false, "kdict: count mismatch")
+        expect(
+            runDictionaryProbe("Resources/IM/korean_words.txt", "kdict: production wordlist"),
+            true,
+            "kdict: production wordlist"
+        )
 
         // Hangul composition (regression — must match pre-word-buffer behavior)
         expect(type("dkssud").committedText, "안녕", "basic 안녕")
@@ -430,12 +488,8 @@ struct ComposerTests {
         // 같은 픽스처의 깨진 단어는 MAIN으로 변환 — broad 로드 자체는 증명
         expect(type("zvinci").committedText, "zvinci", "격리: 같은 픽스처 zvinci(깨짐)는 MAIN 변환")
 
-        // ═══ 머지 대기 (영어 사전 현대화) — 실파일 머지 시 자동 활성화 ═══
-        // 활성화 방법: 검역 통과한 english_common.txt / english_names.txt /
-        // english_names_extra.txt를 Resources/IM/에 넣기만 하면 됨 (이 파일
-        // 수정 불필요). 단어가 최종 목록에 실제로 들어갔을 때만 expect하고,
-        // 빠졌으면 NOTE를 출력한다 — 목록 구성 차이로 하네스가 레드가 되지
-        // 않게 하되, 빠진 단어는 NOTE로 드러나 supplement 추가를 검토한다.
+        // ═══ 배포 필수 영어 사전·대표 단어 검증 ═══
+        // 사전 파일과 대표 단어는 배포 계약이므로 누락 시 테스트를 실패시킨다.
         func wordsInFile(_ path: String) -> Set<String> {
             guard let content = try? String(contentsOfFile: path, encoding: .utf8) else { return [] }
             return Set(
@@ -444,6 +498,10 @@ struct ComposerTests {
                     .filter { !$0.isEmpty && !$0.hasPrefix("#") }
             )
         }
+        expect(hasCommon, true, "배포 필수 리소스: english_common.txt 존재")
+        expect(hasModern, true, "배포 필수 리소스: english_modern.txt 존재")
+        expect(hasNames, true, "배포 필수 리소스: english_names.txt 존재")
+        expect(hasNamesExtra, true, "배포 필수 리소스: english_names_extra.txt 존재")
         if hasCommon {
             let commonSet = wordsInFile(pendingCommon)
             // city(챠쇼)/with(쟈소): clean 한글 — 문맥(R2-clean)도, 무맥락도
@@ -453,53 +511,53 @@ struct ComposerTests {
                     expect(typeWords(["the", keys]).last ?? "", keys, "the 뒤 \(hangul) → \(keys)")
                     expect(type(keys).committedText, keys, "무맥락 완화: \(hangul)→\(keys) (2음절+)")
                 } else {
-                    print("NOTE(머지대기): english_common에 \(keys) 없음 — supplement 추가 검토")
+                    expect(false, true, "english_common 대표 단어: \(keys)")
                 }
             }
         } else {
-            print("SKIP(머지대기): english_common.txt 없음 — city/with 비활성")
+            // 필수 리소스 누락은 위 assertion에서 실패한다.
         }
         // playlist(ㅔㅣ묘ㅣㅑㄴㅅ)·selfie: 깨진 형 현대어 — NGSL엔 없고
         // SCOWL(english_modern, broad 전용)이 관할. 합집합으로 확인.
         if hasCommon || hasModern {
             // supplement 포함: dedup 파이프라인이 supplement 기존재 단어를
-            // modern에서 제거하므로(selfie), 합집합에 넣어야 거짓 NOTE가 없다.
+            // modern에서 제거하므로(selfie), 합집합으로 검증한다.
             let modernUnion = wordsInFile(pendingCommon)
                 .union(wordsInFile(pendingModern))
                 .union(wordsInFile("Resources/IM/english_supplement.txt"))
             for w in ["playlist", "selfie"] {
                 if modernUnion.contains(w) {
-                    expect(type(w).committedText, w, "머지대기: \(w)(깨짐, 현대어) 무맥락 변환")
+                    expect(type(w).committedText, w, "\(w)(깨짐, 현대어) 무맥락 변환")
                 } else {
-                    print("NOTE(머지대기): common/modern에 \(w) 없음 — supplement 추가 검토")
+                    expect(false, true, "현대 영어 대표 단어: \(w)")
                 }
             }
         } else {
-            print("SKIP(머지대기): common/modern 없음 — playlist/selfie 비활성")
+            // 필수 리소스 누락은 위 assertion에서 실패한다.
         }
         if hasNamesExtra {
             let extraSet = wordsInFile(pendingNamesExtra)
             // davinci(ㅇㅁ퍄ㅜ챠)/ronaldo(개ㅜ미애): 깨진 인명 — 무맥락 MAIN 변환
             for name in ["davinci", "ronaldo"] {
                 if extraSet.contains(name) {
-                    expect(type(name).committedText, name, "머지대기: \(name)(깨짐 인명) 무맥락 변환")
+                    expect(type(name).committedText, name, "\(name)(깨짐 인명) 무맥락 변환")
                 } else {
-                    print("NOTE(머지대기): english_names_extra에 \(name) 없음")
+                    expect(false, true, "english_names_extra 대표 인명: \(name)")
                 }
             }
         } else {
-            print("SKIP(머지대기): english_names_extra.txt 없음 — davinci/ronaldo 비활성")
+            // 필수 리소스 누락은 위 assertion에서 실패한다.
         }
         if hasNames {
             let namesSet = wordsInFile(pendingNames)
             // garcia(ㅎㅁㄱ챰): 깨진 성씨 — 무맥락 MAIN 변환 (Census top-10)
             if namesSet.contains("garcia") {
-                expect(type("garcia").committedText, "garcia", "머지대기: garcia(깨짐 성씨) 무맥락 변환")
+                expect(type("garcia").committedText, "garcia", "garcia(깨짐 성씨) 무맥락 변환")
             } else {
-                print("NOTE(머지대기): english_names에 garcia 없음 — cutoff 확인")
+                expect(false, true, "english_names 대표 성씨: garcia")
             }
         } else {
-            print("SKIP(머지대기): english_names.txt 없음 — garcia 비활성")
+            // 필수 리소스 누락은 위 assertion에서 실패한다.
         }
 
         // 조건 11: 멀쩡히 조합된 한글이어도 키가 긴 영어 단어면 영어 (curated only)

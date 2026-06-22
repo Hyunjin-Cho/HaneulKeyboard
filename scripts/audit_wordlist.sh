@@ -77,7 +77,7 @@ swiftc -O -o "$BIN" \
 # ── 스모크 테스트: 알려진 단어로 Tier 분류와 자모 플래그를 검증 ──
 # 베이스를 web2 단독으로 고정해 향후 사전 머지와 무관하게 안정적으로 동작.
 #   goawor(햄잭)  clean 6키 + 미등재 → curated 추가 시 무맥락 R5 신규 = Tier A
-#   city(챠쇼)    clean 4키 + 미등재 → curated 추가 시 문맥 신규    = Tier B
+#   city(챠쇼)    clean 2음절 + 미등재 → curated 추가 시 무맥락 R5 신규 = Tier A
 #   gown(해주)    clean + 우리말샘 등재(veto) → 변화 없음           = Tier C
 #   nmn(ㅜㅡㅜ)   완성음절 0 → all_jamo ⚠️ 플래그 (names 제외 메커니즘)
 if [[ "$SMOKE" == 1 ]]; then
@@ -93,11 +93,11 @@ if [[ "$SMOKE" == 1 ]]; then
 
   fail=0
   grep -q '^goawor,햄잭,clean,0,0,1,.*,A,' "$WORK/smoke.csv" || { echo "SMOKE FAIL: goawor가 Tier A 아님"; fail=1; }
-  grep -q '^city,챠쇼,clean,0,0,0,0,1,.*,B,' "$WORK/smoke.csv" || { echo "SMOKE FAIL: city가 Tier B 아님"; fail=1; }
+  grep -q '^city,챠쇼,clean,0,0,1,.*,A,' "$WORK/smoke.csv" || { echo "SMOKE FAIL: city가 Tier A 아님"; fail=1; }
   grep -q '^gown,해주,clean,1,.*,C,' "$WORK/smoke.csv" || { echo "SMOKE FAIL: gown이 Tier C(veto) 아님"; fail=1; }
   grep '^nmn,' "$WORK/smoke.csv" | grep -q '자모' || { echo "SMOKE FAIL: nmn에 전부-자모 플래그 없음"; fail=1; }
   if [[ "$fail" == 0 ]]; then
-    echo "SMOKE PASS: Tier A(goawor)/B(city)/C-veto(gown)/자모 플래그(nmn) 전부 정상"
+    echo "SMOKE PASS: Tier A(goawor, city)/C-veto(gown)/자모 플래그(nmn) 전부 정상"
     exit 0
   fi
   echo "── smoke.csv ──"; cat "$WORK/smoke.csv"

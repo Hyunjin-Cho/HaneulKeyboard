@@ -37,7 +37,7 @@ enum EnglishDetector {
     /// the subset registered in `curatedPaths` additionally feeds the
     /// CURATED set (the only source clean-Hangul rules R5/R2-clean trust).
     /// Bundle files not shipped yet are skipped naturally (path nil).
-    static var wordlistPaths: [String] = {
+    nonisolated(unsafe) static var wordlistPaths: [String] = {
         var paths = ["/usr/share/dict/words"]
         // 번들 사전 5종 — 역할 분담:
         //   english_supplement  : curated + broad (수작업 현대어/기술어)
@@ -64,7 +64,7 @@ enum EnglishDetector {
     /// 과변환이 아니라 미변환 쪽으로 새는 구조. 인명(english_names*)·현대어
     /// (english_modern)는 의도적 미등록: 롱테일이라 clean 한글 충돌 검증이
     /// 불가능하다 (NGSL 2,786개만 전수 검역을 통과해 curated 자격).
-    static var curatedPaths: Set<String> = {
+    nonisolated(unsafe) static var curatedPaths: Set<String> = {
         var set = Set<String>()
         for name in ["english_supplement", "english_common"] {
             if let bundled = Bundle.main.path(forResource: name, ofType: "txt") {
@@ -395,7 +395,7 @@ enum EnglishDetector {
         }
     }
 
-    private static var ksx1001Cache: [Character: Bool] = [:]
+    nonisolated(unsafe) private static var ksx1001Cache: [Character: Bool] = [:]
     private static let eucKR = String.Encoding(
         rawValue: CFStringConvertEncodingToNSStringEncoding(
             CFStringEncoding(CFStringEncodings.EUC_KR.rawValue)
@@ -443,21 +443,28 @@ enum EnglishDetector {
     }
 
     /// Broad list: web2 + all supplements. For broken-as-Korean rules only.
-    private static let words: Set<String> = loadWords(from: wordlistPaths)
+    private static let words: Set<String> =
+        loadWords(from: wordlistPaths, expectedCapacity: 320_000)
 
     /// Curated list: curatedPaths-registered files ONLY (web2와 인명 파일
     /// 제외). The clean-Hangul R5 rule trusts this exclusively — exact
     /// match, no inflection — so obscure broad entries can never hijack a
     /// real Korean word.
     private static let commonWords: Set<String> =
-        loadWords(from: wordlistPaths.filter { curatedPaths.contains($0) })
+        loadWords(
+            from: wordlistPaths.filter { curatedPaths.contains($0) },
+            expectedCapacity: 4_000
+        )
 
     /// mmap + 바이트 스캔 (KoreanDictionary와 동일 이유 — 임시 버퍼가
     /// malloc 캐시에 상주하는 것 방지). 필터는 기존과 동일: 첫 글자가
     /// ASCII 소문자인 줄만(고유명사/주석 제외), 3자+, ASCII 알파벳만.
-    private static func loadWords(from paths: [String]) -> Set<String> {
+    private static func loadWords(
+        from paths: [String],
+        expectedCapacity: Int
+    ) -> Set<String> {
         var set = Set<String>()
-        set.reserveCapacity(320_000) // web2 소문자 ~21만 + 번들 5종 ~10.3만 = ~31.3만 (리해시 0회)
+        set.reserveCapacity(expectedCapacity)
         let newline = UInt8(ascii: "\n")
         for path in paths {
             guard let data = try? Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe) else { continue }

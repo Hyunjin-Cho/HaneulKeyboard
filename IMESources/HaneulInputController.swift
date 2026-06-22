@@ -165,22 +165,13 @@ final class HaneulInputController: IMKInputController {
 
         let shifted = mods.contains(.shift)
 
-        if let chars = event.charactersIgnoringModifiers,
-           let lower = chars.lowercased().first {
-            let inputChar: Character = shifted
-                ? Character(String(lower).uppercased())
-                : lower
-            if KeyboardLayout2Set.jamo(for: inputChar) != nil {
-                return composer.handleInput(String(inputChar), client: composerClient)
-            }
-        } else if let raw = event.characters?.lowercased().first,
-                  raw.isASCII, raw.isLetter {
-            let inputChar: Character = shifted
-                ? Character(String(raw).uppercased())
-                : raw
-            if KeyboardLayout2Set.jamo(for: inputChar) != nil {
-                return composer.handleInput(String(inputChar), client: composerClient)
-            }
+        if let inputChar = KeyboardLayout2Set.inputCharacter(
+            charactersIgnoringModifiers: event.charactersIgnoringModifiers,
+            characters: event.characters,
+            keyCode: Int(event.keyCode),
+            shifted: shifted
+        ) {
+            return composer.handleInput(String(inputChar), client: composerClient)
         }
 
         // Active boundary: the user typed a non-jamo key (space, punctuation,

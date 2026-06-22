@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  CLANG_MODULE_CACHE_PATH: ${{ github.workspace }}/.build/ModuleCache
+  SWIFT_MODULECACHE_PATH: ${{ github.workspace }}/.build/ModuleCache
+
+jobs:
+  unsigned-build:
+    name: Unsigned build (${{ matrix.configuration }})
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [Debug, Release]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install xcodegen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Build without code signing
+        run: >-
+          xcodebuild
+          -project HaneulKeyboard.xcodeproj
+          -scheme HaneulKeyboard
+          -configuration ${{ matrix.configuration }}
+          -derivedDataPath .build/DerivedData-${{ matrix.configuration }}
+          CODE_SIGNING_ALLOWED=NO
+          build
+
+  core-tests:
+    name: Core tests
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show Swift compiler
+        run: swiftc --version
+      - name: Run IME core tests
+        run: bash scripts/run_ime_tests.sh
+
+  wordlist-smoke:
+    name: Wordlist audit smoke
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show Swift compiler
+        run: swiftc --version
+      - name: Run wordlist smoke test
+        run: bash scripts/audit_wordlist.sh --smoke
+
+  # TODO: IMK 이벤트 판독을 순수 함수로 추출한 뒤 fake client로 NSEvent,
+  # secure input, CapsLock 및 Shift+Space 경로를 통합 테스트한다.

@@ -15,6 +15,10 @@ xcuserdata/
 .swiftpm/
 Package.resolved
 
+# Python cache (audit/build scripts)
+__pycache__/
+*.pyc
+
 # Personal
 .env
 *.local

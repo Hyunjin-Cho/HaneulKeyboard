@@ -104,12 +104,14 @@ struct OnboardingView: View {
                         .foregroundStyle(.red)
                 }
                 Button("IME 설치") {
-                    do {
-                        try IMEInstaller.install()
-                        core.refreshIMEStatus()
-                        installError = nil
-                    } catch {
-                        installError = error
+                    Task {
+                        do {
+                            _ = try await IMEInstaller.install()
+                            core.refreshIMEStatus()
+                            installError = nil
+                        } catch {
+                            installError = error
+                        }
                     }
                 }
                 .controlSize(.large)

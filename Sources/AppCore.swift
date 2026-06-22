@@ -3,11 +3,14 @@ import Carbon
 import Foundation
 
 @Observable
+@MainActor
 final class AppCore {
     private(set) var isKoreanActive: Bool = InputSwitcher.isKoreanActive()
-    private(set) var imeInstalled: Bool = IMEInstaller.isInstalled
+    private(set) var imeInstalled = false
+    private(set) var imeActivationError: Error?
 
-    private var sourceObserver: NSObjectProtocol?
+    // deinit(nonisolated)에서 removeObserver로 해제하므로 actor 격리에서 제외.
+    nonisolated(unsafe) private var sourceObserver: NSObjectProtocol?
 
     init() {
         sourceObserver = DistributedNotificationCenter.default.addObserver(
@@ -15,30 +18,38 @@ final class AppCore {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.refreshLanguage()
+            Task { @MainActor in self?.refreshLanguage() }
         }
 
         ensureIMEActive()
     }
 
-    /// Guarantees install + TIS ACTIVATION on every app launch.
+    /// Guarantees TIS REGISTRATION/ENABLE on every app launch, without copying
+    /// a new bundle into ~/Library/Input Methods.
     ///
     /// macOS 26 only shows an IME in the input-source picker after
     /// TISEnableInputSource runs inside a signed GUI app — the install
-    /// script (CLI) cannot do that, so this app is the activation vehicle.
-    /// A previous version skipped entirely when already installed, which
-    /// left script-installed bundles invisible in the picker (2026-06-06).
-    /// install() is idempotent: already-active → no-op (no list bloat);
-    /// system install present → no copy, just register/enable as needed.
+    /// script (CLI) cannot do that, so this app remains the activation vehicle.
+    /// Learned 2026-06-06: removing this startup enable call regresses picker
+    /// visibility for system-domain installs done by build_notarize_install.sh.
+    /// So we keep register/enable here, but move bundle copying behind explicit
+    /// consent buttons in Settings/Onboarding.
     private func ensureIMEActive() {
-        DispatchQueue.main.async { [weak self] in
+        Task { [weak self] in
             do {
-                let url = try IMEInstaller.install()
-                self?.refreshIMEStatus()
-                haneulLog("HaneulKeyboard: IME ensured active at \(url.path)")
+                guard let result = try await IMEInstaller.activateInstalled() else {
+                    await self?.updateIMEStatus()
+                    haneulLog("HaneulKeyboard: no installed IME bundle found — activation skipped")
+                    return
+                }
+                self?.imeActivationError = nil
+                await self?.updateIMEStatus()
+                haneulLog("HaneulKeyboard: IME ensured active at \(result.url.path)")
             } catch IMEInstallError.bundleNotFound {
                 haneulLog("HaneulKeyboard: IME bundle not found — ensure skipped")
             } catch {
+                self?.imeActivationError = error
+                self?.imeInstalled = false
                 haneulLog("HaneulKeyboard: IME ensure failed — \(error.localizedDescription)")
             }
         }
@@ -58,10 +69,14 @@ final class AppCore {
     }
 
     func refreshIMEStatus() {
-        let current = IMEInstaller.isInstalled
-        if current != imeInstalled {
-            imeInstalled = current
+        Task { [weak self] in
+            await self?.updateIMEStatus()
         }
+    }
+
+    private func updateIMEStatus() async {
+        let current = await IMEInstaller.isInstalled()
+        if current != imeInstalled { imeInstalled = current }
     }
 
     func toggleLanguage() {

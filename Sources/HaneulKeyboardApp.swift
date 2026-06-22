@@ -18,12 +18,14 @@ struct HaneulKeyboardApp: App {
     }
 }
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let core = AppCore()
     private var statusItem: NSStatusItem!
     private var onboardingWindow: NSWindow?
     private var settingsWindow: NSWindow?
-    private var sourceObserver: NSObjectProtocol?
+    // deinit(nonisolated)에서 해제하므로 actor 격리에서 제외.
+    nonisolated(unsafe) private var sourceObserver: NSObjectProtocol?
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         // 응용 프로그램 폴더 밖이면 옮긴다(App Translocation 방지) — 메뉴바 생성보다 먼저.

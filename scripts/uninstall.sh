@@ -9,7 +9,8 @@
 #   - Running HaneulKeyboardIM process
 #   - ~/Library/Input Methods/HaneulKeyboardIM.app (+ any *.bak.* siblings)
 #   - LaunchServices registrations for our bundle ID
-#   - UserDefaults under com.hyunjincho.haneulkeyboard / haneul.*
+#   - UserDefaults under com.hyunjincho.haneulkeyboard,
+#     com.hyunjincho.inputmethod.haneul, and NSGlobalDomain haneul.*
 #
 # Does NOT remove (macOS requires user GUI action):
 #   - The enabled input source entry in System Settings → Keyboard → Input Sources
@@ -22,6 +23,7 @@ set -u
 BUNDLE_ID="com.hyunjincho.inputmethod.haneul"
 IME_NAME="HaneulKeyboardIM"
 MAIN_APP_DOMAIN="com.hyunjincho.haneulkeyboard"
+IME_DEFAULTS_DOMAIN="com.hyunjincho.inputmethod.haneul"
 INPUT_METHODS_DIR="$HOME/Library/Input Methods"
 LSREG="/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister"
 
@@ -75,6 +77,7 @@ echo
 
 echo "→ 4. Clear UserDefaults"
 defaults delete "$MAIN_APP_DOMAIN" 2>/dev/null && echo "  ✓ cleared $MAIN_APP_DOMAIN" || echo "  (no $MAIN_APP_DOMAIN domain found)"
+defaults delete "$IME_DEFAULTS_DOMAIN" 2>/dev/null && echo "  ✓ cleared $IME_DEFAULTS_DOMAIN" || echo "  (no $IME_DEFAULTS_DOMAIN domain found)"
 # Stray haneul.* keys in NSGlobalDomain
 for key in $(defaults read NSGlobalDomain 2>/dev/null | grep -oE '"haneul\.[a-zA-Z]+"' | tr -d '"'); do
     defaults delete NSGlobalDomain "$key" 2>/dev/null && echo "  ✓ cleared NSGlobalDomain → $key"

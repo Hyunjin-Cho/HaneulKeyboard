@@ -7,14 +7,21 @@ options:
 
 settings:
   base:
-    MARKETING_VERSION: "2026.06"
-    CURRENT_PROJECT_VERSION: "43"
-    CODE_SIGN_STYLE: Manual
-    CODE_SIGN_IDENTITY: "Developer ID Application: Hyunjin Cho (6RH6FXY82P)"
-    DEVELOPMENT_TEAM: 6RH6FXY82P
-    CODE_SIGNING_REQUIRED: "YES"
-    ENABLE_HARDENED_RUNTIME: "YES"
-    OTHER_CODE_SIGN_FLAGS: "--timestamp"
+    MARKETING_VERSION: "2026.07"
+    CURRENT_PROJECT_VERSION: "44"
+  configs:
+    Debug:
+      CODE_SIGN_STYLE: Manual
+      CODE_SIGN_IDENTITY: "-"
+      CODE_SIGNING_REQUIRED: "YES"
+      ENABLE_HARDENED_RUNTIME: "NO"
+    Release:
+      CODE_SIGN_STYLE: Manual
+      CODE_SIGN_IDENTITY: "Developer ID Application: Hyunjin Cho (6RH6FXY82P)"
+      DEVELOPMENT_TEAM: 6RH6FXY82P
+      CODE_SIGNING_REQUIRED: "YES"
+      ENABLE_HARDENED_RUNTIME: "YES"
+      OTHER_CODE_SIGN_FLAGS: "--timestamp"
 
 targets:
   HaneulKeyboard:
@@ -24,6 +31,10 @@ targets:
     sources:
       - path: Sources
       - path: Resources/AppIcon.icns
+        buildPhase: resources
+      - path: LICENSE
+        buildPhase: resources
+      - path: ACKNOWLEDGEMENTS.md
         buildPhase: resources
     dependencies:
       - target: HaneulKeyboardIM
@@ -44,17 +55,6 @@ targets:
           else
             echo "WARN: HaneulKeyboardIM.app not found at $SRC"
           fi
-      - name: "Unregister build product from LaunchServices (dedup)"
-        basedOnDependencyAnalysis: false
-        script: |
-          # 빌드 산출물이 LaunchServices에 자동 등록되면 Launchpad/검색·입력
-          # 소스 목록에 유령 항목이 생긴다(2026-06-06). 빌드마다 자동 해제 —
-          # 파일은 그대로 두고 등록(DB)만 뺀다. 정본(/Applications,
-          # /Library/Input Methods)은 경로가 달라 건드리지 않는다.
-          LSREG=/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister
-          "$LSREG" -u "${TARGET_BUILD_DIR}/${WRAPPER_NAME}" 2>/dev/null || true
-          "$LSREG" -u "${TARGET_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Helpers/HaneulKeyboardIM.app" 2>/dev/null || true
-          exit 0
     info:
       path: Generated/Info.plist
       properties:
@@ -78,14 +78,6 @@ targets:
       - path: IMESources
       - path: Resources/IM
         buildPhase: resources
-    postBuildScripts:
-      - name: "Unregister build product from LaunchServices (dedup)"
-        basedOnDependencyAnalysis: false
-        script: |
-          # 메인 타겟과 동일 — IME 빌드 산출물의 유령 등록 방지.
-          LSREG=/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister
-          "$LSREG" -u "${TARGET_BUILD_DIR}/${WRAPPER_NAME}" 2>/dev/null || true
-          exit 0
     info:
       path: Generated/IMInfo.plist
       properties:
@@ -101,7 +93,7 @@ targets:
         TISIntendedLanguage: ko
         TICapsLockLanguageSwitchCapable: true
         TISIconIsTemplate: true
-        tsInputMethodIconFileKey: haneul.png
+        tsInputMethodIconFileKey: haneul.tiff
         tsInputMethodCharacterRepertoireKey:
           - Hang
           - Kore
@@ -118,9 +110,9 @@ targets:
               tsInputModeIsVisibleKey: true
               tsInputModeDefaultStateKey: true
               tsInputModeJISKeyboardShortcutKey: 0
-              tsInputModeMenuIconFileKey: haneul.png
-              tsInputModeAlternateMenuIconFileKey: haneul.png
-              tsInputModePaletteIconFileKey: haneul.png
+              tsInputModeMenuIconFileKey: haneul.tiff
+              tsInputModeAlternateMenuIconFileKey: haneul.tiff
+              tsInputModePaletteIconFileKey: haneul.tiff
           tsVisibleInputModeOrderedArrayKey:
             - com.hyunjincho.inputmethod.haneul.korean
     settings:
@@ -128,3 +120,27 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.hyunjincho.inputmethod.haneul
         CODE_SIGN_ENTITLEMENTS: HaneulKeyboardIM.entitlements
 
+schemes:
+  HaneulKeyboard:
+    build:
+      targets:
+        HaneulKeyboard: all
+      postActions:
+        - name: "Unregister build products from LaunchServices (dedup)"
+          settingsTarget: HaneulKeyboard
+          script: |
+            # Scheme post-action은 Xcode의 RegisterWithLaunchServices 이후 실행한다.
+            # 파일은 유지하고 빌드 산출물의 LaunchServices 등록만 해제한다.
+            LSREG=/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister
+            "$LSREG" -u "${TARGET_BUILD_DIR}/${WRAPPER_NAME}" 2>/dev/null || true
+            "$LSREG" -u "${BUILT_PRODUCTS_DIR}/HaneulKeyboardIM.app" 2>/dev/null || true
+            "$LSREG" -u "${TARGET_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Helpers/HaneulKeyboardIM.app" 2>/dev/null || true
+            exit 0
+    run:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
