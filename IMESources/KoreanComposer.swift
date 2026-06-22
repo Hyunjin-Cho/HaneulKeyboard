@@ -46,6 +46,17 @@ final class KoreanComposer {
         lastConversion = nil
     }
 
+    /// (M-01) shift+space 토글이 화면 텍스트를 영어↔한글로 바꾼 뒤, 내부 영어
+    /// 문맥도 화면과 일치시킨다. resolveToggle은 화면만 교체하므로 이걸 호출하지
+    /// 않으면 화면은 한글인데 lastEnglishWord는 영어로 남아 다음 단어가 잘못
+    /// 변환된다(예: "want "→"ㅈ무ㅅ " 되돌린 뒤 "to "의 새가 다시 to로 변환).
+    /// lastConversion은 (hangul, english)를 그대로 유지해 연속 토글을 가능케 한다.
+    /// - toEnglish: 토글 결과가 영어면 true(영어 문맥 복원), 한글이면 false(끊김).
+    func applyToggle(toEnglish: Bool, hangul: String, english: String) {
+        lastEnglishWord = toEnglish ? english.lowercased() : nil
+        lastConversion = (hangul: hangul, english: english)
+    }
+
     /// (M1) shift+space 되돌리기의 순수 매칭 로직 — IMKTextInput 비의존이라
     /// 단위테스트 가능. 커서 직전 텍스트(before)에서 trailing boundary를
     /// 건너뛰고 english/hangul을 "좌측이 단어경계"인 위치에서만 매칭해, 교체할
