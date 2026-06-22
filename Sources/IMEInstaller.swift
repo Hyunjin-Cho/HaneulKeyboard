@@ -81,6 +81,36 @@ enum IMEInstaller {
         return info[kSecCodeInfoTeamIdentifier as String] as? String
     }
 
+    /// 번들의 빌드 번호(CFBundleVersion, 단조증가 정수). 버전 비교용. 문자열
+    /// 비교는 "10" < "9" 오류가 나므로 정수로 파싱한다. nil = 추출 실패. (H-03)
+    private static func buildNumber(at url: URL) -> Int? {
+        guard let bundle = Bundle(url: url),
+              let s = bundle.infoDictionary?["CFBundleVersion"] as? String,
+              let n = Int(s) else { return nil }
+        return n
+    }
+
+    /// (H-03) 실행 중인 IME 프로세스를 확실히 종료한다 — 업그레이드 교체 전 호출.
+    /// killall은 반환돼도 실제 종료를 보장하지 않고 이름 매칭이 부정확하므로,
+    /// bundle ID로 정확히 찾아 terminate한 뒤 종료를 확인한다(최대 ~1.5초 폴링,
+    /// 안 죽으면 forceTerminate). IMK가 다음 입력 때 새 번들로 재기동한다.
+    private static func stopIMEProcess() {
+        let imeBundleID = "com.hyunjincho.inputmethod.haneul"
+        let running = NSRunningApplication.runningApplications(withBundleIdentifier: imeBundleID)
+        guard !running.isEmpty else { return }
+        for app in running { app.terminate() }
+        let deadline = Date(timeIntervalSinceNow: 1.5)
+        while Date() < deadline {
+            if NSRunningApplication.runningApplications(withBundleIdentifier: imeBundleID).isEmpty {
+                return
+            }
+            Thread.sleep(forTimeInterval: 0.05)
+        }
+        for app in NSRunningApplication.runningApplications(withBundleIdentifier: imeBundleID) {
+            app.forceTerminate()
+        }
+    }
+
     @discardableResult
     static func install() throws -> URL {
         // A system-domain install (from the build script) is canonical.
@@ -112,10 +142,31 @@ enum IMEInstaller {
         try FileManager.default.createDirectory(at: inputMethodsDir, withIntermediateDirectories: true)
 
         if FileManager.default.fileExists(atPath: installURL.path) {
-            try FileManager.default.removeItem(at: installURL)
+            // (H-03) 버전 가드 — 설치된 IME가 같거나 최신이면 복사하지 않고
+            // 재등록/활성화만 한다. 이게 (a)구버전 앱의 다운그레이드 방지 +
+            // (b)매 실행 비원자 교체 제거 + (c)실행 중인 IME를 안 건드림을 모두
+            // 해결한다. 빌드 번호(CFBundleVersion)는 정수로 비교한다("10" < "9"
+            // 같은 문자열 비교 오류 방지).
+            let installedBuild = buildNumber(at: installURL)
+            let bundledBuild = buildNumber(at: source)
+            if let installedBuild, let bundledBuild, installedBuild >= bundledBuild {
+                try registerWithLaunchServices(at: installURL)
+                registerWithTIS(at: installURL)
+                return installURL
+            }
+            // 진짜 업그레이드(번들 > 설치본) 또는 버전 정보 손상 → 교체한다.
+            // 실행 중인 IME 번들을 그대로 바꾸면 OS가 강제 종료할 수 있으므로,
+            // 프로세스를 확실히 종료한 뒤(종료 확인) staging에 복사해 원자 교체한다.
+            stopIMEProcess()
+            let staging = inputMethodsDir.appendingPathComponent(
+                ".\(installURL.lastPathComponent).staging-\(UUID().uuidString)")
+            defer { try? FileManager.default.removeItem(at: staging) }
+            try FileManager.default.copyItem(at: source, to: staging)
+            _ = try FileManager.default.replaceItemAt(installURL, withItemAt: staging)
+        } else {
+            // 첫 설치 — 교체할 기존본이 없으니 바로 복사.
+            try FileManager.default.copyItem(at: source, to: installURL)
         }
-
-        try FileManager.default.copyItem(at: source, to: installURL)
         try registerWithLaunchServices(at: installURL)
         registerWithTIS(at: installURL)
         return installURL
