@@ -38,14 +38,43 @@ enum AppMover {
 
         do {
             if fm.fileExists(atPath: destURL.path) {
-                try fm.removeItem(at: destURL)
+                // (H-02) 다운그레이드 방지 — /Applications의 기존 설치본이 더
+                // 최신(빌드 번호 큼)이면 확인받는다. 취소하면 기존 최신본을 열고
+                // 현재(구버전) 인스턴스는 종료한다.
+                if let existing = buildNumber(at: destURL),
+                   let incoming = buildNumber(at: bundleURL),
+                   incoming < existing {
+                    let warn = NSAlert()
+                    warn.messageText = "이미 더 최신 버전이 설치돼 있어요"
+                    warn.informativeText = "응용 프로그램 폴더의 HaneulKeyboard가 지금 실행한 버전보다 최신입니다. 그래도 이 (구)버전으로 덮어쓸까요?"
+                    warn.addButton(withTitle: "기존 최신 버전 열기")
+                    warn.addButton(withTitle: "구버전으로 덮어쓰기")
+                    warn.alertStyle = .warning
+                    if warn.runModal() == .alertFirstButtonReturn {
+                        let cfg = NSWorkspace.OpenConfiguration()
+                        cfg.createsNewApplicationInstance = true
+                        NSWorkspace.shared.openApplication(at: destURL, configuration: cfg) { _, _ in
+                            DispatchQueue.main.async { NSApp.terminate(nil) }
+                        }
+                        return
+                    }
+                }
+                // (H-02) 원자 교체 — 같은 볼륨(/Applications)에 staging으로 복사한
+                // 뒤 replaceItemAt으로 한 번에 바꾼다. 복사 도중 디스크/IO 오류가
+                // 나도 기존 설치본이 그대로 보존된다(예전엔 destURL을 먼저 지워서
+                // 복사 실패 시 앱이 통째로 사라질 수 있었다 — H-02).
+                let staging = destURL.deletingLastPathComponent()
+                    .appendingPathComponent(".\(destURL.lastPathComponent).staging-\(UUID().uuidString)")
+                defer { try? fm.removeItem(at: staging) }
+                try fm.copyItem(at: bundleURL, to: staging)
+                _ = try fm.replaceItemAt(destURL, withItemAt: staging)
+            } else {
+                // 첫 설치 — 교체할 기존본이 없으니 바로 복사.
+                try fm.copyItem(at: bundleURL, to: destURL)
             }
-            try fm.copyItem(at: bundleURL, to: destURL)
             // (#12) 옮긴 뒤 원본을 정리 — 안 지우면 원본도 LaunchServices에
-            // 등록돼 Launchpad에 중복으로 뜬다. 압축 푼 위치의 원본을 직접
-            // 삭제한다. (앱이 translocated 임시본에서 실행된 경우엔 bundleURL이
-            // 읽기전용 임시본이라 삭제가 실패할 수 있으나, 임시본은 OS가 자동
-            // 정리하므로 무방 — try?로 무시.)
+            // 등록돼 Launchpad에 중복으로 뜬다. (translocated 임시본은 읽기전용이라
+            // 삭제 실패할 수 있으나 OS가 자동 정리하므로 무방 — try?로 무시.)
             if bundleURL.standardizedFileURL != destURL.standardizedFileURL {
                 try? fm.removeItem(at: bundleURL)
             }
@@ -64,5 +93,13 @@ enum AppMover {
         NSWorkspace.shared.openApplication(at: destURL, configuration: config) { _, _ in
             DispatchQueue.main.async { NSApp.terminate(nil) }
         }
+    }
+
+    /// 번들의 빌드 번호(CFBundleVersion, 단조증가 정수). 다운그레이드 판별용. (H-02)
+    private static func buildNumber(at url: URL) -> Int? {
+        guard let bundle = Bundle(url: url),
+              let s = bundle.infoDictionary?["CFBundleVersion"] as? String,
+              let n = Int(s) else { return nil }
+        return n
     }
 }
