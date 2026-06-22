@@ -52,8 +52,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             forName: NSNotification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String),
             object: nil, queue: .main
         ) { [weak self] _ in
-            self?.core.refreshLanguage()
-            self?.updateButtonTitle()
+            // queue: .main이라 항상 메인 스레드에서 실행 — main actor로 안전하게 진입.
+            MainActor.assumeIsolated {
+                self?.core.refreshLanguage()
+                self?.updateButtonTitle()
+            }
         }
     }
 

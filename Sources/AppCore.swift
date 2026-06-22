@@ -9,18 +9,9 @@ final class AppCore {
     private(set) var imeInstalled = false
     private(set) var imeActivationError: Error?
 
-    // deinit(nonisolated)에서 removeObserver로 해제하므로 actor 격리에서 제외.
-    nonisolated(unsafe) private var sourceObserver: NSObjectProtocol?
-
+    // 입력 소스 변경 관찰은 AppDelegate가 단독으로 한다(거기서 core.refreshLanguage()
+    // 를 호출). AppCore가 중복 관찰하면 actor 격리 경고만 늘어 제거했다.
     init() {
-        sourceObserver = DistributedNotificationCenter.default.addObserver(
-            forName: NSNotification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String),
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in self?.refreshLanguage() }
-        }
-
         ensureIMEActive()
     }
 
@@ -52,12 +43,6 @@ final class AppCore {
                 self?.imeInstalled = false
                 haneulLog("HaneulKeyboard: IME ensure failed — \(error.localizedDescription)")
             }
-        }
-    }
-
-    deinit {
-        if let observer = sourceObserver {
-            DistributedNotificationCenter.default.removeObserver(observer)
         }
     }
 
