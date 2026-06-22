@@ -22,6 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let core = AppCore()
     private var statusItem: NSStatusItem!
     private var onboardingWindow: NSWindow?
+    private var settingsWindow: NSWindow?
     private var sourceObserver: NSObjectProtocol?
 
     func applicationWillFinishLaunching(_ notification: Notification) {
@@ -89,7 +90,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         menu.addItem(.separator())
-        add(menu, "설정...", #selector(openSettings), key: ",")
+        add(menu, "설정...", #selector(openSettings))
         if hasCompleted {
             add(menu, "시작하기 다시 보기...", #selector(showOnboarding))
         }
@@ -116,14 +117,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func openSettings() {
+        // SwiftUI Settings scene을 selector(showSettingsWindow:)로 여는 방식이
+        // macOS 26에서 동작하지 않아(메뉴 클릭 무반응), 설정도 onboarding과 동일하게
+        // NSWindow + NSHostingController로 직접 띄운다.
         NSApp.activate(ignoringOtherApps: true)
-        // SwiftUI Settings scene을 코드에서 연다. macOS 14는 showSettingsWindow:,
-        // 그 이전은 showPreferencesWindow: (둘 다 비공개지만 표준적으로 쓰임).
-        if NSApp.responds(to: Selector(("showSettingsWindow:"))) {
-            NSApp.perform(Selector(("showSettingsWindow:")), with: nil)
-        } else {
-            NSApp.perform(Selector(("showPreferencesWindow:")), with: nil)
+        if let win = settingsWindow {
+            win.makeKeyAndOrderFront(nil)
+            return
         }
+        let hosting = NSHostingController(rootView: SettingsView(core: core))
+        let win = NSWindow(contentViewController: hosting)
+        win.title = "HaneulKeyboard 설정"
+        win.styleMask = [.titled, .closable]
+        win.isReleasedWhenClosed = false
+        win.center()
+        settingsWindow = win
+        win.makeKeyAndOrderFront(nil)
     }
 
     @objc private func quit() {
