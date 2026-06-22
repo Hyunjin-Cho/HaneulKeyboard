@@ -120,6 +120,12 @@ enum IMEInstaller {
         // bundle with TIS.
         if FileManager.default.fileExists(atPath: systemInstallURL.path) {
             if FileManager.default.fileExists(atPath: installURL.path) {
+                // (H-03 엣지) user-domain 잔재를 지우기 전에 IME를 정지한다 —
+                // 실행 중인 번들을 삭제하면 강제 종료/불안정 위험이 있다. system이
+                // canonical이므로 정지 후 잔재를 제거하고, 아래 system 번들
+                // 재등록/활성화에서 IMK가 새로 기동한다. (leftover가 있을 때만
+                // 정지하므로 평상시 실행 경로엔 영향 없음.)
+                stopIMEProcess()
                 try? FileManager.default.removeItem(at: installURL)
                 unregisterFromLaunchServices(at: installURL)
             }
