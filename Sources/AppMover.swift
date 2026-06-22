@@ -90,8 +90,20 @@ enum AppMover {
         // 옮긴 앱을 새 인스턴스로 실행하고, 현재(임시/원위치) 인스턴스는 종료.
         let config = NSWorkspace.OpenConfiguration()
         config.createsNewApplicationInstance = true
-        NSWorkspace.shared.openApplication(at: destURL, configuration: config) { _, _ in
-            DispatchQueue.main.async { NSApp.terminate(nil) }
+        NSWorkspace.shared.openApplication(at: destURL, configuration: config) { _, error in
+            DispatchQueue.main.async {
+                // (L-03) 옮긴 앱 실행이 실패했는데 무조건 종료하면 메뉴바 앱이
+                // 설명 없이 사라진다 — 에러를 알리고 현재 인스턴스는 유지한다.
+                if let error {
+                    let fail = NSAlert()
+                    fail.messageText = "옮긴 앱을 여는 데 실패했어요"
+                    fail.informativeText = "응용 프로그램 폴더의 HaneulKeyboard를 직접 실행해 주세요.\n(\(error.localizedDescription))"
+                    fail.alertStyle = .warning
+                    fail.runModal()
+                    return
+                }
+                NSApp.terminate(nil)
+            }
         }
     }
 

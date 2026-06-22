@@ -48,6 +48,21 @@ done
 [ "$found" -eq 0 ] && echo "  (nothing to remove)"
 echo
 
+echo "→ 2b. Remove system-domain IME (/Library/Input Methods) if present (admin)"
+SYS_IME="/Library/Input Methods/$IME_NAME.app"
+if [ -e "$SYS_IME" ]; then
+    echo "  시스템 도메인 설치 발견 — 관리자 권한으로 삭제합니다 (비밀번호 입력)."
+    if sudo rm -rf "$SYS_IME"; then
+        echo "  ✓ removed (system)"
+        [ -x "$LSREG" ] && "$LSREG" -u "$SYS_IME" 2>/dev/null
+    else
+        echo "  ⚠ 삭제 실패 — 수동 제거 필요: sudo rm -rf \"$SYS_IME\""
+    fi
+else
+    echo "  (시스템 도메인 설치 없음)"
+fi
+echo
+
 echo "→ 3. Unregister bundle from LaunchServices"
 if [ -x "$LSREG" ]; then
     # Unregister by path (idempotent — succeeds even if path is gone)

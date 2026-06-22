@@ -175,6 +175,11 @@ enum IMEInstaller {
         task.arguments = ["-f", "-R", "-trusted", url.path]
         try task.run()
         task.waitUntilExit()
+        // (위생-1) 실패를 조용히 삼키지 않고 로그로 남긴다. lsregister 실패는
+        // TIS 등록(핵심)과 별개라 치명적이진 않지만 진단 가능해야 한다.
+        if task.terminationStatus != 0 {
+            haneulLog("HaneulKeyboard: lsregister 등록 실패 (status=\(task.terminationStatus)) — \(url.path)")
+        }
     }
 
     /// Removes a stale copy from the LaunchServices database so it stops

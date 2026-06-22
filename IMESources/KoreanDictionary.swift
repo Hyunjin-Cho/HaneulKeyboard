@@ -70,8 +70,8 @@ enum KoreanDictionary {
                     if i > start {
                         if bytes[start] == hash {
                             if let n = parseCountHeader(bytes[start..<i]) { declared = n }
-                        } else {
-                            set.insert(String(decoding: bytes[start..<i], as: UTF8.self))
+                        } else if let s = String(bytes: bytes[start..<i], encoding: .utf8) {
+                            set.insert(s)   // (위생-2) 깨진 UTF-8 줄은 스킵
                         }
                     }
                     start = i + 1
@@ -80,8 +80,8 @@ enum KoreanDictionary {
             if start < bytes.count {
                 if bytes[start] == hash {
                     if let n = parseCountHeader(bytes[start..<bytes.count]) { declared = n }
-                } else {
-                    set.insert(String(decoding: bytes[start...], as: UTF8.self))
+                } else if let s = String(bytes: bytes[start..<bytes.count], encoding: .utf8) {
+                    set.insert(s)   // (위생-2) 깨진 UTF-8 줄은 스킵
                 }
             }
         }

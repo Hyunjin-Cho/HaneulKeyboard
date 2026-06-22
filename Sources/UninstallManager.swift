@@ -41,10 +41,29 @@ enum Uninstaller {
         URL(fileURLWithPath: "/Library/Input Methods/\(imeBundleName)")
     }
 
-    /// 메인 앱 본체 (/Applications). 자동이동(AppMover)이 복사하면 사용자
-    /// 소유, build script(sudo)면 root 소유 — 후자는 admin 프롬프트 필요.
-    static var mainAppURL: URL {
-        URL(fileURLWithPath: "/Applications/HaneulKeyboard.app")
+    /// 메인 앱 bundle identifier — 파일명이 바뀌어도(Renamed.app) 우리 제품을
+    /// 식별하는 기준. (M-07)
+    private static let mainAppBundleID = "com.hyunjincho.haneulkeyboard"
+
+    /// (M-07) 제거 대상 메인 앱 번들들. 하드코딩 경로(/Applications/HaneulKeyboard.app)
+    /// 대신 우리 bundle ID로 식별 — 사용자가 파일명을 바꿔 옮겼어도(Renamed.app)
+    /// 찾아낸다. 현재 실행 번들 + /Applications에서 우리 ID를 가진 .app을 모은다.
+    /// (자동이동=사용자 소유, build script=root 소유 → 후자는 admin 프롬프트 필요.)
+    static func mainAppURLs() -> [URL] {
+        var urls = Set<URL>()
+        if Bundle.main.bundleIdentifier == mainAppBundleID {
+            urls.insert(Bundle.main.bundleURL.standardizedFileURL)
+        }
+        let appsDir = URL(fileURLWithPath: "/Applications")
+        if let entries = try? FileManager.default.contentsOfDirectory(
+            at: appsDir, includingPropertiesForKeys: nil) {
+            for url in entries where url.pathExtension == "app" {
+                if Bundle(url: url)?.bundleIdentifier == mainAppBundleID {
+                    urls.insert(url.standardizedFileURL)
+                }
+            }
+        }
+        return Array(urls)
     }
 
     @discardableResult
@@ -100,15 +119,17 @@ enum Uninstaller {
                 ok = false
             }
         }
-        // (#11) 메인 앱 본체 (/Applications) — 기존 코드는 IME 번들만 지우고
-        // 메인 앱을 안 지워 Launchpad에 남았다(중복/잔재의 핵심 원인). root
+        // (#11/M-07) 메인 앱 본체 (/Applications) — 기존 코드는 IME 번들만 지우고
+        // 메인 앱을 안 지워 Launchpad에 남았다(중복/잔재의 핵심 원인). 이제
+        // bundle ID로 식별한 모든 설치본(파일명 바뀐 것 포함)을 지운다. root
         // 소유면 일반 삭제가 실패하므로 admin 프롬프트로 재시도.
-        if FileManager.default.fileExists(atPath: mainAppURL.path) {
+        for app in mainAppURLs() {
+            guard FileManager.default.fileExists(atPath: app.path) else { continue }
             do {
-                try FileManager.default.removeItem(at: mainAppURL)
+                try FileManager.default.removeItem(at: app)
             } catch {
                 do {
-                    try IMEInstaller.removeWithAdminPrivileges(path: mainAppURL.path)
+                    try IMEInstaller.removeWithAdminPrivileges(path: app.path)
                 } catch {
                     ok = false
                 }
@@ -121,7 +142,7 @@ enum Uninstaller {
 
     private static func unregisterFromLaunchServices() -> Bool {
         var ok = true
-        for url in [mainAppURL, systemInstallURL, installURL] {
+        for url in mainAppURLs() + [systemInstallURL, installURL] {
             let task = Process()
             task.executableURL = URL(fileURLWithPath: lsregisterPath)
             task.arguments = ["-u", url.path]
@@ -130,6 +151,9 @@ enum Uninstaller {
             do {
                 try task.run()
                 task.waitUntilExit()
+                // (위생-1) lsregister -u 종료코드를 반영 — 미등록 경로엔 0을
+                // 반환하므로(idempotent) nonzero는 실제 실패다.
+                if task.terminationStatus != 0 { ok = false }
             } catch {
                 ok = false
             }
