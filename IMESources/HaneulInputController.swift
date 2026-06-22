@@ -140,6 +140,11 @@ final class HaneulInputController: IMKInputController {
                        english: conv.english, hangul: conv.hangul, atDocStart: readStart == 0) {
                     client.insertText(r.text as NSString,
                         replacementRange: NSRange(location: sel.location - r.offsetFromEnd, length: r.replaceLen))
+                    // (M-01) 화면만 바꾸지 말고 내부 영어 문맥도 방향에 맞춰 전이 —
+                    // r.text가 영어면 영어 문맥 복원, 한글이면 끊김. (안 하면 다음
+                    // 단어가 옛 문맥으로 잘못 변환됨.)
+                    composer.applyToggle(toEnglish: r.text == conv.english,
+                                         hangul: conv.hangul, english: conv.english)
                     return true
                 }
             }
