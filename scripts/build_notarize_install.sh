@@ -124,6 +124,23 @@ else
 fi
 echo
 
+# ─── 6.5 ZIP_ONLY: 노타리+staple 검증 끝난 앱을 배포 zip으로만 뽑고 종료 ───
+# 설치(sudo)는 건너뛴다 — 자격(notarytool profile)은 있으나 sudo 비번을
+# 비대화형으로 넣을 수 없는 환경이나, 배포용 산출물만 필요할 때 쓴다.
+# 결과물은 ~/Downloads (찾기 쉬운 위치, repo 밖이라 실수 커밋 불가).
+if [[ "${ZIP_ONLY:-0}" == "1" ]]; then
+    # 규격: repo 루트에 <Target>_<MARKETING_VERSION>.zip (예: HaneulKeyboard_2026.06.zip)
+    VERSION=$(defaults read "$RELEASE_APP/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null || echo unknown)
+    OUT="$PROJECT_ROOT/${TARGET}_${VERSION}.zip"
+    rm -f "$OUT"
+    ditto -c -k --keepParent "$RELEASE_APP" "$OUT"
+    echo "════════════════════════════════════════════"
+    echo "  ✅ 노타리+staple된 배포 zip 생성 (설치 skip)"
+    echo "  → $OUT"
+    echo "════════════════════════════════════════════"
+    exit 0
+fi
+
 # ─── 7. Stop any running instance ───────────────────
 echo "→ Stop running $TARGET instance (if any)"
 killall "$TARGET" 2>/dev/null && echo "  ✓ Stopped" || echo "  (none running)"
