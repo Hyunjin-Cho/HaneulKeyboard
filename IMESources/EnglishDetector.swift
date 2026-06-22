@@ -117,6 +117,9 @@ enum EnglishDetector {
         // 변환(2026-06-20). veto(위) 후 평가라 — 한글형이 자모거나 우리말샘
         // 미등재면 통과해 변환된다.
         "esc", "ctrl", "alt", "var", "ufc", "psg", "mcp", "ime",
+        // gpt(헷): 1음절 clean·veto 통과라 R5(2음절+ 가드)가 못 잡던 구멍.
+        // 무맥락 단독으로도 변환 (대문자 "Gpt"는 firstConsonantShift도 커버).
+        "gpt",
     ]
 
     /// shortWords whose Hangul forms are everyday jamo slang (ㅢ=ml, ㅐㅏ=ok):
@@ -221,6 +224,19 @@ enum EnglishDetector {
         // "I 해"→"I go", "to 애"→"to do"; "render 해"·"오늘 해"는 보호.
         if prevEnglish, goDoWords.contains(word),
            let prev = previousEnglishWord, goDoTriggers.contains(prev) {
+            return true
+        }
+
+        // 첫 자음 shift = 명시적 영어 의도 (fps→Fps). asdfgzxcv 자리는 shift가
+        // no-op(쌍자음 안 남)이라 한국어 의도로 굳이 shift 칠 이유가 없다 →
+        // 영어 신호로 본다. qwert(쌍자음 ㅃㅉㄸㄲㅆ 자리)는 제외 — 쌍자음
+        // 입력 의도와 구분 불가하므로. 영어 사전(broad) 일치 시 veto를
+        // 우회한다: fps=렌처럼 1음절·실존 한글이라 일반 룰이 못 잡는 약어 구제.
+        // 소문자로 친 "fps"(렌)는 아래 veto가 그대로 보호하니 안전하고,
+        // 오변환은 shift+space 되돌리기가 최종 안전망. (대문자는 keyDown으로
+        // 들어오므로 flagsChanged 구독 불필요 — 쌍자음 깨짐 위험 없음.)
+        if let first = keys.first, first.isUppercase,
+           "ASDFGZXCV".contains(first), isDictWord {
             return true
         }
 

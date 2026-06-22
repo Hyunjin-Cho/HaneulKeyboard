@@ -195,6 +195,32 @@ struct ComposerTests {
         // Bare-vowel + consonant fix (was silent data loss: ㄷ vanished)
         expect(type("le", autoEnglish: false).committedText, "ㅣㄷ", "consonant after bare vowel survives")
 
+        // ── AI·게임 산업 단어 (#18) — english_supplement.txt 등재분 ──
+        // broad/curated 어느 룰로 잡히든 무맥락 변환돼야 한다.
+        expect(type("gemini").committedText, "gemini", "AI: gemini")
+        expect(type("deepseek").committedText, "deepseek", "AI: deepseek")
+        expect(type("qwen").committedText, "qwen", "AI: qwen")
+        expect(type("nemotron").committedText, "nemotron", "AI: nemotron")
+        expect(type("llm").committedText, "llm", "AI: llm")
+        expect(type("rag").committedText, "rag", "AI: rag (자음열, curated)")
+        expect(type("dlss").committedText, "dlss", "게임: dlss")
+        expect(type("fsr").committedText, "fsr", "게임: fsr (자음열, curated)")
+        expect(type("rtx").committedText, "rtx", "게임: rtx (자음열, curated)")
+        expect(type("geforce").committedText, "geforce", "게임: geforce")
+        expect(type("vsync").committedText, "vsync", "게임: vsync")
+        // gpt(헷): 1음절 약어 화이트리스트로 무맥락 변환
+        expect(type("gpt").committedText, "gpt", "gpt 무맥락 변환(standaloneShortWords)")
+        // fps: 첫 자음 shift(Fps)는 영어 의도 → 변환(대소문자 보존). 소문자
+        // (렌)는 우리말샘 등재라 veto가 보호 → 미변환. (사용자 첫자음shift안)
+        expect(type("Fps").committedText, "Fps", "fps 첫자음shift 변환")
+        expect(type("fps").committedText, "렌", "fps 소문자는 veto 보호(미변환)")
+        expect(type("Dlss").committedText, "Dlss", "Dlss 첫자음shift(asdfgzxcv)")
+        // qwert 자리(Q=쌍비읍)는 첫자음shift 제외 — 쌍자음 입력 의도 보호
+        expect(type("Qfc").committedText, "ㅃㄹㅊ", "qwert 첫자(Q)는 첫자음shift 제외")
+        // 한국어 미손상 — 추가 단어가 실존 한국어를 영어로 오변환하지 않는다
+        expect(type("rkrh").committedText, "가고", "한국어 가고 보존")
+        expect(type("Rk").committedText, "까", "쌍자음 까 보존(첫자음shift 무영향)")
+
         // Backspace inside a wrong-layout word still converts correctly
         do {
             let client = FakeClient()
