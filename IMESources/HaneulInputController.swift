@@ -196,7 +196,9 @@ final class HaneulInputController: IMKInputController {
         composer.commit(to: composerClient, convertEnglish: !secureInput)
         // 영어 문맥("I want to...")은 스페이스/쉼표로만 이어진다 — 마침표·
         // 엔터·기타 문자는 문장 단절로 보고 리셋 ("Nice. 새로운" 보호).
-        let boundary = event.charactersIgnoringModifiers?.first
+        // (L-02) 실제 출력 문자 기준 — Shift+,는 '<'(문장 단절 경계)이지 ','가
+        // 아니다. charactersIgnoringModifiers는 '<'를 ','로 잘못 보고했다.
+        let boundary = event.characters?.first
         if boundary != " " && boundary != "," {
             composer.resetEnglishContext()
         }
