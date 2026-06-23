@@ -47,3 +47,7 @@ WORKLOG.md
 /HaneulKeyboard-설치.zip
 /HaneulKeyboard_*.zip
 /HaneulKeyboard.app
+
+# Internal review/verification artifacts — never publish
+review-*.md
+crucible/
