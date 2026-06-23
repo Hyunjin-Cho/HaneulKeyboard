@@ -8,7 +8,7 @@ options:
 settings:
   base:
     MARKETING_VERSION: "2026.07"
-    CURRENT_PROJECT_VERSION: "44"
+    CURRENT_PROJECT_VERSION: "49"
   configs:
     Debug:
       CODE_SIGN_STYLE: Manual

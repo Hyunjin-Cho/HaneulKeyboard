@@ -33,19 +33,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        if let button = statusItem.button {
-            // (crucible 권고) NSHostingView로 복잡 뷰를 심지 말고 image + title만 쓴다
-            // — 이게 메뉴 위치 버그를 근본 회피하는 정석.
-            button.image = NSImage(systemSymbolName: "character.bubble",
-                                   accessibilityDescription: "HaneulKeyboard")
-            button.image?.isTemplate = true
-            button.imagePosition = .imageLeading
-            updateButtonTitle()
+        // (멀티모니터 좌상단 버그 — 근본 수정) status item 생성을 다음 런루프로 지연한다.
+        // 재부팅 직후 메뉴바 레이아웃이 끝나기 전에 status item을 만들면 button의 window
+        // 좌표가 (0,0)으로 잡혀 statusItem.menu 자동 팝업이 메뉴를 화면 좌상단에 띄웠다.
+        // 메뉴바가 준비된 뒤 생성하면 좌표가 정상이라, 기본 메뉴바 앱과 동일한 자동 팝업
+        // 으로 메뉴가 아이콘 바로 아래에 정확히 뜬다(수동 popUp의 위치 오차·메뉴바 침범도
+        // 사라진다).
+        DispatchQueue.main.async { [weak self] in
+            self?.setupStatusItem()
         }
-        let menu = NSMenu()
-        menu.delegate = self          // 열 때마다 menuNeedsUpdate로 동적 재구성
-        statusItem.menu = menu
 
         // 입력 소스 변경 알림 → 메뉴바 한/A 글자 + core 상태 갱신.
         sourceObserver = DistributedNotificationCenter.default.addObserver(
@@ -58,6 +54,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 self?.updateButtonTitle()
             }
         }
+    }
+
+    private func setupStatusItem() {
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        if let button = statusItem.button {
+            button.image = NSImage(systemSymbolName: "character.bubble",
+                                   accessibilityDescription: "HaneulKeyboard")
+            button.image?.isTemplate = true
+            button.imagePosition = .imageLeading
+            updateButtonTitle()
+        }
+        let menu = NSMenu()
+        menu.delegate = self          // 열 때마다 menuNeedsUpdate로 동적 재구성
+        statusItem.menu = menu        // 기본 앱과 동일한 자동 팝업 — 아이콘 바로 아래에 정확히
     }
 
     deinit {
