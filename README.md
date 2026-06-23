@@ -4,7 +4,16 @@
 
 사랑하는 딸 **하늘**이의 이름에서 따왔습니다.
 
-<!-- 데모 GIF / 스크린샷 자리 -->
+## 데모
+
+> 한글 모드인 채로 영어를 치면 — 깨진 한글이 **스페이스를 누르는 순간** 자동으로 영어로 바뀝니다.
+
+<p align="center">
+  <img src="haneul-demo-2.gif" width="520" alt="한글 입력"><br><br>
+  <img src="haneul-demo-3.gif" width="520" alt="영타 자동 변환"><br><br>
+  <img src="haneul-demo-4.gif" width="520" alt="영타 자동 변환"><br><br>
+  <img src="haneul-demo-1.gif" width="520" alt="thank you 문장 변환">
+</p>
 
 ## 주요 기능
 

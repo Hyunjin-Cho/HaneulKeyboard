@@ -51,3 +51,7 @@ WORKLOG.md
 # Internal review/verification artifacts — never publish
 review-*.md
 crucible/
+
+# Video recordings (GIF source) — never commit
+*.mov
+*.mp4
