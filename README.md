@@ -9,7 +9,6 @@
 > 한글 모드인 채로 영어를 치면 — 깨진 한글이 **스페이스를 누르는 순간** 자동으로 영어로 바뀝니다.
 
 <p align="center">
-  <img src="haneul-demo-2.gif" width="520" alt="한글 입력"><br><br>
   <img src="haneul-demo-3.gif" width="520" alt="영타 자동 변환"><br><br>
   <img src="haneul-demo-4.gif" width="520" alt="영타 자동 변환"><br><br>
   <img src="haneul-demo-1.gif" width="520" alt="thank you 문장 변환">
