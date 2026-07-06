@@ -87,6 +87,16 @@ final class HaneulInputController: IMKInputController {
 
         let composerClient = IMKComposerClient(client: client)
 
+        // (secure-input) 정상적인 secure 필드는 macOS가 서드파티 IME를 아예
+        // 우회하지만(PRIVACY.md #4), 그 우회가 안 걸리는 예외 상황에 대비한
+        // 방어선이다 — 조합 중이던 자모를 흘리지 않고 커밋한 뒤, 이번 키는
+        // 조합하지 않고 그대로 통과시킨다(review0706 P3-4).
+        if IsSecureEventInputEnabled() {
+            composer.commit(to: composerClient)
+            composer.resetEnglishContext()
+            return false
+        }
+
         if event.keyCode == 51 {
             // (H-08) Cmd/Opt/Ctrl+Backspace(단어·줄 삭제)는 composer가 먹지
             // 않고 클라이언트가 처리하게 한다 — 조합 중에도 일상 단축키가 한
@@ -177,14 +187,10 @@ final class HaneulInputController: IMKInputController {
         // Active boundary: the user typed a non-jamo key (space, punctuation,
         // digit, Enter...) — the only path where English auto-conversion may
         // fire. Re-read the toggle so Settings changes apply immediately.
+        // secure input은 이 함수 진입부에서 이미 걸러지므로 여기서는 항상 false.
         composer.autoEnglishEnabled =
             UserDefaults.standard.object(forKey: "haneul.autoEnglishEnabled") as? Bool ?? true
-        // (secure-input) 보안 입력(비밀번호 등)이 켜져 있으면 영타 자동변환을
-        // 끈다 — 비번이 영어로 바뀌거나 composer 문맥에 남지 않도록. 단 브라우저
-        // 웹 비번칸은 macOS가 secure를 안 켜는 경우가 있어 이 가드가 항상 걸리진
-        // 않는다(플랫폼 한계 — 애플 입력기도 동일. README "알려진 문제" 참고).
-        let secureInput = IsSecureEventInputEnabled()
-        composer.commit(to: composerClient, convertEnglish: !secureInput)
+        composer.commit(to: composerClient, convertEnglish: true)
         // 영어 문맥("I want to...")은 스페이스/쉼표로만 이어진다 — 마침표·
         // 엔터·기타 문자는 문장 단절로 보고 리셋 ("Nice. 새로운" 보호).
         // (L-02) 실제 출력 문자 기준 — Shift+,는 '<'(문장 단절 경계)이지 ','가

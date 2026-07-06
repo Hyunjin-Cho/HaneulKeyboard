@@ -118,7 +118,7 @@ struct SettingsView: View {
                 core.refreshIMEStatus()
             }
         } message: {
-            Text("HaneulKeyboard의 메인 앱·IME 번들·LaunchServices 등록·사용자 설정·학습 데이터를 모두 지웁니다. 다시 쓰려면 재설치해야 합니다.")
+            Text("HaneulKeyboard의 메인 앱·IME 번들·LaunchServices 등록·사용자 설정을 모두 지웁니다. 다시 쓰려면 재설치해야 합니다.")
         }
         .alert("제거 결과", isPresented: Binding(
             get: { uninstallResult != nil },
