@@ -61,7 +61,7 @@ enum InputSwitcher {
         guard let list = TISCreateInputSourceList(filter as CFDictionary, false)?.takeRetainedValue() else {
             return []
         }
-        return list as! [TISInputSource]
+        return list as? [TISInputSource] ?? []
     }
 
     private static func sourceID(of source: TISInputSource) -> String? {

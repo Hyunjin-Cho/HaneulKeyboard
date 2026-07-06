@@ -135,7 +135,8 @@ final class KoreanComposer {
     }
 
     /// Word boundary: commit the buffered word once. Returns the text that
-    /// was actually inserted (callers use it to feed word learning).
+    /// was actually inserted (tests assert on this to verify exactly what
+    /// got committed).
     ///
     /// `convertEnglish` is true only for ACTIVE boundaries — a space,
     /// punctuation, digit, or Enter the user actually typed. Passive

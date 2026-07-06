@@ -68,9 +68,14 @@ enum Uninstaller {
 
     @discardableResult
     static func run() -> Outcome {
+        // (review0706 P2-2) 삭제 대상 목록을 시작 시점에 한 번만 캡처해 삭제·
+        // 등록해제 양쪽에 그대로 쓴다. removeBundle()이 지운 뒤
+        // unregisterFromLaunchServices()가 mainAppURLs()를 다시 스캔하면, 이미
+        // 지워진 중복/개명 설치본은 두 번째 스캔에 안 잡혀 등록 해제가 누락됐다.
+        let targetAppURLs = mainAppURLs()
         let killed = killIMEProcess()
-        let removed = removeBundle()
-        let unregistered = unregisterFromLaunchServices()
+        let removed = removeBundle(appURLs: targetAppURLs)
+        let unregistered = unregisterFromLaunchServices(appURLs: targetAppURLs)
         let cleared = clearUserDefaults()
         let stillEnabled = isInputSourceStillEnabled()
 
@@ -100,7 +105,7 @@ enum Uninstaller {
         }
     }
 
-    private static func removeBundle() -> Bool {
+    private static func removeBundle(appURLs: [URL]) -> Bool {
         var ok = true
         // System-domain bundle (root-owned): admin password prompt.
         // The old code only checked the user domain and reported success
@@ -123,7 +128,7 @@ enum Uninstaller {
         // 메인 앱을 안 지워 Launchpad에 남았다(중복/잔재의 핵심 원인). 이제
         // bundle ID로 식별한 모든 설치본(파일명 바뀐 것 포함)을 지운다. root
         // 소유면 일반 삭제가 실패하므로 admin 프롬프트로 재시도.
-        for app in mainAppURLs() {
+        for app in appURLs {
             guard FileManager.default.fileExists(atPath: app.path) else { continue }
             do {
                 try FileManager.default.removeItem(at: app)
@@ -140,9 +145,9 @@ enum Uninstaller {
 
     private static let lsregisterPath = "/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister"
 
-    private static func unregisterFromLaunchServices() -> Bool {
+    private static func unregisterFromLaunchServices(appURLs: [URL]) -> Bool {
         var ok = true
-        for url in mainAppURLs() + [systemInstallURL, installURL] {
+        for url in appURLs + [systemInstallURL, installURL] {
             let task = Process()
             task.executableURL = URL(fileURLWithPath: lsregisterPath)
             task.arguments = ["-u", url.path]
@@ -180,8 +185,10 @@ enum Uninstaller {
                 imeSuite.removeObject(forKey: key)
             }
         }
-        // Learned prediction data (word frequencies) lives in Application
-        // Support — PRIVACY.md promises 전체 제거 deletes it.
+        // 예측 입력 기능은 3a399c3(2026-06-19)에서 완전히 제거됐다 — 현재 코드는
+        // 이 디렉터리에 아무것도 쓰지 않는다. 다만 그 이전 버전(예측 탑재)을 쓰던
+        // 사용자의 word-frequency 잔재가 남아있을 수 있어, 업그레이드 사용자를
+        // 위한 best-effort 정리로 남겨둔다(review0706 P3-3).
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("HaneulKeyboard")
         // (M-06) 삭제 실패를 성공으로 보고하지 않는다 — 예전엔 try?로 버리고

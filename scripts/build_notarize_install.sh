@@ -2,10 +2,12 @@
 # build_notarize_install.sh — single-shot universal build → notarize → verify → optional install
 # for HaneulKeyboard app/IME targets. Run on the Mac Studio (has Developer ID + notarytool profile).
 #
-# Usage:
-#   scripts/build_notarize_install.sh <Target>
-#   e.g. scripts/build_notarize_install.sh Test3IM
-#        scripts/build_notarize_install.sh HaneulKeyboardIM
+# Usage (release — always this):
+#   ZIP_ONLY=1 scripts/build_notarize_install.sh HaneulKeyboard
+#
+# IME-only target (dev/test only — TIS registration debugging etc.), requires
+# ALLOW_IME_TARGET=1:
+#   ALLOW_IME_TARGET=1 scripts/build_notarize_install.sh HaneulKeyboardIM
 #
 # The script will:
 #   1. Verify toolchain + credentials are present.
@@ -21,8 +23,22 @@ set -euo pipefail
 
 TARGET="${1:-}"
 if [[ -z "$TARGET" ]]; then
-    echo "Usage: $0 <Target> (e.g. Test3IM, HaneulKeyboardIM, Test1IM, Test2IM)"
+    echo "Usage: $0 <Target>  (release: HaneulKeyboard / IME-only dev-test: ALLOW_IME_TARGET=1 + target)"
     exit 2
+fi
+
+# (review0706 P2-1) 배포 정본은 항상 HaneulKeyboard(메인 앱)다 — IME
+# (HaneulKeyboardIM) 단독 zip/설치본이 실수로 배포되면 아이콘·온보딩·설정·
+# 제거 UX가 빠진 반쪽 배포물이 된다(과거 실제 발생, CLAUDE.md 참고). IME
+# 단독 빌드는 개발/디버깅 용도로만 허용하고 명시 플래그 없이는 막는다.
+if [[ "$TARGET" != "HaneulKeyboard" && "${ALLOW_IME_TARGET:-0}" != "1" ]]; then
+    echo "✗ '$TARGET'은 배포 정본이 아닙니다 — 배포는 HaneulKeyboard만 쓰세요." >&2
+    echo "  IME 단독 빌드가 정말 필요하면(개발/테스트 전용) ALLOW_IME_TARGET=1을 붙여 재실행하세요." >&2
+    exit 2
+fi
+if [[ "$TARGET" != "HaneulKeyboard" ]]; then
+    echo "⚠️  '$TARGET' 단독 빌드 — 테스트/개발 전용입니다. 이 산출물을 배포하지 마세요."
+    echo
 fi
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

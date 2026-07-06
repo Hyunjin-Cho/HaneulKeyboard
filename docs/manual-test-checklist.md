@@ -32,3 +32,9 @@
 - [ ] VoiceOver를 켠 뒤 메뉴바 아이콘이 `HaneulKeyboard`로 읽힌다.
 - [ ] VoiceOver가 메뉴 항목, 설정 제어, 온보딩 제목·버튼의 이름과 현재 상태를 이해 가능하게 읽는다.
 - [ ] VoiceOver가 켜진 상태에서 입력 소스 전환, 설정 열기, 온보딩 진행이 정상 동작한다.
+
+## 설치 도메인과 전체 제거 (review0706 P2-2)
+
+- [ ] `/Library/Input Methods`에 system-domain 설치본이 있는 상태에서 앱의 "IME 설치" 버튼을 누르면, 새로 복사하지 않고 기존 시스템 설치본을 재등록/활성화한다.
+- [ ] system-domain 설치본과 `~/Library/Input Methods`의 user-domain 잔재가 동시에 존재하는 상태에서 "IME 설치"를 실행하면 user-domain 잔재가 정리되고 system-domain만 남는다.
+- [ ] `/Applications`에 이름이 다른 HaneulKeyboard 복사본(예: 파일명을 바꾼 앱)이 있는 상태에서 "전체 제거"를 실행하면, 두 복사본 모두 파일이 삭제되고 macOS 재부팅 후 Launchpad/Spotlight에 중복 항목이 남지 않는다.
