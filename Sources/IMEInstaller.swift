@@ -295,8 +295,16 @@ enum IMEInstaller {
     /// standard macOS admin password dialog. Throws if the user cancels.
     /// (internal: Uninstaller's 전체 제거 reuses this for the system bundle.)
     static func removeWithAdminPrivileges(path: String) throws {
-        let escaped = path.replacingOccurrences(of: "'", with: "'\\''")
-        let source = "do shell script \"rm -rf '\(escaped)'\" with administrator privileges"
+        // (보안) path를 admin 셸 명령에 안전하게 넣는다. 예전 코드는 셸 작은따옴표만
+        // 이스케이프하고, 이를 감싸는 AppleScript 문자열 리터럴의 큰따옴표(")·역슬래시(\)는
+        // 처리하지 않아, 따옴표가 든 경로명(/Applications에서 bundle ID로 찾은 동적 경로 등)으로
+        // admin 명령이 주입될 수 있었다. 이제 두 계층을 분리한다:
+        //   1) AppleScript 문자열 리터럴용 이스케이프(역슬래시 먼저, 그다음 큰따옴표)
+        //   2) 셸 인용은 AppleScript `quoted form of`에 위임
+        let asLiteral = path
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+        let source = "do shell script \"/bin/rm -rf \" & quoted form of \"\(asLiteral)\" with administrator privileges"
         var errorInfo: NSDictionary?
         guard let script = NSAppleScript(source: source) else {
             throw IMEInstallError.uninstallFailed("관리자 권한 요청 스크립트 생성 실패")
