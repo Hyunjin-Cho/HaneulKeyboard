@@ -1,5 +1,11 @@
 # 하늘키보드 (HaneulKeyboard)
 
+[![latest release](https://img.shields.io/github/v/release/Hyunjin-Cho/HaneulKeyboard?style=flat-square)](https://github.com/Hyunjin-Cho/HaneulKeyboard/releases/latest)
+[![downloads](https://img.shields.io/github/downloads/Hyunjin-Cho/HaneulKeyboard/total?style=flat-square)](https://github.com/Hyunjin-Cho/HaneulKeyboard/releases)
+[![license](https://img.shields.io/github/license/Hyunjin-Cho/HaneulKeyboard?style=flat-square)](https://github.com/Hyunjin-Cho/HaneulKeyboard/blob/main/LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/Hyunjin-Cho/HaneulKeyboard/ci.yml?branch=main&label=CI&style=flat-square)](https://github.com/Hyunjin-Cho/HaneulKeyboard/actions/workflows/ci.yml)
+[![macOS 14+](https://img.shields.io/badge/macOS-14%2B-blue?style=flat-square&logo=apple)](#요구사항)
+
 빠른 한↔영 전환과 안정적인 한글 입력을 위한 macOS 메뉴바 유틸리티 + 입력기(IME).
 
 사랑하는 딸 **하늘**이의 이름에서 따왔습니다.
