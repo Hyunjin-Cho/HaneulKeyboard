@@ -93,7 +93,7 @@ targets:
         TISIntendedLanguage: ko
         TICapsLockLanguageSwitchCapable: true
         TISIconIsTemplate: true
-        tsInputMethodIconFileKey: haneul.tiff
+        tsInputMethodIconFileKey: haneul.png
         tsInputMethodCharacterRepertoireKey:
           - Hang
           - Kore
@@ -110,9 +110,9 @@ targets:
               tsInputModeIsVisibleKey: true
               tsInputModeDefaultStateKey: true
               tsInputModeJISKeyboardShortcutKey: 0
-              tsInputModeMenuIconFileKey: haneul.tiff
-              tsInputModeAlternateMenuIconFileKey: haneul.tiff
-              tsInputModePaletteIconFileKey: haneul.tiff
+              tsInputModeMenuIconFileKey: haneul.png
+              tsInputModeAlternateMenuIconFileKey: haneul.png
+              tsInputModePaletteIconFileKey: haneul.png
           tsVisibleInputModeOrderedArrayKey:
             - com.hyunjincho.inputmethod.haneul.korean
     settings:
