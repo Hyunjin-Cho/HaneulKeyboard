@@ -94,6 +94,33 @@ final class KoreanComposer {
         return nil
     }
 
+    /// (T1) 되돌리기를 아예 지원할 수 없는 클라이언트인지 — IMK 비의존 순수함수.
+    ///
+    /// 직전에 영타 변환이 일어났다면 커서 앞에는 그 글자가 반드시 있다. 그런데도
+    /// 커서를 "문서 맨 앞"(0)이라 답하거나 커서 앞 텍스트를 아예 못 읽어주는
+    /// 클라이언트가 있다(Ghostty 등 일부 터미널: `selectedRange`가 항상 0,
+    /// `attributedSubstring`이 nil). 터미널에 입력된 글자는 즉시 셸 프로세스
+    /// 소유가 되어 앱조차 회수할 수단이 없기 때문으로, 이런 앱에서 되돌리기는
+    /// 원리적으로 불가능하다 — 시도조차 하지 않는다(#30).
+    /// - cursorLocation: `selectedRange().location`
+    /// - didReadText: `attributedSubstring`이 nil 아닌 값을 돌려줬는지
+    static func toggleUnsupported(cursorLocation: Int, didReadText: Bool) -> Bool {
+        cursorLocation == 0 || !didReadText
+    }
+
+    /// (T2) 교체 요청이 클라이언트에 실제로 반영됐는지 — IMK 비의존 순수함수.
+    ///
+    /// Terminal.app은 읽기 API에는 정상 응답하면서 `insertText(_:replacementRange:)`의
+    /// 범위 교체는 조용히 무시한다(실측: 9번 눌러도 커서가 80에서 불변). 그런데도
+    /// 성공으로 믿고 키를 소비하면 되돌리기도 안 되고 스페이스까지 사라진다.
+    /// 교체 자리에 옛 글자가 **그대로** 남아 있는 것이 확인될 때만 거부로 판정하고,
+    /// 읽기가 안 되면(nil) 판정 불가로 보아 false를 돌려준다 — 정상 앱 회귀 방지(#30).
+    /// - textAtReplacement: 교체 직후 그 자리에서 다시 읽은 텍스트(못 읽으면 nil)
+    /// - previousText: 교체 전 그 자리에 있던 글자
+    static func toggleWasRejected(textAtReplacement: String?, previousText: String) -> Bool {
+        textAtReplacement == previousText
+    }
+
     private var buffer = SyllableBuffer()
     /// Completed units (syllables or standalone jamo) of the current word,
     /// each paired with the keystrokes that produced it.

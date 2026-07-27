@@ -136,11 +136,20 @@ final class HaneulInputController: IMKInputController {
                 let span = max((conv.english as NSString).length, (conv.hangul as NSString).length) + 4
                 let readStart = max(0, sel.location - span)
                 let reqLen = sel.location - readStart
-                let before = (client.attributedSubstring(
-                    from: NSRange(location: readStart, length: reqLen))?.string ?? "") as NSString
+                let attr = client.attributedSubstring(
+                    from: NSRange(location: readStart, length: reqLen))
+                let before = (attr?.string ?? "") as NSString
                 #if DEBUG
                 log.log("ss진단B: reqLen=\(reqLen, privacy: .public) beforeLen=\(before.length, privacy: .public)")
                 #endif
+                // (T1) 커서 앞을 읽어줄 수 없는 클라이언트(Ghostty 등 일부 터미널)
+                // 에서는 되돌리기가 원리적으로 불가능하다 — 아래로 흘려보내면
+                // 되돌리기를 요청한 자리에 엉뚱한 스페이스만 끼어드니, 아무것도
+                // 하지 않고 키만 소비한다. 판정은 순수함수로 분리해 테스트한다(#30).
+                if KoreanComposer.toggleUnsupported(cursorLocation: sel.location,
+                                                    didReadText: attr != nil) {
+                    return true
+                }
                 // (H1) Chromium/Electron 등이 substring을 잘라 반환하면 좌표가
                 // 어긋나 인접 글자를 덮어쓴다 — 요청 길이와 다르면 안전하게 포기.
                 // boundary skip·좌측경계·매칭은 순수함수 resolveToggle이 담당
@@ -148,8 +157,22 @@ final class HaneulInputController: IMKInputController {
                 if before.length == reqLen,
                    let r = KoreanComposer.resolveToggle(before: before as String,
                        english: conv.english, hangul: conv.hangul, atDocStart: readStart == 0) {
+                    let start = sel.location - r.offsetFromEnd
                     client.insertText(r.text as NSString,
-                        replacementRange: NSRange(location: sel.location - r.offsetFromEnd, length: r.replaceLen))
+                        replacementRange: NSRange(location: start, length: r.replaceLen))
+                    // (T2) Terminal.app 등은 이 교체를 조용히 무시한다 — 교체 자리를
+                    // 다시 읽어 옛 글자가 그대로면 거부로 판정하고, 화면·내부 상태를
+                    // 손대지 않은 채 키만 소비한다(스페이스가 끼어들지 않게). 연속
+                    // 시도해도 같은 결과가 되도록 lastConversion은 유지한다(#30).
+                    let previous = r.text == conv.english ? conv.hangul : conv.english
+                    let rejected = KoreanComposer.toggleWasRejected(
+                        textAtReplacement: client.attributedSubstring(
+                            from: NSRange(location: start, length: r.replaceLen))?.string,
+                        previousText: previous)
+                    #if DEBUG
+                    log.log("ss진단C: rejected=\(rejected, privacy: .public)")
+                    #endif
+                    if rejected { return true }
                     // (M-01) 화면만 바꾸지 말고 내부 영어 문맥도 방향에 맞춰 전이 —
                     // r.text가 영어면 영어 문맥 복원, 한글이면 끊김. (안 하면 다음
                     // 단어가 옛 문맥으로 잘못 변환됨.)

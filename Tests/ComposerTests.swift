@@ -736,6 +736,20 @@ struct ComposerTests {
         expect(KoreanComposer.resolveToggle(before: "메ㅔㅣㄷ ", english: "apple", hangul: "메ㅔㅣㄷ", atDocStart: true)?.text ?? "", "apple", "resolveToggle: 메ㅔㅣㄷ→apple 역토글(낱자모 끝 — 이게 버그였음)")
         expect((KoreanComposer.resolveToggle(before: "메ㅔㅣㄷ ", english: "apple", hangul: "메ㅔㅣㄷ", atDocStart: true)?.offsetFromEnd ?? -1) == 5, true, "resolveToggle: 메ㅔㅣㄷ 역토글 커서 오프셋 5(낱자모4+공백1)")
 
+        // (T1/T2, #30) 터미널류 되돌리기 불가 판정 — 아래 수치는 진단 빌드 실측값이다
+        // (Chrome: selLoc 4↔5·읽기 정상 / Terminal.app: selLoc 80 고정·읽기 정상이나
+        // 교체 무시 / Ghostty: selLoc 0·attributedSubstring nil).
+        expect(KoreanComposer.toggleUnsupported(cursorLocation: 0, didReadText: false), true, "toggleUnsupported: Ghostty(커서0+읽기nil) → 미지원")
+        expect(KoreanComposer.toggleUnsupported(cursorLocation: 0, didReadText: true), true, "toggleUnsupported: 변환 직후인데 커서가 문서 맨 앞 = 거짓 보고 → 미지원")
+        expect(KoreanComposer.toggleUnsupported(cursorLocation: 80, didReadText: false), true, "toggleUnsupported: 커서는 알지만 앞 글자를 못 읽음 → 미지원")
+        expect(KoreanComposer.toggleUnsupported(cursorLocation: 80, didReadText: true), false, "toggleUnsupported: Terminal.app/Chrome(읽기 정상) → 여기선 지원으로 보고 교체까지 시도")
+        expect(KoreanComposer.toggleUnsupported(cursorLocation: 5, didReadText: true), false, "toggleUnsupported: Chrome 정상 케이스")
+
+        expect(KoreanComposer.toggleWasRejected(textAtReplacement: "spoon", previousText: "spoon"), true, "toggleWasRejected: Terminal.app — 교체 자리에 옛 글자 그대로 → 거부")
+        expect(KoreanComposer.toggleWasRejected(textAtReplacement: "묘ㅐㅜ", previousText: "spoon"), false, "toggleWasRejected: Chrome — 새 글자로 바뀜 → 반영됨")
+        expect(KoreanComposer.toggleWasRejected(textAtReplacement: nil, previousText: "spoon"), false, "toggleWasRejected: 재확인을 못 읽으면 판정 불가 → 성공 취급(정상 앱 회귀 방지)")
+        expect(KoreanComposer.toggleWasRejected(textAtReplacement: "", previousText: "spoon"), false, "toggleWasRejected: 빈 문자열은 옛 글자와 다름 → 거부 아님")
+
         // 약어 무맥락 변환 (standaloneShortWords, 2026-06-20)
         expect(EnglishDetector.shouldConvert(units: ["ㄷ","ㄴ","ㅊ"], keys: Array("esc")), true, "약어: esc(ㄷㄴㅊ)")
         expect(EnglishDetector.shouldConvert(units: ["ㅕ","ㄹ","ㅊ"], keys: Array("ufc")), true, "약어: ufc(ㅕㄹㅊ)")
