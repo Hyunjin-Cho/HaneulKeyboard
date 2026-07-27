@@ -16,29 +16,10 @@ import Foundation
 /// `Uninstaller.run()` does 1–3 automatically and returns a status object
 /// describing what still needs the user's manual help.
 enum Uninstaller {
-    struct Outcome {
-        let killedProcess: Bool
-        /// IME 번들(시스템/사용자 도메인) 삭제 성공 여부.
-        let removedIMEBundle: Bool
-        /// 메인 앱(/Applications) 삭제 성공 여부.
-        let removedMainApp: Bool
-        /// (review-0712 P2-2) IME 삭제가 실패해 메인 앱을 **일부러 남겼는가**.
-        /// 남겨야 사용자가 같은 화면에서 "전체 제거"를 다시 누를 수 있다.
-        let keptMainAppForRetry: Bool
-        let unregisteredLS: Bool
-        let clearedUserDefaults: Bool
-        /// True if the user still has the input source enabled in System
-        /// Settings — we can detect this even after removing the bundle.
-        let stillEnabledInPicker: Bool
-
-        /// (review-0712 P2-2) "완료" 문구는 모든 필수 단계가 성공했을 때만.
-        /// 예전엔 `stillEnabledInPicker` 하나만 보고 삭제가 실패해도 "모두
-        /// 삭제됐습니다"라고 말했다.
-        var fullyRemoved: Bool {
-            removedIMEBundle && removedMainApp && unregisteredLS
-                && clearedUserDefaults && !stillEnabledInPicker
-        }
-    }
+    /// (review-0712 P3-8) 결과 구조체와 판단 로직은 `InstallDecisions.swift`에
+    /// Foundation 전용으로 분리했다 — Carbon/AppKit 없이 테스트 하네스에서
+    /// 그대로 검증하기 위해서다. 기존 호출부를 위해 이름은 유지한다.
+    typealias Outcome = UninstallOutcome
 
     private static let bundleID = "com.hyunjincho.inputmethod.haneul"
     private static let imeBundleName = "HaneulKeyboardIM.app"
@@ -93,12 +74,10 @@ enum Uninstaller {
         let cleared = clearUserDefaults()
 
         // (review-0712 P2-2) 메인 앱은 **마지막에**, 그리고 IME 삭제가 성공했을
-        // 때만 지운다. 예전엔 admin 암호창을 취소해 IME가 그대로 남아도 메인 앱을
-        // 지워버려서, 다시 시도할 관리 앱이 사라졌다(재다운로드 전엔 복구 불가).
-        // LaunchServices·설정 정리 실패는 앱 없이도 복구되므로 차단 사유가 아니다.
+        // 때만 지운다. 판단 자체는 UninstallDecision(테스트 대상)에 있다.
         let removedMainApp: Bool
         let keptForRetry: Bool
-        if removedIME {
+        if UninstallDecision.shouldRemoveMainApp(removedIMEBundle: removedIME) {
             removedMainApp = removeMainApps(appURLs: targetAppURLs)
             keptForRetry = false
         } else {

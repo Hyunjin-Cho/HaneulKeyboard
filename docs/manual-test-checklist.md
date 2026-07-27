@@ -38,3 +38,26 @@
 - [ ] `/Library/Input Methods`에 system-domain 설치본이 있는 상태에서 앱의 "IME 설치" 버튼을 누르면, 새로 복사하지 않고 기존 시스템 설치본을 재등록/활성화한다.
 - [ ] system-domain 설치본과 `~/Library/Input Methods`의 user-domain 잔재가 동시에 존재하는 상태에서 "IME 설치"를 실행하면 user-domain 잔재가 정리되고 system-domain만 남는다.
 - [ ] `/Applications`에 이름이 다른 HaneulKeyboard 복사본(예: 파일명을 바꾼 앱)이 있는 상태에서 "전체 제거"를 실행하면, 두 복사본 모두 파일이 삭제되고 macOS 재부팅 후 Launchpad/Spotlight에 중복 항목이 남지 않는다.
+
+## 실패 시나리오 (review-0712 P3-8)
+
+자동 테스트는 "무엇을 결정하는가"까지만 검증한다(`Tests/ComposerTests.swift`의 설치·제거 결정 로직 항목 — `AppMoveDecision`·`UninstallDecision`·`UninstallOutcome`). 실제 관리자 프롬프트·파일 삭제·GUI 경고는 아래에서 사람이 확인한다.
+
+### 전체 제거 — 관리자 암호 취소
+
+- [ ] "전체 제거" 실행 중 관리자 암호 창에서 **취소**를 누르면 결과 창이 `IME 번들 삭제: 실패` / `메인 앱 삭제: 건너뜀(재시도용 보존)`으로 표시되고, "완료"라고 말하지 않는다.
+- [ ] 위 상태에서 "확인"을 눌러도 **앱이 종료되지 않고** 남아, 같은 화면에서 "전체 제거"를 곧바로 다시 실행할 수 있다.
+- [ ] 재실행에서 암호를 올바르게 입력하면 IME·메인 앱이 모두 삭제되고 "완료" 문구가 나온다.
+
+### 앱 이동 — 관계없는 목적지 앱
+
+- [ ] `/Applications`에 **관계없는 앱**을 `HaneulKeyboard.app`이라는 이름으로 둔 상태에서(다른 앱을 복사·개명), 다운로드 폴더의 HaneulKeyboard를 실행해 "옮기고 다시 열기"를 누르면 → "응용 프로그램 폴더에 다른 앱이 있어요" 경고가 뜨고 **그 앱이 덮어써지지 않는다**.
+- [ ] 앱 파일명을 바꿔서(예: `내키보드.app`) 실행한 뒤 이동을 진행하면 `/Applications/HaneulKeyboard.app`으로 들어간다(바꾼 이름 그대로 들어가지 않는다).
+
+### 온보딩 — 완료 시 창 닫힘
+
+- [ ] `defaults delete com.hyunjincho.haneulkeyboard haneul.hasCompletedOnboarding` 후 앱을 실행해, 온보딩 마지막 단계의 **"완료"를 누르면 창이 즉시 닫힌다**(빨간 닫기 버튼을 쓰지 않아도 된다).
+
+### 시스템 설치 스크립트 — 중단
+
+- [ ] `scripts/build_notarize_install.sh` 실행 중 staging 검증 단계에서 실패했을 때(예: 일부러 서명을 깨뜨려서), `/Library/Input Methods`의 **기존 설치본이 그대로 남아 있다**(설치 전 상태 보존).

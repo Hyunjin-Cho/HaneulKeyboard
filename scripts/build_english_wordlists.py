@@ -266,6 +266,15 @@ def main():
     # ── 빌드 ──
     today = datetime.date.today().isoformat()
     exclude_files = list(args.exclude)
+    # (review-0712 P3-5) 저장소의 dict_work/exclusions.txt가 제외 목록의 정본이다
+    # (SOURCE_FORMATS.md에 그렇게 정해뒀다). 예전엔 외부 원본 폴더의 사본만
+    # 자동으로 읽어서, --exclude를 깜빡하면 이미 탈락시킨 후보가 되살아났다.
+    # 이제 정본을 항상 적용하고, 없으면 실패한다.
+    repo_excl = os.path.join(REPO_ROOT, "dict_work", "exclusions.txt")
+    if not os.path.exists(repo_excl):
+        die(f"제외 목록 정본이 없음: {repo_excl} (SOURCE_FORMATS.md 참조)")
+    if repo_excl not in exclude_files:
+        exclude_files.append(repo_excl)
     auto_excl = os.path.join(srcdir, "exclusions.txt")
     if os.path.exists(auto_excl) and auto_excl not in exclude_files:
         exclude_files.append(auto_excl)

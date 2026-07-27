@@ -160,7 +160,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             win.makeKeyAndOrderFront(nil)
             return
         }
-        let hosting = NSHostingController(rootView: OnboardingView(core: core))
+        // (review-0712 P3-6) 온보딩 "완료"가 이 창을 실제로 닫도록 클로저를
+        // 넘긴다. 수동 NSWindow라 SwiftUI dismiss()는 동작하지 않는다.
+        // isReleasedWhenClosed = false라 close() 후에도 재사용할 수 있다.
+        let hosting = NSHostingController(rootView: OnboardingView(core: core) { [weak self] in
+            self?.onboardingWindow?.close()
+        })
         let win = NSWindow(contentViewController: hosting)
         win.title = "HaneulKeyboard 시작하기"
         win.styleMask = [.titled, .closable]

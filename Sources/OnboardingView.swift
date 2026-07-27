@@ -2,8 +2,12 @@ import SwiftUI
 
 struct OnboardingView: View {
     @Bindable var core: AppCore
+    /// (review-0712 P3-6) 창을 닫는 방법을 호출자가 주입한다.
+    /// 이 뷰는 `NSHostingController` + 수동 `NSWindow`로 뜨기 때문에 SwiftUI
+    /// presentation 컨텍스트가 없고, 예전에 쓰던 `@Environment(\.dismiss)`는
+    /// 아무 일도 하지 않아 "완료"를 눌러도 창이 그대로 남았다.
+    var onComplete: () -> Void = {}
     @AppStorage("haneul.hasCompletedOnboarding") private var hasCompleted = false
-    @Environment(\.dismiss) private var dismiss
 
     @State private var step: Int = 0
     @State private var installError: Error?
@@ -55,7 +59,7 @@ struct OnboardingView: View {
             } else {
                 Button("완료") {
                     hasCompleted = true
-                    dismiss()
+                    onComplete()
                 }
                 .keyboardShortcut(.defaultAction)
             }

@@ -1,0 +1,26 @@
+# 번들 영어 사전 manifest — 런타임·테스트·검역이 공유하는 **정본**. (review-0712 P3-5)
+#
+# 예전엔 같은 목록이 세 군데(IMESources/EnglishDetector.swift의 wordlistPaths,
+# Tests/ComposerTests.swift의 픽스처, scripts/audit_wordlist.sh의 BASE)에 따로
+# 적혀 있었다. 그래서 english_sports_geo.txt(28,360줄)가 런타임에만 들어가고
+# 테스트·검역에서는 빠져도 아무도 몰랐다. 이제 이 파일 하나만 고치면 되고,
+# 어긋나면 `scripts/run_ime_tests.sh`가 실패한다.
+#
+# 컬럼:
+#   name        Resources/IM/<name>.txt (확장자 없이)
+#   role        curated = curated + broad 양쪽 / broad = broad 전용
+#   min_words   기대 최소 단어 수(주석·빈 줄 제외). 사전이 깨지거나 통째로
+#               빠지면 이 값에서 걸린다. 재생성으로 개수가 늘면 올려도 되지만
+#               내릴 때는 왜 줄었는지 확인할 것.
+#   sample_word 그 사전에서만 나오는 대표 단어. 파일이 로드됐는지 확인용.
+#
+# `/usr/share/dict/words`(web2)는 macOS 시스템 파일이라 여기 넣지 않는다 —
+# 런타임·테스트·검역 모두 항상 broad 베이스로 포함한다.
+#
+# name	role	min_words	sample_word
+english_supplement	curated	200	google
+english_common	curated	2500	ability
+english_modern	broad	60000	smartphone
+english_names	broad	25000	mackenzie
+english_names_extra	broad	40	beethoven
+english_sports_geo	broad	25000	liverpool

@@ -47,18 +47,23 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# ── 기본 베이스 구성 (현재 번들과 동일한 역할 분담) ──
+# ── 기본 베이스 구성 ──
+# (review-0712 P3-5) 목록을 여기 직접 적지 않고 dict_work/dict_manifest.tsv를
+# 읽는다. 예전엔 런타임(EnglishDetector)·테스트·이 스크립트가 각자 목록을 들고
+# 있어서, english_sports_geo.txt가 런타임에만 있고 검역에서는 빠져도 몰랐다.
+MANIFEST="dict_work/dict_manifest.tsv"
 if [[ -z "$BASE" ]]; then
-  BASE="/usr/share/dict/words,Resources/IM/english_supplement.txt"
-  CURATED_BASE="${CURATED_BASE:-Resources/IM/english_supplement.txt}"
-  if [[ -f "Resources/IM/english_common.txt" ]]; then
-    BASE="$BASE,Resources/IM/english_common.txt"
-    CURATED_BASE="$CURATED_BASE,Resources/IM/english_common.txt"
-  fi
-  for f in Resources/IM/english_modern.txt Resources/IM/english_names.txt \
-           Resources/IM/english_names_extra.txt; do
-    [[ -f "$f" ]] && BASE="$BASE,$f"   # broad 전용 — curated에 안 넣음
-  done
+  [[ -f "$MANIFEST" ]] || { echo "사전 manifest 없음: $MANIFEST" >&2; exit 2; }
+  BASE="/usr/share/dict/words"   # web2 — 시스템 파일이라 manifest 밖
+  MANIFEST_CURATED=""
+  while IFS=$'\t' read -r name role _min _sample; do
+    [[ -z "$name" || "$name" == \#* ]] && continue
+    f="Resources/IM/$name.txt"
+    [[ -f "$f" ]] || { echo "manifest에 적힌 사전이 없음: $f" >&2; exit 2; }
+    BASE="$BASE,$f"
+    [[ "$role" == "curated" ]] && MANIFEST_CURATED="${MANIFEST_CURATED:+$MANIFEST_CURATED,}$f"
+  done < "$MANIFEST"
+  CURATED_BASE="${CURATED_BASE:-$MANIFEST_CURATED}"
 elif [[ -z "$CURATED_BASE" ]]; then
   CURATED_BASE="Resources/IM/english_supplement.txt"
 fi
