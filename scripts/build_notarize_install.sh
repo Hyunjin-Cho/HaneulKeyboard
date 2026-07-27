@@ -285,22 +285,18 @@ INSTALL_PATH="$INSTALL_DIR/$TARGET.app"
 STAGING_PATH="$INSTALL_DIR/.$TARGET.app.staging.$$"
 echo "→ Install to $INSTALL_PATH (sudo)"
 BAK=""
-if [[ -e "$INSTALL_PATH" ]]; then
-    # 백업은 반드시 Input Methods/Applications 폴더 "밖"(/tmp)으로 —
-    # 같은 폴더의 .bak은 TIS/Spotlight가 또 하나의 앱으로 집어서
-    # 유령 항목을 만든다(2026-06-06). /tmp는 재부팅 시 자동 청소.
-    BAK="/tmp/$TARGET.app.bak.$(date +%s)"
-    echo "  → backing up existing → $BAK"
-    sudo mv "$INSTALL_PATH" "$BAK"
-fi
 # (M-06) 정본 경로에 직접 복사하지 않는다. 같은 부모의 staging에 완전히
 # 복사하고 검증한 뒤 rename해야, cp 실패 시 반쪽 앱이 정본으로 남지 않는다.
 rollback_install() {
     local rc=$?
     trap - ERR
     echo "  ⚠ 설치 실패(rc=$rc) — partial 설치 제거" >&2
-    sudo rm -rf "$STAGING_PATH" "$INSTALL_PATH" 2>/dev/null || true
+    sudo rm -rf "$STAGING_PATH" 2>/dev/null || true
+    # (review-0712 P2-4) 정본은 "우리가 백업으로 치워둔 경우"에만 손댄다.
+    # 백업 전 단계(staging 복사·검증)에서 실패했다면 기존 설치가 그대로
+    # 멀쩡히 자리에 있으므로 지우면 안 된다.
     if [[ -n "$BAK" && -e "$BAK" ]]; then
+        sudo rm -rf "$INSTALL_PATH" 2>/dev/null || true
         echo "  → 백업 복원: $BAK → $INSTALL_PATH" >&2
         sudo mv "$BAK" "$INSTALL_PATH" 2>/dev/null || true
     fi
@@ -308,6 +304,10 @@ rollback_install() {
 }
 trap rollback_install ERR
 
+# (review-0712 P2-4) staging 복사·검증을 "기존 설치를 치우기 전에" 끝낸다.
+# 예전엔 정본을 먼저 /tmp로 옮긴 뒤 복사해서, cp·검증 도중 강제 종료나 전원
+# 차단이 나면 정본 경로가 통째로 빈 채 남았다(IME가 사라짐). 이제 교체 직전
+# 순간까지 기존 설치가 자리를 지킨다.
 sudo rm -rf "$STAGING_PATH"
 sudo cp -R "$RELEASE_APP" "$STAGING_PATH"
 (
@@ -315,6 +315,14 @@ sudo cp -R "$RELEASE_APP" "$STAGING_PATH"
     verify_embedded_helper_bundle "$STAGING_PATH" "$TARGET staged app"
     verify_notice_resources "$STAGING_PATH" "$TARGET staged app"
 )
+if [[ -e "$INSTALL_PATH" ]]; then
+    # 백업은 반드시 Input Methods/Applications 폴더 "밖"(/tmp)으로 —
+    # 같은 폴더의 .bak은 TIS/Spotlight가 또 하나의 앱으로 집어서
+    # 유령 항목을 만든다(2026-06-06). /tmp는 재부팅 시 자동 청소.
+    BAK="/tmp/$TARGET.app.bak.$$"
+    echo "  → backing up existing → $BAK"
+    sudo mv "$INSTALL_PATH" "$BAK"
+fi
 sudo mv "$STAGING_PATH" "$INSTALL_PATH"
 echo "  ✓ Staged, verified, and atomically installed"
 echo
@@ -369,9 +377,14 @@ fi
 echo
 
 # ─── 10. TIS verify (optional script) ───────────────
-if [[ -f /tmp/tis_verify.swift ]]; then
-    echo "→ TIS verification via /tmp/tis_verify.swift"
-    swift /tmp/tis_verify.swift "$TARGET" 2>&1 | sed 's/^/  /' || true
+# (review-0712 P2-3) 예전엔 /tmp/tis_verify.swift를 검증 없이 실행했다. /tmp는
+# 누구나 파일을 만들 수 있어(sticky bit는 "남의 파일 삭제"만 막는다) 다른
+# 프로세스가 심어둔 Swift 코드를 이 스크립트 권한으로 돌려줄 수 있었다.
+# 이제 저장소 안의 스크립트만 실행한다 — 없으면 조용히 건너뛴다.
+TIS_VERIFY="$PROJECT_ROOT/scripts/tis_verify.swift"
+if [[ -f "$TIS_VERIFY" ]]; then
+    echo "→ TIS verification via $TIS_VERIFY"
+    swift "$TIS_VERIFY" "$TARGET" 2>&1 | sed 's/^/  /' || true
     echo
 fi
 

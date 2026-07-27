@@ -11,12 +11,19 @@ import AppKit
 /// IME 보안: 외부 라이브러리(LetsMove 등) 없이 AppKit만으로 직접 구현 —
 /// 의존성을 추가하지 않는다.
 enum AppMover {
+    /// 메인 앱 bundle identifier — /Applications의 기존 항목이 "우리 앱"인지
+    /// 판별하는 기준. (review-0712 P2-1)
+    private static let mainAppBundleID = "com.hyunjincho.haneulkeyboard"
+
     static func moveToApplicationsIfNeeded() {
         let fm = FileManager.default
         let bundleURL = Bundle.main.bundleURL
         let appsDir = "/Applications"
+        // (review-0712 P2-1) 목적지 파일명은 항상 고정이다. 예전엔 실행 중인
+        // 번들의 파일명을 그대로 썼는데, 사용자가 받은 앱을 SomeApp.app으로
+        // 바꿔 실행하면 /Applications/SomeApp.app(무관한 남의 앱)을 덮어썼다.
         let destURL = URL(fileURLWithPath: appsDir, isDirectory: true)
-            .appendingPathComponent(bundleURL.lastPathComponent)
+            .appendingPathComponent("HaneulKeyboard.app")
 
         // 이미 /Applications에서 실행 중이면 아무것도 하지 않는다.
         guard !bundleURL.path.hasPrefix(appsDir + "/") else { return }
@@ -38,6 +45,18 @@ enum AppMover {
 
         do {
             if fm.fileExists(atPath: destURL.path) {
+                // (review-0712 P2-1) 덮어쓰기 전에 목적지가 진짜 우리 앱인지
+                // 확인한다. bundle ID가 다르거나 서명 Team이 다르면 남의 앱이므로
+                // 절대 건드리지 않고 중단한다(빌드 번호만 보고 교체하던 예전
+                // 로직은 무관한 앱의 데이터를 날릴 수 있었다).
+                guard isOurApp(at: destURL) else {
+                    let block = NSAlert()
+                    block.messageText = "응용 프로그램 폴더에 다른 앱이 있어요"
+                    block.informativeText = "\(destURL.path)이(가) HaneulKeyboard가 아닙니다. 안전을 위해 덮어쓰지 않고 중단했어요. 그 앱을 옮기거나 이름을 바꾼 뒤 다시 시도해 주세요."
+                    block.alertStyle = .warning
+                    block.runModal()
+                    return
+                }
                 // (H-02) 다운그레이드 방지 — /Applications의 기존 설치본이 더
                 // 최신(빌드 번호 큼)이면 확인받는다. 취소하면 기존 최신본을 열고
                 // 현재(구버전) 인스턴스는 종료한다.
@@ -105,6 +124,16 @@ enum AppMover {
                 NSApp.terminate(nil)
             }
         }
+    }
+
+    /// (review-0712 P2-1) 목적지 번들이 우리 제품인가.
+    /// ① bundle ID가 우리 것이고 ② (Release) 코드 서명이 유효하며 메인 앱과
+    /// 같은 Team Identifier일 때만 true. 하나라도 어긋나면 남의 앱으로 보고
+    /// 교체하지 않는다. Debug 빌드는 미서명이라 ②를 건너뛰지만(IMEInstaller와
+    /// 같은 정책) ①은 그대로 적용된다.
+    private static func isOurApp(at url: URL) -> Bool {
+        guard Bundle(url: url)?.bundleIdentifier == mainAppBundleID else { return false }
+        return IMEInstaller.isSameTeamSignedBundle(at: url)
     }
 
     /// 번들의 빌드 번호(CFBundleVersion, 단조증가 정수). 다운그레이드 판별용. (H-02)

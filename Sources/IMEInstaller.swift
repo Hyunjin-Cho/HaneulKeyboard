@@ -57,6 +57,13 @@ enum IMEInstaller {
     /// (메인 앱+IME가 같은 Team이면) 정상 동작하고, 우리와 다른 Team의 외부
     /// 번들만 거부된다. Debug: 미서명 개발 빌드를 위해 검사를 건너뛴다.
     static func isTrustedIMEBundle(at url: URL) -> Bool {
+        isSameTeamSignedBundle(at: url)
+    }
+
+    /// 위 신뢰 검사의 범용 형태 — "유효하게 서명됐고 메인 앱과 같은 Team인가".
+    /// IME 번들뿐 아니라 메인 앱 자신을 교체할 때(AppMover)도 같은 기준이
+    /// 필요해 분리했다. (review-0712 P2-1)
+    static func isSameTeamSignedBundle(at url: URL) -> Bool {
         #if DEBUG
         return true
         #else
@@ -97,6 +104,26 @@ enum IMEInstaller {
               let s = bundle.infoDictionary?["CFBundleVersion"] as? String,
               let n = Int(s) else { return nil }
         return n
+    }
+
+    /// (review-0712 P2-2) system 도메인이 canonical일 때 남아있는 user 도메인
+    /// 잔재를 정리한다. 예전엔 `try?`로 삭제 실패를 통째로 버려서, 입력 소스
+    /// 중복이 남은 채로 설치가 "성공"으로 보고됐다. 이제 실패를 로그로 남기고,
+    /// 파일이 남더라도 LaunchServices 등록은 반드시 빼서 picker 중복 노출만은
+    /// 막는다. (system 번들이 정상인 한 설치 자체는 계속 진행하는 게 맞다 —
+    /// 잔재는 부가 정리 대상이지 설치 실패 사유가 아니다.)
+    /// 호출 계약: `stopIMEProcess()`를 쓰므로 메인 스레드에서 부르면 안 된다.
+    private static func removeUserDomainLeftover() {
+        stopIMEProcess()
+        do {
+            try FileManager.default.removeItem(at: installURL)
+        } catch {
+            haneulLog("HaneulKeyboard: user 도메인 IME 잔재 삭제 실패 — \(error.localizedDescription)")
+        }
+        if FileManager.default.fileExists(atPath: installURL.path) {
+            haneulLog("HaneulKeyboard: user 도메인 IME 잔재가 남음 — 등록 해제만 수행 (\(installURL.path))")
+        }
+        unregisterFromLaunchServices(at: installURL)
     }
 
     /// (H-03) 실행 중인 IME 프로세스를 확실히 종료한다 — 업그레이드 교체 전 호출.
@@ -168,9 +195,7 @@ enum IMEInstaller {
                 // canonical이므로 정지 후 잔재를 제거하고, 아래 system 번들
                 // 재등록/활성화에서 IMK가 새로 기동한다. (leftover가 있을 때만
                 // 정지하므로 평상시 실행 경로엔 영향 없음.)
-                stopIMEProcess()
-                try? FileManager.default.removeItem(at: installURL)
-                unregisterFromLaunchServices(at: installURL)
+                removeUserDomainLeftover()
             }
             try registerWithLaunchServices(at: systemInstallURL)
             return systemInstallURL
@@ -237,9 +262,7 @@ enum IMEInstaller {
                 throw IMEInstallError.installedBundleUntrusted(systemInstallURL.path)
             }
             if FileManager.default.fileExists(atPath: installURL.path) {
-                stopIMEProcess()
-                try? FileManager.default.removeItem(at: installURL)
-                unregisterFromLaunchServices(at: installURL)
+                removeUserDomainLeftover()
             }
             try registerWithLaunchServices(at: systemInstallURL)
             return systemInstallURL
