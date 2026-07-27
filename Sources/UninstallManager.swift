@@ -18,12 +18,26 @@ import Foundation
 enum Uninstaller {
     struct Outcome {
         let killedProcess: Bool
-        let removedBundle: Bool
+        /// IME 번들(시스템/사용자 도메인) 삭제 성공 여부.
+        let removedIMEBundle: Bool
+        /// 메인 앱(/Applications) 삭제 성공 여부.
+        let removedMainApp: Bool
+        /// (review-0712 P2-2) IME 삭제가 실패해 메인 앱을 **일부러 남겼는가**.
+        /// 남겨야 사용자가 같은 화면에서 "전체 제거"를 다시 누를 수 있다.
+        let keptMainAppForRetry: Bool
         let unregisteredLS: Bool
         let clearedUserDefaults: Bool
         /// True if the user still has the input source enabled in System
         /// Settings — we can detect this even after removing the bundle.
         let stillEnabledInPicker: Bool
+
+        /// (review-0712 P2-2) "완료" 문구는 모든 필수 단계가 성공했을 때만.
+        /// 예전엔 `stillEnabledInPicker` 하나만 보고 삭제가 실패해도 "모두
+        /// 삭제됐습니다"라고 말했다.
+        var fullyRemoved: Bool {
+            removedIMEBundle && removedMainApp && unregisteredLS
+                && clearedUserDefaults && !stillEnabledInPicker
+        }
     }
 
     private static let bundleID = "com.hyunjincho.inputmethod.haneul"
@@ -74,14 +88,30 @@ enum Uninstaller {
         // 지워진 중복/개명 설치본은 두 번째 스캔에 안 잡혀 등록 해제가 누락됐다.
         let targetAppURLs = mainAppURLs()
         let killed = killIMEProcess()
-        let removed = removeBundle(appURLs: targetAppURLs)
+        let removedIME = removeIMEBundles()
         let unregistered = unregisterFromLaunchServices(appURLs: targetAppURLs)
         let cleared = clearUserDefaults()
+
+        // (review-0712 P2-2) 메인 앱은 **마지막에**, 그리고 IME 삭제가 성공했을
+        // 때만 지운다. 예전엔 admin 암호창을 취소해 IME가 그대로 남아도 메인 앱을
+        // 지워버려서, 다시 시도할 관리 앱이 사라졌다(재다운로드 전엔 복구 불가).
+        // LaunchServices·설정 정리 실패는 앱 없이도 복구되므로 차단 사유가 아니다.
+        let removedMainApp: Bool
+        let keptForRetry: Bool
+        if removedIME {
+            removedMainApp = removeMainApps(appURLs: targetAppURLs)
+            keptForRetry = false
+        } else {
+            removedMainApp = false
+            keptForRetry = true
+        }
         let stillEnabled = isInputSourceStillEnabled()
 
         return Outcome(
             killedProcess: killed,
-            removedBundle: removed,
+            removedIMEBundle: removedIME,
+            removedMainApp: removedMainApp,
+            keptMainAppForRetry: keptForRetry,
             unregisteredLS: unregistered,
             clearedUserDefaults: cleared,
             stillEnabledInPicker: stillEnabled
@@ -105,7 +135,10 @@ enum Uninstaller {
         }
     }
 
-    private static func removeBundle(appURLs: [URL]) -> Bool {
+    /// IME 번들 삭제(시스템 도메인 + 사용자 도메인). (review-0712 P2-2)
+    /// 삭제 호출이 성공을 반환해도 **실제로 사라졌는지**까지 확인한다 —
+    /// admin 헬퍼가 성공을 돌려주고도 경로가 남는 경우를 잡기 위해서다.
+    private static func removeIMEBundles() -> Bool {
         var ok = true
         // System-domain bundle (root-owned): admin password prompt.
         // The old code only checked the user domain and reported success
@@ -124,10 +157,18 @@ enum Uninstaller {
                 ok = false
             }
         }
-        // (#11/M-07) 메인 앱 본체 (/Applications) — 기존 코드는 IME 번들만 지우고
-        // 메인 앱을 안 지워 Launchpad에 남았다(중복/잔재의 핵심 원인). 이제
-        // bundle ID로 식별한 모든 설치본(파일명 바뀐 것 포함)을 지운다. root
-        // 소유면 일반 삭제가 실패하므로 admin 프롬프트로 재시도.
+        if FileManager.default.fileExists(atPath: systemInstallURL.path) { ok = false }
+        if FileManager.default.fileExists(atPath: installURL.path) { ok = false }
+        return ok
+    }
+
+    /// (#11/M-07) 메인 앱 본체 (/Applications) — 기존 코드는 IME 번들만 지우고
+    /// 메인 앱을 안 지워 Launchpad에 남았다(중복/잔재의 핵심 원인). 이제
+    /// bundle ID로 식별한 모든 설치본(파일명 바뀐 것 포함)을 지운다. root
+    /// 소유면 일반 삭제가 실패하므로 admin 프롬프트로 재시도.
+    /// (review-0712 P2-2) 여기도 삭제 후 실제 소멸을 확인한다.
+    private static func removeMainApps(appURLs: [URL]) -> Bool {
+        var ok = true
         for app in appURLs {
             guard FileManager.default.fileExists(atPath: app.path) else { continue }
             do {
@@ -137,8 +178,10 @@ enum Uninstaller {
                     try IMEInstaller.removeWithAdminPrivileges(path: app.path)
                 } catch {
                     ok = false
+                    continue
                 }
             }
+            if FileManager.default.fileExists(atPath: app.path) { ok = false }
         }
         return ok
     }
