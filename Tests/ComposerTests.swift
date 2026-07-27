@@ -120,6 +120,41 @@ func runDictionaryProbe(_ wordlistPath: String, _ label: String) -> Bool {
     return output == "true"
 }
 
+// MARK: - 사전 manifest (review-0712 P3-5)
+
+/// `dict_work/dict_manifest.tsv` 한 줄 — 번들 영어 사전 하나의 계약.
+struct DictManifestEntry {
+    let name: String
+    let role: String        // "curated" (curated+broad) | "broad" (broad 전용)
+    let minWords: Int
+    let sampleWord: String
+
+    var path: String { "Resources/IM/\(name).txt" }
+}
+
+/// 런타임(`EnglishDetector`)·이 테스트·검역(`audit_wordlist.sh`)이 공유하는
+/// 사전 목록의 **정본**. 예전엔 세 군데가 각자 목록을 들고 있어서
+/// `english_sports_geo.txt`(28,360줄)가 런타임에만 있고 테스트·검역에서는
+/// 빠져도 아무도 몰랐다. 이제 어긋나면 이 파일의 assertion이 실패한다.
+enum DictManifest {
+    static let path = "dict_work/dict_manifest.tsv"
+
+    static func load() -> [DictManifestEntry] {
+        guard let text = try? String(contentsOfFile: path, encoding: .utf8) else { return [] }
+        var entries: [DictManifestEntry] = []
+        for raw in text.split(separator: "\n") {
+            let line = raw.trimmingCharacters(in: .whitespaces)
+            guard !line.isEmpty, !line.hasPrefix("#") else { continue }
+            let cols = line.split(separator: "\t").map { String($0).trimmingCharacters(in: .whitespaces) }
+            guard cols.count >= 4, let minWords = Int(cols[2]) else { continue }
+            entries.append(DictManifestEntry(
+                name: cols[0], role: cols[1], minWords: minWords, sampleWord: cols[3]
+            ))
+        }
+        return entries
+    }
+}
+
 // MARK: - Tests
 
 @main
@@ -153,22 +188,23 @@ struct ComposerTests {
         let hasNames = FileManager.default.fileExists(atPath: pendingNames)
         let hasNamesExtra = FileManager.default.fileExists(atPath: pendingNamesExtra)
 
-        // 실제 번들 보충 사전도 포함 (xcode/kpop 등) — 테스트는 repo 루트에서 실행됨
+        // 실제 번들 사전도 포함 — 테스트는 repo 루트에서 실행됨.
+        // (review-0712 P3-5) 목록을 여기 하드코딩하지 않고 정본 manifest에서
+        // 읽는다. 예전엔 english_sports_geo.txt가 런타임에만 있고 여기엔 없어서,
+        // 28,360줄짜리 사전이 통째로 빠져도 테스트가 통과했다.
+        let manifestEntries = DictManifest.load()
         var wordlists = [
             "/usr/share/dict/words",
-            "Resources/IM/english_supplement.txt",
             supplementPath,
             namesFixturePath, // broad 전용 — 아래 curated에 미등록 (의도)
         ]
         // 화이트리스트 방식(fail-safe): curated로 신뢰할 경로만 명시 등록.
-        var curated: Set<String> = [
-            "Resources/IM/english_supplement.txt",
-            supplementPath,
-        ]
-        if hasCommon { wordlists.append(pendingCommon); curated.insert(pendingCommon) }
-        if hasModern { wordlists.append(pendingModern) } // broad 전용 — curated 미등록
-        if hasNames { wordlists.append(pendingNames) }
-        if hasNamesExtra { wordlists.append(pendingNamesExtra) }
+        var curated: Set<String> = [supplementPath]
+        for entry in manifestEntries
+        where FileManager.default.fileExists(atPath: entry.path) {
+            wordlists.append(entry.path)
+            if entry.role == "curated" { curated.insert(entry.path) }
+        }
         EnglishDetector.wordlistPaths = wordlists
         EnglishDetector.curatedPaths = curated
         // v3 한국어 veto 사전 (우리말샘 추출본, repo 루트 기준)
@@ -502,6 +538,33 @@ struct ComposerTests {
         expect(hasModern, true, "배포 필수 리소스: english_modern.txt 존재")
         expect(hasNames, true, "배포 필수 리소스: english_names.txt 존재")
         expect(hasNamesExtra, true, "배포 필수 리소스: english_names_extra.txt 존재")
+
+        // ── 사전 manifest 정합성 (review-0712 P3-5) ──
+        // 런타임·테스트·검역이 같은 목록을 보는지 확인한다. manifest만 고치면
+        // 세 곳이 함께 따라오고, 어긋나면 여기서 걸린다.
+        expect(manifestEntries.isEmpty, false, "manifest: \(DictManifest.path) 로드")
+        expect(
+            manifestEntries.map(\.name).joined(separator: ","),
+            EnglishDetector.bundledWordlistNames.joined(separator: ","),
+            "manifest: 런타임 wordlistPaths 목록과 일치"
+        )
+        expect(
+            manifestEntries.filter { $0.role == "curated" }.map(\.name).joined(separator: ","),
+            EnglishDetector.curatedWordlistNames.joined(separator: ","),
+            "manifest: 런타임 curated 역할과 일치"
+        )
+        for entry in manifestEntries {
+            let words = wordsInFile(entry.path)
+            expect(words.isEmpty, false, "manifest: \(entry.name).txt 존재·비어있지 않음")
+            expect(
+                words.count >= entry.minWords, true,
+                "manifest: \(entry.name) 최소 \(entry.minWords)단어 (실제 \(words.count))"
+            )
+            expect(
+                words.contains(entry.sampleWord), true,
+                "manifest: \(entry.name) 대표어 '\(entry.sampleWord)'"
+            )
+        }
         if hasCommon {
             let commonSet = wordsInFile(pendingCommon)
             // city(챠쇼)/with(쟈소): clean 한글 — 문맥(R2-clean)도, 무맥락도
@@ -678,6 +741,135 @@ struct ComposerTests {
         expect(EnglishDetector.shouldConvert(units: ["ㅕ","ㄹ","ㅊ"], keys: Array("ufc")), true, "약어: ufc(ㅕㄹㅊ)")
         expect(EnglishDetector.shouldConvert(units: ["ㅔ","ㄴ","ㅎ"], keys: Array("psg")), true, "약어: psg(ㅔㄴㅎ)")
         expect(EnglishDetector.shouldConvert(units: ["ㅍ","ㅁ","ㄱ"], keys: Array("var")), true, "약어: var(ㅍㅁㄱ)")
+
+        // ═══ 설치·제거 결정 로직 (review-0712 P3-8) ═══
+        // 파일을 실제로 옮기거나 지우지 않고 "무엇을 결정하는가"만 검증한다.
+        // 리뷰가 잡은 P2 두 건이 바로 이 판단들에서 났는데, 예전엔 컴파일만
+        // 되고 행동 테스트가 없어서 213개 통과 상태로 숨어 있었다.
+
+        // ── 앱 이동: 목적지는 항상 고정 이름 (P2-1) ──
+        expect(
+            AppMoveDecision.destinationURL().path, "/Applications/HaneulKeyboard.app",
+            "앱 이동: 목적지 파일명 고정"
+        )
+        expect(
+            AppMoveDecision.destinationURL(applicationsDir: "/tmp/apps").path,
+            "/tmp/apps/HaneulKeyboard.app", "앱 이동: 목적지 디렉터리 반영"
+        )
+
+        // ── 앱 이동: 이미 제자리인가 ──
+        expect(
+            AppMoveDecision.isAlreadyInPlace(bundlePath: "/Applications/HaneulKeyboard.app"),
+            true, "앱 이동: /Applications 안이면 이동 안 함"
+        )
+        expect(
+            AppMoveDecision.isAlreadyInPlace(bundlePath: "/Applications/Renamed.app"),
+            true, "앱 이동: /Applications 안이면 이름이 달라도 이동 안 함"
+        )
+        expect(
+            AppMoveDecision.isAlreadyInPlace(bundlePath: "/Users/x/Downloads/HaneulKeyboard.app"),
+            false, "앱 이동: 다운로드 폴더는 이동 대상"
+        )
+        expect(
+            AppMoveDecision.isAlreadyInPlace(
+                bundlePath: "/private/var/folders/ab/AppTranslocation/X/d/HaneulKeyboard.app"
+            ),
+            false, "앱 이동: translocated 임시본은 이동 대상"
+        )
+        expect(
+            AppMoveDecision.isAlreadyInPlace(bundlePath: "/ApplicationsBackup/HaneulKeyboard.app"),
+            false, "앱 이동: /ApplicationsBackup은 제자리가 아님(접두어 함정)"
+        )
+
+        // ── 앱 이동: 목적지를 덮어써도 되는가 (P2-1 회귀 방지) ──
+        expect(
+            AppMoveDecision.canReplaceDestination(
+                destinationBundleID: "com.hyunjincho.haneulkeyboard", isSameTeamSigned: true
+            ),
+            true, "앱 이동: 우리 앱 + 같은 Team → 교체 허용"
+        )
+        expect(
+            AppMoveDecision.canReplaceDestination(
+                destinationBundleID: "com.someone.other", isSameTeamSigned: true
+            ),
+            false, "앱 이동: 관계없는 앱은 서명이 유효해도 교체 금지"
+        )
+        expect(
+            AppMoveDecision.canReplaceDestination(
+                destinationBundleID: "com.hyunjincho.haneulkeyboard", isSameTeamSigned: false
+            ),
+            false, "앱 이동: bundle ID가 같아도 Team이 다르면 교체 금지"
+        )
+        expect(
+            AppMoveDecision.canReplaceDestination(destinationBundleID: nil, isSameTeamSigned: true),
+            false, "앱 이동: bundle ID를 못 읽으면 교체 금지"
+        )
+
+        // ── 전체 제거: 메인 앱을 지워도 되는가 (P2-2 회귀 방지) ──
+        expect(
+            UninstallDecision.shouldRemoveMainApp(removedIMEBundle: true),
+            true, "제거: IME 삭제 성공 → 메인 앱도 삭제"
+        )
+        expect(
+            UninstallDecision.shouldRemoveMainApp(removedIMEBundle: false),
+            false, "제거: IME 삭제 실패 → 메인 앱 보존(재시도 수단)"
+        )
+
+        // ── 전체 제거: 결과 판정과 문구 ──
+        func outcome(
+            killed: Bool = true, ime: Bool = true, mainApp: Bool = true, kept: Bool = false,
+            ls: Bool = true, defaults: Bool = true, picker: Bool = false
+        ) -> UninstallOutcome {
+            UninstallOutcome(
+                killedProcess: killed, removedIMEBundle: ime, removedMainApp: mainApp,
+                keptMainAppForRetry: kept, unregisteredLS: ls,
+                clearedUserDefaults: defaults, stillEnabledInPicker: picker
+            )
+        }
+
+        let allOK = outcome()
+        expect(allOK.fullyRemoved, true, "제거 결과: 전 단계 성공이면 fullyRemoved")
+        expect(allOK.statusText.contains("완료."), true, "제거 결과: 완료 문구")
+
+        // 관리자 암호창 취소 → IME가 남음 → 메인 앱 보존 + 재시도 안내
+        let adminCancelled = outcome(ime: false, mainApp: false, kept: true)
+        expect(adminCancelled.fullyRemoved, false, "제거 결과: IME 삭제 실패면 완료 아님")
+        expect(
+            adminCancelled.statusText.contains("다시 실행"), true,
+            "제거 결과: 재시도 안내 문구"
+        )
+        expect(
+            adminCancelled.statusText.contains("건너뜀(재시도용 보존)"), true,
+            "제거 결과: 메인 앱 보존을 그대로 표시"
+        )
+        expect(
+            adminCancelled.statusText.contains("완료."), false,
+            "제거 결과: 실패했는데 완료라고 말하지 않음"
+        )
+
+        // 입력 소스가 picker에 남아있음 → 시스템 설정 안내
+        let stillEnabled = outcome(picker: true)
+        expect(stillEnabled.fullyRemoved, false, "제거 결과: picker에 남으면 완료 아님")
+        expect(
+            stillEnabled.statusText.contains("시스템 설정"), true,
+            "제거 결과: picker 정리 안내"
+        )
+
+        // LaunchServices 등록 해제 실패 → 부분 실패로 정직하게 보고
+        let lsFailed = outcome(ls: false)
+        expect(lsFailed.fullyRemoved, false, "제거 결과: LS 등록 해제 실패면 완료 아님")
+        expect(
+            lsFailed.statusText.contains("완료."), false,
+            "제거 결과: LS 실패 시 완료 문구 없음"
+        )
+        expect(
+            lsFailed.statusText.contains("일부 단계가 실패"), true,
+            "제거 결과: 부분 실패 안내"
+        )
+
+        // 설정 초기화 실패도 동일하게 완료로 처리하지 않는다
+        let defaultsFailed = outcome(defaults: false)
+        expect(defaultsFailed.fullyRemoved, false, "제거 결과: 설정 초기화 실패면 완료 아님")
 
         print("\(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)

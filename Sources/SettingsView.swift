@@ -150,39 +150,12 @@ struct SettingsView: View {
             }
         } message: {
             if let r = uninstallResult {
-                Text(Self.uninstallStatusText(r))
+                // (review-0712 P3-8) 문구 생성은 `UninstallOutcome.statusText`
+                // (InstallDecisions.swift)에 있다 — 테스트 하네스가 검증한다.
+                Text(r.statusText)
             } else {
                 Text("")
             }
         }
-    }
-
-    /// (review-0712 P2-2) 제거 결과 문구. 단계별 성패를 그대로 보여주고,
-    /// "완료"는 모든 필수 단계가 성공했을 때만 말한다. 예전엔 삭제가 실패해도
-    /// picker 상태만 보고 "모두 삭제됐습니다"라고 안내했다.
-    /// (ViewBuilder 밖의 순수 함수 — alert message는 문자열만 받는다.)
-    private static func uninstallStatusText(_ r: Uninstaller.Outcome) -> String {
-        let tail: String
-        if r.keptMainAppForRetry {
-            tail = "IME 번들을 지우지 못해 메인 앱은 남겨뒀어요(암호 창을 취소했거나 권한이 부족했을 수 있어요). 이 앱에서 \"전체 제거\"를 다시 실행해 주세요."
-        } else if r.stillEnabledInPicker {
-            tail = "마지막 단계 — 시스템 설정 → 키보드 → 입력 소스에서 \"하늘키보드 (두벌식)\"을 \"-\" 로 제거한 뒤 재부팅하세요."
-        } else if r.fullyRemoved {
-            tail = "완료. 메인 앱·IME·설정이 모두 삭제됐습니다. 입력 소스 목록을 완전히 비우려면 재부팅하세요."
-        } else {
-            tail = "일부 단계가 실패했어요. 위 목록에서 \"실패\" 항목을 확인한 뒤, 남은 파일은 scripts/uninstall.sh로 정리할 수 있어요."
-        }
-        let mainAppLine = r.keptMainAppForRetry
-            ? "건너뜀(재시도용 보존)"
-            : (r.removedMainApp ? "OK" : "실패")
-        return """
-        IME 프로세스 종료: \(r.killedProcess ? "OK" : "—")
-        IME 번들 삭제: \(r.removedIMEBundle ? "OK" : "실패")
-        메인 앱 삭제: \(mainAppLine)
-        LaunchServices 등록 해제: \(r.unregisteredLS ? "OK" : "실패")
-        사용자 설정 초기화: \(r.clearedUserDefaults ? "OK" : "실패")
-
-        \(tail)
-        """
     }
 }

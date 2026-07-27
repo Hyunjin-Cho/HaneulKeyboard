@@ -37,19 +37,31 @@ enum EnglishDetector {
     /// the subset registered in `curatedPaths` additionally feeds the
     /// CURATED set (the only source clean-Hangul rules R5/R2-clean trust).
     /// Bundle files not shipped yet are skipped naturally (path nil).
+    /// 번들 사전 6종 — 역할 분담:
+    ///   english_supplement  : curated + broad (수작업 현대어/기술어)
+    ///   english_common      : curated + broad (NGSL 고빈도 일상어)
+    ///   english_modern      : broad 전용 (SCOWL 70/US — web2에 없는 현대어)
+    ///   english_names       : broad 전용 (Census/SSA 인명)
+    ///   english_names_extra : broad 전용 (수작업 유명인)
+    ///   english_sports_geo  : broad 전용 (북미·유럽 지명 + 9리그 축구 클럽·
+    ///                         선수 + 약어. GeoNames CC-BY + Wikidata CC0.
+    ///                         검역 Tier A/B=0 → clean 충돌 없음, broad 전용)
+    ///
+    /// (review-0712 P3-5) 이 목록의 **정본은 `dict_work/dict_manifest.tsv`**다.
+    /// 런타임은 번들 리소스를 못 읽는 상황을 피하려고 이름을 그대로 들고 있고,
+    /// manifest와 어긋나면 `scripts/run_ime_tests.sh`가 실패한다. 사전을
+    /// 추가·제거할 땐 manifest를 먼저 고칠 것.
+    static let bundledWordlistNames = [
+        "english_supplement", "english_common", "english_modern",
+        "english_names", "english_names_extra", "english_sports_geo",
+    ]
+
+    /// 위 중 curated 역할(= clean-Hangul 룰이 신뢰하는) 사전 이름.
+    static let curatedWordlistNames = ["english_supplement", "english_common"]
+
     nonisolated(unsafe) static var wordlistPaths: [String] = {
         var paths = ["/usr/share/dict/words"]
-        // 번들 사전 5종 — 역할 분담:
-        //   english_supplement  : curated + broad (수작업 현대어/기술어)
-        //   english_common      : curated + broad (NGSL 고빈도 일상어)
-        //   english_modern      : broad 전용 (SCOWL 70/US — web2에 없는 현대어)
-        //   english_names       : broad 전용 (Census/SSA 인명)
-        //   english_names_extra : broad 전용 (수작업 유명인)
-        //   english_sports_geo  : broad 전용 (북미·유럽 지명 + 9리그 축구 클럽·
-        //                         선수 + 약어. GeoNames CC-BY + Wikidata CC0.
-        //                         검역 Tier A/B=0 → clean 충돌 없음, broad 전용)
-        for name in ["english_supplement", "english_common", "english_modern",
-                     "english_names", "english_names_extra", "english_sports_geo"] {
+        for name in bundledWordlistNames {
             if let bundled = Bundle.main.path(forResource: name, ofType: "txt") {
                 paths.append(bundled)
             }
@@ -66,7 +78,7 @@ enum EnglishDetector {
     /// 불가능하다 (NGSL 2,786개만 전수 검역을 통과해 curated 자격).
     nonisolated(unsafe) static var curatedPaths: Set<String> = {
         var set = Set<String>()
-        for name in ["english_supplement", "english_common"] {
+        for name in curatedWordlistNames {
             if let bundled = Bundle.main.path(forResource: name, ofType: "txt") {
                 set.insert(bundled)
             }

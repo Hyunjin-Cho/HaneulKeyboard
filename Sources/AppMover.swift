@@ -11,22 +11,18 @@ import AppKit
 /// IME 보안: 외부 라이브러리(LetsMove 등) 없이 AppKit만으로 직접 구현 —
 /// 의존성을 추가하지 않는다.
 enum AppMover {
-    /// 메인 앱 bundle identifier — /Applications의 기존 항목이 "우리 앱"인지
-    /// 판별하는 기준. (review-0712 P2-1)
-    private static let mainAppBundleID = "com.hyunjincho.haneulkeyboard"
-
     static func moveToApplicationsIfNeeded() {
         let fm = FileManager.default
         let bundleURL = Bundle.main.bundleURL
-        let appsDir = "/Applications"
-        // (review-0712 P2-1) 목적지 파일명은 항상 고정이다. 예전엔 실행 중인
-        // 번들의 파일명을 그대로 썼는데, 사용자가 받은 앱을 SomeApp.app으로
-        // 바꿔 실행하면 /Applications/SomeApp.app(무관한 남의 앱)을 덮어썼다.
-        let destURL = URL(fileURLWithPath: appsDir, isDirectory: true)
-            .appendingPathComponent("HaneulKeyboard.app")
+        // (review-0712 P2-1 / P3-8) 목적지 파일명은 항상 고정이고, 그 판단은
+        // `AppMoveDecision`(InstallDecisions.swift)에 있다 — 테스트 하네스가
+        // 검증한다. 예전엔 실행 중인 번들의 파일명을 그대로 목적지로 써서,
+        // 사용자가 받은 앱을 SomeApp.app으로 바꿔 실행하면
+        // /Applications/SomeApp.app(무관한 남의 앱)을 덮어썼다.
+        let destURL = AppMoveDecision.destinationURL()
 
         // 이미 /Applications에서 실행 중이면 아무것도 하지 않는다.
-        guard !bundleURL.path.hasPrefix(appsDir + "/") else { return }
+        guard !AppMoveDecision.isAlreadyInPlace(bundlePath: bundleURL.path) else { return }
 
         let alert = NSAlert()
         alert.messageText = "HaneulKeyboard를 응용 프로그램 폴더로 옮길까요?"
@@ -131,9 +127,14 @@ enum AppMover {
     /// 같은 Team Identifier일 때만 true. 하나라도 어긋나면 남의 앱으로 보고
     /// 교체하지 않는다. Debug 빌드는 미서명이라 ②를 건너뛰지만(IMEInstaller와
     /// 같은 정책) ①은 그대로 적용된다.
+    /// bundle ID부터 확인해 아닐 때 서명 검사(느림)를 건너뛴다.
     private static func isOurApp(at url: URL) -> Bool {
-        guard Bundle(url: url)?.bundleIdentifier == mainAppBundleID else { return false }
-        return IMEInstaller.isSameTeamSignedBundle(at: url)
+        guard let bundleID = Bundle(url: url)?.bundleIdentifier,
+              bundleID == AppMoveDecision.mainAppBundleID else { return false }
+        return AppMoveDecision.canReplaceDestination(
+            destinationBundleID: bundleID,
+            isSameTeamSigned: IMEInstaller.isSameTeamSignedBundle(at: url)
+        )
     }
 
     /// 번들의 빌드 번호(CFBundleVersion, 단조증가 정수). 다운그레이드 판별용. (H-02)
