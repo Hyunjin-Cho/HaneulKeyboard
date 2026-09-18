@@ -302,7 +302,12 @@ enum EnglishDetector {
         // 여기서 막지 못하면 실존 한국어가 그대로 영어가 된다.
         // 🚨 2026-09-19: got을 C 등급에 넣자마자 "commit goT"의 **했**이 got으로
         // 깨졌다(테스트가 잡음). 그래서 가드를 S 전용이 아니라 셋 공통으로 둔다.
-        let hasShiftKey = keys.contains { $0.isUppercase }
+        // 🚨 2026-09-19 리뷰(H-3): "대문자 = Shift = 한국어 의도"는 두벌식에서 Shift가 실제로
+        // 다른 자모를 내는 키(Q W E R T → 쌍자음, O P → ㅒ ㅖ)에만 성립한다. 나머지 키는
+        // Shift가 no-op이라(KeyboardLayout2Set 주석 참조) 화면의 한글이 소문자와 완전히 같다 —
+        // 그런데 초판 가드가 모든 대문자를 막아 "i Go"·"to Do"·"go dowN"이 종전과 달리
+        // 보호되는 회귀가 났다. 자모가 바뀌는 7키의 대문자만 Shift 증거로 센다.
+        let hasShiftKey = keys.contains { $0.isUppercase && "QWERTOP".contains($0) }
         // S(단독): 한글형이 사실상 안 쓰이는 희귀어 → 문맥 무관 변환.
         // 비슬랭 + 2음절↑ 또는 키 3개↑ (선언부 가드 설명 참조).
         if !hasShiftKey, standaloneOverrideEnglish.contains(word),
@@ -429,7 +434,10 @@ enum EnglishDetector {
         //   how [are] you → ㅁㄱㄷ(깨짐, broad OK) → are
         //   the [auto]    → 며새(clean, curated 등재) → auto
         if prevEnglish {
-            if !hasShiftKey { // 위 등급 공통 가드와 같은 값 (2026-09-19 #33 통합)
+            // 여기는 종전대로 **모든** 대문자를 Shift 증거로 본다(v3 리뷰 가드 ① — 활용형 방어는
+            // 보수적으로). 위 등급 가드(QWERTOP 한정)와 기준이 다른 것은 의도다.
+            let anyUppercase = keys.contains { $0.isUppercase }
+            if !anyUppercase {
                 if brokenAsKorean, isDictWord {
                     return true
                 }

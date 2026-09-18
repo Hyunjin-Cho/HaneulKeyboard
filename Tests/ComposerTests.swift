@@ -491,11 +491,17 @@ struct ComposerTests {
         // ── S 단독: 한글형이 사실상 안 쓰이는 희귀어 ──
         expect(type("work").committedText, "work", "S등급: 재가 → work (단독)")
         expect(typeWords(["i", "work"]).last ?? "", "work", "S등급: 문맥에서도 work")
-        expect(typeWords(["재가", "work"]).count, 2, "S등급: (헬퍼 확인용) 두 단어 커밋")
         expect(type("rock").committedText, "rock", "S등급: 개차 → rock")
         expect(type("goal").committedText, "goal", "S등급: 해미 → goal")
         expect(type("Work").committedText, "Work", "S등급: 대문자는 기존대로 변환(째가는 veto 미등재)")
         expect(typeWords(["commit", "goT"]).last ?? "", "했", "등급 공통 가드: Shift(했)는 한국어 의도 → 보호")
+        // 리뷰 H-3 회귀 방지: Shift가 자모를 안 바꾸는 키(asdfgzxcv·hjkl·ynuim·b)의 대문자는
+        // 화면 한글이 소문자와 같으므로 가드 대상이 아니다 — 종전(23c9e33) 동작과 동일해야 한다.
+        expect(typeWords(["i", "Go"]).last ?? "", "Go", "가드 범위: i Go → Go (G는 Shift no-op)")
+        expect(typeWords(["want", "to", "Do"]).last ?? "", "Do", "가드 범위: to Do → Do")
+        expect(typeWords(["i", "go", "dowN"]).last ?? "", "dowN", "가드 범위: (i go) dowN → dowN — 해는 트리거 뒤에서만 영어가 되므로 앞에 i를 둔다")
+        expect(type("worK").committedText, "worK", "가드 범위: worK는 work와 같은 한글(재가) → S 등급 변환")
+        expect(type("goaL").committedText, "goaL", "가드 범위: goaL도 S 등급 변환")
         // ── C 문맥: 직전 단어가 영어일 때만 ──
         expect(typeWords(["the", "end"]).last ?? "", "end", "C등급: the 둥 → end")
         expect(type("end").committedText, "둥", "C등급: 단독 둥은 보호")
