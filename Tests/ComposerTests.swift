@@ -305,9 +305,10 @@ struct ComposerTests {
         // gpt(헷): 1음절 약어 화이트리스트로 무맥락 변환
         expect(type("gpt").committedText, "gpt", "gpt 무맥락 변환(standaloneShortWords)")
         // fps: 첫 자음 shift(Fps)는 영어 의도 → 변환(대소문자 보존). 소문자
-        // (렌)는 우리말샘 등재라 veto가 보호 → 미변환. (사용자 첫자음shift안)
+        // (렌)는 우리말샘 등재라 veto가 보호했으나, 2026-09-19 (#33) S 등급이
+        // veto 위에서 잡아 이제 소문자도 변환된다(렌은 일상에서 안 쓰는 말).
         expect(type("Fps").committedText, "Fps", "fps 첫자음shift 변환")
-        expect(type("fps").committedText, "렌", "fps 소문자는 veto 보호(미변환)")
+        expect(type("fps").committedText, "fps", "fps 소문자도 S 등급으로 변환 (#33)")
         expect(type("Dlss").committedText, "Dlss", "Dlss 첫자음shift(asdfgzxcv)")
         // qwert 자리(Q=쌍비읍)는 첫자음shift 제외 — 쌍자음 입력 의도 보호
         expect(type("Qfc").committedText, "ㅃㄹㅊ", "qwert 첫자(Q)는 첫자음shift 제외")
@@ -479,14 +480,59 @@ struct ComposerTests {
         // veto 우회 override: 희귀 한자어 동형 고빈도 영어
         expect(typeWords(["more", "than"]).last ?? "", "than", "override: 소무 → than")
         expect(typeWords(["back", "when"]).last ?? "", "when", "override: 조두 → when")
-        // override 의도적 제외: 흔한 한국어 우선
-        expect(typeWords(["what", "did"]).last ?? "", "양", "override 제외: 양 보호")
+        // 2026-09-19 (#33): did=양은 T(트리거) 등급 — what/I 같은 트리거 뒤에서만.
+        // 트리거가 아닌 영어 뒤("render 양이")는 그대로 보호된다.
+        expect(typeWords(["what", "did"]).last ?? "", "did", "T등급: what 양 → did")
+        expect(typeWords(["render", "did"]).last ?? "", "양", "T등급: render 양 보호(데이터 양)")
+
+        // ═══ veto 우회 정책 등급 S/C/T (#33, 2026-09-19) ═══
+        // 실측: curated 2,999개 중 veto 충돌 13개(완전 차단 6). 공식이 아니라 단어별
+        // 등급으로 푼다. 오변환 보호(Shift·트리거 밖·단독)를 변환과 같은 무게로 못 박는다.
+        // ── S 단독: 한글형이 사실상 안 쓰이는 희귀어 ──
+        expect(type("work").committedText, "work", "S등급: 재가 → work (단독)")
+        expect(typeWords(["i", "work"]).last ?? "", "work", "S등급: 문맥에서도 work")
+        expect(typeWords(["재가", "work"]).count, 2, "S등급: (헬퍼 확인용) 두 단어 커밋")
+        expect(type("rock").committedText, "rock", "S등급: 개차 → rock")
+        expect(type("goal").committedText, "goal", "S등급: 해미 → goal")
+        expect(type("Work").committedText, "Work", "S등급: 대문자는 기존대로 변환(째가는 veto 미등재)")
+        expect(typeWords(["commit", "goT"]).last ?? "", "했", "등급 공통 가드: Shift(했)는 한국어 의도 → 보호")
+        // ── C 문맥: 직전 단어가 영어일 때만 ──
+        expect(typeWords(["the", "end"]).last ?? "", "end", "C등급: the 둥 → end")
+        expect(type("end").committedText, "둥", "C등급: 단독 둥은 보호")
+        expect(typeWords(["you", "got"]).last ?? "", "got", "C등급: you 햇 → got")
+        expect(type("got").committedText, "햇", "C등급: 단독 햇은 보호")
+        expect(typeWords(["more", "than"]).last ?? "", "than", "C등급: 기존 7개 유지(소무 → than)")
+        // ── T 트리거: 흔한 한국어라 지정 단어 뒤에서만 ──
+        expect(typeWords(["my", "god"]).last ?? "", "god", "T등급: my 행 → god")
+        expect(typeWords(["thank", "god"]).last ?? "", "god", "T등급: thank 행 → god")
+        expect(typeWords(["render", "god"]).last ?? "", "행", "T등급: render 행 보호(3행 4열)")
+        expect(type("god").committedText, "행", "T등급: 단독 행 보호")
+        expect(typeWords(["i", "did"]).last ?? "", "did", "T등급: I 양 → did")
+        expect(type("did").committedText, "양", "T등급: 단독 양 보호")
+        expect(typeWords(["i", "go"]).last ?? "", "go", "T등급: goDo 흡수 후에도 I 해 → go")
+        expect(typeWords(["want", "to", "do"]).last ?? "", "do", "T등급: want to 애 → do 유지(to는 문맥 뒤에서만 영어)")
+        expect(typeWords(["render", "go"]).last ?? "", "해", "T등급: render 해 보호 유지")
+        // ── 구멍 ①: 굴절형이 curated에 없던 문제 ──
+        expect(type("was").committedText, "was", "굴절형: ㅈㅁㄴ → was (curated 등재)")
+        expect(type("are").committedText, "are", "굴절형: ㅁㄱㄷ → are")
+        expect(typeWords(["how", "are", "you"]).joined(separator: " "), "how are you", "굴절형: how are you 전부 변환")
+        // ── 구멍 ②: 자음 시작 2글자 단독 ──
+        expect(type("we").committedText, "we", "2글자: ㅈㄷ → we")
+        expect(type("at").committedText, "at", "2글자: ㅁㅅ → at")
+        expect(type("as").committedText, "as", "2글자: ㅁㄴ → as")
+        expect(type("a").committedText, "ㅁ", "2글자: ㅁ 단독은 보호(문맥 전용)")
+        expect(type("dd").committedText, "ㅇㅇ", "2글자: 초성체 ㅇㅇ 보호(동일키)")
+        expect(type("sd").committedText, "ㄴㅇ", "2글자: 목록에 없는 자음쌍은 유지")
+        // ── 구멍 ③: who=좨 1음절 가드 ──
+        expect(type("who").committedText, "who", "who: 좨 → who")
+        expect(typeWords(["who", "are", "you"]).joined(separator: " "), "who are you", "who: 문맥 체인")
 
         // ── v3.1: 실기기 후속 3건 (2026-06-06) ──
         // 자음열 4+ 무맥락 변환 (great이 문장 첫 단어여도)
         expect(type("great").committedText, "great", "v3.1: 무맥락 ㅎㄱㄷㅁㅅ → great")
-        // 단 3자(was/are)는 여전히 문맥 필요 — 초성체 보호 우선
-        expect(type("was").committedText, "ㅈㅁㄴ", "v3.1: 무맥락 3자는 유지")
+        // 단 3자는 curated에 있을 때만 — broad 전용(vat=ㅍㅁㅅ)은 초성체 보호 우선.
+        // (2026-09-19 #33: was/are는 curated에 등재돼 이제 무맥락 변환된다 — 아래 정책 절)
+        expect(type("vat").committedText, "ㅍㅁㅅ", "v3.1: 무맥락 3자(broad 전용)는 유지")
         // 4자+ 자음 슬랭은 사전 게이트로 보호
         expect(type("drfd").committedText, "ㅇㄱㄹㅇ", "v3.1: ㅇㄱㄹㅇ 보호")
         expect(type("asdf").committedText, "ㅁㄴㅇㄹ", "v3.1: ㅁㄴㅇㄹ 보호")
@@ -512,9 +558,9 @@ struct ComposerTests {
         // 영어(apples) 뒤에서도 발동. 단 화이트리스트-only 변환이므로 다음
         // 단어에 영어 문맥을 넘기지 않는다 (KoreanComposer whitelistOnly).
         expect(
-            typeWords(["apples", "and", "was"]).joined(separator: " "),
-            "apples and ㅈㅁㄴ",
-            "and: 문맥 비전달 (뒤 was는 ㅈㅁㄴ 유지)"
+            typeWords(["apples", "and", "vat"]).joined(separator: " "),
+            "apples and ㅍㅁㅅ",
+            "and: 문맥 비전달 (뒤 vat는 ㅍㅁㅅ 유지 — 2026-09-19 was가 curated에 들어가 예시 교체)"
         )
 
         // curatedPaths 격리 보증: broad 전용 파일(names 픽스처)의 clean 6키+
