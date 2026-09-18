@@ -10,6 +10,7 @@ BIN="$(mktemp -d)/haneul_ime_tests"
 swiftc -o "$BIN" \
   IMESources/HangulJamo.swift \
   IMESources/KeyboardLayout2Set.swift \
+  IMESources/Contractions.swift \
   IMESources/KoreanComposer.swift \
   IMESources/EnglishDetector.swift \
   IMESources/KoreanDictionary.swift \

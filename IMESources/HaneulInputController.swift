@@ -210,6 +210,16 @@ final class HaneulInputController: IMKInputController {
             return composer.handleInput(String(inputChar), client: composerClient)
         }
 
+        // 2026-09-19 (#34): 조합 중의 `'`는 경계가 아니라 단어 내부 문자다 —
+        // i'm·don't 같은 축약형을 통째로 변환하려면 `'`가 단어에 붙어 있어야
+        // 한다. 단어가 비어 있거나(여는 따옴표 `'안녕`) 이미 `'`가 있으면
+        // composer가 false를 돌려주고, 그대로 아래 기존 경계 처리로 흘러간다.
+        // (L-02와 같은 이유로 실제 출력 문자 기준 — Shift+'는 `"`라 안 걸린다.)
+        if let typed = event.characters?.first, Contractions.isApostrophe(typed),
+           composer.handleApostrophe(typed, client: composerClient) {
+            return true
+        }
+
         // Active boundary: the user typed a non-jamo key (space, punctuation,
         // digit, Enter...) — the only path where English auto-conversion may
         // fire. Re-read the toggle so Settings changes apply immediately.

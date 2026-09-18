@@ -74,6 +74,7 @@ BIN="$WORK/wordlist_audit"
 swiftc -O -o "$BIN" \
   IMESources/HangulJamo.swift \
   IMESources/KeyboardLayout2Set.swift \
+  IMESources/Contractions.swift \
   IMESources/KoreanComposer.swift \
   IMESources/EnglishDetector.swift \
   IMESources/KoreanDictionary.swift \
