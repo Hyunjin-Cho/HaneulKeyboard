@@ -885,6 +885,79 @@ struct ComposerTests {
         let defaultsFailed = outcome(defaults: false)
         expect(defaultsFailed.fullyRemoved, false, "제거 결과: 설정 초기화 실패면 완료 아님")
 
+        // ═══ 앱 삭제 ↔ IME 연동: 자기 정리 판단 (#32, 2026-09-19) ═══
+        // 파일을 지우지 않고 "지워도 되는가"만 검증한다. 오탐(앱이 살아 있는데 IME가
+        // 사라짐)이 가장 나쁜 결과라 보수적인 쪽으로 못 박는다.
+
+        // ── 휴지통 판정: 구성요소 정확 일치 ──
+        expect(OrphanDecision.isInTrash("/Users/x/.Trash/HaneulKeyboard.app"), true, "연동: ~/.Trash 안")
+        expect(OrphanDecision.isInTrash("/Volumes/Ext/.Trashes/501/HaneulKeyboard.app"), true, "연동: 외장 .Trashes 안")
+        expect(OrphanDecision.isInTrash("/Applications/HaneulKeyboard.app"), false, "연동: /Applications는 휴지통 아님")
+        expect(OrphanDecision.isInTrash("/Users/x/Trash-like/HaneulKeyboard.app"), false, "연동: 비슷한 폴더명(접두어 함정)은 휴지통 아님")
+        expect(OrphanDecision.isInTrash("/Users/x/.Trash"), true, "연동: 휴지통 자체")
+
+        // ── 관찰 요약: 실재하는 경로만 센다 ──
+        let liveApp = "/Applications/HaneulKeyboard.app"
+        let trashedApp = "/Users/x/.Trash/HaneulKeyboard.app"
+        let stale = "/Users/x/Downloads/HaneulKeyboard.app"   // LS 캐시엔 있지만 디스크엔 없음
+        expect(
+            OrphanDecision.classify(candidatePaths: [stale, trashedApp, liveApp]) { $0 != stale } == .present,
+            true, "연동: 휴지통 밖 복사본이 하나라도 살아 있으면 present (업데이트 중 옛 번들이 휴지통에 있어도)"
+        )
+        expect(
+            OrphanDecision.classify(candidatePaths: [stale, trashedApp]) { $0 != stale } == .trashed,
+            true, "연동: 살아 있는 게 휴지통 사본뿐이면 trashed"
+        )
+        expect(
+            OrphanDecision.classify(candidatePaths: [stale, liveApp]) { _ in false } == .missing,
+            true, "연동: 아무것도 실재하지 않으면 missing (LS 캐시 잔재는 무시)"
+        )
+        expect(
+            OrphanDecision.classify(candidatePaths: []) { _ in true } == .missing,
+            true, "연동: 후보 자체가 없으면 missing"
+        )
+
+        // ── 휴지통 사본 인정: bundle ID + 기록된 inode ──
+        expect(OrphanDecision.acceptsTrashedCopy(bundleIDMatches: true, recordedFileID: 42, candidateFileID: 42), true, "연동: 같은 inode의 우리 앱 사본은 인정")
+        expect(OrphanDecision.acceptsTrashedCopy(bundleIDMatches: true, recordedFileID: 42, candidateFileID: 7), false, "연동: inode가 다른 옛 버전 사본은 무시(리뷰 H-1)")
+        expect(OrphanDecision.acceptsTrashedCopy(bundleIDMatches: true, recordedFileID: nil, candidateFileID: 7), true, "연동: 기록이 없으면 bundle ID만으로 인정")
+        expect(OrphanDecision.acceptsTrashedCopy(bundleIDMatches: false, recordedFileID: nil, candidateFileID: nil), false, "연동: bundle ID가 다르면 이름이 같아도 무시")
+
+        // ── 정리 실행 판단: 어떤 관찰도 한 번으로는 정리하지 않는다 (리뷰 B-1) ──
+        let t0 = Date(timeIntervalSince1970: 1_000_000)
+        func decide(_ p: OrphanDecision.AppPresence, prev: Date?, after: TimeInterval) -> Bool {
+            OrphanDecision.shouldSelfRemove(current: p, previousAbsentAt: prev, now: t0.addingTimeInterval(after),
+                                            trashedInterval: 120, missingInterval: 1800)
+        }
+        expect(decide(.present, prev: t0, after: 9_999), false, "연동: present면 이전 관찰과 무관하게 정리 안 함")
+        expect(decide(.trashed, prev: nil, after: 0), false, "연동: 휴지통 첫 관찰은 대기(제자리에 놓기 유예)")
+        expect(decide(.trashed, prev: t0, after: 119), false, "연동: 휴지통 두 번째가 유예 미만이면 대기")
+        expect(decide(.trashed, prev: t0, after: 120), true, "연동: 휴지통 두 번째가 유예 이상이면 정리")
+        expect(decide(.missing, prev: nil, after: 0), false, "연동: missing 첫 관찰은 대기(앱 교체·볼륨 마운트 오탐 방지)")
+        expect(decide(.missing, prev: t0, after: 1799), false, "연동: missing 두 번째가 간격 미만이면 아직 대기")
+        expect(decide(.missing, prev: t0, after: 1800), true, "연동: missing 두 번째가 간격 이상이면 정리")
+        expect(decide(.missing, prev: t0, after: 120), false, "연동: 휴지통을 비워 missing이 되면 긴 유예를 다시 요구")
+        expect(decide(.trashed, prev: t0, after: 120), true, "연동: missing 뒤 trashed로 바뀌어도 부재 관찰은 이어 센다")
+
+        // ── 번들 삭제 허용 범위: 사용자 도메인만 ──
+        let userIM = "/Users/x/Library/Input Methods"
+        expect(
+            OrphanDecision.mayDeleteBundle(bundlePath: "/Users/x/Library/Input Methods/HaneulKeyboardIM.app", userInputMethodsDir: userIM),
+            true, "연동: ~/Library/Input Methods 설치본은 삭제 가능"
+        )
+        expect(
+            OrphanDecision.mayDeleteBundle(bundlePath: "/Library/Input Methods/HaneulKeyboardIM.app", userInputMethodsDir: userIM),
+            false, "연동: 시스템 도메인(root 소유)은 삭제 대신 비활성만"
+        )
+        expect(
+            OrphanDecision.mayDeleteBundle(bundlePath: "/Users/x/Library/Input Methods2/HaneulKeyboardIM.app", userInputMethodsDir: userIM),
+            false, "연동: 접두어 함정 폴더는 삭제 불가"
+        )
+        expect(
+            OrphanDecision.mayDeleteBundle(bundlePath: "/Users/x/Library/Developer/Xcode/DerivedData/X/Build/Products/Release/HaneulKeyboardIM.app", userInputMethodsDir: userIM),
+            false, "연동: 개발 빌드 경로는 삭제 불가"
+        )
+
         print("\(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
     }

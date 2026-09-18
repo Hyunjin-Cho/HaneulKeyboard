@@ -19,5 +19,7 @@ guard IMKServer(name: connectionName, bundleIdentifier: bundleIdentifier) != nil
 // auto-correction at word boundaries): English dict + 한국어 veto 사전.
 EnglishDetector.preload()
 KoreanDictionary.preload()
+// 2026-09-19 (#32): 메인 앱이 지워진 채로 IME만 남았는지 기동 직후 한 번 확인(5초 뒤, 백그라운드).
+OrphanWatcher.shared.scheduleInitialCheck()
 
 NSApplication.shared.run()

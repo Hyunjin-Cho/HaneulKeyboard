@@ -7,7 +7,26 @@ import Foundation
 final class AppCore {
     private(set) var isKoreanActive: Bool = InputSwitcher.isKoreanActive()
     private(set) var imeInstalled = false
+    /// 번들은 있는데 입력 소스가 꺼져 있음(시스템 설정에서 뺀 경우). (#32)
+    private(set) var imeDisabled = false
     private(set) var imeActivationError: Error?
+
+    /// IME가 "메인 앱이 아직 있는가"를 판단할 때 쓰는 기록 — 앱이 실행될 때마다 IME
+    /// 설정 도메인에 자기 경로와 파일 번호(inode)를 남긴다. IME는 이 경로(와 같은 이름·
+    /// 같은 inode의 휴지통 사본)를 먼저 보고, 없으면 LaunchServices·표준 폴더를 뒤진다.
+    /// 호출 시점: `AppMover`가 /Applications로 옮긴 **뒤**(옮기면 재실행되어 새 인스턴스가
+    /// 올바른 경로를 기록하고, 옮기지 않고 종료하면 곧 사라질 translocation 경로를 남기지
+    /// 않는다 — 리뷰 M-1). (#32, 2026-09-19)
+    static func recordMainAppPathForIME() {
+        let imeDefaults = UserDefaults(suiteName: "com.hyunjincho.inputmethod.haneul")
+        let url = Bundle.main.bundleURL.standardizedFileURL
+        imeDefaults?.set(url.path, forKey: "haneul.mainAppPath")
+        if let fileID = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.systemFileNumber] as? Int {
+            imeDefaults?.set(fileID, forKey: "haneul.mainAppFileID")
+        } else {
+            imeDefaults?.removeObject(forKey: "haneul.mainAppFileID")
+        }
+    }
 
     // 입력 소스 변경 관찰은 AppDelegate가 단독으로 한다(거기서 core.refreshLanguage()
     // 를 호출). AppCore가 중복 관찰하면 actor 격리 경고만 늘어 제거했다.
@@ -60,8 +79,26 @@ final class AppCore {
     }
 
     private func updateIMEStatus() async {
-        let current = await IMEInstaller.isInstalled()
-        if current != imeInstalled { imeInstalled = current }
+        let state = await IMEInstaller.installationState()
+        let ready = state == .ready
+        let disabled = state == .installedDisabled
+        if ready != imeInstalled { imeInstalled = ready }
+        if disabled != imeDisabled { imeDisabled = disabled }
+    }
+
+    /// 꺼진 입력 소스를 다시 켠다 — 설치 버튼과 같은 경로(TISEnableInputSource, GUI 앱 컨텍스트).
+    /// 번들을 새로 복사하지는 않는다. 실패는 호출자(메뉴)가 사용자에게 보여 준다(리뷰 M-3). (#32)
+    func reenableIME() async -> Error? {
+        var failure: Error?
+        do {
+            _ = try await IMEInstaller.activateInstalled()
+            imeActivationError = nil
+        } catch {
+            imeActivationError = error
+            failure = error
+        }
+        await updateIMEStatus()
+        return failure
     }
 
     func toggleLanguage() {
