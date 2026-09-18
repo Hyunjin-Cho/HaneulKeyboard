@@ -281,3 +281,91 @@ forgot
 slept
 spent
 turns
+# ── AI 모델·제품명 (#35, 2026-09-19) ──
+# 2026년 현재 통용되는 이름 중 **어떤 사전에도 없어 미변환이던 것만** 추가.
+# 이미 변환되던 이름(codex·grok·llama·sonnet·haiku·fable·flux·gemma·phi·sora·
+# cuda·nvidia·openai·anthropic·copilot·cursor·windsurf·midjourney·perplexity·
+# pytorch·tensorflow 등 46개)은 web2/SCOWL/인명 사전이 이미 잡는다.
+# 숫자가 든 이름(gpt-5.1, o3 …)은 사전 로더가 비알파벳 줄을 버려 넣을 수 없다.
+astra
+colab
+comfyui
+elevenlabs
+faiss
+groq
+jax
+jupyter
+keras
+kling
+langgraph
+llamaindex
+lmstudio
+matplotlib
+numpy
+openrouter
+pinecone
+qlora
+replit
+runpod
+sagemaker
+scipy
+sdxl
+sklearn
+suno
+tensorrt
+udio
+veo
+weaviate
+# ── VFX·영상 후반작업 (#35, 2026-09-19) ──
+# 위와 같은 기준 — 이미 변환되던 용어(nuke·maya·houdini·blender·comp·plate·
+# lens·grain·tracker·mocha·davinci·prores·aces·lut·alembic·lidar 등 60여 개)는
+# 넣지 않았다. 숫자가 든 3dequalizer·cinema4d는 로더 제약으로 불가.
+# roto는 넣지 않는다 — 소문자(개새)·대문자(깨새) 둘 다 우리말샘 표제어라 veto가 막고,
+# 개새는 구어 슬랭이라 S 등급으로 풀 수도 없다. (2026-09-19 #35 실측)
+acescg
+arri
+arriraw
+blackmagic
+boujou
+cdl
+colorspace
+cryptomatte
+denoise
+exr
+fbx
+ftrack
+geotracker
+hdri
+keentools
+keyframe
+lookdev
+mari
+matchmove
+matchmoving
+metashape
+mocap
+nukex
+obj
+ocio
+openexr
+openvdb
+overscan
+pftrack
+pointcloud
+previz
+realitycapture
+redcode
+regrain
+renderman
+rotopaint
+rotoscope
+rotoscoping
+shotgrid
+stmap
+syntheyes
+undistort
+undistortion
+usd
+vfx
+vray
+zbrush

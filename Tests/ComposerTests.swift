@@ -526,6 +526,14 @@ struct ComposerTests {
         // ── 구멍 ③: who=좨 1음절 가드 ──
         expect(type("who").committedText, "who", "who: 좨 → who")
         expect(typeWords(["who", "are", "you"]).joined(separator: " "), "who are you", "who: 문맥 체인")
+        // ── #35 산업군 단어 (astra 등) ──
+        expect(type("astra").committedText, "astra", "#35: ㅁㄴㅅㄱㅁ → astra")
+        expect(type("matchmove").committedText, "matchmove", "#35 VFX: matchmove")
+        expect(type("nukex").committedText, "nukex", "#35 VFX: nukex")
+        expect(type("openexr").committedText, "openexr", "#35 VFX: openexr")
+        expect(type("comfyui").committedText, "comfyui", "#35 AI: comfyui")
+        expect(type("openrouter").committedText, "openrouter", "#35 AI: openrouter")
+        expect(type("roto").committedText, "개새", "#35 VFX: roto는 veto(개새 표제어·구어 슬랭) 보호 — 사전 추가 대상 아님")
 
         // ── v3.1: 실기기 후속 3건 (2026-06-06) ──
         // 자음열 4+ 무맥락 변환 (great이 문장 첫 단어여도)
