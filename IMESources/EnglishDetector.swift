@@ -97,10 +97,13 @@ enum EnglishDetector {
     /// go(해)/do(애) remain EXCLUDED: 해/애 are top-frequency standalone
     /// Korean and were not requested.
     ///
-    /// ⚠️ 불변식: shortWords/contextOverrideEnglish에 단어 추가 = veto 우회
-    /// 채널 확장. 추가 전 그 단어의 한글형이 우리말샘에 등재돼 있는지 확인할 것
-    /// (`scripts/audit_wordlist.sh`). 흔한 한국어일수록 영어 뒤 오변환이 잦아
-    /// shift+space 되돌리기 의존도가 커지니 신중히.
+    /// ⚠️ 불변식: veto보다 위에서 평가되는 목록에 단어를 추가하는 것은 전부
+    /// "veto 우회 채널 확장"이다 — shortWords · standaloneShortWords ·
+    /// consonantPairShortWords · S/C/T 등급 3종(standaloneOverrideEnglish /
+    /// contextOverrideEnglish / triggerOverrideEnglish). 추가 전 그 단어의
+    /// 한글형이 우리말샘에 등재돼 있는지, 실제로 한국어로 치는 말인지 확인할 것
+    /// (`scripts/audit_wordlist.sh`). 흔한 한국어일수록 오변환이 잦아
+    /// shift+space 되돌리기 의존도가 커지니 신중히. (2026-09-19 #33 갱신)
     static let shortWords: Set<String> = [
         "i", "a", "an", "to", "of", "in", "on", "at", "it", "is", "am",
         "as", "be", "by", "he", "we", "me", "my", "no",
@@ -132,7 +135,22 @@ enum EnglishDetector {
         // gpt(헷): 1음절 clean·veto 통과라 R5(2음절+ 가드)가 못 잡던 구멍.
         // 무맥락 단독으로도 변환 (대문자 "Gpt"는 firstConsonantShift도 커버).
         "gpt",
+        // who(좨): gpt와 같은 구멍 — veto 미등재인데 R5의 "2음절+" 가드에 걸려
+        // 어떤 경로로도 안 잡혔다 (#33, 2026-09-19). 좨는 한국어에서 단독으로
+        // 쓰이지 않으므로 앞뒤가 한글이든 영어든 문맥과 무관하게 변환한다 —
+        // 한글 문장 한가운데 "좨"를 칠 이유가 없다는 게 근거다.
+        "who",
     ]
+
+    /// 자음으로 시작하는 **2글자** 영단어 — 무맥락 단독 변환 화이트리스트
+    /// (#33, 2026-09-19). we=ㅈㄷ·at=ㅁㅅ·as=ㅁㄴ는 모음 키가 하나도 없어
+    /// R1(모음 시작)·R3(비KSX 음절) 어느 구조 룰에도 닿지 않고, 사전 로더가
+    /// 2글자 줄을 버리므로(loadWords의 `range.count >= 3`) 사전으로도 넣을 수
+    /// 없다 — 코드 목록이 유일한 통로다. 평가 위치는 R-자음열 분기 안이라
+    /// veto·protectedSlang(ㅇㅇ/ㄴㄴ/ㄱㄱ/ㅂㅂ)을 이미 통과한 뒤다.
+    /// a=ㅁ는 넣지 않는다 — 낱자 ㅁ는 오타·초성체와 구분이 불가능해 문맥 전용
+    /// (shortWords)으로 남긴다.
+    static let consonantPairShortWords: Set<String> = ["we", "at", "as"]
 
     /// shortWords whose Hangul forms are everyday jamo slang (ㅢ=ml, ㅐㅏ=ok):
     /// convertible ONLY in English context (R2), never standalone.
@@ -168,26 +186,75 @@ enum EnglishDetector {
         "looking", "waiting", "asking", "time",
     ]
 
+    // ═══ veto 우회 정책 등급 S/C/T (#33, 2026-09-19) ════════════════════
+    // 아래 ★한국어 veto는 "멀쩡한 한글은 영어로 바꾸지 않는다"는 최후 방어선
+    // 이지만, 한글형이 **아무도 안 쓰는 표제어**라는 이유만으로 고빈도 영어가
+    // 통째로 막히는 부작용이 있었다. 실측(2026-09-19): curated 2,999개 중 13개가
+    // veto와 충돌하고, 그중 6개(work=재가, end=둥, god=행, rock=개차, goal=해미,
+    // fps=렌)는 **어떤 경로로도 변환 불가**였다.
+    //
+    // 기준은 하나 — "그 한글형을 한국어로 실제 얼마나 치는가". 그 빈도에 따라
+    // veto 우회 강도를 셋으로 나눈다. 세 등급 모두 veto보다 **위**에서 평가한다.
+    //   S(단독)   거의 안 쓰는 한글형 → 문맥 없이 변환
+    //   C(문맥)   드물지만 0은 아님   → 직전 단어가 영어일 때만
+    //   T(트리거) 흔한 한국어         → "영어가 확실한" 특정 단어 뒤에서만
+    //
+    // T 등급을 따로 둔 이유: god=행·did=양은 한국어에서 흔해서(3행 4열, 데이터
+    // 양) C로 풀면 "render 양이 → render did이" 같은 영한 혼용 사고가 난다.
+    // 앞 단어까지 보고 나서야 "이건 영어다"라고 단정할 수 있다.
+
+    /// S(단독) — 한글형이 사실상 안 쓰이는 희귀어. 문맥과 무관하게 변환한다.
+    /// work=재가(재가를 받다·재가 요양 — 격식 한자어), rock=개차, goal=해미,
+    /// fps=렌: 전부 일상 타이핑에서 나올 일이 없는 말이다.
+    /// 가드 2개 —
+    ///   ① 키에 Shift가 없을 것: 쌍자음/ㅒㅖ를 일부러 쳤다는 건 한국어 의도의
+    ///     구조적 증거다(wOrk=쟤가 보호). 대문자로 친 Work/WORK는 한글형이
+    ///     째가/쨰까라 veto에 걸리지도 않아 R5가 알아서 잡는다.
+    ///   ② 2음절 이상 또는 키 3개 이상: fps=렌처럼 1음절이어도 키 3개면 허용.
+    ///     2키 이하 1음절을 S로 올리면 오타·초성체와 구분이 불가능해진다.
+    static let standaloneOverrideEnglish: Set<String> = [
+        "work", "rock", "goal", "fps",
+    ]
+
+    /// C(문맥) — 한글형이 희귀 한자어이거나 혼자서는 잘 안 쓰는 말.
+    /// 직전 단어가 영어일 때만 veto를 우회한다.
+    /// (when=조두, then=소두, than=소무, also=미내, form=래그, works=재간,
+    /// down=애주 — 전부 일상에서 안 쓰는 한자어.)
+    /// 2026-09-19 (#33) 추가: got=햇(햇감자처럼 접두사로 붙어 단독 커밋이 드묾),
+    /// end=둥(하는 둥 마는 둥 — 의존명사라 앞말 없이 혼자 오지 않는다).
+    static let contextOverrideEnglish: Set<String> = [
+        "when", "then", "than", "also", "form", "works", "down",
+        "got", "end",
+    ]
+
+    /// T(트리거) — 한글형이 흔한 한국어라 "직전 영어 단어가 이것일 때만" 영어로
+    /// 본다. go(해)/do(애)가 원래 이 방식이었고(2026-06-19), #33에서 표로
+    /// 일반화하며 god(행)·did(양)를 같은 구조로 흡수했다.
+    ///   god=행 : 3행 4열·행 번호로 흔하다 → 감탄사 관용구(my/oh/thank…) 뒤에서만
+    ///   did=양 : 데이터 양·양이 많다로 흔하다 → 의문사·주어·조동사 뒤에서만
+    /// "render 행"·"render 양"처럼 트리거가 아닌 영어 뒤에서는 그대로 보호된다.
+    static let triggerOverrideEnglish: [String: Set<String>] = [
+        "go": goDoTriggers,
+        "do": goDoTriggers,
+        "god": ["my", "oh", "thank", "good", "dear"],
+        "did": [
+            "i", "you", "he", "she", "it", "we", "they", "who", "never",
+            "have", "has", "had", "what", "why", "how", "where", "when", "that",
+        ],
+    ]
+
     /// 해(go)/애(do) — 한국어 최빈어(태양·하다·아이)라 무조건 변환은 위험.
     /// go/do가 영어에서 자연스럽게 따라오는 단어(인칭대명사 주어·to·조동사)
     /// 직후에만 변환한다(2026-06-19, 사용자 보수 결정). "I go"·"to go"·"let do"
     /// 는 살리고 "render 해(하다)"·"오늘 해(태양)"는 앞이 트리거가 아니라 보호.
-    static let goDoWords: Set<String> = ["go", "do"]
+    /// (2026-09-19 #33: 판정은 위 triggerOverrideEnglish 표로 옮겼다. 이 집합
+    /// 자체는 KoreanComposer의 whitelistOnly 예외가 직접 참조하므로 — "want to
+    /// go"의 to가 다음 단어에 문맥을 넘기는 규칙 — 이름 그대로 유지한다.)
     static let goDoTriggers: Set<String> = [
         "i", "you", "he", "she", "it", "we", "they",
         "to", "let", "will", "would", "can", "could", "should",
         "must", "may", "might", "gonna", "gotta", "don't", "didn't",
         "won't", "can't", "just",
-    ]
-
-    /// 한글형이 "희귀 한자어 표제어"라 veto에 막히는 고빈도 영어 단어 —
-    /// 영어 문맥에서는 영어 의도가 압도적이라 veto를 우회한다.
-    /// (when=조두, then=소두, than=소무, also=미내, form=래그, works=재간,
-    /// down=애주 — 전부 일상에서 안 쓰는 한자어.)
-    /// 의도적 제외(흔한 한국어 우선): did=양, got=햇, god=행, end=둥,
-    /// work=재가, rock=개차, for=랙.
-    static let contextOverrideEnglish: Set<String> = [
-        "when", "then", "than", "also", "form", "works", "down",
     ]
 
     static func shouldConvert(
@@ -228,14 +295,35 @@ enum EnglishDetector {
         if prevEnglish, isContextShortWord, !protectedSlang.contains(hangul) {
             return true
         }
-        // 희귀 한자어와만 충돌하는 고빈도 영어(when/then/than...)도 veto 우회.
-        if prevEnglish, contextOverrideEnglish.contains(word) {
+        // ── veto 우회 정책 등급 S/C/T (#33, 2026-09-19) — 셋 다 veto보다 위 ──
+        // 공통 가드: Shift 키가 하나라도 있으면 세 등급 모두 발동하지 않는다.
+        // 쌍자음(ㅆㄲㄸㅃㅉ)·ㅒㅖ를 일부러 쳤다는 건 한국어 의도의 구조적 증거이며
+        // (v3 리뷰 가드 ①과 같은 근거), 등급 판정이 veto보다 위에 있는 만큼
+        // 여기서 막지 못하면 실존 한국어가 그대로 영어가 된다.
+        // 🚨 2026-09-19: got을 C 등급에 넣자마자 "commit goT"의 **했**이 got으로
+        // 깨졌다(테스트가 잡음). 그래서 가드를 S 전용이 아니라 셋 공통으로 둔다.
+        // 🚨 2026-09-19 리뷰(H-3): "대문자 = Shift = 한국어 의도"는 두벌식에서 Shift가 실제로
+        // 다른 자모를 내는 키(Q W E R T → 쌍자음, O P → ㅒ ㅖ)에만 성립한다. 나머지 키는
+        // Shift가 no-op이라(KeyboardLayout2Set 주석 참조) 화면의 한글이 소문자와 완전히 같다 —
+        // 그런데 초판 가드가 모든 대문자를 막아 "i Go"·"to Do"·"go dowN"이 종전과 달리
+        // 보호되는 회귀가 났다. 자모가 바뀌는 7키의 대문자만 Shift 증거로 센다.
+        let hasShiftKey = keys.contains { $0.isUppercase && "QWERTOP".contains($0) }
+        // S(단독): 한글형이 사실상 안 쓰이는 희귀어 → 문맥 무관 변환.
+        // 비슬랭 + 2음절↑ 또는 키 3개↑ (선언부 가드 설명 참조).
+        if !hasShiftKey, standaloneOverrideEnglish.contains(word),
+           !protectedSlang.contains(hangul),
+           units.count >= 2 || keys.count >= 3 {
             return true
         }
-        // 해(go)/애(do) — 트리거(주어·to·조동사) 직후에만 변환(veto 우회).
-        // "I 해"→"I go", "to 애"→"to do"; "render 해"·"오늘 해"는 보호.
-        if prevEnglish, goDoWords.contains(word),
-           let prev = previousEnglishWord, goDoTriggers.contains(prev) {
+        // C(문맥): 희귀 한자어와만 충돌하는 고빈도 영어(when/then/than/got/end).
+        if prevEnglish, !hasShiftKey, contextOverrideEnglish.contains(word) {
+            return true
+        }
+        // T(트리거): 흔한 한국어와 동형이라 지정된 영어 단어 뒤에서만 변환.
+        // "I 해"→"I go", "to 애"→"to do", "my 행"→"god", "you 양"→"did";
+        // "render 해"·"오늘 해"·"render 행"·"render 양"은 트리거가 아니라 보호.
+        if !hasShiftKey, let prev = previousEnglishWord,
+           let triggers = triggerOverrideEnglish[word], triggers.contains(prev) {
             return true
         }
 
@@ -244,7 +332,8 @@ enum EnglishDetector {
         // 영어 신호로 본다. qwert(쌍자음 ㅃㅉㄸㄲㅆ 자리)는 제외 — 쌍자음
         // 입력 의도와 구분 불가하므로. 영어 사전(broad) 일치 시 veto를
         // 우회한다: fps=렌처럼 1음절·실존 한글이라 일반 룰이 못 잡는 약어 구제.
-        // 소문자로 친 "fps"(렌)는 아래 veto가 그대로 보호하니 안전하고,
+        // (2026-09-19 #33) 소문자로 친 "fps"(렌)는 이제 위 S 등급이 veto보다
+        // 먼저 잡는다 — 종전엔 veto가 보호해 미변환이었다.
         // 오변환은 shift+space 되돌리기가 최종 안전망. (대문자는 keyDown으로
         // 들어오므로 flagsChanged 구독 불필요 — 쌍자음 깨짐 위험 없음.)
         if let first = keys.first, first.isUppercase,
@@ -287,6 +376,9 @@ enum EnglishDetector {
            units.allSatisfy({ $0.unicodeScalars.allSatisfy { (0x3131...0x314E).contains($0.value) } }) {
             if units.count >= 4, isDictWord { return true }
             if units.count == 3, commonWords.contains(word) { return true }
+            // 자음 2개(we=ㅈㄷ, at=ㅁㅅ, as=ㅁㄴ)는 사전으로 못 넣어 코드 목록만이
+            // 통로다 (#33, 2026-09-19 — 선언부 consonantPairShortWords 참조).
+            if units.count == 2, consonantPairShortWords.contains(word) { return true }
         }
 
         // ㅑ 1음절 — 1음절에 ㅑ(중성)가 들어가면 한국어 뜻일 확률 거의 0
@@ -342,8 +434,10 @@ enum EnglishDetector {
         //   how [are] you → ㅁㄱㄷ(깨짐, broad OK) → are
         //   the [auto]    → 며새(clean, curated 등재) → auto
         if prevEnglish {
-            let hasShiftKey = keys.contains { $0.isUppercase }
-            if !hasShiftKey {
+            // 여기는 종전대로 **모든** 대문자를 Shift 증거로 본다(v3 리뷰 가드 ① — 활용형 방어는
+            // 보수적으로). 위 등급 가드(QWERTOP 한정)와 기준이 다른 것은 의도다.
+            let anyUppercase = keys.contains { $0.isUppercase }
+            if !anyUppercase {
                 if brokenAsKorean, isDictWord {
                     return true
                 }
