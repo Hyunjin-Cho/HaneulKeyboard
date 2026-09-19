@@ -161,6 +161,34 @@ final class KoreanComposer {
         return true
     }
 
+    /// 2026-09-19 (#34): 단어에 끼워 넣은 아포스트로피 유닛의 위치 (없으면 nil).
+    /// 상태 플래그가 아니라 `word`에서 매번 유도하므로, Backspace로 `'` 유닛을
+    /// 지우면 "아직 `'`가 없는 단어"로 자동 복귀한다.
+    private var apostropheIndex: Int? {
+        word.firstIndex { $0.keys.count == 1 && Contractions.isApostrophe($0.keys[0]) }
+    }
+
+    /// 2026-09-19 (#34): 조합 중에 들어온 `'`를 **경계가 아니라 단어 내부 문자**로
+    /// 흡수한다. 자모가 아니므로 text·keys 모두 친 글자 그대로인 유닛을 붙여
+    /// marked text에 보이게 하고, 커밋 때 `i'm`·`don't`를 통째로 변환할 수
+    /// 있게 한다. (예전엔 `'`가 active boundary라 `ㅑ`만 `i`로 변환되고 `m`은
+    /// `ㅡ` 한 글자로 남아 화면에 `i'ㅡ`가 됐다.)
+    ///
+    /// 흡수하지 않는 경우(false를 돌려 컨트롤러의 기존 경계 처리로 넘긴다):
+    ///   - 단어가 비어 있을 때 → 여는 따옴표다 (`'안녕`)
+    ///   - 이미 `'`가 하나 있을 때 → 두 번째 `'`는 경계로 본다 (단순화)
+    /// - Returns: 키를 소비했으면 true.
+    func handleApostrophe(_ character: Character, client: ComposerClient) -> Bool {
+        guard Contractions.isApostrophe(character) else { return false }
+        guard !word.isEmpty || !buffer.isEmpty else { return false }
+        guard apostropheIndex == nil else { return false }
+        lastConversion = nil // 새 글자 입력 = 되돌리기 기회 끝 (handleInput과 동일)
+        stashBuffer()
+        word.append((text: String(character), keys: [character]))
+        refreshMarkedText(client: client)
+        return true
+    }
+
     /// Word boundary: commit the buffered word once. Returns the text that
     /// was actually inserted (tests assert on this to verify exactly what
     /// got committed).
@@ -188,8 +216,13 @@ final class KoreanComposer {
         // produced it — an accepted suggestion's units have empty keys, and
         // converting then would commit text that differs from (and drops
         // part of) the marked text the user saw.
-        if convertEnglish, autoEnglishEnabled,
-           word.allSatisfy({ !$0.keys.isEmpty }),
+        let convertible = convertEnglish && autoEnglishEnabled
+            && word.allSatisfy { !$0.keys.isEmpty }
+        if let apostrophe = apostropheIndex {
+            // 2026-09-19 (#34): `'`를 품은 단어는 축약형 경로로 판정한다.
+            committed = commitTextWithApostrophe(
+                at: apostrophe, convertible: convertible, hangul: hangul)
+        } else if convertible,
            EnglishDetector.shouldConvert(
                units: units,
                keys: keys,
@@ -204,7 +237,14 @@ final class KoreanComposer {
         // (새→to): those exist only because of context and must not start
         // chains of their own (a run of 새/무 homographs would otherwise
         // cascade). Korean commits always break the run.
-        let isAscii = !committed.isEmpty && committed.allSatisfy { $0.isASCII && $0.isLetter }
+        // 2026-09-19 (#34): 축약형(i'm)은 `'`를 품고도 "영어로 커밋됐다".
+        // 아포스트로피를 허용하지 않으면 lastEnglishWord/lastConversion이
+        // nil이 되어 뒤 단어의 문맥 변환도, shift+space 되돌리기도 끊긴다.
+        // 글자가 하나도 없는 `'` 단독은 영어로 치지 않는다.
+        let isAscii = committed.contains { $0.isASCII && $0.isLetter }
+            && committed.allSatisfy {
+                ($0.isASCII && $0.isLetter) || Contractions.isApostrophe($0)
+            }
         if isAscii {
             let wordLower = String(keys.compactMap { $0.lowercased().first })
             let cleanHangul = !units.contains { unit in
@@ -216,7 +256,11 @@ final class KoreanComposer {
             // 한국어면 어차피 변환 안 되므로 안전.
             let whitelistOnly = EnglishDetector.shortWords.contains(wordLower) && cleanHangul
                 && !EnglishDetector.goDoTriggers.contains(wordLower)
-            lastEnglishWord = whitelistOnly ? nil : wordLower
+            // 2026-09-19 (#34): `'`로 **끝나는** 커밋(`apple'`)은 닫는 따옴표일 가능성이
+            // 복수 소유격(students')보다 훨씬 높다 — `'apple' 내 생각`에서 `내`가 so로
+            // 오변환되지 않게 문맥을 끊는다(`'`가 경계였던 예전과 같은 동작).
+            let endsWithApostrophe = committed.last.map(Contractions.isApostrophe) ?? false
+            lastEnglishWord = (whitelistOnly || endsWithApostrophe) ? nil : wordLower
             // 방금 영어로 변환됨 — shift+space 즉시 되돌리기용(㉠ 직후만).
             lastConversion = (hangul: hangul, english: committed)
         } else {
@@ -226,6 +270,42 @@ final class KoreanComposer {
         client.insertText(committed)
         client.setMarkedText("")
         return committed
+    }
+
+    /// 2026-09-19 (#34): `'`를 품은 단어의 커밋 텍스트를 만든다.
+    ///
+    /// (a) 축약형 소사전 정확 일치(i'm·don't·o'clock) → 통째로 영어.
+    /// (b) base가 **기존 규칙 그대로** 변환되고 `'` 뒤가 허용 접미(s·d·m·t·
+    ///     re·ve·ll·빈 문자열)면 → 통째로 영어 (apple's, `ㅑ'` → `i'`).
+    /// (c) 그 외 → `'` 앞에서 끊어 base만 base 규칙대로(변환 or 한글 유지),
+    ///     `'`와 뒤 조각은 친 그대로. 뒤가 자모면 `'`가 경계였던 예전과 같은
+    ///     결과라 회귀가 없다 (`안녕'하세요` → `안녕'하세요`).
+    private func commitTextWithApostrophe(
+        at index: Int, convertible: Bool, hangul: String
+    ) -> String {
+        // (H-10과 같은 fail-closed) 한국어 veto 사전이 정상이 아니면 자동변환을
+        // 전부 끈다 — 축약형만 예외로 살려 두면 "사전이 깨지면 변환하지 않는다"는
+        // 단일 불변식이 조용히 무너진다.
+        guard convertible, KoreanDictionary.isLoaded else { return hangul }
+
+        let keys = word.flatMap(\.keys)
+        if Contractions.matchesDictionary(keys) { return String(keys) }
+
+        // base만 떼어 기존 판정에 그대로 묻는다 — 축약형 전용 규칙을 새로 만들지
+        // 않고 이미 검증된 EnglishDetector를 재사용한다(오변환 채널 최소화).
+        let base = Array(word[..<index])
+        let baseConverts = EnglishDetector.shouldConvert(
+            units: base.map(\.text),
+            keys: base.flatMap(\.keys),
+            previousEnglishWord: lastEnglishWord
+        )
+        if baseConverts, Contractions.hasAllowedSuffix(keys) { return String(keys) }
+
+        let baseText = baseConverts
+            ? String(base.flatMap(\.keys))
+            : base.map(\.text).joined()
+        let tail = word[(index + 1)...].map(\.text).joined()
+        return baseText + word[index].text + tail
     }
 
     /// Peels one jamo from the in-flight syllable, or one whole unit from the

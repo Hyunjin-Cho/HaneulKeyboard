@@ -94,6 +94,44 @@ func typeWords(_ words: [String]) -> [String] {
     return committed
 }
 
+/// 2026-09-19 (#34): 컨트롤러(`HaneulInputController.handle`)의 키 분배를 그대로
+/// 흉내 낸다. `type()`은 모든 키를 `handleInput`에 밀어 넣지만 실제 컨트롤러는
+/// `'`를 먼저 `handleApostrophe`로 보내고(단어 내부 문자), 흡수되지 않은
+/// 비자모만 active boundary로 처리한다 — 축약형은 이 경로로만 재현된다.
+func typeKeyViaController(_ ch: Character, composer: KoreanComposer, client: FakeClient) {
+    if Contractions.isApostrophe(ch), composer.handleApostrophe(ch, client: client) { return }
+    if KeyboardLayout2Set.jamo(for: ch) != nil {
+        _ = composer.handleInput(String(ch), client: client)
+        return
+    }
+    // 흡수되지 않은 비자모 = active boundary. 컨트롤러는 false를 돌려주고
+    // 클라이언트가 그 글자를 직접 넣으므로 여기서도 똑같이 기록한다.
+    composer.commit(to: client, convertEnglish: true)
+    client.insertText(String(ch))
+}
+
+/// 위 경로로 한 단어를 치고 active boundary(스페이스)에서 커밋한다.
+func typeViaController(_ keys: String, autoEnglish: Bool = true) -> FakeClient {
+    let client = FakeClient()
+    let composer = KoreanComposer()
+    composer.autoEnglishEnabled = autoEnglish
+    for ch in keys { typeKeyViaController(ch, composer: composer, client: client) }
+    composer.commit(to: client, convertEnglish: true)
+    return client
+}
+
+/// `typeWords`의 컨트롤러 경로 버전 — 영어 문맥이 축약형을 거쳐 이어지는지 본다.
+func typeWordsViaController(_ words: [String]) -> [String] {
+    let client = FakeClient()
+    let composer = KoreanComposer()
+    var committed: [String] = []
+    for w in words {
+        for ch in w { typeKeyViaController(ch, composer: composer, client: client) }
+        committed.append(composer.commit(to: client, convertEnglish: true))
+    }
+    return committed
+}
+
 func runDictionaryProbe(_ wordlistPath: String, _ label: String) -> Bool {
     let process = Process()
     process.executableURL = URL(fileURLWithPath: CommandLine.arguments[0])
@@ -1017,6 +1055,185 @@ struct ComposerTests {
             OrphanDecision.mayDeleteBundle(bundlePath: "/Users/x/Library/Developer/Xcode/DerivedData/X/Build/Products/Release/HaneulKeyboardIM.app", userInputMethodsDir: userIM),
             false, "연동: 개발 빌드 경로는 삭제 불가"
         )
+
+
+        // ── 2026-09-19 (#34) 아포스트로피 축약형 ────────────────────────
+        // 예전엔 `'`(keyCode 39)가 active boundary였다: `ㅑ`만 i로 변환되고
+        // `'`가 삽입된 뒤 `m`은 `ㅡ` 한 글자로 남아 화면에 `i'ㅡ`가 됐다
+        // (하네스 실측 32개 전부 실패). 이제 조합 중의 `'`는 단어 내부 문자로
+        // 흡수되고(handleApostrophe), 커밋 때 통째로 판정된다.
+
+        // (a) 축약형 소사전 — 목록 전체를 실제 키 시뮬레이션으로 검증.
+        let contractionCases = [
+            "i'm", "i'll", "i've", "i'd",
+            "you're", "you'll", "you've", "you'd",
+            "we're", "we'll", "we've", "we'd",
+            "they're", "they'll", "they've", "they'd",
+            "he's", "he'll", "he'd",
+            "she's", "she'll", "she'd",
+            "it's", "it'll", "it'd",
+            "isn't", "aren't", "wasn't", "weren't",
+            "don't", "doesn't", "didn't",
+            "can't", "couldn't", "won't", "wouldn't", "shouldn't",
+            "hasn't", "haven't", "hadn't",
+            "mustn't", "needn't", "shan't", "ain't",
+            "that's", "that'll", "that'd",
+            "what's", "what'll",
+            "who's", "who'll",
+            "there's", "there'll",
+            "here's", "where's", "how's", "when's", "why's",
+            "let's",
+            "o'clock", "y'all", "ma'am",
+        ]
+        for w in contractionCases {
+            expect(typeViaController(w).committedText, w, "축약형: \(w)")
+        }
+        // 소사전에 단어를 추가하고 테스트를 빼먹는 일이 없게 개수를 맞물려 둔다.
+        expect(
+            contractionCases.count, Contractions.words.count,
+            "축약형: 테스트 표가 소사전 전 항목을 덮는지"
+        )
+
+        // 대소문자는 keys를 그대로 커밋하므로 자동 보존된다.
+        expect(typeViaController("I'm").committedText, "I'm", "축약형: 대문자 I'm")
+        expect(typeViaController("Don't").committedText, "Don't", "축약형: 대문자 Don't")
+        expect(typeViaController("It's").committedText, "It's", "축약형: 대문자 It's")
+        // U+2019(’)로 올라오는 레이아웃도 같은 판정 — 출력은 친 글자 그대로.
+        expect(
+            typeViaController("i\u{2019}m").committedText, "i\u{2019}m",
+            "축약형: U+2019 아포스트로피도 인식"
+        )
+
+        // (b) base가 기존 규칙으로 변환 + 허용 접미 → 통째로 변환.
+        expect(typeViaController("apple's").committedText, "apple's", "축약형: 소유격 apple's")
+        expect(typeViaController("world's").committedText, "world's", "축약형: 소유격 world's")
+        expect(typeViaController("today's").committedText, "today's", "축약형: 소유격 today's")
+        expect(typeViaController("github's").committedText, "github's", "축약형: 소유격 github's")
+        expect(typeViaController("i'").committedText, "i'", "축약형: 빈 접미 `ㅑ'` → i'")
+        expect(typeViaController("you'").committedText, "you'", "축약형: 빈 접미 you'")
+        // 2026-09-19 (#34): 닫는 따옴표로 끝난 영어는 문맥을 끊는다 — `'apple' 내`의 내가 so로 안 바뀜.
+        // (여는 따옴표는 클라이언트가 직접 넣으므로 커밋 목록엔 apple'·내만 남는다)
+        // 헬퍼는 키열을 받는다: so=내. 여는 따옴표는 클라이언트가 직접 넣으므로 커밋 목록엔 apple'·내만 남는다.
+        expect(typeWordsViaController(["'apple'", "so"]).joined(separator: " "), "apple' 내", "축약형: 닫는 따옴표 뒤 한국어 보호(문맥 단절)")
+        expect(typeWordsViaController(["apple", "so"]).joined(separator: " "), "apple so", "축약형: (대조) 따옴표 없는 영어 뒤에는 문맥 변환 유지")
+        // ⚠️ john's는 변환되지 않는다 — web2에는 대문자 "John"만 있고
+        // EnglishDetector.loadWords가 "소문자로 시작하는 줄"만 싣기 때문에 base
+        // "john"이 사전에 없다. 축약형 로직이 아니라 base 사전의 한계이고,
+        // `'`가 경계였던 예전과 결과가 같다(회귀 아님).
+        expect(
+            typeViaController("john's").committedText, "ㅓㅐㅗㅜ'ㄴ",
+            "축약형: base가 사전에 없으면(john) 한글 유지"
+        )
+
+        // (c) 한국어 보호 — 두 관문을 모두 통과 못 해 친 그대로 남는다.
+        expect(typeViaController("'dkssud").committedText, "'안녕", "축약형 보호: 여는 따옴표 '안녕")
+        expect(
+            typeViaController("dkssud'gktpdy").committedText, "안녕'하세요",
+            "축약형 보호: 안녕'하세요"
+        )
+        expect(typeViaController("tkfkd'dl").committedText, "사랑'이", "축약형 보호: 사랑'이")
+        expect(
+            typeViaController("dkssud's").committedText, "안녕'ㄴ",
+            "축약형 보호: 한글 base는 허용 접미라도 변환 안 함"
+        )
+        expect(
+            typeViaController("apple'gktpdy").committedText, "apple'하세요",
+            "축약형: 접미가 한국어면 base만 변환하고 뒤는 친 그대로"
+        )
+        expect(
+            typeViaController("i'm'").committedText, "i'm'",
+            "축약형: 두 번째 '는 경계 — i'm 커밋 후 ' 통과"
+        )
+        expect(
+            typeViaController("i'm", autoEnglish: false).committedText, "ㅑ'ㅡ",
+            "축약형: 자동변환을 끄면 한글 그대로"
+        )
+
+        // marked text / Backspace / passive 커밋
+        do {
+            let client = FakeClient()
+            let composer = KoreanComposer()
+            typeKeyViaController("i", composer: composer, client: client)
+            typeKeyViaController("'", composer: composer, client: client)
+            expect(client.marked, "ㅑ'", "축약형: 조합 중 '가 marked text에 보임")
+            expect(composer.deleteBackward(client: client), true, "축약형: Backspace를 composer가 흡수")
+            expect(client.marked, "ㅑ", "축약형: Backspace가 ' 유닛을 통째로 삭제")
+            typeKeyViaController("'", composer: composer, client: client)
+            expect(client.marked, "ㅑ'", "축약형: 지운 뒤 '를 다시 넣을 수 있음(상태 플래그가 아님)")
+            typeKeyViaController("m", composer: composer, client: client)
+            expect(client.marked, "ㅑ'ㅡ", "축약형: ' 뒤로도 조합이 이어짐")
+            composer.commit(to: client) // passive = 클릭/포커스 이동
+            expect(client.committedText, "ㅑ'ㅡ", "축약형: passive 커밋은 보이는 그대로")
+        }
+
+        // 영어 문맥이 축약형을 통해 이어진다
+        expect(
+            typeWordsViaController(["i'm", "ok"]).joined(separator: " "), "i'm ok",
+            "축약형 문맥: i'm 뒤 ㅐㅏ(ok, contextOnly)가 영어로"
+        )
+        expect(
+            typeWordsViaController(["apple", "don't", "go"]).joined(separator: " "),
+            "apple don't go",
+            "축약형 문맥: don't가 goDoTriggers로 이어져 해→go"
+        )
+
+        // shift+space 되돌리기 기록
+        do {
+            let client = FakeClient()
+            let composer = KoreanComposer()
+            for ch in "i'm" { typeKeyViaController(ch, composer: composer, client: client) }
+            expect(composer.commit(to: client, convertEnglish: true), "i'm", "축약형: 커밋 텍스트 i'm")
+            expect(composer.lastConversion?.hangul ?? "", "ㅑ'ㅡ", "축약형 되돌리기: lastConversion 한글")
+            expect(composer.lastConversion?.english ?? "", "i'm", "축약형 되돌리기: lastConversion 영어")
+            expect(composer.lastEnglishWord ?? "", "i'm", "축약형 문맥: lastEnglishWord=i'm(소문자 전체)")
+        }
+
+        // 되돌리기 좌표 로직 (순수함수 resolveToggle) — `'`가 낀 단어도 통째로
+        let ct1 = KoreanComposer.resolveToggle(
+            before: "i'm ", english: "i'm", hangul: "ㅑ'ㅡ", atDocStart: true)
+        expect(ct1?.text ?? "", "ㅑ'ㅡ", "축약형 되돌리기: i'm → ㅑ'ㅡ")
+        expect(
+            (ct1?.replaceLen ?? -1) == 3 && (ct1?.offsetFromEnd ?? -1) == 4, true,
+            "축약형 되돌리기: 교체 3글자·커서서 4"
+        )
+        expect(
+            KoreanComposer.resolveToggle(
+                before: "ㅑ'ㅡ ", english: "i'm", hangul: "ㅑ'ㅡ", atDocStart: true)?.text ?? "",
+            "i'm", "축약형 되돌리기: ㅑ'ㅡ → i'm 역토글"
+        )
+        expect(
+            KoreanComposer.resolveToggle(
+                before: "go i'm ", english: "i'm", hangul: "ㅑ'ㅡ", atDocStart: false)?.text ?? "",
+            "ㅑ'ㅡ", "축약형 되돌리기: 앞에 단어가 있어도 좌측경계 통과"
+        )
+        // ⚠️ 알려진 한계: `i'`처럼 `'`로 끝나는 변환은 되돌릴 수 없다.
+        // resolveToggle의 isWordChar가 `'`를 단어 문자로 보지 않아 trailing으로
+        // 먹히고 매칭이 실패한다 → nil(안전한 포기: 컨트롤러가 손대지 않는다).
+        // `'`를 단어 문자에 넣으면 `'and `(여는 따옴표 뒤 단어)의 토글이 죽으므로
+        // 일부러 그대로 둔다.
+        expect(
+            KoreanComposer.resolveToggle(
+                before: "i' ", english: "i'", hangul: "ㅑ'", atDocStart: true) == nil,
+            true, "축약형 되돌리기: `'`로 끝나면 안전하게 포기(nil)"
+        )
+
+        // Contractions 순수함수
+        expect(Contractions.isApostrophe("'"), true, "Contractions: U+0027")
+        expect(Contractions.isApostrophe("\u{2019}"), true, "Contractions: U+2019")
+        expect(Contractions.isApostrophe("\""), false, "Contractions: 큰따옴표는 아님")
+        expect(
+            Contractions.normalizedKey(Array("I\u{2019}M")), "i'm",
+            "Contractions: 조회용 정규화(대문자+U+2019)"
+        )
+        let splitDont = Contractions.split(Array("don't"))
+        expect(String(splitDont?.base ?? []), "don", "Contractions: base 분리")
+        expect(String(splitDont?.suffix ?? []), "t", "Contractions: suffix 분리")
+        expect(Contractions.split(Array("apple")) == nil, true, "Contractions: '가 없으면 nil")
+        expect(Contractions.matchesDictionary(Array("Don't")), true, "Contractions: 소사전 대소문자 무시")
+        expect(Contractions.matchesDictionary(Array("don'x")), false, "Contractions: 소사전 미등재")
+        expect(Contractions.hasAllowedSuffix(Array("apple's")), true, "Contractions: 허용 접미 s")
+        expect(Contractions.hasAllowedSuffix(Array("i'")), true, "Contractions: 빈 접미 허용")
+        expect(Contractions.hasAllowedSuffix(Array("apple'xyz")), false, "Contractions: 허용 안 된 접미")
 
         print("\(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
