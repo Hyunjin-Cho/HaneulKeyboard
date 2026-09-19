@@ -43,11 +43,30 @@ enum IMEInstaller {
     /// A bundle on disk is only a candidate. Call `isInstalled()` when
     /// reporting user-visible installation state; it also verifies TIS state.
     static func isInstalled() async -> Bool {
+        await installationState() == .ready
+    }
+
+    /// 사용자에게 보여줄 설치 상태 3단계. (#32, 2026-09-19)
+    /// 예전엔 `isInstalled()`의 Bool 하나라, 사용자가 시스템 설정에서 입력 소스를 "-"로
+    /// 뺀 경우도 "미설치"로 표시됐다. 번들은 있는데 꺼진 상태를 구분해 메뉴에서 바로
+    /// 다시 켤 수 있게 한다(역방향 연동).
+    enum InstallationState: Equatable {
+        case notInstalled
+        /// 신뢰할 수 있는 번들은 있지만 TIS에서 활성(enabled)이 아님.
+        case installedDisabled
+        case ready
+    }
+
+    static func installationState() async -> InstallationState {
         let trustedBundleExists = await Task.detached(priority: .utility) {
             installedBundleURL().map { isTrustedIMEBundle(at: $0) } ?? false
         }.value
-        guard trustedBundleExists else { return false }
-        return await MainActor.run { tisActivationState().isReady }
+        guard trustedBundleExists else { return .notInstalled }
+        let state = await MainActor.run { tisActivationState() }
+        // TIS가 우리를 아예 모르면(등록 자체가 없음) "꺼짐"이 아니라 미설치로 본다 —
+        // 설치 버튼 경로가 등록까지 한다. (리뷰 M-3)
+        guard state.known else { return .notInstalled }
+        return state.enabled ? .ready : .installedDisabled
     }
 
     /// (H-01) 설치 후보 IME 번들을 신뢰할 수 있는가.

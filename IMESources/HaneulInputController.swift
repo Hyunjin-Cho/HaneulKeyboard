@@ -43,6 +43,9 @@ final class HaneulInputController: IMKInputController {
         log.log("activateServer")
         // NOTE: never query the client (markedRange/attributes/...) in here —
         // it deadlocks Chromium-based apps. Defaults reads only.
+        // 2026-09-19 (#32): 메인 앱이 지워졌는지 확인 — 즉시 반환하고 백그라운드에서
+        // 60초에 한 번만 조회한다(전환 경로에 동기 작업을 얹지 않는다).
+        OrphanWatcher.shared.checkIfDue()
         composer.autoEnglishEnabled =
             UserDefaults.standard.object(forKey: "haneul.autoEnglishEnabled") as? Bool ?? true
         composer.resetEnglishContext() // 새 필드/앱 — 영어 문맥은 이어지지 않음

@@ -30,6 +30,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationWillFinishLaunching(_ notification: Notification) {
         // 응용 프로그램 폴더 밖이면 옮긴다(App Translocation 방지) — 메뉴바 생성보다 먼저.
         AppMover.moveToApplicationsIfNeeded()
+        // (#32) 옮기기 판단이 끝난 뒤에야 "내가 여기 있다"를 IME에 기록한다 — 옮겨서 재실행되면
+        // 새 인스턴스가 다시 기록하고, 옮기지 않고 종료하면 여기까지 오지 않는다.
+        AppCore.recordMainAppPathForIME()
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -100,7 +103,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         add(menu, core.isKoreanActive ? "영어로 전환" : "한국어로 전환", #selector(toggleLanguage))
 
-        if !core.imeInstalled {
+        if core.imeDisabled {
+            // (#32) 번들은 있는데 시스템 설정에서 입력 소스를 뺀 상태 — 한 번에 되살린다.
+            add(menu, "한글 입력기가 꺼져 있음 — 다시 켜기", #selector(reenableIME))
+        } else if !core.imeInstalled {
             addDisabled(menu, "한글 입력기(IME) 미설치 — 설정에서 설치 권장")
         }
 
@@ -129,6 +135,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func toggleLanguage() {
         core.toggleLanguage()
         updateButtonTitle()
+    }
+
+    @objc private func reenableIME() {
+        Task { [weak self] in
+            guard let self else { return }
+            if let error = await core.reenableIME() {
+                // 메뉴 항목은 결과를 보여 줄 곳이 없다 — 실패를 삼키지 않고 알린다(리뷰 M-3).
+                let alert = NSAlert()
+                alert.messageText = "한글 입력기를 다시 켜지 못했어요"
+                alert.informativeText = error.localizedDescription
+                alert.alertStyle = .warning
+                NSApp.activate(ignoringOtherApps: true)
+                alert.runModal()
+            }
+            updateButtonTitle()
+        }
     }
 
     @objc private func openSettings() {
