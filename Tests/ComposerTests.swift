@@ -683,6 +683,27 @@ struct ComposerTests {
                 words.contains(entry.sampleWord), true,
                 "manifest: \(entry.name) 대표어 '\(entry.sampleWord)'"
             )
+            // ── 2026-09-20 (#41, 리뷰 F-3): 로더가 못 싣는 줄·중복 줄 금지 ──
+            // EnglishDetector.loadWords는 비알파벳이 섞인 줄을 조용히 버리고(mp3·mp4가
+            // 그렇게 영원히 무효였다) Set이라 중복(email·keyboard)도 조용히 삼킨다.
+            // "등재했으니 변환된다"는 착각과 검역 수치 어긋남을 막기 위해 모든 번들
+            // 사전의 비주석·비공백 줄이 로더 필터(소문자 a-z만, 3자+ — audit_wordlist.sh의
+            // 정규화 ^[a-z]{3,}$와 같은 기준)를 만족하고 중복이 없어야 한다.
+            let rawLines = (try? String(contentsOfFile: entry.path, encoding: .utf8))?
+                .split(separator: "\n")
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty && !$0.hasPrefix("#") } ?? []
+            let malformed = rawLines.filter { line in
+                line.count < 3 || !line.unicodeScalars.allSatisfy { (0x61...0x7A).contains($0.value) }
+            }
+            expect(
+                malformed.count, 0,
+                "manifest: \(entry.name) 로더가 못 싣는 줄 0개 (실제 \(malformed.prefix(5)))"
+            )
+            expect(
+                rawLines.count - words.count, 0,
+                "manifest: \(entry.name) 중복 줄 0개 (실제 \(rawLines.count - words.count))"
+            )
         }
         if hasCommon {
             let commonSet = wordsInFile(pendingCommon)
