@@ -150,7 +150,10 @@ enum EnglishDetector {
     /// veto·protectedSlang(ㅇㅇ/ㄴㄴ/ㄱㄱ/ㅂㅂ)을 이미 통과한 뒤다.
     /// a=ㅁ는 넣지 않는다 — 낱자 ㅁ는 오타·초성체와 구분이 불가능해 문맥 전용
     /// (shortWords)으로 남긴다.
-    static let consonantPairShortWords: Set<String> = ["we", "at", "as"]
+    /// 2026-09-20 (#39) ev=ㄷㅍ 추가: 전기차(EV)는 오너 지정 단어이고 ㄷㅍ는
+    /// protectedSlang에 없다. 나머지 2글자 후보 53개(gs·vc·fx·cs·cd …)는 we/at/as
+    /// 정책과 묶어 오너 결정 대기 — 목록은 #39 검토 기록에.
+    static let consonantPairShortWords: Set<String> = ["we", "at", "as", "ev"]
 
     /// shortWords whose Hangul forms are everyday jamo slang (ㅢ=ml, ㅐㅏ=ok):
     /// convertible ONLY in English context (R2), never standalone.
@@ -212,8 +215,17 @@ enum EnglishDetector {
     ///     째가/쨰까라 veto에 걸리지도 않아 R5가 알아서 잡는다.
     ///   ② 2음절 이상 또는 키 3개 이상: fps=렌처럼 1음절이어도 키 3개면 허용.
     ///     2키 이하 1음절을 S로 올리면 오타·초성체와 구분이 불가능해진다.
+    /// 2026-09-20 (#39) ros=갠 추가: 1음절 clean·우리말샘 미등재라 veto는 통과하지만
+    /// R5의 "2음절+" 가드에 막혀 사전만으로는 어떤 경로로도 안 잡히던 구멍(and·gpt·who와
+    /// 같은 부류). standaloneShortWords가 아니라 여기인 이유 — 그 목록은 소문자화된
+    /// word만 보고 Shift 가드가 없어 rOs=걘(걔는)까지 ros로 깨진다. S 등급은 QWERTOP
+    /// Shift 가드로 걘을 지키고, 키 3개라 가드 ②도 통과한다. 남는 위험은 "비 갠 뒤"의
+    /// 갠(개다 활용형) — work=재가와 같은 판단으로 Shift+Space 되돌리기에 맡긴다.
+    /// 같은 부류(1음절 clean 미도달)가 #39 검역에 26개 더 있었지만(eps=덴·apt=멧·
+    /// tbd=슝 …) 오너 지정인 ros만 올렸다 — 나머지는 오너 결정 대기.
     static let standaloneOverrideEnglish: Set<String> = [
         "work", "rock", "goal", "fps",
+        "ros",
     ]
 
     /// C(문맥) — 한글형이 희귀 한자어이거나 혼자서는 잘 안 쓰는 말.

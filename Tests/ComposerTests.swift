@@ -578,6 +578,27 @@ struct ComposerTests {
         expect(type("comfyui").committedText, "comfyui", "#35 AI: comfyui")
         expect(type("openrouter").committedText, "openrouter", "#35 AI: openrouter")
         expect(type("roto").committedText, "개새", "#35 VFX: roto는 veto(개새 표제어·구어 슬랭) 보호 — 사전 추가 대상 아님")
+        // ── #39 산업군 사전 2차 (2026-09-20) — 개발·금융/크립토·게임·자동차·로보틱스·브랜드/복합어 ──
+        // 후보 2,933 → 이미 변환 636 제외 → 검역 후 등재(english_supplement.txt #39 섹션).
+        // 구조 예외는 ros·ev 둘뿐(EnglishDetector 선언부 주석 참조).
+        expect(type("ros").committedText, "ros", "#39: 갠 → ros (S 등급 — 1음절 clean·veto 미등재라 사전만으론 미도달)")
+        expect(type("rOs").committedText, "걘", "#39: rOs=걘(걔는)은 QWERTOP Shift 가드로 보호")
+        expect(type("ev").committedText, "ev", "#39: ㄷㅍ → ev (consonantPairShortWords)")
+        expect(type("slam").committedText, "slam", "#39 로보틱스: 니므 → slam (R5·supplement)")
+        expect(type("etf").committedText, "etf", "#39 금융: ㄷㅅㄹ → etf (R-자음열 3·curated)")
+        expect(type("sudo").committedText, "sudo", "#39 개발: 녀애 → sudo (R5)")
+        expect(type("kubernetes").committedText, "kubernetes", "#39 개발: kubernetes")
+        expect(type("opencv").committedText, "opencv", "#39 복합어: opencv")
+        expect(type("macbookpro").committedText, "macbookpro", "#39 복합어: macbookpro")
+        expect(type("kpi").committedText, "kpi", "#39 금융: ㅏㅔㅑ → kpi")
+        expect(type("btc").committedText, "btc", "#39 크립토: ㅠㅅㅊ → btc")
+        expect(type("xbox").committedText, "xbox", "#39 게임: xbox")
+        expect(type("ioniq").committedText, "ioniq", "#39 자동차: ioniq")
+        // 제외 확인 — 검역에서 걸러 supplement에 넣지 않은 것들은 종전 동작 그대로.
+        expect(type("bnb").committedText, "ㅠㅜㅠ", "#39 제외: bnb=ㅠㅜㅠ 우는 이모티콘")
+        expect(type("trd").committedText, "ㅅㄱㅇ", "#39 제외: trd=ㅅㄱㅇ 초성체(수고요)")
+        expect(type("pvp").committedText, "ㅔ페", "#39 제외: pvp=ㅔ페 카오모지 팰린드롬 가드라 등재해도 변환 불가")
+        expect(type("dns").committedText, "운", "#39 제외: dns=운 우리말샘 등재(veto) — 등급 판정은 미결")
 
         // ── v3.1: 실기기 후속 3건 (2026-06-06) ──
         // 자음열 4+ 무맥락 변환 (great이 문장 첫 단어여도)
