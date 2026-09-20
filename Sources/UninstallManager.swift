@@ -72,8 +72,10 @@ enum Uninstaller {
         // 종전 주석("프로그램으로는 못 끈다")은 CLI 컨텍스트 실험이었고, 서명된 GUI 앱
         // 컨텍스트에선 결과가 다를 수 있다. 성공하면 `stillEnabledInPicker`가 false가 되어
         // "시스템 설정에서 직접 빼세요" 안내가 사라진다. 실패해도 종전 흐름 그대로.
+        // 2026-09-20 (#46, 리뷰 F-2): 비활성화는 IMEInstaller.disableAllModes 하나로 공유 —
+        // 설정의 "IME 제거"(IMEInstaller.uninstall)도 같은 함수를 부른다.
         _ = InputSwitcher.selectEnglish()
-        _ = disableInputSources()
+        _ = IMEInstaller.disableAllModes(forBundleID: bundleID)
         let killed = killIMEProcess()
         let removedIME = removeIMEBundles()
         let unregistered = unregisterFromLaunchServices(appURLs: targetAppURLs)
@@ -232,26 +234,10 @@ enum Uninstaller {
         return ok
     }
 
-    /// 우리 bundle ID의 입력 소스(모드 포함) 전부에 `TISDisableInputSource`. 하나라도
-    /// 성공하면 true. `OrphanWatcher`(IME 쪽)와 같은 로직 — 두 프로세스가 따로 컴파일되므로
-    /// 중복은 의도적이다. (#32)
-    private static func disableInputSources() -> Bool {
-        guard let all = TISCreateInputSourceList(nil, true)?.takeRetainedValue() as? [TISInputSource] else {
-            return false
-        }
-        var anyDisabled = false
-        for src in all {
-            guard let bidPtr = TISGetInputSourceProperty(src, kTISPropertyBundleID) else { continue }
-            let bid = Unmanaged<CFString>.fromOpaque(bidPtr).takeUnretainedValue() as String
-            guard bid == bundleID else { continue }
-            if TISDisableInputSource(src) == noErr { anyDisabled = true }
-        }
-        return anyDisabled
-    }
-
     /// Walks every TIS input source and checks if any matches our bundle ID
-    /// and is currently in the enabled list. (#32: 위 `disableInputSources()`로
-    /// 먼저 끄기를 시도한 뒤의 상태 확인 — 실패하면 사용자에게 수동 제거를 안내한다.)
+    /// and is currently in the enabled list. (#32: `IMEInstaller.disableAllModes`로
+    /// 먼저 끄기를 시도한 뒤의 상태 확인 — 실패하면 사용자에게 수동 제거를 안내한다.
+    /// 2026-09-20 #46: 종전의 private `disableInputSources()` 사본은 IMEInstaller로 옮겼다.)
     private static func isInputSourceStillEnabled() -> Bool {
         guard let all = TISCreateInputSourceList(nil, false)?.takeRetainedValue() as? [TISInputSource] else {
             return false

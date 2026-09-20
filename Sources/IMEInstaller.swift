@@ -5,6 +5,9 @@ import Security
 
 enum IMEInstaller {
     static let bundleName = "HaneulKeyboardIM.app"
+    /// IME 번들 ID. 2026-09-20 (#46): 공유 비활성화 함수용으로 추가 — 이 파일 안 다른 자리의
+    /// 같은 리터럴(`registerWithTIS`·`tisActivationState`·`stopIMEProcess`)은 손대지 않았다.
+    static let imeBundleID = "com.hyunjincho.inputmethod.haneul"
 
     static var installURL: URL {
         FileManager.default.homeDirectoryForCurrentUser
@@ -310,6 +313,13 @@ enum IMEInstaller {
             throw IMEInstallError.nothingToRemove
         }
 
+        // 2026-09-20 (#46, 리뷰 F-2): 전체 제거(Uninstaller.run)·IME 자기 정리(#32)와 같은
+        // 순서로 삭제 전에 입력 소스 비활성화를 시도한다. 종전엔 이 경로만 빠져 번들은
+        // 사라지는데 TIS 목록에 "하늘키보드"가 켜진 채 남고, 메뉴는 번들 부재라 "다시 켜기"로도
+        // 정리할 수 없었다. 실패해도 종전 흐름 그대로(재로그인 후 목록에서 사라진다).
+        let disabled = disableAllModes(forBundleID: imeBundleID)
+        haneulLog("HaneulKeyboard: IME 제거 — TISDisableInputSource=\(disabled)")
+
         await Task.detached(priority: .userInitiated) {
             stopIMEProcess()
         }.value
@@ -523,6 +533,27 @@ enum IMEInstaller {
             }
         }
         return enabledCount
+    }
+
+    /// 우리 bundle ID의 모든 입력 소스(모드 포함)에 `TISDisableInputSource`. 하나라도 성공하면 true.
+    /// 2026-09-20 (#46, 리뷰 F-2): 전체 제거(`Uninstaller.run`)와 설정의 "IME 제거"(`uninstall`)가
+    /// 이 하나를 쓴다 — 종전엔 Uninstaller만 private 사본을 갖고 있어 "IME 제거"가 비활성화를
+    /// 건너뛰었다. `enableAllModes`와 짝. IME 프로세스 쪽 `OrphanWatcher.disableOwnInputSources`는
+    /// 별도 타겟이라 중복이 의도적이다(#32). 호출 계약: TIS 호출이므로 메인 스레드에서 부른다.
+    /// GUI 앱 컨텍스트에서 실제로 꺼지는지는 실기기(체크리스트)로 확정한다.
+    @discardableResult
+    static func disableAllModes(forBundleID targetBundleID: String) -> Bool {
+        guard let all = TISCreateInputSourceList(nil, true)?.takeRetainedValue() as? [TISInputSource] else {
+            return false
+        }
+        var anyDisabled = false
+        for source in all {
+            guard let bundleIDPtr = TISGetInputSourceProperty(source, kTISPropertyBundleID) else { continue }
+            let bundleID = Unmanaged<CFString>.fromOpaque(bundleIDPtr).takeUnretainedValue() as String
+            guard bundleID == targetBundleID else { continue }
+            if TISDisableInputSource(source) == noErr { anyDisabled = true }
+        }
+        return anyDisabled
     }
 
     /// Fix for "first install needs a second app launch before menu-bar picker
