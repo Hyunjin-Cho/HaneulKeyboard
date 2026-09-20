@@ -18,7 +18,7 @@
 # 런타임·테스트·검역 모두 항상 broad 베이스로 포함한다.
 #
 # name	role	min_words	sample_word
-english_supplement	curated	320	google
+english_supplement	curated	2400	google
 english_common	curated	2500	ability
 english_modern	broad	60000	smartphone
 english_names	broad	25000	mackenzie
