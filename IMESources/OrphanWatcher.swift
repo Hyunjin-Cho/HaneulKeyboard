@@ -121,7 +121,16 @@ final class OrphanWatcher {
             }
         }
         // 2) LaunchServices가 아는 모든 복사본 (파일명이 바뀌어도 bundle ID로 찾는다).
-        paths += NSWorkspace.shared.urlsForApplications(withBundleIdentifier: Self.mainAppBundleID).map(\.path)
+        //    2026-09-20 (#47, 리뷰 F-1): 이 중 휴지통 안 경로는 1단계와 같은 bundle ID + inode 검사를
+        //    통과해야 후보가 된다 — 옛 버전 사본이 `.trashed`(2분 유예)로 잘못 요약되지 않게.
+        let known = NSWorkspace.shared.urlsForApplications(withBundleIdentifier: Self.mainAppBundleID).map(\.path)
+        paths += OrphanDecision.filterTrashedCandidates(known) { path in
+            let url = URL(fileURLWithPath: path)
+            return OrphanDecision.acceptsTrashedCopy(
+                bundleIDMatches: Self.bundleIdentifier(at: url) == Self.mainAppBundleID,
+                recordedFileID: recordedFileID,
+                candidateFileID: Self.fileID(at: url))
+        }
 
         let alive = paths.contains { fm.fileExists(atPath: $0) && !OrphanDecision.isInTrash($0) }
         if alive { return paths }
