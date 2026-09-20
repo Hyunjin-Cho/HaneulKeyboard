@@ -133,8 +133,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: - Actions
 
     @objc private func toggleLanguage() {
-        core.toggleLanguage()
+        core.refreshLanguage()
+        let wasKorean = core.isKoreanActive
+        let switched = core.toggleLanguage()
         updateButtonTitle()
+        guard !switched else { return }
+        // 2026-09-20 (#45, 리뷰 F-5): 전환 실패를 삼키지 않는다 — reenableIME(리뷰 M-3)와 같은
+        // 패턴. 영어 방향은 영문 자판이 하나도 없거나 선택 불가일 때, 한국어 방향은 우리
+        // 입력 소스가 꺼져 있을 때(M-08: 다른 한국어 입력기로 대신 전환하지 않는다) 실패한다.
+        let alert = NSAlert()
+        if wasKorean {
+            alert.messageText = "영어로 전환하지 못했어요"
+            alert.informativeText = "시스템 설정 → 키보드 → 입력 소스에 ABC 같은 영문 자판이 없거나 선택할 수 없습니다. 영문 자판을 추가한 뒤 다시 시도해 주세요. (Caps Lock 전환은 macOS가 처리하므로 이 메뉴와 별개입니다.)"
+        } else {
+            alert.messageText = "한국어로 전환하지 못했어요"
+            alert.informativeText = "하늘키보드 입력 소스가 켜져 있지 않습니다. 메뉴의 \"다시 켜기\"를 누르거나 설정에서 IME를 설치·활성화한 뒤 다시 시도해 주세요."
+        }
+        alert.alertStyle = .warning
+        NSApp.activate(ignoringOtherApps: true)
+        alert.runModal()
     }
 
     @objc private func reenableIME() {
