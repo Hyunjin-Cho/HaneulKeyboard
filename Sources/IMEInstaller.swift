@@ -556,7 +556,14 @@ enum IMEInstaller {
             return
         }
 
-        let original = TISCopyCurrentKeyboardInputSource().takeRetainedValue()
+        // 2026-09-20 (#42, 리뷰 F-7): 암시적 언랩 제거 — TIS가 현재 자판을 못 돌려주는
+        // 드문 상태에서 설치 도중 크래시하지 않게 InputSwitcher.currentSourceID와 같은
+        // 옵셔널 처리로 통일한다. 되돌릴 원본이 없으면 nudge 자체를 건너뛴다(선택만 하고
+        // 못 되돌리면 사용자의 활성 입력 소스가 바뀐 채 남는다).
+        guard let original = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue() else {
+            haneulLog("HaneulKeyboard: nudge — current input source unavailable (skip)")
+            return
+        }
         let selectStatus = TISSelectInputSource(ourMode)
         haneulLog("HaneulKeyboard: nudge — selected our IME (status=\(selectStatus))")
 
