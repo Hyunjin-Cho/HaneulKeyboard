@@ -24,6 +24,8 @@
 - [ ] Caps Lock을 길게 누르는 macOS 대문자 Caps Lock 동작과 짧게 누르는 한영 전환이 구분된다.
 - [ ] 영타 자동 변환 대상 단어를 확정한 뒤 Shift+Space를 누르면 영타↔한글 결과가 되돌려지고, 다시 누르면 역방향으로 토글된다.
 - [ ] 토글 대상이 아닌 문장에서 Shift+Space가 인접 텍스트를 훼손하지 않는다.
+- [ ] **ABC 없음** (#45, 2026-09-20): 입력 소스에서 ABC를 빼고 U.S.(또는 British·Dvorak) 같은 다른 영문 자판만 둔 상태에서 메뉴 "영어로 전환"을 누르면 **그 자판으로** 전환되고 메뉴바가 `A`가 된다.
+- [ ] **영문 자판 없음**: 영문 자판이 하나도 켜져 있지 않을 때 "영어로 전환"을 누르면 "영어로 전환하지 못했어요" 알림이 뜬다(조용히 실패하지 않는다). 하늘키보드를 입력 소스에서 뺀 상태에서 "한국어로 전환"을 누르면 "한국어로 전환하지 못했어요" 알림이 뜬다.
 
 ### 터미널 — Shift+Space 되돌리기 미지원 (#30)
 
@@ -91,14 +93,22 @@
 
 자동 테스트는 판단 함수(`OrphanDecision`)만 검증한다. 실제 삭제·비활성화·종료는 아래에서 사람이 확인한다. 로그: `/usr/bin/log show --predicate 'subsystem == "com.hyunjincho.haneulkeyboard" AND category == "orphan"' --last 30m`.
 
+> ⚠️ **전제 조건 (2026-09-20, #43 · 리뷰 F-4)** — 개발 머신에서는 이 절이 **그냥은 통과할 수 없다.** IME는 후보 경로를 LaunchServices(`urlsForApplications`)에서도 가져오는데, `.build/*DerivedData*/Build/Products/*/HaneulKeyboard.app` 같은 빌드 산출물이 등록돼 있고 디스크에 실존하면 휴지통 밖에 살아 있는 복사본으로 세어 **항상 `present`** 가 된다(2026-09-20 Mac Studio 실측: 메인 앱 bundle ID로 10개 경로, 그중 9개가 `.build` 산출물). 그러면 앱을 휴지통에 버려도 자기 정리는 절대 발동하지 않고 "연동이 안 된다"는 오판이 난다. 검증 전에:
+> 1. 저장소 안 `.build/*DerivedData*` 산출물을 지우거나(`rm -rf`는 오너 결정) `lsregister -u <산출물 경로>`로 등록만 뺀다.
+> 2. 확인 — 아래 프로브가 `/Applications/HaneulKeyboard.app` **하나만** 돌려줘야 한다:
+>    `swift -e 'import AppKit; NSWorkspace.shared.urlsForApplications(withBundleIdentifier: "com.hyunjincho.haneulkeyboard").forEach { print($0.path) }'`
+> 3. 최종 사용자 머신에는 DerivedData가 없으므로 이 전제는 개발 머신 전용이다(제품 결함 아님).
+
 - [ ] `/Applications/HaneulKeyboard.app`을 휴지통에 버린 뒤(메뉴바 앱 종료) 한글 모드로 계속 쓰면, **2분 이상 지나** 입력이 ABC로 넘어가고 `~/Library/Input Methods/HaneulKeyboardIM.app`이 사라진다. 로그에 `in the Trash — waiting` → `on repeated observations` → `removed own bundle`이 남는다.
 - [ ] 위 상태에서 로그의 `TISDisableInputSource=true/false`를 기록한다 — 프로그램 비활성화가 IME 프로세스 컨텍스트에서 되는지가 여기서 처음 확정된다. false면 입력 소스 목록의 "하늘키보드" 항목은 재로그인 후 사라지는 것이 정상.
 - [ ] **복원 유예**: 앱을 휴지통에 버렸다가 **2분 안에 "제자리에 놓기"**로 되돌리면 IME가 사라지지 않고 설정도 남아 있다.
 - [ ] **오탐 없음**: 앱을 새 버전으로 교체(Finder "대치")한 직후 한글 모드로 전환해도 IME가 사라지지 않는다(옛 번들이 휴지통에 있어도 `/Applications`에 새 번들이 있으면 present).
-- [ ] **오탐 없음**: 앱을 `/Applications/Utilities/` 같은 하위 폴더나 `~/Desktop`으로 **옮기기만 하고 실행하지 않은** 상태에서 한글 모드로 30분 이상 써도 IME가 사라지지 않는다(휴지통에 옛 버전 사본이 있어도 inode가 달라 무시).
+- [ ] **오탐 없음**: 앱을 `/Applications/Utilities/` 같은 하위 폴더나 `~/Desktop`으로 **옮기기만 하고 실행하지 않은** 상태에서 한글 모드로 30분 이상 써도 IME가 사라지지 않는다(휴지통에 옛 버전 사본이 있어도 inode가 달라 무시 — 기록 경로의 사본이든 LaunchServices가 기억하는 사본이든, #47).
+- [ ] **(#47 확인, 2026-09-20)** 옛 버전 `HaneulKeyboard.app` 사본을 휴지통에 둔 상태에서 위 전제 조건의 프로브(`urlsForApplications`)를 돌려 `~/.Trash` 경로가 **포함되는지** 기록한다 — 포함되면 LaunchServices 후보에 대한 inode 필터가 실제로 작동하는 경로이고, 그 상태에서 앱을 `~/Desktop`으로 옮겨 두면 로그가 `not found — waiting`(30분 유예)이어야 한다(`in the Trash`가 아님).
 - [ ] **오탐 없음**: 앱이 외장 볼륨에 있고 볼륨을 **마운트하지 않은** 세션에서 한글 모드를 30분 미만으로 쓰면 아무 일도 없다(30분 이상이면 정리되는 것이 현재 설계 — 재설치로 복구).
 - [ ] **ABC 없음**: 시스템 설정 입력 소스에서 ABC를 빼 둔 상태로 앱을 휴지통에 버리면, IME는 정리를 **보류**하고(로그 `could not switch … deferred`) 계속 쓸 수 있다. 입력 소스를 잃는 상태가 생기지 않는다.
 - [ ] 휴지통을 비운 뒤(앱이 어디에도 없음) IME는 **30분 이상** 지나 두 번째 관찰에서 정리된다 — 첫 관찰에서 바로 사라지지 않는다.
 - [ ] 역방향: 시스템 설정 → 입력 소스에서 "하늘키보드"를 "-"로 뺀 뒤 메뉴바 메뉴를 열면 "한글 입력기가 꺼져 있음 — 다시 켜기"가 보이고, 누르면 입력 소스 목록에 다시 나타난다.
 - [ ] 전체 제거: "전체 제거"를 실행하면 결과 창에서 "시스템 설정에서 직접 빼세요" 안내가 **더 이상 나오지 않는지**(프로그램 비활성화 성공 시) 또는 종전처럼 나오는지 기록한다.
+- [ ] 설정 → "IME 제거" (#46, 2026-09-20): 실행 뒤 시스템 설정 입력 소스 목록에서 "하늘키보드"가 **사라지는지**(프로그램 비활성화 성공) 또는 종전처럼 남는지 기록한다 — 전체 제거·자기 정리와 같은 `TISDisableInputSource` 경로. 로그 `IME 제거 — TISDisableInputSource=true/false`(subsystem `com.hyunjincho.haneulkeyboard`, category `main`).
 

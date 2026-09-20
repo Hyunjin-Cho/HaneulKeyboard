@@ -246,7 +246,11 @@ final class KoreanComposer {
                 ($0.isASCII && $0.isLetter) || Contractions.isApostrophe($0)
             }
         if isAscii {
-            let wordLower = String(keys.compactMap { $0.lowercased().first })
+            // 2026-09-20 (#44, 리뷰 F-6): 문맥 단어는 사전 조회와 같은 정규화를 거친다 —
+            // 곱은 아포스트로피(U+2019)를 `'`로 통일해야 `don’t` 뒤의 해(go)가
+            // goDoTriggers(직선 따옴표만)와 맞는다. 화면에 넣는 committed·lastConversion은
+            // 친 글자 그대로 유지한다. 아포스트로피가 없는 단어는 종전 소문자화와 동일.
+            let wordLower = Contractions.normalizedKey(keys)
             let cleanHangul = !units.contains { unit in
                 unit.unicodeScalars.contains { (0x3131...0x3163).contains($0.value) }
             }

@@ -45,6 +45,17 @@ enum OrphanDecision {
         return candidateFileID == recorded
     }
 
+    /// 후보 목록에서 **휴지통 안** 경로는 `accept`(위 `acceptsTrashedCopy` — bundle ID + 기록 inode)를
+    /// 통과한 것만 남기고, 휴지통 밖 경로는 그대로 둔다.
+    /// 2026-09-20 (#47, 리뷰 F-1): 기록 경로의 휴지통 사본(1단계)만 이 검사를 거치고 LaunchServices가
+    /// 돌려준 복사본(2단계)은 필터 없이 들어가던 구멍 — LaunchServices가 옛 버전 사본의 휴지통 경로를
+    /// 기억하고 있으면 `classify`가 `.trashed`(2분 유예)로 요약해 `.missing`(30분)보다 빨리 정리됐다.
+    /// 휴지통 밖에 살아 있는 복사본이 있으면 여전히 `.present`가 이기므로 오탐 삭제와는 무관하고,
+    /// 유예 시간이 설계대로 길어지는 효과만 있다.
+    static func filterTrashedCandidates(_ paths: [String], accept: (String) -> Bool) -> [String] {
+        paths.filter { !isInTrash($0) || accept($0) }
+    }
+
     /// 후보 경로들(LaunchServices가 아는 복사본 + 메인 앱이 기록한 자기 경로 + 그 이름의
     /// 휴지통 사본 + 표준 폴더 스캔)을 하나의 관찰로 요약한다.
     /// `exists`로 지금 디스크에 실재하는 것만 센다 — LaunchServices 캐시는 지워진 앱을

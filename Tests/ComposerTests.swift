@@ -1042,6 +1042,23 @@ struct ComposerTests {
         expect(OrphanDecision.acceptsTrashedCopy(bundleIDMatches: true, recordedFileID: nil, candidateFileID: 7), true, "연동: 기록이 없으면 bundle ID만으로 인정")
         expect(OrphanDecision.acceptsTrashedCopy(bundleIDMatches: false, recordedFileID: nil, candidateFileID: nil), false, "연동: bundle ID가 다르면 이름이 같아도 무시")
 
+        // ── 2026-09-20 (#47, 리뷰 F-1): LaunchServices 후보의 휴지통 경로도 같은 inode 검사를 거친다 ──
+        let oldTrashedCopy = "/Users/x/.Trash/HaneulKeyboard 옛버전.app"   // inode 불일치 → accept false
+        let filtered = OrphanDecision.filterTrashedCandidates([liveApp, trashedApp, oldTrashedCopy]) { $0 == trashedApp }
+        expect(filtered.joined(separator: "|"), [liveApp, trashedApp].joined(separator: "|"), "연동: 휴지통 밖은 그대로, 휴지통 안은 accept 통과분만 남는다")
+        expect(
+            OrphanDecision.filterTrashedCandidates([liveApp, oldTrashedCopy]) { _ in false }.joined(separator: "|"),
+            liveApp, "연동: accept가 전부 거부해도 휴지통 밖 경로는 영향 없음"
+        )
+        expect(
+            OrphanDecision.classify(candidatePaths: OrphanDecision.filterTrashedCandidates([stale, oldTrashedCopy]) { _ in false }) { $0 != stale } == .missing,
+            true, "연동: 기각된 옛 사본만 남으면 trashed(2분)가 아니라 missing(30분 유예)"
+        )
+        expect(
+            OrphanDecision.classify(candidatePaths: OrphanDecision.filterTrashedCandidates([stale, trashedApp]) { $0 == trashedApp }) { $0 != stale } == .trashed,
+            true, "연동: inode가 맞는 휴지통 사본은 종전대로 trashed"
+        )
+
         // ── 정리 실행 판단: 어떤 관찰도 한 번으로는 정리하지 않는다 (리뷰 B-1) ──
         let t0 = Date(timeIntervalSince1970: 1_000_000)
         func decide(_ p: OrphanDecision.AppPresence, prev: Date?, after: TimeInterval) -> Bool {
@@ -1197,6 +1214,22 @@ struct ComposerTests {
             "apple don't go",
             "축약형 문맥: don't가 goDoTriggers로 이어져 해→go"
         )
+        // 2026-09-20 (#44, 리뷰 F-6): 곱은 아포스트로피(U+2019)로 친 축약형도 같은 문맥 —
+        // lastEnglishWord가 정규화되지 않으면 `don’t`가 goDoTriggers(직선 따옴표)와 어긋나
+        // 해가 그대로 남았다. 출력은 친 글자(’) 그대로여야 한다.
+        expect(
+            typeWordsViaController(["apple", "don\u{2019}t", "go"]).joined(separator: " "),
+            "apple don\u{2019}t go",
+            "축약형 문맥: U+2019 don’t 뒤에서도 해→go (lastEnglishWord 정규화)"
+        )
+        do {
+            let client = FakeClient()
+            let composer = KoreanComposer()
+            for ch in "don\u{2019}t" { typeKeyViaController(ch, composer: composer, client: client) }
+            expect(composer.commit(to: client, convertEnglish: true), "don\u{2019}t", "축약형 U+2019: 커밋 텍스트는 친 글자 그대로")
+            expect(composer.lastEnglishWord ?? "", "don't", "축약형 U+2019: lastEnglishWord는 정규화(직선 따옴표)")
+            expect(composer.lastConversion?.english ?? "", "don\u{2019}t", "축약형 U+2019: lastConversion.english는 친 글자 그대로")
+        }
 
         // shift+space 되돌리기 기록
         do {
