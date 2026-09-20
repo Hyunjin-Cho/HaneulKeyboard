@@ -1197,6 +1197,22 @@ struct ComposerTests {
             "apple don't go",
             "축약형 문맥: don't가 goDoTriggers로 이어져 해→go"
         )
+        // 2026-09-20 (#44, 리뷰 F-6): 곱은 아포스트로피(U+2019)로 친 축약형도 같은 문맥 —
+        // lastEnglishWord가 정규화되지 않으면 `don’t`가 goDoTriggers(직선 따옴표)와 어긋나
+        // 해가 그대로 남았다. 출력은 친 글자(’) 그대로여야 한다.
+        expect(
+            typeWordsViaController(["apple", "don\u{2019}t", "go"]).joined(separator: " "),
+            "apple don\u{2019}t go",
+            "축약형 문맥: U+2019 don’t 뒤에서도 해→go (lastEnglishWord 정규화)"
+        )
+        do {
+            let client = FakeClient()
+            let composer = KoreanComposer()
+            for ch in "don\u{2019}t" { typeKeyViaController(ch, composer: composer, client: client) }
+            expect(composer.commit(to: client, convertEnglish: true), "don\u{2019}t", "축약형 U+2019: 커밋 텍스트는 친 글자 그대로")
+            expect(composer.lastEnglishWord ?? "", "don't", "축약형 U+2019: lastEnglishWord는 정규화(직선 따옴표)")
+            expect(composer.lastConversion?.english ?? "", "don\u{2019}t", "축약형 U+2019: lastConversion.english는 친 글자 그대로")
+        }
 
         // shift+space 되돌리기 기록
         do {
