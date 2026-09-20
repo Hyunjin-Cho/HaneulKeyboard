@@ -599,6 +599,26 @@ struct ComposerTests {
         expect(type("trd").committedText, "ㅅㄱㅇ", "#39 제외: trd=ㅅㄱㅇ 초성체(수고요)")
         expect(type("pvp").committedText, "ㅔ페", "#39 제외: pvp=ㅔ페 카오모지 팰린드롬 가드라 등재해도 변환 불가")
         expect(type("dns").committedText, "운", "#39 제외: dns=운 우리말샘 등재(veto) — 등급 판정은 미결")
+        // ── #49 산업군 사전 3차 (2026-09-20) — 의료·교육·여행·K-pop/엔터·헬스/식음료·소비자IT·마케팅/직장·디자인/사진 + 게임 타이틀 붙여쓰기 ──
+        // 후보 3,544 → 이미 변환 762 제외 → 검역 후 2,731 등재. 코드 예외 없음(전부 사전 등재만).
+        // 단일어 타이틀(overwatch 등)은 원래 되고, 두 단어 이상 붙인 고유명사가 이번 대상.
+        expect(type("leagueoflegends").committedText, "leagueoflegends", "#49 게임: 붙여쓴 타이틀 leagueoflegends")
+        expect(type("finalfantasy").committedText, "finalfantasy", "#49 게임: finalfantasy")
+        expect(type("mariokart").committedText, "mariokart", "#49 게임: mariokart")
+        expect(type("koreanair").committedText, "koreanair", "#49 여행: koreanair")
+        expect(type("incheon").committedText, "incheon", "#49 여행: incheon")
+        expect(type("aespa").committedText, "aespa", "#49 K-pop: aespa")
+        expect(type("jimin").committedText, "jimin", "#49 K-pop: 멤버 예명 jimin")
+        expect(type("opic").committedText, "opic", "#49 교육: opic")
+        expect(type("ozempic").committedText, "ozempic", "#49 의료: ozempic")
+        expect(type("americano").committedText, "americano", "#49 식음료: americano")
+        expect(type("usbc").committedText, "usbc", "#49 소비자IT: usbc")
+        expect(type("crm").committedText, "crm", "#49 마케팅: ㅊㄱㅡ → crm")
+        expect(type("figjam").committedText, "figjam", "#49 디자인: 랴허므 → figjam (R5·Tier A 통과)")
+        // 제외 확인 — 검역에서 걸러 넣지 않은 것들은 종전 동작 그대로.
+        expect(type("nmn").committedText, "ㅜㅡㅜ", "#49 제외: nmn=ㅜㅡㅜ 우는 얼굴 카오모지")
+        expect(type("totk").committedText, "새사", "#49 제외: totk=새사 우리말샘 등재(veto)")
+        expect(type("gpa").committedText, "헴", "#49 제외: gpa=헴 우리말샘 등재(veto)")
 
         // ── v3.1: 실기기 후속 3건 (2026-06-06) ──
         // 자음열 4+ 무맥락 변환 (great이 문장 첫 단어여도)
