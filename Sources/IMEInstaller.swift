@@ -128,6 +128,15 @@ enum IMEInstaller {
         return n
     }
 
+    /// 2026-09-21 (#19): 자동 업데이트로 앱이 교체된 뒤 첫 실행에서 "설치된 IME가 임베드본보다
+    /// 오래됐는가"를 `AppCore`가 판단하는 데 쓰는 재료. 판단 자체는
+    /// `UpdateDecision.shouldRefreshIME`(테스트 대상)에 있다. 설치본이 없으면 전부 nil.
+    /// `installedURL`이 `systemInstallURL`이면 root 소유라 앱이 스스로 갈 수 없다.
+    static func imeBuildNumbersForRefresh() -> (installed: Int?, bundled: Int?, installedURL: URL?) {
+        guard let installed = installedBundleURL() else { return (nil, nil, nil) }
+        return (buildNumber(at: installed), bundledIMEURL.flatMap(buildNumber(at:)), installed)
+    }
+
     /// (review-0712 P2-2) system 도메인이 canonical일 때 남아있는 user 도메인
     /// 잔재를 정리한다. 예전엔 `try?`로 삭제 실패를 통째로 버려서, 입력 소스
     /// 중복이 남은 채로 설치가 "성공"으로 보고됐다. 이제 실패를 로그로 남기고,

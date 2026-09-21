@@ -97,6 +97,9 @@ struct SettingsView: View {
             // 2026-09-21 (#55): 단어 제안 창구 — 본문은 WordSuggestionSettingsSection.swift.
             WordSuggestionSettingsSection()
 
+            // 2026-09-21 (#19): 자동 업데이트 절 — 본문은 UpdateSettingsSection.swift.
+            UpdateSettingsSection(core: core)
+
             Section("상태") {
                 LabeledContent("현재 입력 모드") {
                     Text(core.isKoreanActive ? "한국어 (한)" : "영어 (A)")

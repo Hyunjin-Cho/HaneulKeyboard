@@ -29,6 +29,7 @@
 - **영타 자동 변환** *(2026.02 신규 · 2026.03 사전 현대화)* — 한글 모드인 줄 모르고 영어를 쳤을 때, 스페이스를 누르는 순간 자동으로 영어로 바꿔줍니다. `메ㅔㅣㄷ`→`apple`, `ㅡ드ㅐ교`→`memory`, `how ㅁㄱㄷ you`→`how are you`. 올바른 한글과 ㅋㅋㅋ·ㅗㅜㅑ 같은 표현은 건드리지 않습니다 — **우리말샘 표제어 67.7만 개**로 실존 한국어를 확인합니다 (단 하나의 예외: 영어 문맥 직후의 새→to·무→an·내→so·랙→for·뭉→and 명시 목록). 2026.03부터 `and`·`city`·`playlist` 같은 기본·현대어와 `davinci`·`ronaldo` 같은 인명까지 변환합니다.
 - **Caps Lock 대문자 모드** — Caps Lock 길게 LED 토글(대문자 모드).
 - **메뉴바에서 제어** — 한국어/영어 전환, 설정을 메뉴바 아이콘에서. 영타 변환은 설정에서 켜고 끌 수 있고, 되돌리기 키와 앱별 끄기도 설정에서 고릅니다.
+- **자동 업데이트** *(2026-09-21 신규)* — 새 버전이 나오면 알려주고, 버튼 한 번으로 내려받아 서명·애플 공증을 검증한 뒤 스스로 교체합니다. 설정에서 끌 수 있습니다 (아래 [자동 업데이트](#자동-업데이트-2026-09-21)).
 
 한↔영 입력에만 집중합니다. 다른 언어 지원 및 다른 기능은 없습니다.
 
@@ -76,6 +77,17 @@
 - **최근 되돌린 변환** — Shift+Space로 되돌린 변환이 (한글 표기 → 영어)로 최근 50개까지 쌓입니다. 잘못 바뀐 단어는 옆의 **금지** 버튼 한 번으로 변환 금지 목록에 들어갑니다.
 
 저장한 즉시 다음 단어부터 반영됩니다(재시작 불필요).
+
+### 자동 업데이트 (2026-09-21)
+
+**설정 → 업데이트**에서 새 버전을 확인하고 설치합니다.
+
+- **업데이트 자동 확인** (기본 켜짐) — 앱을 실행할 때 한 번, 그 뒤 24시간마다 GitHub 릴리스에 새 버전이 있는지만 물어봅니다. 새 버전이 있으면 설정 화면과 메뉴바에 알려 주고, **자동으로 설치하지는 않습니다.**
+- **지금 확인** — 지금 한 번 확인합니다. 자동 확인을 꺼 두었어도 이 버튼은 동작하며, **꺼 두면 이 버튼을 누를 때 말고는 앱이 인터넷에 접속하지 않습니다.**
+- **업데이트** — 눌렀을 때만 내려받습니다. 받은 파일은 **번들 ID · 서명 Team · `codesign` · 애플 공증(`spctl`) · 버전 상승** 다섯 가지를 **전부** 통과해야 설치되고, 하나라도 어긋나면 받은 파일을 버리고 **지금 쓰던 앱을 그대로 둡니다.** 설치는 기존 앱을 먼저 지우지 않는 원자적 교체라 중간에 실패해도 앱이 사라지지 않습니다. 끝나면 새 버전으로 다시 열립니다.
+- 앱이 새 버전으로 바뀌면 **입력기(IME)도 함께 갱신**됩니다. 관리자 권한으로 `/Library/Input Methods`에 설치한 경우에는 자동 갱신이 안 되므로 설정에 "IME 갱신 필요" 안내가 뜹니다.
+- 자동 업데이트는 앱이 **응용 프로그램 폴더(`/Applications`)** 에 있을 때만 동작합니다. 다른 위치에서 실행 중이면 안내만 하고 중단합니다.
+- 나가는 데이터는 **없습니다** — 무엇을 요청하고 무엇을 보내지 않는지는 [PRIVACY.md](./PRIVACY.md) 9번에 전부 적혀 있습니다.
 
 ## 요구사항
 
@@ -191,6 +203,7 @@ Named after my daughter, 하늘 (Haneul) — "sky" in Korean.
 - **Menu bar control** for language switching, settings, and shortcuts. Wrong-layout auto-correction can be toggled in Settings; the revert key (default Shift+Space, also Option+Space / Control+Shift+Space / Option+Shift+Space) and a per-app off list are configurable there too. Note: reverting cannot work in terminals (Terminal.app, Ghostty…) — typed text is owned by the shell the moment it lands, so the IME has no way to take it back. <!-- 2026-09-21 (#54) -->
 - **Manual Hangul↔English toggle** *(2026-09-21)* — the revert key now works on **any word before the cursor**, not just one the IME auto-corrected: `재가` ↔ `work` (blocked from auto-correction because 재가 is a real Korean word), `ㅡ5` ↔ `m5` (impossible to auto-correct — no dictionary can hold it). Press again to switch back. Reverting an actual auto-correction still takes priority, and the whole feature can be turned off in Settings. Terminals are excluded for the same structural reason as above. <!-- 2026-09-21 (#15) -->
 - **Personal dictionary** *(2026-09-21)* — in Settings, list words that should **always** convert (in-house terms, names) or **never** convert (as English or as their Hangul-layout form), and review the conversions you reverted with Shift+Space (last 50) with a one-click "Block" button. Everything stays on your Mac — see [PRIVACY.md](./PRIVACY.md) #7.
+- **Automatic updates** *(2026-09-21)* — Settings → Updates checks GitHub Releases for a newer version (at launch and every 24 hours, on by default, and you can turn it off). A new version is only announced, never installed on its own; when you click **Update**, the download must pass all five checks — bundle ID, signing Team, `codesign`, Apple notarization (`spctl`), and a real version increase — before your app is replaced atomically and relaunched. If any check fails, the download is discarded and your existing app is untouched. Nothing about you is uploaded — see [PRIVACY.md](./PRIVACY.md) #9. <!-- 2026-09-21 (#19) -->
 
 Korean ↔ English input only. No other languages, no extra features.
 
