@@ -12,6 +12,7 @@ swiftc -o "$BIN" \
   IMESources/KeyboardLayout2Set.swift \
   IMESources/Contractions.swift \
   IMESources/KoreanComposer.swift \
+  IMESources/ManualToggle.swift \
   IMESources/EnglishDetector.swift \
   IMESources/KoreanDictionary.swift \
   IMESources/OrphanDecision.swift \

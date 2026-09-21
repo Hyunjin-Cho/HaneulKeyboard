@@ -27,6 +27,19 @@ enum RevertKey: String, CaseIterable {
     /// Space의 가상 키코드(kVK_Space). 되돌리기 후보는 전부 Space 조합이다.
     static let spaceKeyCode: UInt16 = 49
 
+    /// 2026-09-21 (#15): "되돌리기 키를 모든 단어로 확대" 설정(Bool, 기본 켜짐). 꺼 두면
+    /// 종전처럼 **직전 자동변환**만 되돌린다.
+    ///
+    /// 동작 본문은 `IMESources/ManualToggle.swift`인데 저장 키만 여기 있는 이유: ManualToggle은
+    /// 조합을 `KoreanComposer`에 위임하느라 IME 코어 전체를 끌고 와서 설정 앱 타겟에 넣을 수
+    /// 없다. 키 이름은 설정 앱도 써야 하므로, 이미 양쪽 타겟에 들어가는 이 파일에 둔다
+    /// (사본을 두면 반드시 어긋난다 — 되돌리기 키 설정이라 자리도 맞다).
+    /// "전체 제거"의 `haneul.*` 일괄 삭제에 함께 포함된다.
+    static let manualToggleAllWordsKey = "haneul.manualToggleAllWords"
+
+    /// 저장값이 없을 때의 기본값 — **켜짐**(오너 확정, #15).
+    static let manualToggleAllWordsDefault = true
+
     /// `NSEvent.ModifierFlags`와 비트가 같은 자체 OptionSet — AppKit 없이 비교하기 위한 것.
     /// 값은 macOS SDK `NSEvent.h`의 정의 그대로(2026-09-21 Xcode 27 SDK에서 실측 확인),
     /// 테스트가 이 상수를 SDK 값과 대조한다.
@@ -87,5 +100,20 @@ enum RevertKey: String, CaseIterable {
             .intersection(.deviceIndependentMask)
             .subtracting(.ignoredForMatching)
         return mods == requiredModifiers
+    }
+
+    /// 2026-09-21 (#15): defaults를 읽기 전에 거는 **값싼 사전 필터**.
+    ///
+    /// 종전엔 "Space 키코드 + 되돌릴 변환이 있을 때"만 defaults를 읽었는데, 모든 단어 토글이
+    /// 생기면서 `lastConversion`이 없을 때도 되돌리기 키를 판정해야 한다. 그대로 두면 **맨
+    /// 스페이스를 칠 때마다** defaults를 읽게 된다. 후보 4종이 전부 수정자를 하나 이상 요구하므로
+    /// (Ctrl+Space는 macOS 예약이라 후보에 없다) "Space + 수정자 있음"으로 먼저 거르면 평범한
+    /// 스페이스는 예전처럼 defaults를 건드리지 않는다. 통과해도 실제 판정은 `matches`가 한다.
+    static func couldMatch(keyCode: UInt16, modifierFlagsRaw: UInt) -> Bool {
+        guard keyCode == spaceKeyCode else { return false }
+        let mods = Modifiers(rawValue: modifierFlagsRaw)
+            .intersection(.deviceIndependentMask)
+            .subtracting(.ignoredForMatching)
+        return !mods.isEmpty
     }
 }
