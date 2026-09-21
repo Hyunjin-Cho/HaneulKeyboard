@@ -17,6 +17,7 @@ swiftc -o "$BIN" \
   IMESources/OrphanDecision.swift \
   IMESources/RevertKey.swift \
   IMESources/AutoConvertPolicy.swift \
+  IMESources/PersonalDictionary.swift \
   Sources/InstallDecisions.swift \
   Tests/ComposerTests.swift
 

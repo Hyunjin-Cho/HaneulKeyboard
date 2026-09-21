@@ -23,6 +23,11 @@ final class KoreanComposer {
     /// buffering itself is always on.
     var autoEnglishEnabled = true
 
+    /// 2026-09-21 (#53): 개인 사전(변환 추가·변환 금지). 컨트롤러가 활성 경계마다
+    /// defaults에서 읽어 넘긴다(`autoEnglishEnabled`와 같은 시점). 판정 합성은
+    /// `shouldConvertWord` 한 곳에서만 한다.
+    var personalDictionary = PersonalDictionary.empty
+
     /// The most recent commit, when it was English (lowercased; nil = the
     /// last commit was Korean or context was reset). Feeds EnglishDetector's
     /// context rules — the WORD itself matters now (whitelistTriggers:
@@ -222,12 +227,7 @@ final class KoreanComposer {
             // 2026-09-19 (#34): `'`를 품은 단어는 축약형 경로로 판정한다.
             committed = commitTextWithApostrophe(
                 at: apostrophe, convertible: convertible, hangul: hangul)
-        } else if convertible,
-           EnglishDetector.shouldConvert(
-               units: units,
-               keys: keys,
-               previousEnglishWord: lastEnglishWord
-           ) {
+        } else if convertible, shouldConvertWord(units: units, keys: keys) {
             committed = String(keys)
         } else {
             committed = hangul
@@ -293,16 +293,23 @@ final class KoreanComposer {
         guard convertible, KoreanDictionary.isLoaded else { return hangul }
 
         let keys = word.flatMap(\.keys)
+        // 2026-09-21 (#53): 통째 판정을 소사전보다 먼저 — `don't`(또는 그 한글형 애ㅜ'ㅅ)를
+        // 금지했으면 축약형 소사전에 있어도 한글로 남기고, `y'know`처럼 추가했으면 소사전에
+        // 없어도 통째로 변환한다. block이 force보다 먼저인 이유는 shouldConvertWord와 같다.
+        switch personalDictionary.decision(word: Contractions.normalizedKey(keys), hangul: hangul) {
+        case .block: return hangul
+        case .forceConvert: return String(keys)
+        case nil: break
+        }
         if Contractions.matchesDictionary(keys) { return String(keys) }
 
         // base만 떼어 기존 판정에 그대로 묻는다 — 축약형 전용 규칙을 새로 만들지
         // 않고 이미 검증된 EnglishDetector를 재사용한다(오변환 채널 최소화).
+        // 2026-09-21 (#53): base 판정도 일반 경로와 같은 합성(shouldConvertWord)을 거친다 —
+        // apple을 금지했으면 apple's도 한글, vismo를 추가했으면 vismo's도 영어. base의
+        // 한글 표기(`'` 앞부분)로도 금지가 걸리므로 메ㅔㅣㄷ 금지가 메ㅔㅣㄷ'ㄴ까지 막는다.
         let base = Array(word[..<index])
-        let baseConverts = EnglishDetector.shouldConvert(
-            units: base.map(\.text),
-            keys: base.flatMap(\.keys),
-            previousEnglishWord: lastEnglishWord
-        )
+        let baseConverts = shouldConvertWord(units: base.map(\.text), keys: base.flatMap(\.keys))
         if baseConverts, Contractions.hasAllowedSuffix(keys) { return String(keys) }
 
         let baseText = baseConverts
@@ -310,6 +317,36 @@ final class KoreanComposer {
             : base.map(\.text).joined()
         let tail = word[(index + 1)...].map(\.text).joined()
         return baseText + word[index].text + tail
+    }
+
+    /// 2026-09-21 (#53): `EnglishDetector.shouldConvert`에 개인 사전 판정을 합성한다.
+    /// `shouldConvert`를 부르던 두 곳(일반 경로·축약형의 base 경로)이 모두 여기를 거친다 —
+    /// 합성 규칙이 한 곳에만 있어야 두 경로가 갈라지지 않는다.
+    ///
+    /// 순서 = block → force → EnglishDetector.
+    ///   - **block이 맨 앞**: "절대 변환하지 않는다"는 약속은 같은 단어를 양쪽에 넣는 실수에도
+    ///     지켜져야 한다(안 바뀌는 쪽이 항상 안전한 실패). 영어 키열과 한글 표기 둘 다 대조.
+    ///   - **force가 EnglishDetector보다 앞**: 사전 등급·구조 룰(ㅋㅋㅋ 가드 포함)·우리말샘
+    ///     veto 전부를 건너뛰는 것이 명세다(사용자 명시 > 사전). "친 키가 그 단어를 이루어야
+    ///     한다"는 조건은 별도 검사가 필요 없다 — `word`가 실제 키열에서 만들어지므로 다른 키로
+    ///     친 우연한 한글이 강제 변환될 수는 없다.
+    ///   - **남기는 관문은 둘뿐**: ① 호출자의 `convertible`(활성 경계 + 자동 변환 켜짐 —
+    ///     passive 경계는 화면 그대로 커밋해야 하고 마스터 스위치는 개인 사전보다 위다),
+    ///     ② `KoreanDictionary.isLoaded` fail-closed(H-10). "veto 사전이 깨지면 자동변환을
+    ///     전부 끈다"는 단일 불변식이라(commitTextWithApostrophe 참조) force도 예외로 두지
+    ///     않는다 — 사용자 입장에서도 "기능이 통째로 꺼진 상태"와 일치한다.
+    private func shouldConvertWord(units: [String], keys: [Character]) -> Bool {
+        switch personalDictionary.decision(
+            word: Contractions.normalizedKey(keys), hangul: units.joined()
+        ) {
+        case .block:
+            return false
+        case .forceConvert:
+            return KoreanDictionary.isLoaded
+        case nil:
+            return EnglishDetector.shouldConvert(
+                units: units, keys: keys, previousEnglishWord: lastEnglishWord)
+        }
     }
 
     /// Peels one jamo from the in-flight syllable, or one whole unit from the
