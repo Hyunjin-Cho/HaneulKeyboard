@@ -1,6 +1,8 @@
 # HaneulKeyboard 수동 테스트 체크리스트
 
-대상: **빌드 41 이상**의 서명·설치 완료된 배포본. 테스트 전에 앱과 `HaneulKeyboardIM.app` 빌드 번호가 대상 빌드와 일치하는지 확인한다.
+> **기준일:** 2026-09-21 · "(프로브가 확인 — scripts/postinstall_probe.sh N번)"이 붙은 줄은 `bash scripts/postinstall_probe.sh`의 N번 항목이 기계로 대신 확인한다(#52). 표기 없는 줄은 사람이 본다.
+
+대상: **빌드 41 이상**의 서명·설치 완료된 배포본. 테스트 전에 앱과 `HaneulKeyboardIM.app` 빌드 번호가 대상 빌드와 일치하는지 확인한다. (프로브가 확인 — scripts/postinstall_probe.sh 1번)
 
 ## 메뉴바와 설정
 
@@ -22,6 +24,7 @@
 - [ ] 입력 소스를 여러 번 바꿔도 `한`/`A` 표시가 누락·지연 없이 현재 상태와 일치한다.
 - [ ] 하늘키보드 활성 상태에서 Caps Lock을 짧게 누르면 한↔영 입력 소스가 전환되고 이어서 입력한 문자가 올바른다.
 - [ ] Caps Lock을 길게 누르는 macOS 대문자 Caps Lock 동작과 짧게 누르는 한영 전환이 구분된다.
+- [ ] **Caps Lock 시스템 옵션 OFF** (#56, 2026-09-21): 시스템 설정 → 키보드 → 입력 소스의 "Caps Lock으로 ABC 전환" 옵션을 **꺼둔** 상태에서 Caps Lock을 눌러도 언어가 바뀌지 않는다(바뀌면 OS 버그 — 우리는 `TICapsLockLanguageSwitchCapable`로 OS에 위임하므로 우리 코드로 못 고친다. Apple Community 2025-09 리포트: 옵션이 꺼져 있어도 Caps Lock이 언어를 바꿈). 확인 후 옵션을 다시 켠다.
 - [ ] 영타 자동 변환 대상 단어를 확정한 뒤 Shift+Space를 누르면 영타↔한글 결과가 되돌려지고, 다시 누르면 역방향으로 토글된다.
 - [ ] 토글 대상이 아닌 문장에서 Shift+Space가 인접 텍스트를 훼손하지 않는다.
 - [ ] **ABC 없음** (#45, 2026-09-20): 입력 소스에서 ABC를 빼고 U.S.(또는 British·Dvorak) 같은 다른 영문 자판만 둔 상태에서 메뉴 "영어로 전환"을 누르면 **그 자판으로** 전환되고 메뉴바가 `A`가 된다.
@@ -94,8 +97,8 @@
 자동 테스트는 판단 함수(`OrphanDecision`)만 검증한다. 실제 삭제·비활성화·종료는 아래에서 사람이 확인한다. 로그: `/usr/bin/log show --predicate 'subsystem == "com.hyunjincho.haneulkeyboard" AND category == "orphan"' --last 30m`.
 
 > ⚠️ **전제 조건 (2026-09-20, #43 · 리뷰 F-4)** — 개발 머신에서는 이 절이 **그냥은 통과할 수 없다.** IME는 후보 경로를 LaunchServices(`urlsForApplications`)에서도 가져오는데, `.build/*DerivedData*/Build/Products/*/HaneulKeyboard.app` 같은 빌드 산출물이 등록돼 있고 디스크에 실존하면 휴지통 밖에 살아 있는 복사본으로 세어 **항상 `present`** 가 된다(2026-09-20 Mac Studio 실측: 메인 앱 bundle ID로 10개 경로, 그중 9개가 `.build` 산출물). 그러면 앱을 휴지통에 버려도 자기 정리는 절대 발동하지 않고 "연동이 안 된다"는 오판이 난다. 검증 전에:
-> 1. 저장소 안 `.build/*DerivedData*` 산출물을 지우거나(`rm -rf`는 오너 결정) `lsregister -u <산출물 경로>`로 등록만 뺀다.
-> 2. 확인 — 아래 프로브가 `/Applications/HaneulKeyboard.app` **하나만** 돌려줘야 한다:
+> 1. 저장소 안 `.build/*DerivedData*` 산출물을 지우거나(`rm -rf`는 오너 결정) `lsregister -u <산출물 경로>`로 등록만 뺀다. (2026-09-21 #52: `scripts/build_notarize_install.sh`는 끝날 때 자기 산출물 `.build/DerivedData/Build/Products/Release/`의 등록을 자동으로 뺀다 — 다른 DerivedData·Debug 산출물은 여전히 손으로.)
+> 2. 확인 — 아래 프로브가 `/Applications/HaneulKeyboard.app` **하나만** 돌려줘야 한다 (프로브가 확인 — scripts/postinstall_probe.sh 4번):
 >    `swift -e 'import AppKit; NSWorkspace.shared.urlsForApplications(withBundleIdentifier: "com.hyunjincho.haneulkeyboard").forEach { print($0.path) }'`
 > 3. 최종 사용자 머신에는 DerivedData가 없으므로 이 전제는 개발 머신 전용이다(제품 결함 아님).
 

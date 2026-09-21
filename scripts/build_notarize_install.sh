@@ -17,7 +17,9 @@
 #   5. optionally sudo install to /Applications or /Library/Input Methods/.
 #   6. Re-register with LaunchServices.
 #   7. Restart the installed target process.
-#   8. Print next steps for picker verification.
+#   8. Unregister the .build/DerivedData build products from LaunchServices
+#      (both ZIP_ONLY and install paths — 2026-09-21, #52).
+#   9. Print next steps for picker verification.
 
 set -euo pipefail
 
@@ -44,6 +46,8 @@ fi
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 NOTARY_PROFILE="haneul-notary"
 DEVID_CERT_PATTERN="Developer ID Application: Hyunjin Cho"
+# 2026-09-21 (#52): 설치 후 재등록(8.)·비정본 해제(8.5)·빌드 산출물 해제(unregister_build_products)가 같이 쓴다.
+LSREG=/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister
 ZIP_VERIFY_EXTRACT_ROOT=""
 
 cleanup_zip_verify_extract_root() {
@@ -165,6 +169,35 @@ verify_final_zip_payload() {
     echo
 }
 
+# 2026-09-21 (#52): xcodebuild가 끝나면 .build/DerivedData/Build/Products/Release/ 산출물
+# (HaneulKeyboard.app · 그 안의 Contents/Helpers/HaneulKeyboardIM.app · 단독 HaneulKeyboardIM.app)이
+# LaunchServices에 다시 등록돼 있는 것이 실측됐다(2026-09-20 Mac Studio). 그대로 두면
+#   - IME가 메인 앱 후보를 LaunchServices(urlsForApplications)에서도 찾으므로 개발 머신에서는
+#     앱을 휴지통에 버려도 산출물이 "살아 있는 복사본"으로 세어져 #32 자기 정리가 절대 발동하지
+#     않고(리뷰 F-4), postinstall_probe.sh 4번이 ✗가 된다.
+#   - 입력 소스 목록에 같은 이름이 줄줄이 생긴다(2026-06-06 학습).
+# 그래서 ZIP_ONLY 경로와 설치 경로가 둘 다 마지막에 이 함수를 지나 "등록만" 뺀다 — 파일은 그대로
+# 두어 다음 빌드에 쓰인다. (8.5는 설치 경로 전용 dedup이라 ZIP_ONLY 경로를 못 덮는다.)
+# ⚠️ macOS 27부터 lsregister -u 는 미등록·부재 경로에 exit 1("failed to scan … -10814")을 낸다
+# (2026-09-21 실측). "등록이 없음"은 원하는 상태이므로 비-0이어도 스크립트를 실패시키지 않고
+# 결과만 한 줄씩 출력한다.
+unregister_build_products() {
+    local products_dir="$DERIVED/Build/Products/Release"
+    local product
+    echo "→ Unregister build products from LaunchServices (files are kept)"
+    for product in \
+        "$products_dir/HaneulKeyboard.app" \
+        "$products_dir/HaneulKeyboard.app/Contents/Helpers/HaneulKeyboardIM.app" \
+        "$products_dir/HaneulKeyboardIM.app"; do
+        if "$LSREG" -u "$product" >/dev/null 2>&1; then
+            echo "  ✓ unregistered: $product"
+        else
+            echo "  - not registered (or absent): $product"
+        fi
+    done
+    echo
+}
+
 cd "$PROJECT_ROOT"
 
 echo "════════════════════════════════════════════"
@@ -268,6 +301,7 @@ echo
 # 비대화형으로 넣을 수 없는 환경이나, 배포용 산출물만 필요할 때 쓴다.
 # 결과물은 repo 루트의 <Target>_<MARKETING_VERSION>.zip 이다.
 if [[ "${ZIP_ONLY:-0}" == "1" ]]; then
+    unregister_build_products   # 2026-09-21 (#52): 설치를 건너뛰어도 산출물 등록은 뺀다
     echo "════════════════════════════════════════════"
     echo "  ✅ 노타리+staple 및 검증 완료된 배포 zip 생성 (설치 skip)"
     echo "  → $OUT"
@@ -328,7 +362,6 @@ echo "  ✓ Staged, verified, and atomically installed"
 echo
 
 echo "→ Re-register with LaunchServices (system domain)"
-LSREG=/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister
 sudo "$LSREG" -f -R -trusted -domain system "$INSTALL_PATH"
 echo "  ✓ Registered"
 echo
@@ -387,6 +420,11 @@ if [[ -f "$TIS_VERIFY" ]]; then
     swift "$TIS_VERIFY" "$TARGET" 2>&1 | sed 's/^/  /' || true
     echo
 fi
+
+# ─── 10.5 Unregister build products (#52) ───────────
+# 2026-09-21: 8.5가 RELEASE_APP·임베드 IME는 이미 뺐지만, 단독 HaneulKeyboardIM.app은 안 뺐고
+# ZIP_ONLY 경로와 같은 한 곳을 지나게 하려고 여기서 한 번 더 훑는다(멱등).
+unregister_build_products
 
 # ─── 11. Next steps ─────────────────────────────────
 if [[ "$IS_MAIN_APP" == "1" ]]; then
