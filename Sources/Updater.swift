@@ -288,6 +288,21 @@ final class Updater {
 
         // 배포 zip은 `ditto -c -k --keepParent`로 만들어 최상위가 HaneulKeyboard.app 하나다.
         let app = extractDir.appendingPathComponent(AppMoveDecision.destinationName)
+
+        // 🔒 2026-09-21 (#19 보안 검토 P3-1): **아래 어떤 검사보다 먼저** 푼 결과가 추출 폴더
+        // 안의 실제 디렉터리인지 본다. 심볼릭 링크면 `fileExists`부터 codesign·spctl까지 전부
+        // 링크가 가리키는 바깥 번들에 적용돼 통과해 버린다. 사유·실측은
+        // `UpdateDecision.isSafeExtractedApp` 주석. 읽기 실패는 링크로 간주(fail-closed).
+        let appValues = try? app.resourceValues(forKeys: [.isSymbolicLinkKey, .isDirectoryKey])
+        guard UpdateDecision.isSafeExtractedApp(
+            isSymbolicLink: appValues?.isSymbolicLink ?? true,
+            isDirectory: appValues?.isDirectory ?? false,
+            resolvedAppPath: app.resolvingSymlinksInPath().standardizedFileURL.path,
+            resolvedExtractDirPath: extractDir.resolvingSymlinksInPath().standardizedFileURL.path
+        ) else {
+            throw UpdateError.verificationFailed(["압축을 푼 \(AppMoveDecision.destinationName)이 추출 폴더 안의 실제 앱 폴더가 아님(심볼릭 링크 등)"])
+        }
+
         guard fm.fileExists(atPath: app.appendingPathComponent("Contents/Info.plist").path) else {
             throw UpdateError.extractFailed("zip 안에 \(AppMoveDecision.destinationName)이 없음")
         }

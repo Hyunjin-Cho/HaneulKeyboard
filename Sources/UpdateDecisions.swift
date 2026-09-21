@@ -270,6 +270,30 @@ enum UpdateDecision {
         return installedBuild < bundledBuild
     }
 
+    /// zip에서 푼 `HaneulKeyboard.app`이 **그 자리에 있는 진짜 앱 폴더**인가.
+    ///
+    /// 🔒 2026-09-21 (#19 보안 검토 P3-1): `ditto -x -k`는 zip에 담긴 **심볼릭 링크 엔트리를
+    /// 링크 그대로 만든다**(`zip -y`로 만든 아카이브로 실측 확인). 그러면 뒤따르는
+    /// `fileExists`·`codesign`·`spctl`이 전부 **링크가 가리키는 바깥 번들**에 적용돼 통과해
+    /// 버리고, `replaceItemAt` 뒤에는 `/Applications/HaneulKeyboard.app` 자체가 그 링크가 된다.
+    /// 그래서 ① 링크가 아니고 ② 디렉터리이며 ③ 심볼릭 링크를 다 푼 경로가 추출 폴더 **안**일
+    /// 때만 통과시킨다.
+    ///
+    /// 두 경로는 **둘 다 `resolvingSymlinksInPath()`를 거친 값**이어야 한다 — macOS의
+    /// `/var/folders/...`(임시 폴더)는 `/private/var/...`의 심볼릭 링크라, 한쪽만 풀면
+    /// 정상 케이스가 접두어 비교에서 탈락한다.
+    static func isSafeExtractedApp(
+        isSymbolicLink: Bool, isDirectory: Bool,
+        resolvedAppPath: String, resolvedExtractDirPath: String
+    ) -> Bool {
+        guard !isSymbolicLink, isDirectory else { return false }
+        var root = resolvedExtractDirPath
+        while root.count > 1, root.hasSuffix("/") { root.removeLast() }
+        guard root.hasPrefix("/"), root != "/" else { return false }
+        guard !resolvedAppPath.contains("/../"), !resolvedAppPath.hasSuffix("/..") else { return false }
+        return resolvedAppPath.hasPrefix(root + "/") && resolvedAppPath.count > root.count + 1
+    }
+
     /// 자동 업데이트는 `/Applications/HaneulKeyboard.app`에서 실행 중일 때만 한다 — 다른
     /// 곳(다운로드 폴더·translocation)에서 실행 중이면 교체 대상과 실행 중인 앱이 달라진다.
     static func isRunningFromDestination(bundlePath: String, destinationPath: String) -> Bool {

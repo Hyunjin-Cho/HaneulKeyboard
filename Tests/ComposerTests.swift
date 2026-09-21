@@ -2115,6 +2115,47 @@ struct ComposerTests {
         expect(UpdateDecision.shouldRefreshIME(installedBuild: nil, bundledBuild: 51), false, "IME 갱신: 설치본 없음/못 읽음 → 안 함(H-01)")
         expect(UpdateDecision.shouldRefreshIME(installedBuild: 50, bundledBuild: nil), false, "IME 갱신: 임베드본 못 읽음 → 안 함")
 
+        // ── 푼 번들이 실체인가 (#19 보안 검토 P3-1, 2026-09-21) ──
+        // 실측: `ditto -x -k`는 zip의 심볼릭 링크 엔트리를 링크 그대로 만들고, `fileExists`는
+        // 그 링크를 따라가므로 검증이 **바깥 번들**에 적용된다. 여기서 먼저 잘라낸다.
+        do {
+            let extractDir = "/private/var/folders/ab/HaneulKeyboardUpdate-1/extract"
+            let good = extractDir + "/HaneulKeyboard.app"
+            expect(UpdateDecision.isSafeExtractedApp(isSymbolicLink: false, isDirectory: true,
+                                                     resolvedAppPath: good, resolvedExtractDirPath: extractDir),
+                   true, "추출 검사: 추출 폴더 안의 실제 디렉터리는 통과")
+            expect(UpdateDecision.isSafeExtractedApp(isSymbolicLink: true, isDirectory: true,
+                                                     resolvedAppPath: good, resolvedExtractDirPath: extractDir),
+                   false, "추출 검사: 심볼릭 링크면 거부")
+            expect(UpdateDecision.isSafeExtractedApp(isSymbolicLink: false, isDirectory: false,
+                                                     resolvedAppPath: good, resolvedExtractDirPath: extractDir),
+                   false, "추출 검사: 디렉터리가 아니면 거부(파일 하나짜리 위장)")
+            expect(UpdateDecision.isSafeExtractedApp(isSymbolicLink: false, isDirectory: true,
+                                                     resolvedAppPath: "/Applications/HaneulKeyboard.app",
+                                                     resolvedExtractDirPath: extractDir),
+                   false, "추출 검사: 링크를 푼 실경로가 추출 폴더 밖이면 거부")
+            expect(UpdateDecision.isSafeExtractedApp(isSymbolicLink: false, isDirectory: true,
+                                                     resolvedAppPath: extractDir, resolvedExtractDirPath: extractDir),
+                   false, "추출 검사: 추출 폴더 자신은 거부")
+            expect(UpdateDecision.isSafeExtractedApp(isSymbolicLink: false, isDirectory: true,
+                                                     resolvedAppPath: extractDir + "-evil/HaneulKeyboard.app",
+                                                     resolvedExtractDirPath: extractDir),
+                   false, "추출 검사: 접두어만 같은 형제 폴더 거부")
+            expect(UpdateDecision.isSafeExtractedApp(isSymbolicLink: false, isDirectory: true,
+                                                     resolvedAppPath: extractDir + "/../HaneulKeyboard.app",
+                                                     resolvedExtractDirPath: extractDir),
+                   false, "추출 검사: 경로에 .. 가 남아 있으면 거부")
+            expect(UpdateDecision.isSafeExtractedApp(isSymbolicLink: false, isDirectory: true,
+                                                     resolvedAppPath: good, resolvedExtractDirPath: extractDir + "/"),
+                   true, "추출 검사: 추출 폴더 끝 슬래시는 무시")
+            expect(UpdateDecision.isSafeExtractedApp(isSymbolicLink: false, isDirectory: true,
+                                                     resolvedAppPath: "/HaneulKeyboard.app", resolvedExtractDirPath: "/"),
+                   false, "추출 검사: 추출 폴더가 루트면 거부(fail-closed)")
+            expect(UpdateDecision.isSafeExtractedApp(isSymbolicLink: false, isDirectory: true,
+                                                     resolvedAppPath: good, resolvedExtractDirPath: "extract"),
+                   false, "추출 검사: 상대 경로면 거부(fail-closed)")
+        }
+
         // ── 실행 위치·교체 전략 ──
         expect(UpdateDecision.isRunningFromDestination(bundlePath: "/Applications/HaneulKeyboard.app", destinationPath: "/Applications/HaneulKeyboard.app"), true, "교체: /Applications에서 실행 중")
         expect(UpdateDecision.isRunningFromDestination(bundlePath: "/Users/x/Downloads/HaneulKeyboard.app", destinationPath: "/Applications/HaneulKeyboard.app"), false, "교체: 다운로드 폴더면 중단")
