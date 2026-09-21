@@ -1330,6 +1330,136 @@ struct ComposerTests {
         expect(Contractions.hasAllowedSuffix(Array("i'")), true, "Contractions: 빈 접미 허용")
         expect(Contractions.hasAllowedSuffix(Array("apple'xyz")), false, "Contractions: 허용 안 된 접미")
 
+        // MARK: 되돌리기 키 선택 (#54, 2026-09-21) — RevertKey 순수 매칭
+        // 수정자 비트는 NSEvent.ModifierFlags의 SDK 값을 여기 **직접** 적는다(2026-09-21 Xcode 27
+        // SDK 실측: capsLock 1<<16 · shift 1<<17 · control 1<<18 · option 1<<19 · command 1<<20 ·
+        // function 1<<23 · deviceIndependentFlagsMask 0xFFFF0000). RevertKey.Modifiers 상수가
+        // SDK와 어긋나면 여기서 잡힌다 — 테스트 하네스는 AppKit을 못 불러 상수를 직접 못 읽는다.
+        let mCapsLock: UInt = 0x10000
+        let mShift: UInt = 0x20000
+        let mControl: UInt = 0x40000
+        let mOption: UInt = 0x80000
+        let mCommand: UInt = 0x100000
+        let mFunction: UInt = 0x800000
+        expect(
+            RevertKey.Modifiers.capsLock.rawValue == mCapsLock
+                && RevertKey.Modifiers.shift.rawValue == mShift
+                && RevertKey.Modifiers.control.rawValue == mControl
+                && RevertKey.Modifiers.option.rawValue == mOption
+                && RevertKey.Modifiers.command.rawValue == mCommand
+                && RevertKey.Modifiers.function.rawValue == mFunction
+                && RevertKey.Modifiers.deviceIndependentMask.rawValue == 0xFFFF_0000,
+            true, "RevertKey: 수정자 비트 = NSEvent.ModifierFlags SDK 값"
+        )
+        expect(RevertKey.spaceKeyCode == 49, true, "RevertKey: Space 키코드 49")
+        expect(RevertKey.defaultsKey, "haneul.revertKey", "RevertKey: 저장 키 이름")
+        expect(RevertKey.allCases.count, 4, "RevertKey: 고정 후보 4종")
+        expect(
+            RevertKey.allCases.contains { $0.requiredModifiers == [.control] }, false,
+            "RevertKey: Ctrl+Space는 후보에 없다(macOS 입력 소스 전환 키)"
+        )
+        expect(RevertKey.default == .shiftSpace, true, "RevertKey: 기본값 Shift+Space")
+        expect(RevertKey.resolve(rawValue: nil) == .shiftSpace, true, "RevertKey: 저장값 없음 → 기본값")
+        expect(RevertKey.resolve(rawValue: "") == .shiftSpace, true, "RevertKey: 빈 문자열 → 기본값")
+        expect(RevertKey.resolve(rawValue: "controlSpace") == .shiftSpace, true, "RevertKey: 모르는 값 → 기본값")
+        expect(RevertKey.resolve(rawValue: "ShiftSpace") == .shiftSpace, true, "RevertKey: 대소문자 틀린 값 → 기본값(rawValue 정확 일치)")
+        expect(RevertKey.resolve(rawValue: "optionSpace") == .optionSpace, true, "RevertKey: optionSpace 해석")
+        expect(RevertKey.resolve(rawValue: "controlShiftSpace") == .controlShiftSpace, true, "RevertKey: controlShiftSpace 해석")
+        expect(RevertKey.resolve(rawValue: "optionShiftSpace") == .optionShiftSpace, true, "RevertKey: optionShiftSpace 해석")
+        for key in RevertKey.allCases {
+            expect(RevertKey.resolve(rawValue: key.rawValue) == key, true, "RevertKey: rawValue 왕복 \(key.rawValue)")
+            expect(key.displayName.isEmpty, false, "RevertKey: 표시 이름 있음 \(key.rawValue)")
+        }
+
+        let space: UInt16 = 49
+        let combos: [(key: RevertKey, mods: UInt, name: String)] = [
+            (.shiftSpace, mShift, "Shift+Space"),
+            (.optionSpace, mOption, "Option+Space"),
+            (.controlShiftSpace, mControl | mShift, "Ctrl+Shift+Space"),
+            (.optionShiftSpace, mOption | mShift, "Option+Shift+Space"),
+        ]
+        for combo in combos {
+            let key = combo.key, mods = combo.mods, name = combo.name
+            expect(key.matches(keyCode: space, modifierFlagsRaw: mods), true, "RevertKey \(name): 정확 일치")
+            expect(key.matches(keyCode: space, modifierFlagsRaw: mods | mCapsLock), true, "RevertKey \(name): capsLock 무시(한글 모드)")
+            expect(key.matches(keyCode: space, modifierFlagsRaw: mods | mFunction), true, "RevertKey \(name): function 무시")
+            expect(key.matches(keyCode: space, modifierFlagsRaw: mods | mCapsLock | mFunction | 0x0102), true, "RevertKey \(name): 장치별 하위 16비트 무시")
+            expect(key.matches(keyCode: space, modifierFlagsRaw: mods | mCommand), false, "RevertKey \(name): Command가 더 붙으면 아님")
+            expect(key.matches(keyCode: 0, modifierFlagsRaw: mods), false, "RevertKey \(name): Space 아닌 키(A)")
+            expect(key.matches(keyCode: 36, modifierFlagsRaw: mods), false, "RevertKey \(name): Space 아닌 키(Return)")
+            expect(key.matches(keyCode: space, modifierFlagsRaw: 0), false, "RevertKey \(name): 수정자 없는 Space")
+            expect(key.matches(keyCode: space, modifierFlagsRaw: mCapsLock), false, "RevertKey \(name): capsLock만 붙은 Space")
+            for other in combos where other.key != key {
+                expect(key.matches(keyCode: space, modifierFlagsRaw: other.mods), false, "RevertKey \(name): \(other.name) 조합은 아님")
+            }
+        }
+
+        // MARK: 앱별 자동 변환 끄기 (#54, 2026-09-21) — AutoConvertPolicy 순수 판정
+        let disabledApps = ["com.apple.Terminal", "com.mitchellh.ghostty"]
+        expect(AutoConvertPolicy.disabledAppsKey, "haneul.disabledAppBundleIDs", "앱별 끄기: 저장 키 이름")
+        expect(
+            AutoConvertPolicy.allowed(globalEnabled: true, disabledIDs: disabledApps, clientBundleID: "com.apple.Terminal"),
+            false, "앱별 끄기: 목록에 있는 앱 → 변환 안 함"
+        )
+        expect(
+            AutoConvertPolicy.allowed(globalEnabled: true, disabledIDs: disabledApps, clientBundleID: "com.mitchellh.ghostty"),
+            false, "앱별 끄기: 목록 두 번째 앱도 → 변환 안 함"
+        )
+        expect(
+            AutoConvertPolicy.allowed(globalEnabled: true, disabledIDs: disabledApps, clientBundleID: "com.apple.TextEdit"),
+            true, "앱별 끄기: 목록에 없는 앱 → 변환"
+        )
+        expect(
+            AutoConvertPolicy.allowed(globalEnabled: true, disabledIDs: disabledApps, clientBundleID: nil),
+            true, "앱별 끄기: bundle ID 못 얻음(nil) → 켜짐"
+        )
+        expect(
+            AutoConvertPolicy.allowed(globalEnabled: true, disabledIDs: disabledApps, clientBundleID: ""),
+            true, "앱별 끄기: 빈 bundle ID → 켜짐"
+        )
+        expect(
+            AutoConvertPolicy.allowed(globalEnabled: true, disabledIDs: [], clientBundleID: "com.apple.Terminal"),
+            true, "앱별 끄기: 목록 비면 변환"
+        )
+        expect(
+            AutoConvertPolicy.allowed(globalEnabled: false, disabledIDs: [], clientBundleID: "com.apple.TextEdit"),
+            false, "앱별 끄기: 전역 off → 무조건 변환 안 함"
+        )
+        expect(
+            AutoConvertPolicy.allowed(globalEnabled: false, disabledIDs: disabledApps, clientBundleID: nil),
+            false, "앱별 끄기: 전역 off + nil → 변환 안 함(전역이 우선)"
+        )
+        expect(
+            AutoConvertPolicy.allowed(globalEnabled: true, disabledIDs: disabledApps, clientBundleID: "COM.APPLE.TERMINAL"),
+            false, "앱별 끄기: 대소문자 무시"
+        )
+        expect(
+            AutoConvertPolicy.allowed(globalEnabled: true, disabledIDs: [" com.apple.Terminal "], clientBundleID: "com.apple.Terminal"),
+            false, "앱별 끄기: 목록 항목의 앞뒤 공백 무시"
+        )
+        expect(
+            AutoConvertPolicy.allowed(globalEnabled: true, disabledIDs: disabledApps, clientBundleID: "com.apple.Terminal2"),
+            true, "앱별 끄기: 접두어 함정 아님(정확 일치)"
+        )
+        expect(
+            AutoConvertPolicy.adding("com.apple.Safari", to: disabledApps).joined(separator: ","),
+            "com.apple.Terminal,com.mitchellh.ghostty,com.apple.Safari", "앱별 끄기: 추가는 끝에, 순서 유지"
+        )
+        expect(AutoConvertPolicy.adding("com.apple.Terminal", to: disabledApps).count, 2, "앱별 끄기: 중복 추가 안 됨")
+        expect(AutoConvertPolicy.adding(" COM.apple.terminal ", to: disabledApps).count, 2, "앱별 끄기: 공백·대소문자 다른 중복도 안 됨")
+        expect(AutoConvertPolicy.adding("  ", to: disabledApps).count, 2, "앱별 끄기: 빈 값 추가 무시")
+        expect(AutoConvertPolicy.adding(" com.apple.Safari ", to: []).joined(separator: ","), "com.apple.Safari", "앱별 끄기: 추가 시 공백 정리")
+        expect(
+            AutoConvertPolicy.removing("com.apple.Terminal", from: disabledApps).joined(separator: ","),
+            "com.mitchellh.ghostty", "앱별 끄기: 제거"
+        )
+        expect(
+            AutoConvertPolicy.removing("COM.MITCHELLH.GHOSTTY", from: disabledApps).joined(separator: ","),
+            "com.apple.Terminal", "앱별 끄기: 제거도 대소문자 무시"
+        )
+        expect(AutoConvertPolicy.removing("com.example.none", from: disabledApps).count, 2, "앱별 끄기: 없는 항목 제거는 그대로")
+        expect(AutoConvertPolicy.removing("", from: disabledApps).count, 2, "앱별 끄기: 빈 값 제거는 그대로")
+
         print("\(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
     }

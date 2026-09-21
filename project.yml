@@ -30,6 +30,10 @@ targets:
     deploymentTarget: "14.0"
     sources:
       - path: Sources
+      # 2026-09-21 (#54): 되돌리기 키·앱별 끄기의 저장 키·후보·판정을 IME와 공유한다
+      # (Foundation 전용 순수 파일 — 설정 앱과 IME가 같은 정의를 쓰는 단일 진실).
+      - path: IMESources/RevertKey.swift
+      - path: IMESources/AutoConvertPolicy.swift
       - path: Resources/AppIcon.icns
         buildPhase: resources
       - path: LICENSE
