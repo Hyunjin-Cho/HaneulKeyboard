@@ -46,6 +46,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self?.setupStatusItem()
         }
 
+        // 2026-09-21 (#19): 자동 업데이트 확인 스케줄(실행 시 1회 + 정기, 24시간 throttle).
+        // 토글 OFF면 네트워크에 나가지 않는다. 결과는 표시만 — 설치는 사용자 클릭.
+        core.updater.startAutomaticChecks()
+
         // 입력 소스 변경 알림 → 메뉴바 한/A 글자 + core 상태 갱신.
         sourceObserver = DistributedNotificationCenter.default.addObserver(
             forName: NSNotification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String),
@@ -108,6 +112,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             add(menu, "한글 입력기가 꺼져 있음 — 다시 켜기", #selector(reenableIME))
         } else if !core.imeInstalled {
             addDisabled(menu, "한글 입력기(IME) 미설치 — 설정에서 설치 권장")
+        }
+
+        // 2026-09-21 (#19): 새 버전이 있으면 알린다 — 설치는 설정의 [업데이트]에서 사용자가.
+        if case .available(let update) = core.updater.phase {
+            add(menu, "새 버전 \(update.tag) 사용 가능 — 업데이트...", #selector(openSettings))
         }
 
         menu.addItem(.separator())

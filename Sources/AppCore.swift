@@ -10,6 +10,11 @@ final class AppCore {
     /// 번들은 있는데 입력 소스가 꺼져 있음(시스템 설정에서 뺀 경우). (#32)
     private(set) var imeDisabled = false
     private(set) var imeActivationError: Error?
+    /// 2026-09-21 (#19): 설치된 IME가 임베드본보다 오래됐는데 자동 갱신을 못 했다(root 소유
+    /// 설치본이거나 갱신 실패). 설정의 「업데이트」 절이 "IME 갱신 필요" 안내를 띄우는 폴백.
+    private(set) var imeRefreshNeeded = false
+    /// 자동 업데이트(#19). 스케줄 시작은 `AppDelegate.applicationDidFinishLaunching`에서.
+    let updater = Updater()
 
     /// IME가 "메인 앱이 아직 있는가"를 판단할 때 쓰는 기록 — 앱이 실행될 때마다 IME
     /// 설정 도메인에 자기 경로와 파일 번호(inode)를 남긴다. IME는 이 경로(와 같은 이름·
@@ -47,6 +52,31 @@ final class AppCore {
     private func ensureIMEActive() {
         Task { [weak self] in
             do {
+                // 2026-09-21 (#19): 자동 업데이트로 앱이 교체된 뒤 첫 실행 — 설치된 IME 빌드번호가
+                // 임베드본보다 낮으면 설정의 "IME 설치" 버튼과 같은 경로(`installBundle`: IME 정지 →
+                // staging → 원자 교체 → LaunchServices·TIS 등록·활성화)로 갱신한다. "시작 시
+                // 복사 금지"(H-01)는 그대로 — 빌드번호가 실제로 올라간 경우에만 예외다. root 소유
+                // 설치본(/Library/Input Methods)은 `installBundle`이 복사하지 않으므로 여기서
+                // 안내 폴백으로 돌린다. 사용자 클릭 없이 TIS 활성화가 되는지는 실기기 체크리스트.
+                let builds = IMEInstaller.imeBuildNumbersForRefresh()
+                if UpdateDecision.shouldRefreshIME(installedBuild: builds.installed, bundledBuild: builds.bundled) {
+                    if builds.installedURL == IMEInstaller.systemInstallURL {
+                        self?.imeRefreshNeeded = true
+                        haneulLog("HaneulKeyboard: installed IME build \(builds.installed ?? -1) < bundled \(builds.bundled ?? -1) but install is system-domain (root) — manual refresh needed")
+                    } else {
+                        do {
+                            let result = try await IMEInstaller.installBundle()
+                            self?.imeRefreshNeeded = false
+                            self?.imeActivationError = nil
+                            await self?.updateIMEStatus()
+                            haneulLog("HaneulKeyboard: IME refreshed to bundled build \(builds.bundled ?? -1) at \(result.url.path) (was \(builds.installed ?? -1))")
+                            return
+                        } catch {
+                            self?.imeRefreshNeeded = true
+                            haneulLog("HaneulKeyboard: IME refresh failed — \(error.localizedDescription); falling back to activation of installed build")
+                        }
+                    }
+                }
                 guard let result = try await IMEInstaller.activateInstalled() else {
                     await self?.updateIMEStatus()
                     haneulLog("HaneulKeyboard: no installed IME bundle found — activation skipped")

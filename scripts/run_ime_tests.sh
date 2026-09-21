@@ -21,6 +21,7 @@ swiftc -o "$BIN" \
   IMESources/PersonalDictionary.swift \
   Sources/InstallDecisions.swift \
   Sources/WordSuggestion.swift \
+  Sources/UpdateDecisions.swift \
   Tests/ComposerTests.swift
 
 "$BIN"

@@ -1933,6 +1933,168 @@ struct ComposerTests {
             }
             expect(everyCandidatePasses, true, "couldMatch: 후보 4종은 전부 사전 필터를 통과한다")
         }
+        // ═══ 자동 업데이트 판단 (#19, 2026-09-21) ═══
+        // 네트워크·파일 교체 없이 "무엇을 결정하는가"만 검증한다. 인터넷에서 받은 파일로
+        // 앱을 갈아끼우는 기능이라, 애매하면 "업데이트 없음 / 설치 금지"로 닫혀야 한다.
+
+        // ── CalVer 파싱·비교 ──
+        func ver(_ s: String) -> CalVer? { CalVer(s) }
+        expect(ver("2026.07") != nil, true, "CalVer: 2026.07 파싱")
+        expect(ver("2026.08.1") != nil, true, "CalVer: 3칸 파싱")
+        expect(ver("2026.07")! < ver("2026.08")!, true, "CalVer: 2026.07 < 2026.08")
+        expect(ver("2026.08")! < ver("2026.08.1")!, true, "CalVer: 2026.08 < 2026.08.1")
+        expect(ver("2026.08.1")! < ver("2026.09")!, true, "CalVer: 2026.08.1 < 2026.09")
+        expect(ver("2026.09")! < ver("2027.01")!, true, "CalVer: 연도 우선")
+        expect(ver("2026.02.10")! > ver("2026.02.09")!, true, "CalVer: 세 번째 칸도 정수(10 > 9)")
+        expect(ver("2026.10")! > ver("2026.9")!, true, "CalVer: 두 번째 칸 정수(10 > 9, 소수점 아님)")
+        expect(ver("2026.08") == ver("2026.08"), true, "CalVer: 같은 버전")
+        expect(ver("2026.08") == ver("2026.08.0"), true, "CalVer: 핫픽스 0은 없는 것과 같음")
+        expect(ver("2026.08")! < ver("2026.08")!, false, "CalVer: 같은 버전은 더 새 것이 아님")
+        expect(ver("2026.08")?.description ?? "", "2026.08", "CalVer: 표시는 원문")
+        expect(ver("v2026.08") == nil, true, "CalVer: v 접두어 거부")
+        expect(ver("2026") == nil, true, "CalVer: 1칸 거부")
+        expect(ver("2026.08.1.2") == nil, true, "CalVer: 4칸 거부")
+        expect(ver("2026..08") == nil, true, "CalVer: 빈 칸 거부")
+        expect(ver("2026.-1") == nil, true, "CalVer: 음수 거부")
+        expect(ver("2026.0x8") == nil, true, "CalVer: 숫자 아닌 문자 거부")
+        expect(ver("") == nil, true, "CalVer: 빈 문자열 거부")
+        expect(ver("2026.08 ") == nil, true, "CalVer: 공백 거부")
+        expect(ver("２０２６.08") == nil, true, "CalVer: 전각 숫자 거부")
+
+        // ── 저장소·URL·자산 이름 ──
+        expect(UpdateDecision.isValidRepository("Hyunjin-Cho/HaneulKeyboard"), true, "업데이트: 정상 슬러그")
+        expect(UpdateDecision.isValidRepository("Hyunjin-Cho/HaneulKeyboard-updatetest"), true, "업데이트: 테스트 슬러그")
+        expect(UpdateDecision.isValidRepository("HaneulKeyboard"), false, "업데이트: 슬래시 없는 슬러그 거부")
+        expect(UpdateDecision.isValidRepository("a/b/c"), false, "업데이트: 슬래시 2개 거부")
+        expect(UpdateDecision.isValidRepository("../etc"), false, "업데이트: .. 거부")
+        expect(UpdateDecision.isValidRepository("a b/c"), false, "업데이트: 공백 거부")
+        expect(UpdateDecision.isValidRepository("a/c?x=1"), false, "업데이트: 쿼리 문자 거부")
+        expect(
+            UpdateDecision.latestReleaseURL(repository: "Hyunjin-Cho/HaneulKeyboard")?.absoluteString ?? "",
+            "https://api.github.com/repos/Hyunjin-Cho/HaneulKeyboard/releases/latest",
+            "업데이트: latest 엔드포인트"
+        )
+        expect(UpdateDecision.latestReleaseURL(repository: "bad slug") == nil, true, "업데이트: 잘못된 슬러그면 URL 없음")
+        expect(UpdateDecision.assetName(forTag: "2026.07"), "HaneulKeyboard_2026.07.zip", "업데이트: 자산 이름 = 빌드 스크립트 산출물명")
+
+        // ── 허용 호스트(HTTPS만, 2026-09-21 실측 리다이렉트 포함) ──
+        expect(UpdateDecision.isAllowedURL(URL(string: "https://github.com/x/y/releases/download/1/a.zip")!), true, "업데이트: github.com 허용")
+        expect(UpdateDecision.isAllowedURL(URL(string: "https://release-assets.githubusercontent.com/x")!), true, "업데이트: 실측 리다이렉트 호스트 허용")
+        expect(UpdateDecision.isAllowedURL(URL(string: "https://objects.githubusercontent.com/x")!), true, "업데이트: objects.githubusercontent.com 허용")
+        expect(UpdateDecision.isAllowedURL(URL(string: "http://github.com/x")!), false, "업데이트: HTTP 거부")
+        expect(UpdateDecision.isAllowedURL(URL(string: "https://evil.example.com/x")!), false, "업데이트: 다른 호스트 거부")
+        expect(UpdateDecision.isAllowedURL(URL(string: "https://github.com.evil.example/x")!), false, "업데이트: 접두어 함정 거부")
+        expect(UpdateDecision.isAllowedURL(URL(string: "https://evilgithub.com/x")!), false, "업데이트: 접미어 함정 거부")
+
+        // ── 릴리스 JSON 파싱(2026-09-21 실측 응답 형태) ──
+        let releaseJSON = """
+        {"tag_name":"2026.09","name":"2026.09","draft":false,"prerelease":false,
+         "html_url":"https://github.com/Hyunjin-Cho/HaneulKeyboard/releases/tag/2026.09",
+         "assets":[
+           {"name":"HaneulKeyboard_2026.09.zip","browser_download_url":"https://github.com/Hyunjin-Cho/HaneulKeyboard/releases/download/2026.09/HaneulKeyboard_2026.09.zip","size":5899281,"content_type":"application/zip"},
+           {"name":"HaneulKeyboardIM_2026.09.zip","browser_download_url":"https://github.com/Hyunjin-Cho/HaneulKeyboard/releases/download/2026.09/HaneulKeyboardIM_2026.09.zip","size":100}
+         ]}
+        """
+        let release = UpdateDecision.parseRelease(Data(releaseJSON.utf8))
+        expect(release?.tag ?? "", "2026.09", "업데이트: tag_name 파싱")
+        expect(release?.assets.count ?? 0, 2, "업데이트: 자산 2개 파싱")
+        expect(release?.pageURL?.absoluteString ?? "", "https://github.com/Hyunjin-Cho/HaneulKeyboard/releases/tag/2026.09", "업데이트: html_url 파싱")
+        expect(UpdateDecision.parseRelease(Data("not json".utf8)) == nil, true, "업데이트: JSON 아니면 nil")
+        expect(UpdateDecision.parseRelease(Data("{}".utf8)) == nil, true, "업데이트: tag_name 없으면 nil")
+        expect(UpdateDecision.parseRelease(Data("{\"tag_name\":\"2026.09\",\"draft\":true}".utf8)) == nil, true, "업데이트: draft면 nil(fail-closed)")
+        expect(UpdateDecision.parseRelease(Data("{\"tag_name\":\"2026.09\",\"prerelease\":true}".utf8)) == nil, true, "업데이트: prerelease면 nil")
+        expect(UpdateDecision.parseRelease(Data("{\"tag_name\":\"2026.09\"}".utf8))?.assets.count ?? -1, 0, "업데이트: assets 없으면 빈 배열")
+
+        // ── 자산 선택: 이름 정확 일치 + 허용 URL ──
+        expect(UpdateDecision.selectAsset(in: release!)?.name ?? "", "HaneulKeyboard_2026.09.zip", "업데이트: 이름 정확 일치 자산 선택")
+        expect(UpdateDecision.selectAsset(in: release!)?.size ?? 0, 5899281, "업데이트: 자산 크기 전달")
+        let imOnly = ReleaseInfo(tag: "2026.09", assets: [
+            ReleaseAsset(name: "HaneulKeyboardIM_2026.09.zip", downloadURL: URL(string: "https://github.com/a")!, size: 1),
+            ReleaseAsset(name: "haneulkeyboard_2026.09.zip", downloadURL: URL(string: "https://github.com/b")!, size: 1),
+            ReleaseAsset(name: "HaneulKeyboard_2026.09.zip.sig", downloadURL: URL(string: "https://github.com/c")!, size: 1),
+        ], pageURL: nil)
+        expect(UpdateDecision.selectAsset(in: imOnly) == nil, true, "업데이트: 비슷한 이름은 전부 거부(대소문자·접미·IM 단독)")
+        let badHost = ReleaseInfo(tag: "2026.09", assets: [
+            ReleaseAsset(name: "HaneulKeyboard_2026.09.zip", downloadURL: URL(string: "https://evil.example.com/HaneulKeyboard_2026.09.zip")!, size: 1),
+        ], pageURL: nil)
+        expect(UpdateDecision.selectAsset(in: badHost) == nil, true, "업데이트: 허용 밖 호스트 자산 거부")
+        let plainHTTP = ReleaseInfo(tag: "2026.09", assets: [
+            ReleaseAsset(name: "HaneulKeyboard_2026.09.zip", downloadURL: URL(string: "http://github.com/x.zip")!, size: 1),
+        ], pageURL: nil)
+        expect(UpdateDecision.selectAsset(in: plainHTTP) == nil, true, "업데이트: HTTP 자산 거부")
+        let huge = ReleaseInfo(tag: "2026.09", assets: [
+            ReleaseAsset(name: "HaneulKeyboard_2026.09.zip", downloadURL: URL(string: "https://github.com/x.zip")!, size: UpdateDecision.maxAssetBytes + 1),
+        ], pageURL: nil)
+        expect(UpdateDecision.selectAsset(in: huge) == nil, true, "업데이트: 크기 상한 초과 자산 거부")
+
+        // ── "업데이트 있음" 판정 ──
+        expect(UpdateDecision.availableUpdate(currentVersion: "2026.08", release: release!)?.tag ?? "", "2026.09", "업데이트: 2026.08 → 2026.09 있음")
+        expect(UpdateDecision.availableUpdate(currentVersion: "2026.09", release: release!) == nil, true, "업데이트: 같은 버전이면 없음")
+        expect(UpdateDecision.availableUpdate(currentVersion: "2026.10", release: release!) == nil, true, "업데이트: 현재가 더 새면 없음(다운그레이드 금지)")
+        expect(UpdateDecision.availableUpdate(currentVersion: "dev", release: release!) == nil, true, "업데이트: 현재 버전 형식 오류면 없음")
+        expect(UpdateDecision.availableUpdate(currentVersion: "2026.08", release: ReleaseInfo(tag: "v2026.09", assets: release!.assets, pageURL: nil)) == nil, true, "업데이트: tag 형식 오류면 없음")
+        expect(UpdateDecision.availableUpdate(currentVersion: "2026.08", release: ReleaseInfo(tag: "2026.09", assets: [], pageURL: nil)) == nil, true, "업데이트: 자산 없으면 없음")
+        expect(UpdateDecision.availableUpdate(currentVersion: "2026.08", release: imOnly) == nil, true, "업데이트: 맞는 자산 없으면 없음")
+        expect(UpdateDecision.availableUpdate(currentVersion: "2026.08", release: release!)?.asset.downloadURL.absoluteString ?? "",
+               "https://github.com/Hyunjin-Cho/HaneulKeyboard/releases/download/2026.09/HaneulKeyboard_2026.09.zip", "업데이트: 다운로드 URL 전달")
+
+        // ── 24시간 throttle ──
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let day: TimeInterval = 24 * 60 * 60
+        expect(UpdateDecision.checkInterval == day, true, "throttle: 간격 24시간")
+        expect(UpdateDecision.shouldCheckNow(autoCheckEnabled: true, lastCheck: nil, now: now, forced: false), true, "throttle: 처음이면 확인")
+        expect(UpdateDecision.shouldCheckNow(autoCheckEnabled: true, lastCheck: now.addingTimeInterval(-day), now: now, forced: false), true, "throttle: 정확히 24시간이면 확인")
+        expect(UpdateDecision.shouldCheckNow(autoCheckEnabled: true, lastCheck: now.addingTimeInterval(-day + 1), now: now, forced: false), false, "throttle: 24시간 1초 전이면 대기")
+        expect(UpdateDecision.shouldCheckNow(autoCheckEnabled: true, lastCheck: now.addingTimeInterval(-day - 1), now: now, forced: false), true, "throttle: 24시간 1초 뒤면 확인")
+        expect(UpdateDecision.shouldCheckNow(autoCheckEnabled: true, lastCheck: now, now: now, forced: false), false, "throttle: 방금 확인했으면 대기")
+        expect(UpdateDecision.shouldCheckNow(autoCheckEnabled: true, lastCheck: now.addingTimeInterval(3600), now: now, forced: false), true, "throttle: 마지막 확인이 미래(시계 되감김)면 확인")
+        expect(UpdateDecision.shouldCheckNow(autoCheckEnabled: false, lastCheck: nil, now: now, forced: false), false, "throttle: 토글 OFF면 자동 확인 안 함(네트워크 0)")
+        expect(UpdateDecision.shouldCheckNow(autoCheckEnabled: false, lastCheck: nil, now: now, forced: true), true, "throttle: 토글 OFF여도 '지금 확인'은 확인")
+        expect(UpdateDecision.shouldCheckNow(autoCheckEnabled: true, lastCheck: now, now: now, forced: true), true, "throttle: '지금 확인'은 간격 무시")
+
+        // ── 버전 상승(다운그레이드·재설치 금지) ──
+        expect(UpdateDecision.isVersionIncrease(currentVersion: "2026.08", currentBuild: 50, newVersion: "2026.09", newBuild: 51), true, "버전 상승: 버전·빌드 모두 큼")
+        expect(UpdateDecision.isVersionIncrease(currentVersion: "2026.08", currentBuild: 50, newVersion: "2026.09", newBuild: 50), false, "버전 상승: 빌드번호 같으면 거부")
+        expect(UpdateDecision.isVersionIncrease(currentVersion: "2026.08", currentBuild: 50, newVersion: "2026.09", newBuild: 49), false, "버전 상승: 빌드번호 낮으면 거부")
+        expect(UpdateDecision.isVersionIncrease(currentVersion: "2026.08", currentBuild: 50, newVersion: "2026.08", newBuild: 51), false, "버전 상승: 버전 같으면 거부")
+        expect(UpdateDecision.isVersionIncrease(currentVersion: "2026.08", currentBuild: 50, newVersion: "2026.07", newBuild: 60), false, "버전 상승: 버전 낮으면 빌드가 커도 거부")
+        expect(UpdateDecision.isVersionIncrease(currentVersion: "2026.08", currentBuild: 50, newVersion: nil, newBuild: 51), false, "버전 상승: 새 버전 못 읽으면 거부")
+        expect(UpdateDecision.isVersionIncrease(currentVersion: "2026.08", currentBuild: 50, newVersion: "2026.09", newBuild: nil), false, "버전 상승: 새 빌드 못 읽으면 거부")
+        expect(UpdateDecision.isVersionIncrease(currentVersion: "2026.08", currentBuild: nil, newVersion: "2026.09", newBuild: 51), false, "버전 상승: 현재 빌드 못 읽으면 거부")
+
+        // ── 검증 결과 합성: 하나라도 실패하면 설치 금지 ──
+        let allPass = UpdateVerification(bundleIDMatches: true, sameTeamSigned: true, codesignValid: true, notarizationAccepted: true, versionIncreases: true)
+        expect(allPass.passed, true, "검증: 5종 통과")
+        expect(allPass.failures.count, 0, "검증: 실패 목록 비어 있음")
+        var oneFail = allPass; oneFail.bundleIDMatches = false
+        expect(oneFail.passed, false, "검증: 번들 ID 실패 → 금지")
+        oneFail = allPass; oneFail.sameTeamSigned = false
+        expect(oneFail.passed, false, "검증: Team 실패 → 금지")
+        oneFail = allPass; oneFail.codesignValid = false
+        expect(oneFail.passed, false, "검증: codesign 실패 → 금지")
+        oneFail = allPass; oneFail.notarizationAccepted = false
+        expect(oneFail.passed, false, "검증: spctl 실패 → 금지")
+        expect(oneFail.failures.joined(separator: "|").contains("Gatekeeper"), true, "검증: 실패 사유 문구")
+        oneFail = allPass; oneFail.versionIncreases = false
+        expect(oneFail.passed, false, "검증: 버전 상승 실패 → 금지")
+        let allFail = UpdateVerification(bundleIDMatches: false, sameTeamSigned: false, codesignValid: false, notarizationAccepted: false, versionIncreases: false)
+        expect(allFail.failures.count, 5, "검증: 전부 실패면 사유 5개")
+
+        // ── IME 갱신 판단 ──
+        expect(UpdateDecision.shouldRefreshIME(installedBuild: 50, bundledBuild: 51), true, "IME 갱신: 설치본 < 임베드본")
+        expect(UpdateDecision.shouldRefreshIME(installedBuild: 51, bundledBuild: 51), false, "IME 갱신: 같으면 안 함")
+        expect(UpdateDecision.shouldRefreshIME(installedBuild: 52, bundledBuild: 51), false, "IME 갱신: 설치본이 더 새면 안 함")
+        expect(UpdateDecision.shouldRefreshIME(installedBuild: nil, bundledBuild: 51), false, "IME 갱신: 설치본 없음/못 읽음 → 안 함(H-01)")
+        expect(UpdateDecision.shouldRefreshIME(installedBuild: 50, bundledBuild: nil), false, "IME 갱신: 임베드본 못 읽음 → 안 함")
+
+        // ── 실행 위치·교체 전략 ──
+        expect(UpdateDecision.isRunningFromDestination(bundlePath: "/Applications/HaneulKeyboard.app", destinationPath: "/Applications/HaneulKeyboard.app"), true, "교체: /Applications에서 실행 중")
+        expect(UpdateDecision.isRunningFromDestination(bundlePath: "/Users/x/Downloads/HaneulKeyboard.app", destinationPath: "/Applications/HaneulKeyboard.app"), false, "교체: 다운로드 폴더면 중단")
+        expect(UpdateDecision.isRunningFromDestination(bundlePath: "/Applications/Renamed.app", destinationPath: "/Applications/HaneulKeyboard.app"), false, "교체: 이름 바뀐 사본이면 중단")
+        expect(UpdateDecision.replaceStrategy(destinationOwnerUID: 501, currentUID: 501, parentWritable: true) == .userAtomic, true, "교체: 사용자 소유 → 원자 교체")
+        expect(UpdateDecision.replaceStrategy(destinationOwnerUID: 0, currentUID: 501, parentWritable: true) == .adminPrompt, true, "교체: root 소유 → 관리자 프롬프트")
+        expect(UpdateDecision.replaceStrategy(destinationOwnerUID: 501, currentUID: 501, parentWritable: false) == .adminPrompt, true, "교체: 부모 폴더 쓰기 불가 → 관리자 프롬프트")
+        expect(UpdateDecision.replaceStrategy(destinationOwnerUID: nil, currentUID: 501, parentWritable: true) == .adminPrompt, true, "교체: 소유자 못 읽으면 관리자 프롬프트")
 
         print("\(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
