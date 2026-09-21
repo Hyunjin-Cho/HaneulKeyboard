@@ -41,7 +41,7 @@ enum WordSuggestion {
     }
 
     /// 이슈 작성 페이지. `template` 파라미터는 붙이지 않는다 — 쿼리 `body`가 템플릿 본문을
-    /// 이기는지 확신이 없어서(2026-09-21). `.github/ISSUE_TEMPLATE/word-suggestion.md`는
+    /// 이기는지 확신이 없어서(2026-09-21). 이슈 템플릿은 넣지 않는다(템플릿이 있으면 고르기 화면이 URL을 가로채 미리 채운 내용이 날아갈 위험 — 슈퍼바이저 결정). 종전 초안의 `.github/ISSUE_TEMPLATE/word-suggestion.md`는
     /// 사람이 직접 이슈를 열 때용이다.
     static let newIssueURL = "https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/new"
     static let label = "enhancement"
