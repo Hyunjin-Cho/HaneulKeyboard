@@ -114,6 +114,12 @@ final class AppCore {
         let disabled = state == .installedDisabled
         if ready != imeInstalled { imeInstalled = ready }
         if disabled != imeDisabled { imeDisabled = disabled }
+        // 2026-09-21 (#19): "IME 갱신 필요" 안내는 매번 디스크를 다시 보고 정한다. 사용자가
+        // 안내대로 직접 다시 설치하면(설정의 IME 설치/제거 버튼 → refreshIMEStatus) 빌드번호가
+        // 맞춰지므로 안내가 그 자리에서 사라져야 한다 — 한 번 켜지면 재실행 전까지 남던 버그.
+        let builds = IMEInstaller.imeBuildNumbersForRefresh()
+        let stale = UpdateDecision.shouldRefreshIME(installedBuild: builds.installed, bundledBuild: builds.bundled)
+        if !stale && imeRefreshNeeded { imeRefreshNeeded = false }
     }
 
     /// 꺼진 입력 소스를 다시 켠다 — 설치 버튼과 같은 경로(TISEnableInputSource, GUI 앱 컨텍스트).
