@@ -9,7 +9,7 @@ _최종 수정: 2026-09-21_
 | 질문 | 답 |
 |---|---|
 | 키 입력을 보나요? | 한국어 입력기가 **활성화된 동안만**, 한글 조합을 위해 봅니다. macOS의 모든 IME가 동일하게 동작합니다. |
-| 네트워크로 전송하나요? | **아니요.** 코드에 네트워크 호출이 한 줄도 없습니다. 모든 처리는 기기 안에서 끝납니다. |
+| 네트워크로 전송하나요? | **아니요.** 코드에 네트워크 호출이 한 줄도 없습니다. 모든 처리는 기기 안에서 끝납니다. (설정의 "단어 제안"은 미리 채운 GitHub 양식을 **브라우저로 열 뿐**이고, 앱이 보내는 것은 없습니다 — 아래 8번.) |
 | 입력 내용을 저장하나요? | **아니요.** 입력한 내용을 저장하거나 학습하지 않습니다 — 모든 판정은 메모리에서만 일어납니다. 예외는 **사용자가 직접 관리하는 개인 사전**뿐입니다: 설정에서 직접 적은 단어 목록과, Shift+Space로 **되돌린** 변환의 (한글 표기, 영어) 쌍 최근 50개가 **이 기기 안의 설정 파일에만** 남습니다 (아래 7번). |
 | 비밀번호도 보나요? | **macOS와 호스트 앱이 보안 입력을 올바르게 활성화한 필드에서는 받지 않습니다.** 다만 일부 브라우저의 웹 비밀번호 칸은 보안 입력이 켜지지 않아 키를 받을 수 있습니다. 민감한 내용은 영문(ABC) 모드로 입력하는 것을 권장합니다. |
 | 주장을 검증할 수 있나요? | 네. 전체 소스가 MIT 라이선스로 공개되어 있습니다. |
@@ -60,6 +60,15 @@ macOS와 호스트 앱이 보안 입력(secure event input)을 올바르게 활�
 - **지우는 방법**: 설정 창에서 항목별 삭제(−) 또는 "최근 기록 지우기". **전체 제거**(설정 → 전체 제거, 또는 앱을 휴지통에 버려 입력기가 스스로 정리하는 경우)는 위 세 키를 포함한 `haneul.*` 설정을 모두 지웁니다.
 - 구현: [`IMESources/PersonalDictionary.swift`](./IMESources/PersonalDictionary.swift)(판정·형식), [`Sources/PersonalDictionarySettingsSection.swift`](./Sources/PersonalDictionarySettingsSection.swift)(설정 화면), [`IMESources/HaneulInputController.swift`](./IMESources/HaneulInputController.swift)(되돌리기 기록 시점)
 
+### 8. 단어 제안 (2026-09-21 추가)
+
+설정 창의 **단어 제안** 절과 "최근 되돌린 변환" 목록의 **"제안"** 버튼은 **미리 채운 GitHub 이슈 작성 페이지를 기본 브라우저로 열기만 합니다.** 앱이 보내는 것은 아무것도 없습니다 — 이 기능이 하는 일은 `NSWorkspace.open(url)` 한 번뿐이고, 네트워크 호출은 2번대로 코드에 한 줄도 없습니다.
+
+- **URL에 담기는 것**: 사용자가 그 화면에 직접 적은 값(친 글자·기대 결과·메모)과, "제안" 버튼을 쓴 경우 그 항목의 (한글 표기, 영어) 쌍, 그리고 앱 버전·macOS 버전. 그게 전부입니다.
+- **담기지 않는 것**: 키 입력 자체, 앞뒤 문맥(문장), 어느 앱에서 쳤는지, 시각, 기기 식별자.
+- **보낼지는 사용자가 정합니다**: 브라우저에 열린 내용을 읽고 고친 뒤 GitHub에서 직접 등록합니다(GitHub 계정 필요). 그냥 창을 닫으면 아무 일도 일어나지 않습니다. 다만 **등록한 이슈는 공개 저장소에 남으므로** 비밀번호·개인정보는 적지 마세요.
+- 구현: [`Sources/WordSuggestion.swift`](./Sources/WordSuggestion.swift)(URL 생성 — 순수 함수, 테스트로 검증), [`Sources/WordSuggestionSettingsSection.swift`](./Sources/WordSuggestionSettingsSection.swift)(설정 화면과 여는 동작)
+
 ---
 
 # English
@@ -73,7 +82,7 @@ _Last updated: 2026-09-21_
 | Question | Answer |
 |---|---|
 | Does it see my keystrokes? | Only **while active as the selected input source**, to compose Hangul. Every IME on macOS works this way. |
-| Does it send anything over the network? | **No.** There is not a single line of networking code. Everything happens on-device. |
+| Does it send anything over the network? | **No.** There is not a single line of networking code. Everything happens on-device. (The "Word suggestion" feature in Settings only **opens** a pre-filled GitHub form in your browser; the app itself sends nothing — see #8.) |
 | Does it store what I type? | **No.** Nothing you type is stored or learned — all decisions happen in memory only. The one exception is the **personal dictionary you manage yourself**: the word lists you enter in Settings, and the (Hangul form, English) pairs of the last 50 conversions you **reverted** with Shift+Space, kept **only in this device's preferences** (see #7). |
 | Can it see my passwords? | **Not in fields where macOS and the host app correctly enable secure input.** Some browser-based password fields do not enable it, however, so the IME may receive those keystrokes. We recommend using English (ABC) mode for sensitive input. |
 | Can I verify these claims? | Yes. The full source is open under the MIT license. |
@@ -123,3 +132,12 @@ The **Personal dictionary** section in Settings lets you correct the wrong-layou
 - **No automatic collection**: only what you enter or revert yourself is kept; the IME does not gather or learn words on its own. There is no network transmission (#2).
 - **How to delete**: remove entries (−) or "Clear recent" in Settings. **Full uninstall** (Settings → Uninstall everything, or the IME's self-cleanup after you trash the app) removes every `haneul.*` preference, including these three keys.
 - Implementation: [`IMESources/PersonalDictionary.swift`](./IMESources/PersonalDictionary.swift) (decision and format), [`Sources/PersonalDictionarySettingsSection.swift`](./Sources/PersonalDictionarySettingsSection.swift) (Settings UI), [`IMESources/HaneulInputController.swift`](./IMESources/HaneulInputController.swift) (when a revert is recorded)
+
+### 8. Word suggestions (added 2026-09-21)
+
+The **Word suggestion** section in Settings, and the **"Suggest"** button on each "Recently reverted" row, **only open a pre-filled GitHub issue form in your default browser.** The app sends nothing — all this feature does is call `NSWorkspace.open(url)` once, and there is still no networking code anywhere (#2).
+
+- **What goes into the URL**: the values you typed on that screen (typed form, expected result, note); for the "Suggest" button, that row's (Hangul form, English) pair; and the app and macOS version numbers. That is all.
+- **What does not**: keystrokes, surrounding text, which app you were typing in, timestamps, device identifiers.
+- **You decide whether to submit**: read and edit the pre-filled form in your browser, then submit it yourself on GitHub (a GitHub account is required). Closing the tab does nothing at all. Note that **a submitted issue is public**, so do not include passwords or personal information.
+- Implementation: [`Sources/WordSuggestion.swift`](./Sources/WordSuggestion.swift) (URL construction — a pure function covered by tests), [`Sources/WordSuggestionSettingsSection.swift`](./Sources/WordSuggestionSettingsSection.swift) (Settings UI and the open action)

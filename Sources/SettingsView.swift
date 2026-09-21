@@ -92,6 +92,8 @@ struct SettingsView: View {
             RevertKeySettingsSection()
             // 2026-09-21 (#53): 개인 사전 3절 — 본문은 PersonalDictionarySettingsSection.swift.
             PersonalDictionarySettingsSection()
+            // 2026-09-21 (#55): 단어 제안 창구 — 본문은 WordSuggestionSettingsSection.swift.
+            WordSuggestionSettingsSection()
 
             Section("상태") {
                 LabeledContent("현재 입력 모드") {

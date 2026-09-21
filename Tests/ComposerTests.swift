@@ -1663,6 +1663,130 @@ struct ComposerTests {
             expect(RecentReverts(entries: many.entries + many.entries).entries.count, RecentReverts.maxCount, "RR(entries): 생성자도 상한 적용")
         }
 
+        // (d) 단어 제안 창구 — WordSuggestion URL 생성 (#55, 2026-09-21)
+        // 여기서 고정하는 것은 두 가지다: ① 제목·본문의 모양(설정 화면과 이슈 템플릿이 같은 꼴),
+        // ② 인코딩. ②가 핵심인데, URLQueryItem에 맡기면 `+ / ; : @ '`가 날것으로 남고
+        // GitHub(Rails)은 쿼리의 `+`를 공백으로 읽는다(2026-09-21 실측) → 직접 %XX.
+        do {
+            expect(WordSuggestion.Kind.add.displayName, "변환 추가 제안", "WS: add 표시 이름")
+            expect(WordSuggestion.Kind.block.displayName, "변환 금지 제안", "WS: block 표시 이름")
+            expect(WordSuggestion.Kind.allCases.count, 2, "WS: 종류는 둘")
+
+            // 제목
+            expect(
+                WordSuggestion.issueTitle(typed: "메ㅔㅣㄷ", expected: "apple", kind: .add),
+                "[단어 제안] 메ㅔㅣㄷ → apple", "WS: 추가 제안 제목")
+            expect(
+                WordSuggestion.issueTitle(typed: "뭉", expected: "and", kind: .block),
+                "[단어 제안] 뭉 → and (변환 금지)", "WS: 금지 제안 제목")
+
+            // 빈 입력 → nil (설정 화면의 버튼 비활성화가 이 판정을 그대로 쓴다)
+            expect(WordSuggestion.issueURL(typed: "", expected: "apple", kind: .add) == nil, true, "WS: 친 글자 비면 nil")
+            expect(WordSuggestion.issueURL(typed: "메ㅔㅣㄷ", expected: "", kind: .add) == nil, true, "WS: 기대 결과 비면 nil")
+            expect(WordSuggestion.issueURL(typed: " \n ", expected: "apple", kind: .add) == nil, true, "WS: 공백·줄바꿈만이면 nil")
+            expect(WordSuggestion.issueURL(typed: "메ㅔㅣㄷ", expected: "apple", kind: .add) != nil, true, "WS: 정상 입력은 URL")
+
+            // 인코딩 — 비예약 문자만 남기고 전부 UTF-8 바이트별 %XX
+            expect(WordSuggestion.percentEncoded("a+b"), "a%2Bb", "WS 인코딩: + (GitHub이 공백으로 읽는 문자)")
+            expect(WordSuggestion.percentEncoded("a&b"), "a%26b", "WS 인코딩: &")
+            expect(WordSuggestion.percentEncoded("a#b"), "a%23b", "WS 인코딩: #")
+            expect(WordSuggestion.percentEncoded("a b"), "a%20b", "WS 인코딩: 공백")
+            expect(WordSuggestion.percentEncoded("a\nb"), "a%0Ab", "WS 인코딩: 줄바꿈")
+            expect(WordSuggestion.percentEncoded("a/b;c:d@e'f"), "a%2Fb%3Bc%3Ad%40e%27f", "WS 인코딩: / ; : @ ' 도 직접")
+            expect(WordSuggestion.percentEncoded("-._~Az9"), "-._~Az9", "WS 인코딩: 비예약 문자는 그대로")
+            expect(WordSuggestion.percentEncoded("한"), "%ED%95%9C", "WS 인코딩: 한글 UTF-8 3바이트")
+            expect(WordSuggestion.percentEncoded("ㅔ"), "%E3%85%94", "WS 인코딩: 낱자모도 3바이트")
+            expect(WordSuggestion.percentEncoded(""), "", "WS 인코딩: 빈 문자열")
+
+            // URL 구조 + 왕복(%XX를 풀면 원래 문자열)
+            if let url = WordSuggestion.issueURL(
+                typed: "메ㅔㅣㄷ", expected: "apple", kind: .add,
+                note: "회사에서 자주 씁니다", appVersion: "2026.08", osVersion: "27.0") {
+                expect(url.scheme ?? "", "https", "WS URL: https")
+                expect(url.host ?? "", "github.com", "WS URL: 호스트")
+                expect(url.absoluteString.hasPrefix(WordSuggestion.newIssueURL + "?"), true, "WS URL: 이슈 작성 경로 + 쿼리")
+                let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+                expect(items.count, 3, "WS URL: 쿼리 3개(title·body·labels)")
+                func value(_ name: String) -> String { items.first { $0.name == name }?.value ?? "" }
+                expect(value("labels"), WordSuggestion.label, "WS URL: labels=enhancement")
+                expect(value("title"), "[단어 제안] 메ㅔㅣㄷ → apple", "WS URL: title 왕복")
+                let body = value("body")
+                expect(body.contains("- **친 글자 (한글 모드에서 보인 표기):** 메ㅔㅣㄷ"), true, "WS 본문: 친 글자")
+                expect(body.contains("- **기대한 결과:** apple"), true, "WS 본문: 기대 결과")
+                expect(body.contains("회사에서 자주 씁니다"), true, "WS 본문: 메모")
+                expect(body.contains("- 하늘키보드: 2026.08"), true, "WS 본문: 앱 버전")
+                expect(body.contains("- macOS: 27.0"), true, "WS 본문: macOS 버전")
+                expect(body.contains("개인 사전"), true, "WS 본문: 개인 사전으로 먼저 해결했는지 확인 문구")
+                expect(body.contains("\n"), true, "WS 본문: 줄바꿈이 살아서 마크다운이 된다")
+            } else {
+                failures += 1
+                print("FAIL WS URL: 정상 입력인데 nil")
+            }
+
+            // `+`·`&`·`#`가 든 입력 — 날것으로 새면 GitHub에서 내용이 바뀐다
+            if let url = WordSuggestion.issueURL(typed: "ㅊ+ㅊ", expected: "c+c", kind: .add, note: "a&b#c") {
+                let raw = url.absoluteString
+                expect(raw.contains("+"), false, "WS URL: raw `+`가 한 글자도 남지 않는다")
+                expect(raw.contains("%2B"), true, "WS URL: +는 %2B로 들어간다")
+                let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+                expect(items.first { $0.name == "title" }?.value ?? "", "[단어 제안] ㅊ+ㅊ → c+c", "WS URL: +가 든 제목 왕복")
+                expect((items.first { $0.name == "body" }?.value ?? "").contains("a&b#c"), true, "WS URL: &·#이 든 메모 왕복")
+            } else {
+                failures += 1
+                print("FAIL WS URL(+&#): nil")
+            }
+
+            // 길이 상한 — 넘치면 메모부터 잘라 8000자 이하로 맞춘다
+            let hugeNote = String(repeating: "한글메모 ", count: 4000)
+            if let url = WordSuggestion.issueURL(
+                typed: "메ㅔㅣㄷ", expected: "apple", kind: .add, note: hugeNote,
+                appVersion: "2026.08", osVersion: "27.0") {
+                expect(url.absoluteString.count <= WordSuggestion.maxURLLength, true, "WS 길이: 상한 이내")
+                expect(url.absoluteString.count > WordSuggestion.maxURLLength - 200, true, "WS 길이: 상한 가까이까지는 남긴다")
+                let body = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                    .queryItems?.first { $0.name == "body" }?.value ?? ""
+                expect(body.contains(WordSuggestion.truncationMarker), true, "WS 길이: 잘림 표시가 붙는다")
+                expect(body.contains("- **기대한 결과:** apple"), true, "WS 길이: 잘라도 본문 뼈대는 남는다")
+            } else {
+                failures += 1
+                print("FAIL WS 길이: 긴 메모에서 nil")
+            }
+
+            // 최악 입력(두 필드 상한 + 메모 없음)도 상한 이내 — 위 이분 탐색이 nil로 끝나지 않는 근거
+            let longField = String(repeating: "쨝", count: 400)
+            if let url = WordSuggestion.issueURL(
+                typed: longField, expected: longField, kind: .block, note: "",
+                appVersion: "2026.08 (build 999)", osVersion: "27.0 (26A428)") {
+                expect(url.absoluteString.count <= WordSuggestion.maxURLLength, true, "WS 길이: 최악 입력도 상한 이내")
+                let title = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                    .queryItems?.first { $0.name == "title" }?.value ?? ""
+                expect(title.count <= 120, true, "WS 제목: GitHub 제목 상한(256) 한참 아래")
+            } else {
+                failures += 1
+                print("FAIL WS 길이: 최악 입력에서 nil")
+            }
+
+            // 값 정리
+            expect(WordSuggestion.singleLine("  메ㅔㅣㄷ  ") ?? "", "메ㅔㅣㄷ", "WS 정리: 앞뒤 공백 제거")
+            expect(WordSuggestion.singleLine("a\nb") ?? "", "a b", "WS 정리: 줄바꿈 → 공백")
+            expect(WordSuggestion.singleLine("") == nil, true, "WS 정리: 빈 값은 nil")
+            expect(
+                (WordSuggestion.singleLine(String(repeating: "가", count: 200)) ?? "").count,
+                WordSuggestion.maxFieldLength + 1, "WS 정리: 120자로 자르고 … 한 글자")
+            expect(
+                WordSuggestion.issueTitle(typed: String(repeating: "가", count: 100), expected: "x", kind: .add)
+                    .contains(String(repeating: "가", count: WordSuggestion.maxTitleFieldLength) + "…"),
+                true, "WS 제목: 값은 40자까지만")
+
+            // 버전·메모를 모를 때 / 금지 제안의 라벨
+            let unknown = WordSuggestion.issueBody(
+                typed: "뭉", expected: "and", kind: .block, note: "", appVersion: "", osVersion: "")
+            expect(unknown.contains("- 하늘키보드: (알 수 없음)"), true, "WS 본문: 앱 버전 미상")
+            expect(unknown.contains("- macOS: (알 수 없음)"), true, "WS 본문: macOS 버전 미상")
+            expect(unknown.contains("### 메모\n(없음)"), true, "WS 본문: 메모 없음")
+            expect(unknown.contains("- **바뀐 결과 (원치 않음):** and"), true, "WS 본문: 금지 제안은 두 번째 값의 라벨이 다르다")
+        }
+
         print("\(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
     }

@@ -68,6 +68,10 @@ struct PersonalDictionarySettingsSection: View {
                                 .buttonStyle(.bordered)
                                 .controlSize(.small)
                                 .accessibilityLabel("\(entry.english) 변환 금지")
+                            Button("제안") { suggestRecent(entry) }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                                .accessibilityLabel("\(entry.english) 변환 금지 제안하기")
                         }
                         .accessibilityElement(children: .combine)
                     }
@@ -203,6 +207,14 @@ struct PersonalDictionarySettingsSection: View {
         let updated = RecentReverts.load(from: defaults).removing(english: entry.english)
         updated.save(to: defaults)
         recent = updated.entries
+    }
+
+    /// 2026-09-21 (#55): "제안" — 이 항목의 (한글 표기, 영어)를 채운 GitHub 이슈 작성 화면을
+    /// 브라우저로 연다. 되돌렸다는 것은 "이 단어는 바뀌면 안 된다"는 뜻이라 종류는 `block` 고정.
+    /// 앱은 창을 열 뿐 아무것도 전송하지 않는다(PRIVACY.md 8번).
+    private func suggestRecent(_ entry: RecentReverts.Entry) {
+        WordSuggestionSettingsSection.openIssue(
+            typed: entry.hangul, expected: entry.english, kind: .block)
     }
 
     private func clearRecent() {
