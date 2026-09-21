@@ -34,6 +34,9 @@ targets:
       # (Foundation 전용 순수 파일 — 설정 앱과 IME가 같은 정의를 쓰는 단일 진실).
       - path: IMESources/RevertKey.swift
       - path: IMESources/AutoConvertPolicy.swift
+      # 2026-09-21 (#53): 개인 사전의 키 이름·정규화·되돌리기 기록 형식을 설정 앱과 IME가
+      # 한 파일로 공유한다(사본을 두면 반드시 어긋난다). Foundation 전용이라 양쪽 다 컴파일된다.
+      - path: IMESources/PersonalDictionary.swift
       - path: Resources/AppIcon.icns
         buildPhase: resources
       - path: LICENSE
