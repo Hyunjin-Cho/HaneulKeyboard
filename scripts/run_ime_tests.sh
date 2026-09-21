@@ -19,6 +19,7 @@ swiftc -o "$BIN" \
   IMESources/AutoConvertPolicy.swift \
   IMESources/PersonalDictionary.swift \
   Sources/InstallDecisions.swift \
+  Sources/WordSuggestion.swift \
   Tests/ComposerTests.swift
 
 "$BIN"
