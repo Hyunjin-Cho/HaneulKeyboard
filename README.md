@@ -66,8 +66,8 @@
 
 ## 요구사항
 
-- **macOS Sonoma (14.0) 이상** — macOS Tahoe (26.x)에서 테스트 완료
-- Apple Silicon (M1/M2/M3/M4) 및 Intel 모두 지원
+- **macOS Sonoma (14.0) 이상** — macOS 26 (Tahoe)·27에서 테스트 완료
+- Apple Silicon (M1/M2/M3/M4) 및 Intel 모두 지원 — Intel Mac은 macOS 14~26에서만 지원됩니다 (macOS 27부터 Apple silicon 전용 OS — 빌드는 계속 Universal)
 
 ## 알려진 문제
 
@@ -182,7 +182,7 @@ Download the latest build from [GitHub Releases](https://github.com/Hyunjin-Cho/
 
 ## Requirements
 
-macOS Sonoma (14.0) or later. Both Apple Silicon and Intel.
+macOS Sonoma (14.0) or later — tested on macOS 26 (Tahoe) and 27. Both Apple Silicon and Intel; Intel Macs are supported on macOS 14–26 only (macOS 27 and later run on Apple silicon only — the build stays Universal).
 
 ## Versioning
 
