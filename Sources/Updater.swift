@@ -296,7 +296,10 @@ final class Updater {
         let verification = UpdateVerification(
             bundleIDMatches: info?["CFBundleIdentifier"] as? String == UpdateDecision.appBundleID,
             sameTeamSigned: IMEInstaller.isSameTeamSignedBundle(at: app),
-            codesignValid: run("/usr/bin/codesign", ["--verify", "--deep", "--strict", app.path]).status == 0,
+            // 2026-09-21 (#19 보안 검토 P1-1): 인자에 `-R=` 요구사항이 들어간다 —
+            // "서명이 일관한가"에 더해 **"애플이 발급한 인증서 사슬로, 우리 Team이 서명했는가"**
+            // 까지 OS가 판정한다. 사유·실측은 `UpdateDecision.codesignRequirement` 주석.
+            codesignValid: run("/usr/bin/codesign", UpdateDecision.codesignArguments(appPath: app.path)).status == 0,
             notarizationAccepted: run("/usr/sbin/spctl", ["-a", "-t", "exec", app.path]).status == 0,
             versionIncreases: UpdateDecision.isVersionIncrease(
                 currentVersion: currentVersion, currentBuild: currentBuild,

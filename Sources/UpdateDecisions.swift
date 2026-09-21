@@ -87,7 +87,8 @@ struct UpdateVerification: Equatable, Sendable {
     var bundleIDMatches: Bool
     /// 실행 중인 앱과 같은 Team으로 유효하게 서명됨(`IMEInstaller.isSameTeamSignedBundle`).
     var sameTeamSigned: Bool
-    /// `codesign --verify --deep --strict` 종료코드 0.
+    /// `codesign --verify --deep --strict -R=<애플 앵커 + 우리 Team>` 종료코드 0
+    /// (요구사항 문자열은 `UpdateDecision.codesignRequirement`). 2026-09-21 (#19 P1-1)
     var codesignValid: Bool
     /// `spctl -a -t exec` 종료코드 0(노타리 포함 Gatekeeper 승인).
     var notarizationAccepted: Bool
@@ -133,6 +134,33 @@ enum UpdateDecision {
         "objects.githubusercontent.com",
         "release-assets.githubusercontent.com",
     ]
+
+    /// 배포본을 서명한 Developer ID 인증서의 Team Identifier(`project.yml`의 `DEVELOPMENT_TEAM`).
+    /// 아래 `codesignRequirement` 한 곳에서만 쓰며, 문자열 사본을 다른 데 만들지 않는다.
+    ///
+    /// 🔒 2026-09-21 (#19 보안 검토 P1-1): **여기만 하드코딩이다.**
+    /// `IMEInstaller.isSameTeamSignedBundle`은 그대로 "실행 중인 앱 자신의 Team"과 비교한다
+    /// (포크해서 자기 인증서로 빌드한 경우를 막지 않기 위한 설계). 반면 자동 업데이트는
+    /// `defaultRepository` — 우리 저장소 — 에서만 받아오므로 서명자도 우리로 못박는 것이 맞다.
+    static let signingTeamIdentifier = "6RH6FXY82P"
+
+    /// `codesign --verify`에 함께 넘길 **요구사항**(`-R=`).
+    ///
+    /// 🔒 2026-09-21 (#19 보안 검토 P1-1): 종전에는 `--verify --deep --strict`만 돌려
+    /// **"서명이 내부적으로 일관한가"**만 봤다. "누가 서명했나"는 `isSameTeamSignedBundle`의
+    /// OU 문자열 비교뿐이었는데, OU 값은 인증서에 아무나 적을 수 있어 **자체 서명 인증서로
+    /// 위조 가능**했다. `anchor apple generic`(= 애플이 발급한 인증서 사슬)과 팀 ID를 **OS
+    /// 수준에서 한 요구사항으로 묶어** 그 구멍을 닫는다.
+    /// 실측(2026-09-21, `/Applications/HaneulKeyboard.app`): 우리 설치본 exit 0 /
+    /// 팀 ID를 다른 값으로 바꾸면 exit 3 (`code failed to satisfy specified code requirement(s)`).
+    static var codesignRequirement: String {
+        "anchor apple generic and certificate leaf[subject.OU] = \"\(signingTeamIdentifier)\""
+    }
+
+    /// 위 요구사항까지 포함한 `codesign` 인자 배열. 순서 고정 — `-R=`은 `--strict` 뒤, 경로 앞.
+    static func codesignArguments(appPath: String) -> [String] {
+        ["--verify", "--deep", "--strict", "-R=\(codesignRequirement)", appPath]
+    }
 
     /// `owner/name` 꼴만 허용(각 칸은 영숫자·`-`·`_`·`.`). URL에 그대로 끼워 넣으므로
     /// 슬래시·공백·`..` 같은 것은 거른다.

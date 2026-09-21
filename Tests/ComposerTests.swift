@@ -1986,6 +1986,24 @@ struct ComposerTests {
         expect(UpdateDecision.isAllowedURL(URL(string: "https://github.com.evil.example/x")!), false, "업데이트: 접두어 함정 거부")
         expect(UpdateDecision.isAllowedURL(URL(string: "https://evilgithub.com/x")!), false, "업데이트: 접미어 함정 거부")
 
+        // ── codesign 요구사항 (#19 보안 검토 P1-1, 2026-09-21) ──
+        // 실측: 이 인자 배열 그대로 `/Applications/HaneulKeyboard.app`에 돌리면 exit 0,
+        // 팀 ID만 다른 값으로 바꾸면 exit 3(code failed to satisfy specified code requirement(s)).
+        do {
+            let args = UpdateDecision.codesignArguments(appPath: "/Applications/HaneulKeyboard.app")
+            expect(args.count, 5, "codesign: 인자 5개")
+            expect(args[0], "--verify", "codesign: --verify")
+            expect(args[1], "--deep", "codesign: --deep")
+            expect(args[2], "--strict", "codesign: --strict")
+            expect(args[3], "-R=anchor apple generic and certificate leaf[subject.OU] = \"6RH6FXY82P\"",
+                   "codesign: 요구사항은 --strict 뒤 한 인자(애플 앵커 + 우리 Team)")
+            expect(args[4], "/Applications/HaneulKeyboard.app", "codesign: 경로는 맨 뒤")
+            expect(UpdateDecision.codesignRequirement.contains("anchor apple generic"), true,
+                   "codesign: 애플 앵커가 요구사항에 있다(자체 서명 위조 차단)")
+            expect(UpdateDecision.codesignRequirement.contains(UpdateDecision.signingTeamIdentifier), true,
+                   "codesign: Team ID 상수를 그대로 쓴다(문자열 사본 없음)")
+        }
+
         // ── 릴리스 JSON 파싱(2026-09-21 실측 응답 형태) ──
         let releaseJSON = """
         {"tag_name":"2026.09","name":"2026.09","draft":false,"prerelease":false,
