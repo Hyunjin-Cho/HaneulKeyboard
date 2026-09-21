@@ -32,13 +32,33 @@
 
 ### 터미널 — Shift+Space 되돌리기 미지원 (#30)
 
-터미널에 입력된 글자는 즉시 셸 프로세스 소유가 되어 앱조차 IME 요청으로 회수할 수단이 없다. 따라서 되돌리기는 **원리적으로 불가능**하며, 이 항목들은 "되게 만드는 것"이 아니라 **실패가 조용하고 일관되게 끝나는지**를 확인한다.
+터미널에 입력된 글자는 즉시 셸 프로세스 소유가 되어 앱조차 IME 요청으로 회수할 수단이 없다. 따라서 되돌리기는 **원리적으로 불가능**하며, 이 항목들은 "되게 만드는 것"이 아니라 **실패가 조용하고 일관되게 끝나는지**를 확인한다. (2026-09-21, #54: 되돌리기 키를 다른 조합으로 바꿔도 같다 — 키가 아니라 클라이언트의 문제.)
 
 - [ ] Terminal.app에서 영타 변환 후 Shift+Space를 여러 번 눌러도 텍스트가 훼손되지 않는다(변화 없음이 정상).
 - [ ] Ghostty에서도 같은 동작 — 되돌려지지 않고, **스페이스가 대신 끼어들지도 않는다**(과거엔 스페이스만 늘어났다).
 - [ ] 두 터미널의 동작이 서로 같다.
 - [ ] 터미널에서 영타 자동 변환 자체는 정상 동작한다(되돌리기만 불가).
 - [ ] 터미널에서 오변환이 나면 백스페이스로 지우고 다시 칠 때 재변환되지 않는다(수동 복구 경로).
+- [ ] (#54) 설정 → "되돌리기 키" 절 아래에 터미널에서는 되돌리기가 안 된다는 안내 문구가 보이고, README "알려진 문제"에도 같은 항목이 있다.
+
+### 되돌리기 키 선택 · 앱별 자동 변환 끄기 (#54, 2026-09-21)
+
+자동 테스트는 순수 판정(`RevertKey.matches`·`AutoConvertPolicy.allowed`, `Tests/ComposerTests.swift`)까지만 본다. 실제 키 이벤트의 modifier 플래그, 설정 앱 → IME defaults 도메인 전달, `client.bundleIdentifier()`가 돌려주는 값은 사람이 확인한다. **구현 시점(2026-09-21) 실기기 미검증.**
+
+- [ ] 설정 → "되돌리기 키" 팝업에 Shift+Space(기본) · Option+Space · Control+Shift+Space · Option+Shift+Space **네 가지만** 보이고, Control+Space는 없다.
+- [ ] 설정을 만진 적 없는 상태(`defaults read com.hyunjincho.inputmethod.haneul haneul.revertKey`가 없음)에서 Shift+Space 되돌리기가 종전과 똑같이 동작한다(회귀 없음).
+- [ ] Option+Space로 바꾼 뒤 설정 창을 닫지 않아도 **다음 변환부터** Option+Space가 되돌리고, Shift+Space는 그냥 스페이스가 입력된다.
+- [ ] Control+Shift+Space · Option+Shift+Space도 각각 같은 방식으로 되돌린다. 한글 모드(CapsLock 플래그가 붙는 상태)와 ABC 모드 양쪽에서 확인한다.
+- [ ] 되돌릴 변환이 없을 때(한글만 친 뒤, 또는 되돌린 뒤 다른 글자를 친 뒤) 고른 조합을 누르면 종전처럼 앱에 그대로 전달된다 — IME가 키를 삼키지 않는다. (Option+Space는 앱에 따라 줄바꿈 없는 공백이 들어갈 수 있음 — 그 앱의 정상 동작.)
+- [ ] `defaults write com.hyunjincho.inputmethod.haneul haneul.revertKey garbage` 뒤에도 Shift+Space(기본값)로 동작하고, 설정 창을 열면 팝업이 Shift+Space를 가리킨다.
+- [ ] 앱별 끄기: "실행 중인 앱에서 추가..."에 Dock에 보이는 앱만 **이름순**으로 나오고, 메뉴바 전용 앱(HaneulKeyboard 자신 등)·백그라운드 프로세스는 안 나온다. 이미 추가한 앱은 "추가됨"으로 보인다.
+- [ ] TextEdit을 목록에 넣은 뒤 TextEdit에서 `apple`을 치면 `메ㅔㅣㄷ`로 남고, 그 상태로 다른 앱(예: 메모)에서는 `apple`로 변환된다 — 설정 창을 닫지 않아도 즉시 반영된다.
+- [ ] 목록에서 TextEdit을 지우면 TextEdit에서 다시 변환된다.
+- [ ] 위 "영타 자동 변환" 토글을 끄면 목록과 무관하게 모든 앱에서 변환하지 않고, 다시 켜면 목록에 없는 앱만 변환한다.
+- [ ] 목록에 있는 앱을 종료한 뒤에도 목록에 이름(또는 bundle ID)이 남아 있고 삭제할 수 있다.
+- [ ] 터미널(Terminal.app 또는 Ghostty)을 목록에 넣으면 그 터미널에서 영타 변환이 일어나지 않는다(#30의 "터미널에서 변환 자체가 싫은" 경우의 우회).
+- [ ] "전체 제거" 뒤 `defaults read com.hyunjincho.inputmethod.haneul`에 `haneul.revertKey`·`haneul.disabledAppBundleIDs`가 남지 않는다(`haneul.*` 일괄 삭제 경로).
+- [ ] 설정 창(580×600 고정)에서 새 절 두 개가 스크롤로 보이고, 팝업·추가/제거 버튼·시트가 키보드와 VoiceOver로 조작된다.
 
 ### 영타 축약형 — 아포스트로피 (#34, 2026-09-19)
 

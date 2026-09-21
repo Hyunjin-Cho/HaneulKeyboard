@@ -87,6 +87,10 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
+            // 2026-09-21 (#54): 되돌리기 키 선택 + 앱별 자동 변환 끄기 — 본문은
+            // RevertKeySettingsSection.swift (Section 두 개를 돌려준다).
+            RevertKeySettingsSection()
+
             Section("상태") {
                 LabeledContent("현재 입력 모드") {
                     Text(core.isKoreanActive ? "한국어 (한)" : "영어 (A)")

@@ -15,6 +15,8 @@ swiftc -o "$BIN" \
   IMESources/EnglishDetector.swift \
   IMESources/KoreanDictionary.swift \
   IMESources/OrphanDecision.swift \
+  IMESources/RevertKey.swift \
+  IMESources/AutoConvertPolicy.swift \
   Sources/InstallDecisions.swift \
   Tests/ComposerTests.swift
 

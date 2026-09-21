@@ -119,17 +119,22 @@ final class HaneulInputController: IMKInputController {
             return handled
         }
 
-        // shift+space: 마지막 변환을 영어↔한글 토글로 교체(㉠ 직후만).
+        // 되돌리기 키(기본 Shift+Space): 마지막 변환을 영어↔한글 토글로 교체(㉠ 직후만).
         // 커서 직전 텍스트를 읽어 boundary(스페이스·구두점)를 건너뛰고 영어/
         // 한글을 정확히 찾아 replace — 변환 시 입력된 공백("i ") 때문에 커서가
         // 영어 바로 뒤가 아니어도 옳게 동작한다. lastConversion을 유지해 연속
-        // shift+space로 영↔한을 반복 토글(다음 글자 입력/백스페이스 시 리셋).
+        // 되돌리기로 영↔한을 반복 토글(다음 글자 입력/백스페이스 시 리셋).
         // 한글 모드는 CapsLock 전환 방식이라 keyDown의 modifierFlags에
-        // .capsLock이 상시 포함될 수 있다 — mods == .shift로 엄격 비교하면
-        // 한글 모드에서 shift+space 토글이 발동하지 않는다(영어 모드에선 OK라
-        // 더 헷갈린다). capsLock/function을 빼고 비교해 한글 모드에서도 먹게.
-        if event.keyCode == 49, mods.subtracting([.capsLock, .function]) == .shift,
-           let conv = composer.lastConversion {
+        // .capsLock이 상시 포함될 수 있다 — 엄격 비교하면 한글 모드에서 토글이
+        // 발동하지 않는다(영어 모드에선 OK라 더 헷갈린다). capsLock/function을
+        // 빼고 비교하는 규칙은 RevertKey.matches 안에 그대로 있다.
+        // 2026-09-21 (#54): 키 조합은 설정값(haneul.revertKey, 고정 후보 4종)이다 —
+        // 하드코딩 Shift+Space를 순수 타입 RevertKey로 옮겼다. defaults는 키
+        // 이벤트마다 읽지 않고 **Space 키코드 + 되돌릴 변환이 있을 때만** 읽는다
+        // (autoEnglishEnabled를 경계마다 다시 읽는 것과 같은 비용 수준).
+        if event.keyCode == RevertKey.spaceKeyCode, let conv = composer.lastConversion,
+           RevertKey.resolve(rawValue: UserDefaults.standard.string(forKey: RevertKey.defaultsKey))
+               .matches(keyCode: event.keyCode, modifierFlagsRaw: mods.rawValue) {
             let sel = client.selectedRange()
             #if DEBUG
             log.log("ss진단A: selLoc=\(sel.location, privacy: .public) selLen=\(sel.length, privacy: .public)")
@@ -224,8 +229,17 @@ final class HaneulInputController: IMKInputController {
         // digit, Enter...) — the only path where English auto-conversion may
         // fire. Re-read the toggle so Settings changes apply immediately.
         // secure input은 이 함수 진입부에서 이미 걸러지므로 여기서는 항상 false.
-        composer.autoEnglishEnabled =
-            UserDefaults.standard.object(forKey: "haneul.autoEnglishEnabled") as? Bool ?? true
+        // 2026-09-21 (#54): 앱별 끄기 — 목록(haneul.disabledAppBundleIDs)에 이 클라이언트의
+        // bundle ID가 있으면 이번 경계에선 변환하지 않는다. 판정은 순수함수
+        // AutoConvertPolicy.allowed(테스트 있음). 클라이언트 왕복(bundleIdentifier)은
+        // 목록이 비어 있지 않을 때만 — 비어 있으면 결과가 어차피 "허용"이다.
+        // bundle ID를 못 얻으면(nil) 허용(기본 동작으로 복귀).
+        let defaults = UserDefaults.standard
+        let disabledAppIDs = defaults.stringArray(forKey: AutoConvertPolicy.disabledAppsKey) ?? []
+        composer.autoEnglishEnabled = AutoConvertPolicy.allowed(
+            globalEnabled: defaults.object(forKey: "haneul.autoEnglishEnabled") as? Bool ?? true,
+            disabledIDs: disabledAppIDs,
+            clientBundleID: disabledAppIDs.isEmpty ? nil : client.bundleIdentifier())
         composer.commit(to: composerClient, convertEnglish: true)
         // 영어 문맥("I want to...")은 스페이스/쉼표로만 이어진다 — 마침표·
         // 엔터·기타 문자는 문장 단절로 보고 리셋 ("Nice. 새로운" 보호).

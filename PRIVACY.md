@@ -2,7 +2,7 @@
 
 입력기(IME)는 키보드 입력을 다루는 민감한 소프트웨어입니다. 하늘키보드가 무엇을 보고, 무엇을 저장하고, 무엇을 하지 않는지 명확하게 적습니다. 아래 모든 내용은 [공개된 소스 코드](https://github.com/Hyunjin-Cho/HaneulKeyboard)로 직접 검증할 수 있습니다.
 
-_최종 수정: 2026-06-22_
+_최종 수정: 2026-09-21_
 
 ## 한눈에 보기
 
@@ -29,6 +29,7 @@ _최종 수정: 2026-06-22_
 - 판정은 단어 확정 시점에 **메모리에서만** 일어나며, 입력 내용을 어디에도 저장하거나 학습하지 않습니다.
 - 판정에는 **읽기 전용 사전**만 사용합니다: macOS의 `/usr/share/dict/words`, 번들 영어 단어·인명 목록, 우리말샘 표제어 목록입니다. Census 원천은 성씨 약 162,000개, SCOWL 원천은 약 167,000단어이지만, 가공 후 실제 앱 탑재 규모는 `english_names.txt` 28,378개(Census/SSA)와 `english_modern.txt` 71,348개(SCOWL)입니다. `english_names_extra.txt`는 Census/SSA 데이터가 아닌 **수작업으로 선별한 유명인 보충 목록**입니다. 기타 번들 목록은 NGSL(CC BY-SA 4.0), SCOWL(MIT-like), Census/SSA(public domain), GeoNames(CC BY 4.0), Wikidata(CC0), 우리말샘(CC-BY-SA 2.0 KR)에서 출처를 밝혔습니다. **모든 사전 파일은 앱에 정적으로 번들된 읽기 전용 데이터**로, 입력을 기록하지 않고 네트워크를 사용하지 않습니다.
 - 구현: [`IMESources/EnglishDetector.swift`](./IMESources/EnglishDetector.swift), [`IMESources/KoreanDictionary.swift`](./IMESources/KoreanDictionary.swift)
+- *(2026-09-21 추가)* **설정값**은 macOS 사용자 기본값(`UserDefaults`, 입력기 도메인 `com.hyunjincho.inputmethod.haneul`)에 **기기 안에만** 저장됩니다: 영타 자동 변환 켜기/끄기, 되돌리기 키 선택(`haneul.revertKey`), 자동 변환을 끌 앱 목록(`haneul.disabledAppBundleIDs` — 사용자가 고른 앱의 bundle ID 문자열만). 입력한 내용은 담기지 않고, 어디로도 전송되지 않으며, "전체 제거" 시 함께 지워집니다. 앱별 끄기를 위해 입력기는 변환 시점에 **현재 앱의 bundle ID만** 확인하고(목록이 비어 있으면 그마저 하지 않음) 기록하지 않습니다.
 
 ### 4. 보안 입력 필드 (비밀번호 등)
 
@@ -49,7 +50,7 @@ macOS와 호스트 앱이 보안 입력(secure event input)을 올바르게 활�
 
 An IME is sensitive software — it handles your keyboard input. This document states plainly what HaneulKeyboard sees, what it stores, and what it does not do. Every claim below is verifiable against the [public source code](https://github.com/Hyunjin-Cho/HaneulKeyboard).
 
-_Last updated: 2026-06-22_
+_Last updated: 2026-09-21_
 
 ## At a Glance
 
@@ -76,6 +77,7 @@ The source code (`Sources/`, `IMESources/`) contains no networking code whatsoev
 - The decision happens **in memory** at word-commit time; nothing is stored or learned.
 - It only consults **read-only dictionaries**: macOS's `/usr/share/dict/words`, bundled English word/name lists, and a bundled Urimalsaem Korean headword list. The Census source contains about 162,000 surnames and the SCOWL source about 167,000 words; after processing, the app actually bundles 28,378 Census/SSA entries in `english_names.txt` and 71,348 SCOWL entries in `english_modern.txt`. `english_names_extra.txt` is **a hand-curated famous-person supplement**, not Census or SSA data. Other bundled lists credit NGSL (CC BY-SA 4.0), SCOWL (MIT-like), Census/SSA (public domain), GeoNames (CC BY 4.0), Wikidata (CC0), and Urimalsaem (CC-BY-SA 2.0 KR). **Every dictionary file is static, bundled, read-only data**; nothing typed is stored and no dictionary network API is used.
 - Implementation: [`IMESources/EnglishDetector.swift`](./IMESources/EnglishDetector.swift), [`IMESources/KoreanDictionary.swift`](./IMESources/KoreanDictionary.swift)
+- *(added 2026-09-21)* **Settings** are stored **on-device only**, in macOS user defaults (`UserDefaults`, IME domain `com.hyunjincho.inputmethod.haneul`): the auto-correction on/off toggle, the chosen revert key (`haneul.revertKey`), and the per-app off list (`haneul.disabledAppBundleIDs` — only the bundle ID strings of apps you picked). Nothing you type is part of these values, nothing is transmitted, and "Uninstall everything" removes them. For the per-app list the IME checks **only the current app's bundle ID** at conversion time (and skips even that when the list is empty); it records nothing.
 
 ### 4. Secure input fields (passwords, etc.)
 
