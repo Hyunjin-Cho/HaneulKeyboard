@@ -190,7 +190,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         let hosting = NSHostingController(rootView: SettingsView(core: core))
         let win = NSWindow(contentViewController: hosting)
-        win.title = "HaneulKeyboard 설정"
+        // 2026-09-21 (#60): 제목 문구는 `SettingsView.windowTitle` 한 곳에서 정한다.
+        win.title = SettingsView.windowTitle
         win.styleMask = [.titled, .closable]
         win.isReleasedWhenClosed = false
         win.center()

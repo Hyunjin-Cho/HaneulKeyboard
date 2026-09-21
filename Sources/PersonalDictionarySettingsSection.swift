@@ -1,9 +1,13 @@
 import SwiftUI
 import Combine
 
-/// 2026-09-21 (#53): 설정 창의 "개인 사전" 절 — 변환 추가·변환 금지·최근 되돌린 변환.
-/// `SettingsView`의 Form 안에 Section 3개로 들어간다. 본문을 이 파일에 두는 이유:
-/// `SettingsView.swift`는 다른 작업과 동시에 편집되므로 그쪽 삽입은 한 줄로 최소화한다.
+/// 2026-09-21 (#53): 설정의 "개인 사전" — 변환 추가·변환 금지·최근 되돌린 변환.
+///
+/// 2026-09-21 (#60): 절 3개를 세로로 쌓던 것을 **절 1개 + 세그먼트 3칸**으로 바꿨다.
+/// 세로로 쌓으면 `캡션+입력+목록120` × 2 + `캡션+목록150+버튼` ≈ 700pt라 탭 안에서 또 스크롤이
+/// 생겼다. 한 번에 목록 하나만 보이므로 높이를 **220**으로 키울 수 있고(한 화면에 7~8행),
+/// 세 목록의 높이가 모두 같아 세그먼트를 눌러도 화면이 위아래로 흔들리지 않는다.
+/// 저장 로직·헬퍼(`load`/`addForce`/`addBlock`/`blockRecent`/…)는 **그대로**이고 화면만 바뀌었다.
 ///
 /// 저장 규약(정본은 `IMESources/PersonalDictionary.swift` — 이 파일은 메인 앱 타겟에도
 /// 컴파일돼 키 이름·정규화 규칙을 공유한다):
@@ -14,9 +18,15 @@ import Combine
 ///     그 순간 IME가 새 기록을 얹으면 한쪽이 덮인다. 잃는 것은 설정값이 아니라 참고 기록
 ///     한 줄이라 허용한다(정합성 장치를 두면 IME 입력 경로가 무거워진다).
 struct PersonalDictionarySettingsSection: View {
-    /// IME 도메인 — `SettingsView.imeDefaults`와 같은 suite(주석도 거기 참조).
+    /// 세그먼트 3칸 — 한 번에 하나만 보인다. (2026-09-21, #60)
+    enum ListKind: Hashable {
+        case force, block, recent
+    }
+
+    /// IME 도메인 — 이유는 `EnglishConversionSettingsTab.imeDefaults` 주석 참조.
     private static let imeDefaults = UserDefaults(suiteName: "com.hyunjincho.inputmethod.haneul")
 
+    @State private var listKind: ListKind = .force
     @State private var force: [String] = []
     @State private var block: [String] = []
     @State private var recent: [RecentReverts.Entry] = []
@@ -27,61 +37,20 @@ struct PersonalDictionarySettingsSection: View {
 
     var body: some View {
         Group {
-            Section("개인 사전 — 변환 추가") {
-                Text("여기 적힌 영어 단어는 사전에 없거나 한국어 단어와 겹쳐도 **항상** 영어로 바꿉니다 (예: 사내 용어·이름). 한글 모드에서 그 단어를 그대로 쳤을 때만 적용됩니다.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                addRow(
-                    text: $forceInput, prompt: "영어 소문자 (예: vismo)", error: forceError,
-                    action: addForce)
-                wordList(force, emptyText: "추가한 단어가 없어요.", remove: removeForce)
-            }
+            Section("개인 사전") {
+                Picker("개인 사전 목록", selection: $listKind) {
+                    Text("변환 추가").tag(ListKind.force)
+                    Text("변환 금지").tag(ListKind.block)
+                    Text("최근 되돌림").tag(ListKind.recent)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .accessibilityLabel("개인 사전 목록 선택")
 
-            Section("개인 사전 — 변환 금지") {
-                Text("여기 적힌 단어는 **절대** 영어로 바꾸지 않습니다. 영어 단어(apple)나 한글 모드에서 보이는 표기(메ㅔㅣㄷ) 어느 쪽으로 적어도 됩니다. 양쪽에 다 있으면 금지가 이깁니다.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                addRow(
-                    text: $blockInput, prompt: "영어 또는 한글 표기 (예: apple, 메ㅔㅣㄷ)", error: blockError,
-                    action: addBlock)
-                wordList(block, emptyText: "금지한 단어가 없어요.", remove: removeBlock)
-            }
-
-            Section("최근 되돌린 변환") {
-                Text("Shift+Space로 영어를 다시 한글로 되돌린 변환입니다. 이 기기 안에만 최근 \(RecentReverts.maxCount)개까지 남고, 어디로도 보내지 않습니다. 잘못 바뀐 단어는 \"금지\"를 눌러 변환 금지 목록으로 옮기세요.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                if recent.isEmpty {
-                    Text("되돌린 변환이 없어요.")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                } else {
-                    List(recent, id: \.self) { entry in
-                        HStack {
-                            Text(entry.hangul)
-                            Image(systemName: "arrow.right")
-                                .foregroundStyle(.tertiary)
-                                .accessibilityHidden(true)
-                            Text(entry.english)
-                            Spacer()
-                            Button("금지") { blockRecent(entry) }
-                                .buttonStyle(.bordered)
-                                .controlSize(.small)
-                                .accessibilityLabel("\(entry.english) 변환 금지")
-                            Button("제안") { suggestRecent(entry) }
-                                .buttonStyle(.bordered)
-                                .controlSize(.small)
-                                .accessibilityLabel("\(entry.english) 변환 금지 제안하기")
-                        }
-                        .accessibilityElement(children: .combine)
-                    }
-                    .listStyle(.bordered(alternatesRowBackgrounds: true))
-                    .frame(height: 150)
-                    HStack {
-                        Spacer()
-                        Button("최근 기록 지우기", role: .destructive, action: clearRecent)
-                            .controlSize(.small)
-                    }
+                switch listKind {
+                case .force: forceRows
+                case .block: blockRows
+                case .recent: recentRows
                 }
             }
         }
@@ -91,21 +60,109 @@ struct PersonalDictionarySettingsSection: View {
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             load()
         }
+        // 2026-09-21 (#60): 탭을 옮겨 다니는 동안에도 최신 기록을 보여준다 — 창이 이미 활성인
+        // 상태에서 탭만 바꾸면 didBecomeActive가 오지 않는다.
+        .onChange(of: listKind) { _, _ in load() }
+    }
+
+    // MARK: - 세그먼트별 본문
+
+    @ViewBuilder
+    private var forceRows: some View {
+        Text("여기 적은 영어 단어는 사전에 없거나 한국어와 겹쳐도 **항상** 영어로 바꿉니다. (예: 사내 용어·이름)")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .lineLimit(Self.captionLines, reservesSpace: true)
+        addRow(
+            text: $forceInput, prompt: "영어 소문자 (예: vismo)", error: forceError,
+            fieldLabel: "변환 추가할 영어 단어",
+            addLabel: "변환 추가 목록에 단어 추가", action: addForce)
+        wordList(force, emptyText: "추가한 단어가 없습니다.", remove: removeForce)
+    }
+
+    @ViewBuilder
+    private var blockRows: some View {
+        Text("여기 적은 단어는 **절대** 영어로 바꾸지 않습니다. 영어(apple)로 적어도, 한글 모드 표기(메ㅔㅣㄷ)로 적어도 됩니다. 양쪽에 다 있으면 금지가 이깁니다.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .lineLimit(Self.captionLines, reservesSpace: true)
+        addRow(
+            text: $blockInput, prompt: "영어 또는 한글 표기 (예: apple, 메ㅔㅣㄷ)", error: blockError,
+            fieldLabel: "변환 금지할 단어",
+            addLabel: "변환 금지 목록에 단어 추가", action: addBlock)
+        wordList(block, emptyText: "금지한 단어가 없습니다.", remove: removeBlock)
+    }
+
+    @ViewBuilder
+    private var recentRows: some View {
+        Text("되돌리기 키로 한글로 되돌린 변환입니다. 이 기기에만 최근 \(RecentReverts.maxCount)개까지 남고 어디로도 보내지 않습니다. \"금지\"를 누르면 변환 금지 목록으로 옮깁니다.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .lineLimit(Self.captionLines, reservesSpace: true)
+
+        List {
+            if recent.isEmpty {
+                Text("되돌린 변환이 없습니다.")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(recent, id: \.self) { entry in
+                    HStack {
+                        Text(entry.hangul)
+                        Image(systemName: "arrow.right")
+                            .foregroundStyle(.tertiary)
+                            .accessibilityHidden(true)
+                        Text(entry.english)
+                        Spacer()
+                        Button("금지") { blockRecent(entry) }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                            .accessibilityLabel("\(entry.english) 변환 금지")
+                        Button("제안") { suggestRecent(entry) }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                            .accessibilityLabel("\(entry.english) 변환 금지 제안하기")
+                    }
+                    .accessibilityElement(children: .combine)
+                }
+            }
+        }
+        .listStyle(.bordered(alternatesRowBackgrounds: true))
+        .frame(height: Self.listHeight)
+
+        HStack {
+            Spacer()
+            Button("최근 기록 지우기", role: .destructive, action: clearRecent)
+                .controlSize(.small)
+                .disabled(recent.isEmpty)
+        }
     }
 
     // MARK: - 조각
 
+    /// 세 목록의 높이는 **같아야 한다** — 세그먼트를 눌러도 아래 경계가 움직이지 않게. (#60)
+    private static let listHeight: CGFloat = 220
+    /// 2026-09-21 (#60): 캡션 줄 수도 고정한다. 목록 높이만 맞춰 놔도 캡션이 1줄·2줄로 갈리면
+    /// 절 전체가 10pt씩 들썩인다(실측). 세 문구 모두 640pt 폭에서 2줄 안에 들어간다.
+    private static let captionLines = 2
+
     private func addRow(
-        text: Binding<String>, prompt: String, error: String?, action: @escaping () -> Void
+        text: Binding<String>, prompt: String, error: String?, fieldLabel: String,
+        addLabel: String, action: @escaping () -> Void
     ) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                TextField(prompt, text: text)
+                // 2026-09-21 (#60): `Form` 안에서 `TextField("...", text:)`의 첫 인자는
+                // **왼쪽 라벨**로 붙어 입력칸을 반으로 줄인다. 시안 와이어프레임대로 안내 문구를
+                // 칸 안 placeholder로 내리고, 이름은 접근성 라벨로 남긴다.
+                TextField("", text: text, prompt: Text(prompt))
+                    .labelsHidden()
                     .textFieldStyle(.roundedBorder)
                     .autocorrectionDisabled()
                     .onSubmit(action)
+                    .accessibilityLabel(fieldLabel)
                 Button("추가", action: action)
                     .disabled(text.wrappedValue.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .accessibilityLabel(addLabel)
             }
             if let error {
                 Text(error)
@@ -118,13 +175,14 @@ struct PersonalDictionarySettingsSection: View {
     private func wordList(
         _ words: [String], emptyText: String, remove: @escaping (String) -> Void
     ) -> some View {
-        Group {
+        // 2026-09-21 (#60): 빈 상태도 테두리 안 — 비었다고 높이가 줄면 세그먼트 전환에서 덜컥거린다.
+        // 빈 상태 색은 `.tertiary` → `.secondary`(다크 모드 + 교대 행 배경에서 대비가 안 남았다).
+        List {
             if words.isEmpty {
                 Text(emptyText)
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
             } else {
-                List(words, id: \.self) { word in
+                ForEach(words, id: \.self) { word in
                     HStack {
                         Text(word)
                         Spacer()
@@ -137,10 +195,10 @@ struct PersonalDictionarySettingsSection: View {
                         .accessibilityLabel("\(word) 삭제")
                     }
                 }
-                .listStyle(.bordered(alternatesRowBackgrounds: true))
-                .frame(height: 120)
             }
         }
+        .listStyle(.bordered(alternatesRowBackgrounds: true))
+        .frame(height: Self.listHeight)
     }
 
     // MARK: - 읽기
@@ -157,7 +215,7 @@ struct PersonalDictionarySettingsSection: View {
 
     private func addForce() {
         guard let word = PersonalDictionary.normalizedForceEntry(forceInput) else {
-            forceError = "영어 소문자(a–z)와 '만 쓸 수 있어요. 공백·숫자·한글은 안 돼요."
+            forceError = "영어 소문자(a–z)와 아포스트로피(')만 쓸 수 있습니다."
             return
         }
         forceError = nil
@@ -176,7 +234,7 @@ struct PersonalDictionarySettingsSection: View {
 
     private func addBlock() {
         guard let word = PersonalDictionary.normalizedBlockEntry(blockInput) else {
-            blockError = "영어 단어 하나(apple) 또는 한글 표기 하나(메ㅔㅣㄷ)만 적어주세요."
+            blockError = "영어 단어 하나(apple) 또는 한글 표기 하나(메ㅔㅣㄷ)만 적어 주세요."
             return
         }
         blockError = nil

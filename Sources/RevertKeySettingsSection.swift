@@ -1,20 +1,30 @@
 import AppKit
 import SwiftUI
 
-/// 설정 → "되돌리기 키" + "앱별 자동 변환 끄기" 두 절. (#54, 2026-09-21)
+/// 설정 → 「되돌리기」 + 「앱별 자동 변환 끄기」 두 절. (#54, 2026-09-21)
 ///
-/// `SettingsView`의 `Section("입력")` 바로 뒤에 붙는다. 본문을 이 파일로 뺀 이유: 같은 시기에
-/// 다른 절(개인 사전)이 `SettingsView.swift`에 들어가고 있어 충돌 면을 줄이려고.
+/// 2026-09-21 (#60): 설정 창 탭 재편으로 붙는 자리가 바뀌었다 — 종전에는 `SettingsView`의
+/// `Section("입력")` 뒤였고, 지금은 `EnglishConversionSettingsTab`의 `Form` 안이다.
+/// 같은 개정에서 **`ManualToggleSettingsSection.swift`(#15, "모든 단어 되돌리기" 절)를
+/// 이 파일의 「되돌리기」 절 안으로 흡수하고 그 파일은 삭제했다** — 되돌리기 키를 고르는
+/// 자리 바로 아래가 "그 키가 어디까지 듣나"의 자리이기 때문이다. 저장 키·기본값은
+/// 그대로(`RevertKey.manualToggleAllWordsKey`).
+///
 /// 저장 키·후보 목록·판정은 IME와 공유하는 `IMESources/RevertKey.swift`·
 /// `IMESources/AutoConvertPolicy.swift`(양쪽 타겟에 포함)가 단일 진실이고, 여기는 화면과
 /// defaults 쓰기만 한다.
 struct RevertKeySettingsSection: View {
-    /// IME 도메인 — `SettingsView.imeDefaults`와 같은 이유로 `UserDefaults.standard`가 아니다
-    /// (IME 헬퍼는 자기 도메인 `com.hyunjincho.inputmethod.haneul`만 읽는다).
+    /// IME 도메인 — 이유는 `EnglishConversionSettingsTab.imeDefaults` 주석 참조
+    /// (`UserDefaults.standard`로 쓰면 IME 헬퍼가 영영 보지 못한다).
     private static let imeDefaults = UserDefaults(suiteName: "com.hyunjincho.inputmethod.haneul")
 
     @State private var revertKey: RevertKey = RevertKey.resolve(
         rawValue: RevertKeySettingsSection.imeDefaults?.string(forKey: RevertKey.defaultsKey))
+    /// 2026-09-21 (#60): 흡수된 `ManualToggleSettingsSection`의 상태 — 키·기본값은 그대로다.
+    @State private var manualToggleAllWords: Bool =
+        RevertKeySettingsSection.imeDefaults?
+            .object(forKey: RevertKey.manualToggleAllWordsKey) as? Bool
+            ?? RevertKey.manualToggleAllWordsDefault
     @State private var disabledIDs: [String] =
         RevertKeySettingsSection.imeDefaults?.stringArray(forKey: AutoConvertPolicy.disabledAppsKey) ?? []
     @State private var showingAppPicker = false
@@ -22,8 +32,8 @@ struct RevertKeySettingsSection: View {
     @State private var runningApps: [RunningApp] = []
 
     var body: some View {
-        Section("되돌리기 키") {
-            Picker("변환 되돌리기 키", selection: $revertKey) {
+        Section("되돌리기") {
+            Picker("되돌리기 키", selection: $revertKey) {
                 ForEach(RevertKey.allCases, id: \.self) { key in
                     Text(key.displayName).tag(key)
                 }
@@ -31,54 +41,72 @@ struct RevertKeySettingsSection: View {
             .onChange(of: revertKey) { _, newValue in
                 Self.imeDefaults?.set(newValue.rawValue, forKey: RevertKey.defaultsKey)
             }
-            Text("영타가 자동으로 바뀐 직후 이 키를 누르면 원래 한글로 되돌리고, 다시 누르면 영어로 돌아옵니다. 고른 조합은 시스템이나 다른 앱의 단축키와 겹칠 수 있어요 — 겹치면 다른 조합을 고르세요. (Control+Space는 macOS의 입력 소스 전환 키라 목록에 없습니다.)")
+            // 2026-09-21 (#60): 단축키 겹침 안내는 본문 캡션에서 툴팁으로 내렸다 — 고르는
+            // 순간이 아니라 고른 뒤에야 필요한 정보인데, 이 탭에서 가장 긴 캡션이었다.
+            .help("고른 조합이 다른 앱의 단축키와 겹치면 다른 조합을 고르세요.")
+
+            Text("바뀐 직후 이 키를 누르면 한글로 되돌리고, 다시 누르면 영어로 돌아옵니다. Terminal·Ghostty 같은 터미널 앱에서는 되돌리기가 동작하지 않습니다(자동 변환 자체는 정상입니다).")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            Text("Terminal·Ghostty 같은 터미널 앱에서는 되돌리기가 동작하지 않습니다 — 입력된 글자가 곧바로 셸에 넘어가 입력기가 회수할 수 없어요. 자동 변환 자체는 정상 동작합니다.")
+
+            Toggle("바뀌지 않은 단어도 되돌리기", isOn: $manualToggleAllWords)
+                .onChange(of: manualToggleAllWords) { _, newValue in
+                    Self.imeDefaults?.set(newValue, forKey: RevertKey.manualToggleAllWordsKey)
+                }
+            Text("자동으로 바뀌지 않은 단어까지 이 키로 한↔영을 바꿉니다. 예) 재가 ↔ work")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
 
         Section("앱별 자동 변환 끄기") {
-            Text("아래 앱에서는 한글 모드로 영어를 쳐도 자동으로 바꾸지 않습니다. (위 \"영타 자동 변환\"이 꺼져 있으면 목록과 무관하게 모든 앱에서 바꾸지 않습니다.)")
+            Text("아래 앱에서는 한글 모드로 영어를 쳐도 바꾸지 않습니다. 위 \"영타 자동 변환\"이 꺼져 있으면 목록과 상관없이 모든 앱에서 바꾸지 않습니다.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            if disabledIDs.isEmpty {
-                Text("끈 앱이 없습니다.")
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(disabledIDs, id: \.self) { bundleID in
-                    let name = Self.displayName(forBundleID: bundleID)
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(name ?? bundleID)
-                            if name != nil {
-                                Text(bundleID)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+            // 2026-09-21 (#60): 빈 상태 문구도 **목록 테두리 안**에 넣는다 — 목록이 비었다고
+            // 절 높이가 달라지면 화면이 덜컥거린다.
+            List {
+                if disabledIDs.isEmpty {
+                    Text("끈 앱이 없습니다.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(disabledIDs, id: \.self) { bundleID in
+                        let name = Self.displayName(forBundleID: bundleID)
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(name ?? bundleID)
+                                if name != nil {
+                                    Text(bundleID)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
+                            Spacer()
+                            Button {
+                                update(AutoConvertPolicy.removing(bundleID, from: disabledIDs))
+                            } label: {
+                                Image(systemName: "minus.circle")
+                            }
+                            .buttonStyle(.borderless)
+                            .accessibilityLabel("\(name ?? bundleID) 목록에서 제거")
                         }
-                        Spacer()
-                        Button {
-                            update(AutoConvertPolicy.removing(bundleID, from: disabledIDs))
-                        } label: {
-                            Image(systemName: "minus.circle")
-                        }
-                        .buttonStyle(.borderless)
-                        .accessibilityLabel("\(name ?? bundleID) 목록에서 제거")
                     }
                 }
             }
+            .listStyle(.bordered(alternatesRowBackgrounds: true))
+            .frame(height: 132)
 
-            Button("실행 중인 앱에서 추가...") {
-                runningApps = RunningApp.snapshot()
-                showingAppPicker = true
-            }
-            .sheet(isPresented: $showingAppPicker) {
-                RunningAppPickerSheet(apps: runningApps, disabledIDs: $disabledIDs) { bundleID in
-                    update(AutoConvertPolicy.adding(bundleID, to: disabledIDs))
+            HStack {
+                Button("실행 중인 앱에서 추가...") {
+                    runningApps = RunningApp.snapshot()
+                    showingAppPicker = true
                 }
+                .sheet(isPresented: $showingAppPicker) {
+                    RunningAppPickerSheet(apps: runningApps, disabledIDs: $disabledIDs) { bundleID in
+                        update(AutoConvertPolicy.adding(bundleID, to: disabledIDs))
+                    }
+                }
+                Spacer()
             }
         }
     }
@@ -139,29 +167,34 @@ private struct RunningAppPickerSheet: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            if apps.isEmpty {
-                Text("실행 중인 앱이 없습니다.")
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                List(apps) { app in
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(app.name)
-                            Text(app.bundleID)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        if isDisabled(app.bundleID) {
-                            Text("추가됨")
-                                .foregroundStyle(.secondary)
-                        } else {
-                            Button("추가") { onAdd(app.bundleID) }
+            // 2026-09-21 (#60): 목록 규격을 탭 본문과 통일 — 테두리 + 교대 행 배경.
+            // 빈 상태도 테두리 안에 둔다.
+            List {
+                if apps.isEmpty {
+                    Text("실행 중인 앱이 없습니다.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(apps) { app in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(app.name)
+                                Text(app.bundleID)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            if isDisabled(app.bundleID) {
+                                Text("추가됨")
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                Button("추가") { onAdd(app.bundleID) }
+                                    .accessibilityLabel("\(app.name) 자동 변환 끄기 목록에 추가")
+                            }
                         }
                     }
                 }
             }
+            .listStyle(.bordered(alternatesRowBackgrounds: true))
 
             HStack {
                 Spacer()
