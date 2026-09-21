@@ -1785,6 +1785,152 @@ struct ComposerTests {
             expect(unknown.contains("- macOS: (알 수 없음)"), true, "WS 본문: macOS 버전 미상")
             expect(unknown.contains("### 메모\n(없음)"), true, "WS 본문: 메모 없음")
             expect(unknown.contains("- **바뀐 결과 (원치 않음):** and"), true, "WS 본문: 금지 제안은 두 번째 값의 라벨이 다르다")
+
+        // MARK: 되돌리기 키를 모든 단어로 — 수동 한↔영 토글 (#15, 2026-09-21)
+        //
+        // 자동변환이 일부러 포기한 영역(우리말샘 veto `재가`, 사전에 있을 수 없는 `ㅡ5`)을
+        // 사용자가 키를 눌러 직접 뚫는 경로. 사전을 보지 않고 자판 배열만 쓴다.
+        do {
+            // (a) 티켓 검산 케이스 — 양방향
+            expect(ManualToggle.hangulToKeys("재가") ?? "", "work", "ManualToggle: 재가 → work")
+            expect(ManualToggle.keysToHangul("work") ?? "", "재가", "ManualToggle: work → 재가")
+            expect(ManualToggle.manualToggle(word: "재가") ?? "", "work", "manualToggle: 재가 → work (방향 자동)")
+            expect(ManualToggle.manualToggle(word: "work") ?? "", "재가", "manualToggle: work → 재가 (방향 자동)")
+            expect(ManualToggle.manualToggle(word: "ㅡ5") ?? "", "m5", "manualToggle: ㅡ5 → m5 (숫자 통과)")
+            expect(ManualToggle.manualToggle(word: "m5") ?? "", "ㅡ5", "manualToggle: m5 → ㅡ5")
+            expect(ManualToggle.manualToggle(word: "ㅏ3") ?? "", "k3", "manualToggle: ㅏ3 → k3")
+            expect(ManualToggle.manualToggle(word: "k3") ?? "", "ㅏ3", "manualToggle: k3 → ㅏ3")
+            expect(ManualToggle.manualToggle(word: "안녕") ?? "", "dkssud", "manualToggle: 안녕 → dkssud")
+            expect(ManualToggle.manualToggle(word: "dkssud") ?? "", "안녕", "manualToggle: dkssud → 안녕")
+
+            // (b) 복합 자모 역분해 — 티켓이 짚은 주의 지점
+            expect(ManualToggle.hangulToKeys("ㅘ") ?? "", "hk", "ManualToggle: ㅘ → ㅗ+ㅏ = hk")
+            expect(ManualToggle.hangulToKeys("ㄳ") ?? "", "rt", "ManualToggle: 겹받침 ㄳ → ㄱ+ㅅ = rt")
+            expect(ManualToggle.hangulToKeys("삯") ?? "", "tkrt", "ManualToggle: 음절 속 겹받침 삯 → tkrt")
+            expect(ManualToggle.hangulToKeys("ㄲ") ?? "", "R", "ManualToggle: 쌍자음 ㄲ → Shift 키 R")
+            expect(ManualToggle.hangulToKeys("ㅒ") ?? "", "O", "ManualToggle: ㅒ → Shift 키 O")
+            expect(ManualToggle.hangulToKeys("과") ?? "", "rhk", "ManualToggle: 과 → ㄱ+ㅗ+ㅏ = rhk")
+            expect(ManualToggle.hangulToKeys("의") ?? "", "dml", "ManualToggle: 의 → ㅇ+ㅡ+ㅣ = dml")
+            expect(ManualToggle.hangulToKeys("따") ?? "", "Ek", "ManualToggle: 따 → 쌍자음 초성 E+k")
+
+            // (c) 자동변환 경로와 같은 결과여야 한다 — 조합기를 재사용하므로 갈릴 수 없다.
+            //     (Vismo는 대문자로 시작해도 자판 위치가 같아 같은 한글이 나온다.)
+            expect(ManualToggle.keysToHangul("Vismo") ?? "", "퍄느ㅐ", "ManualToggle: Vismo → 퍄느ㅐ (자동변환 경로와 동일)")
+            expect(typePassive("vismo").committedText, ManualToggle.keysToHangul("vismo") ?? "",
+                   "ManualToggle: vismo 조합 결과 = 조합기 실제 출력")
+            expect(typePassive("apple").committedText, ManualToggle.keysToHangul("apple") ?? "",
+                   "ManualToggle: apple 조합 결과 = 조합기 실제 출력")
+            expect(ManualToggle.hangulToKeys("메ㅔㅣㄷ") ?? "", "apple", "ManualToggle: 메ㅔㅣㄷ → apple (자동변환과 같은 결과)")
+
+            // (d) 바꿀 수 없는 입력은 손대지 않는다(nil) — 호출자는 키를 흘려보낸다.
+            expect(ManualToggle.manualToggle(word: "") == nil, true, "manualToggle: 빈 문자열 → nil")
+            expect(ManualToggle.manualToggle(word: " ") == nil, true, "manualToggle: 공백 → nil")
+            expect(ManualToggle.manualToggle(word: "재 가") == nil, true, "manualToggle: 공백 포함 → nil")
+            expect(ManualToggle.manualToggle(word: "😀") == nil, true, "manualToggle: 이모지 → nil")
+            expect(ManualToggle.manualToggle(word: "재work") == nil, true, "manualToggle: 한글+영어 혼합 → nil")
+            expect(ManualToggle.manualToggle(word: "123") == nil, true, "manualToggle: 숫자뿐 → 바꿀 게 없어 nil")
+            expect(ManualToggle.manualToggle(word: "漢") == nil, true, "manualToggle: 한자 → nil")
+            expect(ManualToggle.classify(word: "재가") == .hangul, true, "classify: 재가 = hangul")
+            expect(ManualToggle.classify(word: "work") == .english, true, "classify: work = english")
+            expect(ManualToggle.classify(word: "ㅡ5") == .hangul, true, "classify: ㅡ5 = hangul(숫자는 통과 문자)")
+            expect(ManualToggle.classify(word: "재work") == .unsupported, true, "classify: 혼합 = unsupported")
+
+            // (e) 표가 빠뜨린 자모가 없는지 — 손으로 적은 표가 아니라 기존 표에서 만들지만,
+            //     그래도 전수로 확인한다(자모가 늘면 여기서 걸린다).
+            var jamoOK = true
+            for consonant in Consonant.allCases where ManualToggle.hangulToKeys(String(consonant.compatibility)) == nil {
+                jamoOK = false
+            }
+            for vowel in Vowel.allCases where ManualToggle.hangulToKeys(String(vowel.compatibility)) == nil {
+                jamoOK = false
+            }
+            expect(jamoOK, true, "ManualToggle: 낱자모 19+21개 전부 키로 역매핑됨")
+            var compoundOK = true
+            for (character, first, second) in ManualToggle.compoundFinalCompatibilityPairs {
+                if CompoundFinal.index(first: first, second: second) == nil { compoundOK = false }
+                if ManualToggle.hangulToKeys(String(character)) == nil { compoundOK = false }
+            }
+            expect(compoundOK, true, "ManualToggle: 겹자모 표기 표가 CompoundFinal과 짝이 맞음")
+
+            // (f) 완성형 전수 왕복 — 분해 → 키 → 재조합이 원문과 같아야 한다(11,172자).
+            var roundTripFailure = ""
+            for code in 0xAC00...0xD7A3 {
+                let syllable = String(UnicodeScalar(code)!)
+                guard let keys = ManualToggle.hangulToKeys(syllable),
+                      ManualToggle.keysToHangul(keys) == syllable else {
+                    roundTripFailure = syllable
+                    break
+                }
+            }
+            expect(roundTripFailure, "", "ManualToggle: 완성형 11,172자 전부 한→키→한 왕복")
+
+            // (g) 커서 앞 단어 잘라내기 — resolveToggle과 같은 isWordChar 규칙.
+            expect(KoreanComposer.wordBeforeCursor(before: "재가 ", atDocStart: true)?.word ?? "",
+                   "재가", "wordBeforeCursor: 뒤에 스페이스가 있어도 단어를 찾음")
+            expect(KoreanComposer.wordBeforeCursor(before: "재가 ", atDocStart: true)?.trailing ?? -1,
+                   1, "wordBeforeCursor: trailing 1")
+            expect(KoreanComposer.wordBeforeCursor(before: "go work ", atDocStart: false)?.word ?? "",
+                   "work", "wordBeforeCursor: 앞 단어가 더 있어도 마지막 단어만")
+            expect(KoreanComposer.wordBeforeCursor(before: "재가", atDocStart: true)?.word ?? "",
+                   "재가", "wordBeforeCursor: 커서가 단어에 붙어 있어도 됨(trailing 0)")
+            expect(KoreanComposer.wordBeforeCursor(before: "재가", atDocStart: false) == nil, true,
+                   "wordBeforeCursor: 읽기 창 앞에 닿음+문서 시작 아님 → 안전 nil")
+            expect(KoreanComposer.wordBeforeCursor(before: "ㅡ5", atDocStart: true)?.word ?? "",
+                   "ㅡ", "wordBeforeCursor: 숫자는 단어 문자가 아니라 trailing")
+            expect(KoreanComposer.wordBeforeCursor(before: "ㅡ5", atDocStart: true)?.trailing ?? -1,
+                   1, "wordBeforeCursor: ㅡ5의 trailing 1 → 교체 후 m5")
+            expect(KoreanComposer.wordBeforeCursor(before: "   ", atDocStart: true) == nil, true,
+                   "wordBeforeCursor: 경계 글자뿐이면 nil")
+            expect(KoreanComposer.wordBeforeCursor(before: "", atDocStart: true) == nil, true,
+                   "wordBeforeCursor: 빈 문자열 nil")
+            expect(KoreanComposer.isWordChar(0x0035), false, "isWordChar: 숫자 5는 단어 문자가 아니다")
+            expect(KoreanComposer.isWordChar(0xC7AC), true, "isWordChar: 완성형 재는 단어 문자")
+
+            // (h) 수동 토글로 바꾼 뒤 **한 번 더 누르면 되돌아온다** — 컨트롤러가 세우는
+            //     lastConversion을 기존 되돌리기 경로가 그대로 매칭해야 한다.
+            expect(KoreanComposer.resolveToggle(before: "work ", english: "work", hangul: "재가",
+                                                atDocStart: true)?.text ?? "",
+                   "재가", "재토글: 수동 변환 후 work → 재가")
+            expect(KoreanComposer.resolveToggle(before: "m5", english: "m", hangul: "ㅡ",
+                                                atDocStart: true)?.text ?? "",
+                   "ㅡ", "재토글: m5의 m → ㅡ (숫자는 trailing)")
+
+            // (i) 조합 중(marked text)에는 수동 토글을 하지 않는다 — 문서에 아직 없기 때문.
+            do {
+                let client = FakeClient()
+                let composer = KoreanComposer()
+                expect(composer.hasPendingComposition, false, "hasPendingComposition: 처음엔 없음")
+                _ = composer.handleInput("w", client: client)
+                expect(composer.hasPendingComposition, true, "hasPendingComposition: 조합 중이면 true")
+                composer.commit(to: client)
+                expect(composer.hasPendingComposition, false, "hasPendingComposition: 확정 후 false")
+            }
+
+            // (j) 설정 키 — 기본은 켜짐. 꺼 두면 컨트롤러가 새 경로로 가지 않는다.
+            expect(RevertKey.manualToggleAllWordsKey, "haneul.manualToggleAllWords",
+                   "#15: 설정 키 이름")
+            expect(RevertKey.manualToggleAllWordsDefault, true, "#15: 기본값 켜짐")
+            expect(RevertKey.manualToggleAllWordsKey.hasPrefix("haneul."), true,
+                   "#15: 전체 제거의 haneul.* 일괄 삭제에 포함되는 접두어")
+
+            // (k) 값싼 사전 필터 — 맨 스페이스는 defaults를 읽지 않는다.
+            let plain = RevertKey.Modifiers([]).rawValue
+            let shiftOnly = RevertKey.Modifiers.shift.rawValue
+            let capsOnly = RevertKey.Modifiers.capsLock.rawValue
+            expect(RevertKey.couldMatch(keyCode: 49, modifierFlagsRaw: plain), false,
+                   "couldMatch: 맨 스페이스는 통과 못 함(defaults 안 읽음)")
+            expect(RevertKey.couldMatch(keyCode: 49, modifierFlagsRaw: capsOnly), false,
+                   "couldMatch: CapsLock만 붙은 스페이스도 통과 못 함")
+            expect(RevertKey.couldMatch(keyCode: 49, modifierFlagsRaw: shiftOnly), true,
+                   "couldMatch: Shift+Space는 통과")
+            expect(RevertKey.couldMatch(keyCode: 0, modifierFlagsRaw: shiftOnly), false,
+                   "couldMatch: Space가 아니면 false")
+            var everyCandidatePasses = true
+            for candidate in RevertKey.allCases
+            where !RevertKey.couldMatch(keyCode: 49, modifierFlagsRaw: candidate.requiredModifiers.rawValue) {
+                everyCandidatePasses = false
+            }
+            expect(everyCandidatePasses, true, "couldMatch: 후보 4종은 전부 사전 필터를 통과한다")
         }
 
         print("\(passes) passed, \(failures) failed")

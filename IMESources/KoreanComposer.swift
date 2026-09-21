@@ -62,6 +62,42 @@ final class KoreanComposer {
         lastConversion = (hangul: hangul, english: english)
     }
 
+    /// 단어를 이루는 글자인가 — 되돌리기의 단어 경계 판정. 2026-09-21 (#15)에 `resolveToggle`
+    /// 안의 지역 함수에서 끌어올렸다(내용은 그대로). 수동 토글의 `wordBeforeCursor`가 같은
+    /// 규칙을 써야 "자동 되돌리기와 수동 토글이 같은 단어를 본다"가 보장된다.
+    /// 숫자·`'`는 **일부러 단어 문자가 아니다** — `ㅡ5`는 `ㅡ`만 잡히고 `5`는 trailing으로
+    /// 남아 제자리에 있게 되므로 결과(`m5`)는 같다.
+    static func isWordChar(_ c: unichar) -> Bool {
+        (c >= 0x61 && c <= 0x7A) || (c >= 0x41 && c <= 0x5A)
+            || (c >= 0xAC00 && c <= 0xD7A3)   // 완성형 음절 가–힣
+            || (c >= 0x3130 && c <= 0x318F)   // 호환 낱자모 ㄱ–ㅣ — hangul이
+                                              // "메ㅔㅣㄷ"(apple)처럼 낱자모로
+                                              // 끝나도 trailing이 먹지 않게.
+    }
+
+    /// 2026-09-21 (#15): 커서 직전 텍스트에서 **커서 앞 단어**와 그 뒤에 붙은 경계 글자 수를
+    /// 잘라 낸다 — IMK 비의존 순수함수(수동 한↔영 토글의 대상 결정).
+    ///
+    /// `resolveToggle`과 규칙을 공유한다: 끝의 비단어 글자(스페이스·구두점·숫자)를 trailing으로
+    /// 건너뛰고, 거기서부터 왼쪽으로 단어 글자가 이어지는 만큼이 단어다.
+    /// - 단어가 하나도 없으면 nil(경계 글자뿐 — 손대지 않는다).
+    /// - 단어가 **읽기 창 맨 앞에 닿았는데** 그 지점이 문서 시작이 아니면 nil. 창 밖에 단어가
+    ///   더 이어질 수 있어 잘린 단어를 바꾸면 멀쩡한 글자를 망친다(`resolveToggle`의
+    ///   `leftIsBoundary`와 같은 안전 규칙).
+    /// - Returns: (단어, 단어 뒤 경계 글자 수). 길이는 전부 UTF-16 기준이라 호출자가 그대로
+    ///   `NSRange`에 쓸 수 있다.
+    static func wordBeforeCursor(before: String, atDocStart: Bool) -> (word: String, trailing: Int)? {
+        let s = before as NSString
+        var end = s.length
+        while end > 0, !isWordChar(s.character(at: end - 1)) { end -= 1 }
+        let trailing = s.length - end
+        var start = end
+        while start > 0, isWordChar(s.character(at: start - 1)) { start -= 1 }
+        guard start < end else { return nil }
+        guard start > 0 || atDocStart else { return nil }
+        return (s.substring(with: NSRange(location: start, length: end - start)), trailing)
+    }
+
     /// (M1) shift+space 되돌리기의 순수 매칭 로직 — IMKTextInput 비의존이라
     /// 단위테스트 가능. 커서 직전 텍스트(before)에서 trailing boundary를
     /// 건너뛰고 english/hangul을 "좌측이 단어경계"인 위치에서만 매칭해, 교체할
@@ -71,13 +107,6 @@ final class KoreanComposer {
     static func resolveToggle(before: String, english: String, hangul: String,
                               atDocStart: Bool) -> (text: String, replaceLen: Int, offsetFromEnd: Int)? {
         let s = before as NSString
-        func isWordChar(_ c: unichar) -> Bool {
-            (c >= 0x61 && c <= 0x7A) || (c >= 0x41 && c <= 0x5A)
-                || (c >= 0xAC00 && c <= 0xD7A3)   // 완성형 음절 가–힣
-                || (c >= 0x3130 && c <= 0x318F)   // 호환 낱자모 ㄱ–ㅣ — hangul이
-                                                  // "메ㅔㅣㄷ"(apple)처럼 낱자모로
-                                                  // 끝나도 trailing이 먹지 않게.
-        }
         var end = s.length
         while end > 0, !isWordChar(s.character(at: end - 1)) { end -= 1 }
         let trailing = s.length - end
@@ -136,6 +165,13 @@ final class KoreanComposer {
     /// Safety cap — a run this long without a boundary is not a word. Spill
     /// it as Hangul rather than growing the marked text without bound.
     private let maxWordUnits = 40
+
+    /// 2026-09-21 (#15): 아직 확정되지 않은 조합(marked text)이 있는가.
+    /// 수동 한↔영 토글은 **클라이언트 문서에 이미 들어간 글자**만 다룬다 — marked text는 아직
+    /// 문서가 아니라서 커서 앞을 읽으면 그 단어가 있을 수도, 없을 수도 있다(앱마다 다르다).
+    /// 조합 중이면 토글하지 않고 평소 경계 처리로 흘려보낸다: 그 한 번으로 단어가 확정되고
+    /// (자동 변환도 평소대로 시도된다), 그다음 누름부터 토글 대상이 된다.
+    var hasPendingComposition: Bool { !word.isEmpty || !buffer.isEmpty }
 
     func handleInput(_ input: String, client: ComposerClient) -> Bool {
         guard let scalar = input.unicodeScalars.first else { return false }
