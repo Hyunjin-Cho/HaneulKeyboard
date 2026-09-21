@@ -72,8 +72,10 @@ struct PersonalDictionarySettingsSection: View {
         Text("여기 적은 영어 단어는 사전에 없거나 한국어와 겹쳐도 **항상** 영어로 바꿉니다. (예: 사내 용어·이름)")
             .font(.caption)
             .foregroundStyle(.secondary)
+            .lineLimit(Self.captionLines, reservesSpace: true)
         addRow(
             text: $forceInput, prompt: "영어 소문자 (예: vismo)", error: forceError,
+            fieldLabel: "변환 추가할 영어 단어",
             addLabel: "변환 추가 목록에 단어 추가", action: addForce)
         wordList(force, emptyText: "추가한 단어가 없습니다.", remove: removeForce)
     }
@@ -83,8 +85,10 @@ struct PersonalDictionarySettingsSection: View {
         Text("여기 적은 단어는 **절대** 영어로 바꾸지 않습니다. 영어(apple)로 적어도, 한글 모드 표기(메ㅔㅣㄷ)로 적어도 됩니다. 양쪽에 다 있으면 금지가 이깁니다.")
             .font(.caption)
             .foregroundStyle(.secondary)
+            .lineLimit(Self.captionLines, reservesSpace: true)
         addRow(
             text: $blockInput, prompt: "영어 또는 한글 표기 (예: apple, 메ㅔㅣㄷ)", error: blockError,
+            fieldLabel: "변환 금지할 단어",
             addLabel: "변환 금지 목록에 단어 추가", action: addBlock)
         wordList(block, emptyText: "금지한 단어가 없습니다.", remove: removeBlock)
     }
@@ -94,6 +98,7 @@ struct PersonalDictionarySettingsSection: View {
         Text("되돌리기 키로 한글로 되돌린 변환입니다. 이 기기에만 최근 \(RecentReverts.maxCount)개까지 남고 어디로도 보내지 않습니다. \"금지\"를 누르면 변환 금지 목록으로 옮깁니다.")
             .font(.caption)
             .foregroundStyle(.secondary)
+            .lineLimit(Self.captionLines, reservesSpace: true)
 
         List {
             if recent.isEmpty {
@@ -136,17 +141,25 @@ struct PersonalDictionarySettingsSection: View {
 
     /// 세 목록의 높이는 **같아야 한다** — 세그먼트를 눌러도 아래 경계가 움직이지 않게. (#60)
     private static let listHeight: CGFloat = 220
+    /// 2026-09-21 (#60): 캡션 줄 수도 고정한다. 목록 높이만 맞춰 놔도 캡션이 1줄·2줄로 갈리면
+    /// 절 전체가 10pt씩 들썩인다(실측). 세 문구 모두 640pt 폭에서 2줄 안에 들어간다.
+    private static let captionLines = 2
 
     private func addRow(
-        text: Binding<String>, prompt: String, error: String?, addLabel: String,
-        action: @escaping () -> Void
+        text: Binding<String>, prompt: String, error: String?, fieldLabel: String,
+        addLabel: String, action: @escaping () -> Void
     ) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                TextField(prompt, text: text)
+                // 2026-09-21 (#60): `Form` 안에서 `TextField("...", text:)`의 첫 인자는
+                // **왼쪽 라벨**로 붙어 입력칸을 반으로 줄인다. 시안 와이어프레임대로 안내 문구를
+                // 칸 안 placeholder로 내리고, 이름은 접근성 라벨로 남긴다.
+                TextField("", text: text, prompt: Text(prompt))
+                    .labelsHidden()
                     .textFieldStyle(.roundedBorder)
                     .autocorrectionDisabled()
                     .onSubmit(action)
+                    .accessibilityLabel(fieldLabel)
                 Button("추가", action: action)
                     .disabled(text.wrappedValue.trimmingCharacters(in: .whitespaces).isEmpty)
                     .accessibilityLabel(addLabel)

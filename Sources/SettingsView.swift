@@ -20,7 +20,7 @@ enum SettingsTab: Hashable {
 /// 시안 정본: `~/Documents/Code-Reviews/20260921/haneulkeyboard/design/settings-spec_2026-09-21.md`
 /// (컨트롤 1:1 이동표 C01~C47 · 문구 확정표 · 비주얼 스펙).
 ///
-/// 창 크기는 **640×580 고정**이고 탭마다 바꾸지 않는다 — 이 창은 `Settings` 씬이 아니라
+/// 창 크기는 **640×660 고정**이고 탭마다 바꾸지 않는다 — 이 창은 `Settings` 씬이 아니라
 /// `AppDelegate.openSettings()`의 수동 `NSWindow` + `NSHostingController`로 뜨기 때문에
 /// 탭별로 높이를 바꾸면 애니메이션 없이 창이 툭툭 튄다.
 struct SettingsView: View {
@@ -69,7 +69,11 @@ struct SettingsView: View {
                 .tag(SettingsTab.advanced)
         }
         // 탭 바깥에 한 번만 — 탭 안에 프레임을 주면 바깥 프레임과 싸운다.
-        .frame(width: 640, height: 580)
+        // 2026-09-21 (#60): 시안은 640×580이었지만 **실측**(macOS 27, 오프스크린 렌더)에서
+        // 가장 긴 「영타 변환」 탭 본문이 624pt였다 — 580이면 기본 상태에서 스크롤이 생긴다.
+        // 시안의 목표("기본 상태에서 스크롤 0")를 지키려고 높이만 660으로 올렸다.
+        // 탭별 실측: 일반 312 · 영타 변환 624 · 개인 사전 550 · 업데이트 319 · 고급 126.
+        .frame(width: 640, height: 660)
         .alert("하늘키보드를 모두 지울까요?", isPresented: $showingUninstallConfirm) {
             Button("취소", role: .cancel) { }
             Button("모두 지우기", role: .destructive) {
