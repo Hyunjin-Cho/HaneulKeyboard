@@ -1,137 +1,83 @@
 import SwiftUI
 
+/// 설정 창의 탭. (2026-09-21, #60)
+/// 탭 순서 = 화면에 보이는 순서이고, `SettingsView`의 `TabView` 선택 상태가 이 값을 쓴다.
+enum SettingsTab: Hashable {
+    case general
+    case englishConversion
+    case personalDictionary
+    case update
+    case advanced
+}
+
+/// 설정 창 — **탭 컨테이너**. (2026-09-21, #60)
+///
+/// 종전에는 이 파일 하나의 `Form`에 `Section`이 12개 세로로 쌓여 있었다. 탭 5개로 나누면서
+/// 이 파일에는 **탭 구성 + 창 크기 + 전체 제거 다이얼로그 2개**만 남기고, 각 탭의 본문은
+/// `GeneralSettingsTab`·`EnglishConversionSettingsTab`·`PersonalDictionaryTab`·
+/// `UpdateSettingsSection`·`AdvancedSettingsTab`이 맡는다.
+///
+/// 시안 정본: `~/Documents/Code-Reviews/20260921/haneulkeyboard/design/settings-spec_2026-09-21.md`
+/// (컨트롤 1:1 이동표 C01~C47 · 문구 확정표 · 비주얼 스펙).
+///
+/// 창 크기는 **640×580 고정**이고 탭마다 바꾸지 않는다 — 이 창은 `Settings` 씬이 아니라
+/// `AppDelegate.openSettings()`의 수동 `NSWindow` + `NSHostingController`로 뜨기 때문에
+/// 탭별로 높이를 바꾸면 애니메이션 없이 창이 툭툭 튄다.
 struct SettingsView: View {
+    /// 창 제목. 2026-09-21 (#60): 오너 미결(시안 Q1 — `하늘키보드 설정` 제안)이라 현행 문구를
+    /// 유지하되, 바꿀 때 한 줄만 고치면 되도록 여기 한 곳에 둔다.
+    /// 쓰는 곳: `AppDelegate.openSettings()`.
+    static let windowTitle = "HaneulKeyboard 설정"
+
     @Bindable var core: AppCore
-    @State private var installError: Error?
-    @State private var isInstalling = false
+    @State private var selectedTab: SettingsTab
     @State private var showingUninstallConfirm = false
     @State private var uninstallResult: Uninstaller.Outcome?
 
-    /// The IME helper runs as its own process with its own defaults domain
-    /// (com.hyunjincho.inputmethod.haneul) — UserDefaults.standard here would
-    /// write to the main app's domain and the IME would never see it.
-    private static let imeDefaults = UserDefaults(suiteName: "com.hyunjincho.inputmethod.haneul")
-    @State private var autoEnglishEnabled: Bool =
-        SettingsView.imeDefaults?.object(forKey: "haneul.autoEnglishEnabled") as? Bool ?? true
+    /// 2026-09-21 (#60): `initialTab`은 스크린샷·프리뷰에서 특정 탭을 펼쳐 그리기 위한 초기값이다
+    /// (기본은 「일반」). 창을 열 때마다 이 값으로 시작하고, 그 뒤 선택은 `@State`가 기억한다
+    /// — 같은 `NSWindow`를 재사용하므로 닫았다 열어도 마지막 탭이 유지된다.
+    init(core: AppCore, initialTab: SettingsTab = .general) {
+        self.core = core
+        _selectedTab = State(initialValue: initialTab)
+    }
 
     var body: some View {
-        Form {
-            Section("한글 입력기 (IME)") {
-                if core.imeInstalled {
-                    Label("HaneulKeyboardIM 설치됨", systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
+        TabView(selection: $selectedTab) {
+            GeneralSettingsTab(core: core)
+                .tabItem { Label("일반", systemImage: "gearshape") }
+                .tag(SettingsTab.general)
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Caps Lock으로 한글/영어 모드를 전환합니다.")
-                            .font(.subheadline.bold())
-                        Text("짧게 누름 → 한글/영어 전환")
-                        Text("길게 누름 (1초 이상) → Caps Lock LED 전환")
-                    }
-                    .font(.caption)
+            EnglishConversionSettingsTab()
+                .tabItem { Label("영타 변환", systemImage: "textformat.abc") }
+                .tag(SettingsTab.englishConversion)
 
-                    Text("정상적으로 설치됐다면, 시스템 입력 소스에서 기존 \"두벌식\"은 제거하세요. (자모 깨짐 방지)")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
+            PersonalDictionaryTab()
+                .tabItem { Label("개인 사전", systemImage: "character.book.closed") }
+                .tag(SettingsTab.personalDictionary)
 
-                    HStack {
-                        Button("입력 소스 설정 열기") {
-                            IMEInstaller.openInputSourcesSettings()
-                        }
-                        Button("IME 제거", role: .destructive) {
-                            Task {
-                                do {
-                                    try await IMEInstaller.uninstall()
-                                    core.refreshIMEStatus()
-                                    installError = nil
-                                } catch {
-                                    installError = error
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    Text("HaneulKeyboard 자체 한국어 입력기를 ~/Library/Input Methods/에 설치합니다. 설치 후 시스템 설정에서 입력 소스로 추가해야 합니다.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    if let installError = installError ?? core.imeActivationError {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(installError.localizedDescription)
-                                .font(.caption)
-                                .foregroundStyle(.red)
-                        }
-                    }
-                    Button("IME 설치") {
-                        isInstalling = true
-                        Task {
-                            do {
-                                _ = try await IMEInstaller.installBundle()
-                                core.refreshIMEStatus()
-                                installError = nil
-                            } catch {
-                                installError = error
-                            }
-                            isInstalling = false
-                        }
-                    }
-                    .disabled(isInstalling)
-                }
+            // 2026-09-21 (#19): 업데이트는 절 파일 하나가 곧 탭 하나라 별도 탭 뷰를 만들지 않는다.
+            Form {
+                UpdateSettingsSection(core: core)
             }
+            .formStyle(.grouped)
+            .tabItem { Label("업데이트", systemImage: "arrow.down.circle") }
+            .tag(SettingsTab.update)
 
-            Section("입력") {
-                Toggle("영타 자동 변환", isOn: $autoEnglishEnabled)
-                    .onChange(of: autoEnglishEnabled) { _, newValue in
-                        Self.imeDefaults?.set(newValue, forKey: "haneul.autoEnglishEnabled")
-                    }
-                Text("한글 모드에서 영어 단어를 치면 (예: \"메ㅔㅣㄷ\") 스페이스를 누를 때 자동으로 영어(\"apple\")로 바꿔줍니다. 올바르고 자주 쓰는 한글은 건드리지 않습니다.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            // 2026-09-21 (#54): 되돌리기 키 선택 + 앱별 자동 변환 끄기 — 본문은
-            // RevertKeySettingsSection.swift (Section 두 개를 돌려준다).
-            RevertKeySettingsSection()
-            // 2026-09-21 (#15): 모든 단어 되돌리기 — 본문은 ManualToggleSettingsSection.swift.
-            ManualToggleSettingsSection()
-            // 2026-09-21 (#53): 개인 사전 3절 — 본문은 PersonalDictionarySettingsSection.swift.
-            PersonalDictionarySettingsSection()
-            // 2026-09-21 (#55): 단어 제안 창구 — 본문은 WordSuggestionSettingsSection.swift.
-            WordSuggestionSettingsSection()
-
-            // 2026-09-21 (#19): 자동 업데이트 절 — 본문은 UpdateSettingsSection.swift.
-            UpdateSettingsSection(core: core)
-
-            Section("상태") {
-                LabeledContent("현재 입력 모드") {
-                    Text(core.isKoreanActive ? "한국어 (한)" : "영어 (A)")
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Section("전체 제거") {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("HaneulKeyboard와 관련된 모든 파일·설정을 정리합니다.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    HStack {
-                        Button("전체 제거...", role: .destructive) {
-                            showingUninstallConfirm = true
-                        }
-                        Spacer()
-                    }
-                }
-            }
+            AdvancedSettingsTab(showingUninstallConfirm: $showingUninstallConfirm)
+                .tabItem { Label("고급", systemImage: "wrench.and.screwdriver") }
+                .tag(SettingsTab.advanced)
         }
-        .formStyle(.grouped)
-        .frame(width: 580, height: 600)
-        .alert("정말 제거하시겠어요?", isPresented: $showingUninstallConfirm) {
+        // 탭 바깥에 한 번만 — 탭 안에 프레임을 주면 바깥 프레임과 싸운다.
+        .frame(width: 640, height: 580)
+        .alert("하늘키보드를 모두 지울까요?", isPresented: $showingUninstallConfirm) {
             Button("취소", role: .cancel) { }
-            Button("제거", role: .destructive) {
+            Button("모두 지우기", role: .destructive) {
                 uninstallResult = Uninstaller.run()
                 core.refreshIMEStatus()
             }
         } message: {
-            Text("HaneulKeyboard의 메인 앱·IME 번들·LaunchServices 등록·사용자 설정을 모두 지웁니다. 다시 쓰려면 재설치해야 합니다.")
+            Text("메인 앱·입력기 번들·시스템 등록·사용자 설정을 모두 지웁니다. 되돌릴 수 없습니다.")
         }
         .alert("제거 결과", isPresented: Binding(
             get: { uninstallResult != nil },
