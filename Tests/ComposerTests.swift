@@ -1785,6 +1785,7 @@ struct ComposerTests {
             expect(unknown.contains("- macOS: (알 수 없음)"), true, "WS 본문: macOS 버전 미상")
             expect(unknown.contains("### 메모\n(없음)"), true, "WS 본문: 메모 없음")
             expect(unknown.contains("- **바뀐 결과 (원치 않음):** and"), true, "WS 본문: 금지 제안은 두 번째 값의 라벨이 다르다")
+        }
 
         // MARK: 되돌리기 키를 모든 단어로 — 수동 한↔영 토글 (#15, 2026-09-21)
         //
