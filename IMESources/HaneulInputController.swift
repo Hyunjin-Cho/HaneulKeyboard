@@ -200,6 +200,30 @@ final class HaneulInputController: IMKInputController {
             // (키를 먹지 않게 — 최소한 스페이스는 입력됨).
         }
 
+        // 2026-09-21 (#15): 되돌릴 자동변환이 **없을 때**의 수동 한↔영 토글 — 커서 앞 단어를
+        // 자판 배열만으로 바꾼다. 자동변환이 안전을 위해 일부러 포기한 영역(우리말샘 veto로
+        // 막히는 `재가`, 사전에 존재할 수 없는 `ㅡ5`)을 사용자 의도로 뚫는 탈출구다.
+        //
+        // 순서가 곧 사양이다 — **되돌리기 우선**: 위 블록이 먼저이고 `lastConversion`이 있으면
+        // 여기까지 오지 않는다(익숙한 동작을 깨지 않는다).
+        //
+        // 조건은 싼 것부터 — 공짜 상태 검사 → 키코드·수정자 사전 필터 → defaults 두 번.
+        // `couldMatch` 덕에 **맨 스페이스는 defaults를 한 번도 읽지 않는다**(종전과 같은 비용).
+        //
+        // `hasPendingComposition`: 조합 중(marked text)이면 토글하지 않는다. 그 글자는 아직
+        // 클라이언트 문서가 아니라 커서 앞을 읽어도 있을지 없을지 앱마다 다르다. 이때는 아래
+        // 일반 경계 처리로 흘려보내 평소대로 확정하고(자동 변환도 평소대로 시도된다), 그다음
+        // 누름부터 토글 대상이 된다.
+        if composer.lastConversion == nil, !composer.hasPendingComposition,
+           RevertKey.couldMatch(keyCode: event.keyCode, modifierFlagsRaw: mods.rawValue),
+           RevertKey.resolve(rawValue: UserDefaults.standard.string(forKey: RevertKey.defaultsKey))
+               .matches(keyCode: event.keyCode, modifierFlagsRaw: mods.rawValue),
+           UserDefaults.standard.object(forKey: RevertKey.manualToggleAllWordsKey) as? Bool
+               ?? RevertKey.manualToggleAllWordsDefault,
+           handleManualToggle(client: client) {
+            return true
+        }
+
         // (M-02) `.numericPad`는 passive 목록에서 뺀다 — 화살표/탐색키는
         // `.function`도 함께 달려 위에서 passive로 잡히지만, 키패드 숫자·Enter는
         // `.numericPad`만 달려 예전엔 변환 없이 그대로 확정됐다. 이제 키패드
@@ -261,6 +285,72 @@ final class HaneulInputController: IMKInputController {
             composer.resetEnglishContext()
         }
         return false
+    }
+
+    /// 2026-09-21 (#15): 커서 앞 단어를 한↔영으로 바꾼다 — 되돌릴 자동변환이 없을 때의 경로.
+    ///
+    /// 자동 되돌리기(`handle` 위쪽 블록)와 **같은 재료**를 그대로 쓴다: 커서 앞을 읽고(T1),
+    /// 단어를 잘라(`wordBeforeCursor` — `resolveToggle`과 같은 `isWordChar`), 범위를 교체하고,
+    /// 교체가 먹었는지 다시 읽어 확인한다(T2). 다른 점은 **무엇으로 바꾸는지**뿐이다 —
+    /// 사전이 아니라 `ManualToggle`의 자판 역매핑이라 veto도 사전 수록 여부도 보지 않는다.
+    ///
+    /// - Returns: 키를 소비했으면 true. false면 호출자가 평소 경계 처리로 흘려보낸다
+    ///   (최소한 스페이스는 입력된다).
+    private func handleManualToggle(client: IMKTextInput) -> Bool {
+        let sel = client.selectedRange()
+        // (L3) 드래그 선택 중(length>0)이거나 커서 위치를 모르면 손대지 않음 — 자동 경로와 동일.
+        guard sel.location != NSNotFound, sel.length == 0 else { return false }
+        let readStart = max(0, sel.location - ManualToggle.readSpan)
+        let reqLen = sel.location - readStart
+        let attr = client.attributedSubstring(from: NSRange(location: readStart, length: reqLen))
+        #if DEBUG
+        log.log("mt진단A: selLoc=\(sel.location, privacy: .public) reqLen=\(reqLen, privacy: .public) read=\(attr != nil, privacy: .public)")
+        #endif
+        // (T1) 커서 앞을 읽어줄 수 없는 클라이언트(Ghostty 등 터미널)에서는 원리적으로 불가능 —
+        // 아무것도 하지 않고 키만 소비한다(#30). 아래로 흘려보내면 되돌리기를 요청한 자리에
+        // 엉뚱한 스페이스만 끼어든다.
+        guard let attr else { return true }
+        // 커서가 문서 맨 앞 = 앞에 단어가 없는 **정상 상태**다. 자동 경로의 `toggleUnsupported`는
+        // 이걸 "거짓 보고"로 보고 키를 먹는데(변환 직후라면 앞에 글자가 반드시 있으므로),
+        // 수동 경로에선 뜻이 다르다 — 빈 필드에서 스페이스가 사라지지 않게 흘려보낸다.
+        guard sel.location > 0 else { return false }
+        let before = attr.string as NSString
+        // (H1) 요청 길이와 다르게 잘라 주는 클라이언트(Chromium/Electron 등)는 좌표가 어긋나
+        // 인접 글자를 덮어쓴다 — 안전하게 포기한다.
+        guard before.length == reqLen,
+              let target = KoreanComposer.wordBeforeCursor(
+                  before: before as String, atDocStart: readStart == 0),
+              let toggled = ManualToggle.manualToggle(word: target.word) else { return false }
+        let wordLength = (target.word as NSString).length
+        let start = sel.location - wordLength - target.trailing
+        guard start >= 0 else { return false }
+        client.insertText(toggled as NSString,
+                          replacementRange: NSRange(location: start, length: wordLength))
+        // (T2) Terminal.app 등은 범위 교체를 조용히 무시한다 — 그 자리에 옛 글자가 그대로면
+        // 거부로 판정하고, 화면·내부 상태를 손대지 않은 채 키만 소비한다(#30).
+        let rejected = KoreanComposer.toggleWasRejected(
+            textAtReplacement: client.attributedSubstring(
+                from: NSRange(location: start, length: wordLength))?.string,
+            previousText: target.word)
+        #if DEBUG
+        log.log("mt진단B: rejected=\(rejected, privacy: .public)")
+        #endif
+        if rejected { return true }
+        // 한 번 더 누르면 되돌아오게 `lastConversion`을 세운다 — 그러면 **기존** 되돌리기 경로가
+        // 그대로 매칭해 역토글한다(수동 경로를 두 번 타지 않고, 좌표 로직도 하나만 쓴다).
+        //
+        // `applyToggle`은 영어 문맥(`lastEnglishWord`)까지 함께 옮기는데, 그 부작용이 여기서도
+        // 맞다(코드 확인 후 결정): 화면 끝이 실제로 영어 단어가 됐으면 다음 단어는 영어 문맥으로
+        // 판정돼야 하고(M-01과 같은 이유 — 화면과 내부 상태가 어긋나면 다음 단어가 잘못 변환된다),
+        // 한글로 바꿨으면 문맥은 끊겨야 한다.
+        let toEnglish = ManualToggle.classify(word: target.word) == .hangul
+        composer.applyToggle(toEnglish: toEnglish,
+                             hangul: toEnglish ? target.word : toggled,
+                             english: toEnglish ? toggled : target.word)
+        // 수동 경로는 #53 `recordRevert`를 **부르지 않는다**. "최근 되돌린 변환"은 자동변환이
+        // 틀렸다는 신호를 모으는 목록인데, 여기서 바꾼 단어는 애초에 자동변환된 적이 없다 —
+        // 넣으면 일어나지도 않은 오변환에 "금지" 버튼을 달게 된다.
+        return true
     }
 
     /// 2026-09-21 (#53): 되돌린 변환을 "최근 되돌린 변환" 목록에 남긴다 — (한글 표기, 영어)
