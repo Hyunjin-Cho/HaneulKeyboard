@@ -48,6 +48,8 @@ final class HaneulInputController: IMKInputController {
         OrphanWatcher.shared.checkIfDue()
         composer.autoEnglishEnabled =
             UserDefaults.standard.object(forKey: "haneul.autoEnglishEnabled") as? Bool ?? true
+        // 2026-09-21 (#53): 개인 사전도 같은 시점에 읽는다(defaults 읽기뿐 — 클라이언트 질의 아님).
+        composer.personalDictionary = PersonalDictionary.load(from: .standard)
         composer.resetEnglishContext() // 새 필드/앱 — 영어 문맥은 이어지지 않음
         if let client = sender as? IMKTextInput {
             client.overrideKeyboard(withKeyboardNamed: "com.apple.keylayout.ABC")
@@ -186,6 +188,11 @@ final class HaneulInputController: IMKInputController {
                     // 단어가 옛 문맥으로 잘못 변환됨.)
                     composer.applyToggle(toEnglish: r.text == conv.english,
                                          hangul: conv.hangul, english: conv.english)
+                    // 2026-09-21 (#53): 영어→한글로 되돌린 순간만 기록한다(한글→영어 재토글은
+                    // 기록 대상이 아님 — "오변환이었다"는 신호는 되돌림 쪽뿐).
+                    if r.text != conv.english {
+                        recordRevert(hangul: conv.hangul, english: conv.english)
+                    }
                     return true
                 }
             }
@@ -240,6 +247,10 @@ final class HaneulInputController: IMKInputController {
             globalEnabled: defaults.object(forKey: "haneul.autoEnglishEnabled") as? Bool ?? true,
             disabledIDs: disabledAppIDs,
             clientBundleID: disabledAppIDs.isEmpty ? nil : client.bundleIdentifier())
+        // 2026-09-21 (#53): 개인 사전(변환 추가·금지)도 여기서 한 번 읽는다 — 키 이벤트마다가
+        // 아니라 변환이 실제로 일어날 수 있는 활성 경계에서만. 설정 앱이 쓴 값이 재시작 없이
+        // 다음 단어부터 반영된다. 목록은 작아서(수십~수백) 비용은 무시할 수준.
+        composer.personalDictionary = PersonalDictionary.load(from: .standard)
         composer.commit(to: composerClient, convertEnglish: true)
         // 영어 문맥("I want to...")은 스페이스/쉼표로만 이어진다 — 마침표·
         // 엔터·기타 문자는 문장 단절로 보고 리셋 ("Nice. 새로운" 보호).
@@ -250,5 +261,16 @@ final class HaneulInputController: IMKInputController {
             composer.resetEnglishContext()
         }
         return false
+    }
+
+    /// 2026-09-21 (#53): 되돌린 변환을 "최근 되돌린 변환" 목록에 남긴다 — (한글 표기, 영어)
+    /// 쌍만. 키스트로크·앞뒤 문맥·앱 이름·시각은 담지 않고, 로그에도 남기지 않는다(키로거
+    /// 금지). secure input은 `handle` 진입부에서 이미 걸러져 여기까지 오지 않는다.
+    /// 이 키는 IME만 쓴다(설정 앱은 읽기+삭제) — 형식·상한은 `RecentReverts`가 정본.
+    private func recordRevert(hangul: String, english: String) {
+        let defaults = UserDefaults.standard
+        RecentReverts.load(from: defaults)
+            .recording(hangul: hangul, english: english)
+            .save(to: defaults)
     }
 }

@@ -66,6 +66,16 @@
 - **되돌리기** — 자동으로 바뀐 직후 **Shift+Space**를 누르면 원래 한글로 되돌리고, 다시 누르면 영어로 돌아옵니다. 키는 설정 → "되돌리기 키"에서 Option+Space · Control+Shift+Space · Option+Shift+Space 중 하나로 바꿀 수 있습니다(시스템·앱 단축키와 겹치면 다른 조합을 고르세요). <!-- 2026-09-21 (#54) -->
 - **앱별로 끄기** — 설정 → "앱별 자동 변환 끄기"에서 실행 중인 앱을 고르면 그 앱에서만 영타 변환을 하지 않습니다(예: 코드 편집기·터미널). <!-- 2026-09-21 (#54) -->
 
+### 개인 사전 (2026-09-21)
+
+자동 변환이 내 쓰임새와 다를 때 **설정 → 개인 사전**에서 직접 고칩니다. 세 목록 전부 **이 Mac 안에만** 저장되고 어디로도 보내지 않습니다 ([PRIVACY.md](./PRIVACY.md) 7번).
+
+- **변환 추가** — 사전에 없거나 한국어 단어와 겹쳐서 안 바뀌던 영어(사내 용어·이름 등)를 적으면 **항상** 변환됩니다. 한글 모드에서 그 단어를 그대로 쳤을 때만.
+- **변환 금지** — 적힌 단어는 **절대** 변환하지 않습니다. 영어(`apple`)로 적어도, 한글 모드에서 보이는 표기(`메ㅔㅣㄷ`)로 적어도 됩니다.
+- **최근 되돌린 변환** — Shift+Space로 되돌린 변환이 (한글 표기 → 영어)로 최근 50개까지 쌓입니다. 잘못 바뀐 단어는 옆의 **금지** 버튼 한 번으로 변환 금지 목록에 들어갑니다.
+
+저장한 즉시 다음 단어부터 반영됩니다(재시작 불필요).
+
 ## 요구사항
 
 - **macOS Sonoma (14.0) 이상** — macOS 26 (Tahoe)·27에서 테스트 완료
@@ -176,6 +186,7 @@ Named after my daughter, 하늘 (Haneul) — "sky" in Korean.
 - **Wrong-layout auto-correction** *(new in 2026.02, dictionaries modernized in 2026.03)* — typed English while in Korean mode? It fixes itself on commit: `메ㅔㅣㄷ`→`apple`, `how ㅁㄱㄷ you`→`how are you`. Genuine Korean is left alone — every candidate is checked against **677k Korean headwords** (국립국어원 우리말샘) plus slang/emoticon guards, with one deliberate exception (an explicit whitelist of 새→to/무→an/내→so/랙→for/뭉→and right after English context). 2026.03 modernizes the English dictionaries with [NGSL](https://www.newgeneralservicelist.com) high-frequency words (`city`, `with`), [SCOWL](https://wordlist.aspell.net) modern vocabulary (`playlist`, `internet`, `selfie`), and personal names from US Census/SSA data (`davinci`, `ronaldo`, `garcia`) — every addition passed a Korean-collision audit driven by the real composition engine.
 - **Caps Lock uppercase mode** with a long press.
 - **Menu bar control** for language switching, settings, and shortcuts. Wrong-layout auto-correction can be toggled in Settings; the revert key (default Shift+Space, also Option+Space / Control+Shift+Space / Option+Shift+Space) and a per-app off list are configurable there too. Note: reverting cannot work in terminals (Terminal.app, Ghostty…) — typed text is owned by the shell the moment it lands, so the IME has no way to take it back. <!-- 2026-09-21 (#54) -->
+- **Personal dictionary** *(2026-09-21)* — in Settings, list words that should **always** convert (in-house terms, names) or **never** convert (as English or as their Hangul-layout form), and review the conversions you reverted with Shift+Space (last 50) with a one-click "Block" button. Everything stays on your Mac — see [PRIVACY.md](./PRIVACY.md) #7.
 
 Korean ↔ English input only. No other languages, no extra features.
 

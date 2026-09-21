@@ -132,6 +132,30 @@ func typeWordsViaController(_ words: [String]) -> [String] {
     return committed
 }
 
+/// 2026-09-21 (#53): 개인 사전을 실은 composer로 한 단어를 친다. `type()`과 같되
+/// `personalDictionary`를 미리 넣는다(컨트롤러가 활성 경계에서 defaults를 읽어 넘기는 자리).
+func typeWithPersonalDictionary(
+    _ keys: String, _ pd: PersonalDictionary, autoEnglish: Bool = true, passive: Bool = false
+) -> (client: FakeClient, composer: KoreanComposer) {
+    let client = FakeClient()
+    let composer = KoreanComposer()
+    composer.autoEnglishEnabled = autoEnglish
+    composer.personalDictionary = pd
+    for ch in keys { _ = composer.handleInput(String(ch), client: client) }
+    composer.commit(to: client, convertEnglish: !passive)
+    return (client, composer)
+}
+
+/// 위의 컨트롤러 경로 버전 — `'`가 낀 단어(축약형·소유격)를 개인 사전과 함께 본다.
+func typeViaControllerWithPersonalDictionary(_ keys: String, _ pd: PersonalDictionary) -> FakeClient {
+    let client = FakeClient()
+    let composer = KoreanComposer()
+    composer.personalDictionary = pd
+    for ch in keys { typeKeyViaController(ch, composer: composer, client: client) }
+    composer.commit(to: client, convertEnglish: true)
+    return client
+}
+
 func runDictionaryProbe(_ wordlistPath: String, _ label: String) -> Bool {
     let process = Process()
     process.executableURL = URL(fileURLWithPath: CommandLine.arguments[0])
@@ -1459,6 +1483,185 @@ struct ComposerTests {
         )
         expect(AutoConvertPolicy.removing("com.example.none", from: disabledApps).count, 2, "앱별 끄기: 없는 항목 제거는 그대로")
         expect(AutoConvertPolicy.removing("", from: disabledApps).count, 2, "앱별 끄기: 빈 값 제거는 그대로")
+
+        // ═══ 개인 사전 (#53, 2026-09-21) ═══
+        // (a) 판정 순수 함수 — PersonalDictionary.decision
+        do {
+            let pd = PersonalDictionary(force: ["vismo"], block: ["apple", "메ㅔㅣㄷ"])
+            expect(pd.decision(word: "vismo", hangul: "퍄느ㅐ") == .forceConvert, true, "PD.decision: force")
+            expect(pd.decision(word: "apple", hangul: "메ㅔㅣㄷ") == .block, true, "PD.decision: block(영어)")
+            expect(pd.decision(word: "zzzz", hangul: "메ㅔㅣㄷ") == .block, true, "PD.decision: block(한글 표기만 일치)")
+            expect(pd.decision(word: "apple", hangul: "다른한글") == .block, true, "PD.decision: block(영어만 일치)")
+            expect(pd.decision(word: "banana", hangul: "ㅠ무무") == nil, true, "PD.decision: 없음 → nil")
+            expect(pd.decision(word: "Vismo", hangul: "퍄느ㅐ") == .forceConvert, true, "PD.decision: 대문자 키열도 force")
+            expect(pd.decision(word: "APPLE", hangul: "x") == .block, true, "PD.decision: 대문자 키열도 block")
+            let both = PersonalDictionary(force: ["apple"], block: ["apple"])
+            expect(both.decision(word: "apple", hangul: "메ㅔㅣㄷ") == .block, true, "PD.decision: 양쪽에 있으면 block 우선")
+            expect(PersonalDictionary.empty.decision(word: "apple", hangul: "메ㅔㅣㄷ") == nil, true, "PD.decision: 빈 사전은 nil")
+            // 곱은 아포스트로피 키열도 저장된 직선 따옴표 항목과 맞는다
+            let apo = PersonalDictionary(force: ["y'know"], block: [])
+            expect(apo.decision(word: "y\u{2019}know", hangul: "ㅛ'ㅏㅜㅐㅈ") == .forceConvert, true, "PD.decision: U+2019 키열 정규화")
+        }
+        // 정규화 동치 — PersonalDictionary는 메인 앱에도 컴파일되어 Contractions를 못 쓰므로
+        // 자체 구현이다. 커밋 때 조회 키(Contractions.normalizedKey)와 어긋나면 여기서 잡힌다.
+        for sample in ["Apple", "don\u{2019}t", "I\u{2019}M", "y'know", "VISMO", "", "'", "Ab'C\u{2019}d"] {
+            expect(PersonalDictionary.normalizedEnglish(sample), Contractions.normalizedKey(Array(sample)),
+                   "PD.normalizedEnglish == Contractions.normalizedKey: \(sample)")
+        }
+        // (a') 입력 정규화 — 설정 앱 검증과 저장 시 정규화가 같은 함수
+        expect(PersonalDictionary.normalizedForceEntry(" Apple ") ?? "nil", "apple", "PD.force 정규화: 공백 제거+소문자")
+        expect(PersonalDictionary.normalizedForceEntry("don\u{2019}t") ?? "nil", "don't", "PD.force 정규화: 곱은 따옴표 → '")
+        expect(PersonalDictionary.normalizedForceEntry("app le") == nil, true, "PD.force 검증: 공백 포함 거부")
+        expect(PersonalDictionary.normalizedForceEntry("메ㅔㅣㄷ") == nil, true, "PD.force 검증: 한글 거부")
+        expect(PersonalDictionary.normalizedForceEntry("'") == nil, true, "PD.force 검증: 글자 없는 ' 거부")
+        expect(PersonalDictionary.normalizedForceEntry("abc1") == nil, true, "PD.force 검증: 숫자 거부")
+        expect(PersonalDictionary.normalizedForceEntry("") == nil, true, "PD.force 검증: 빈 문자열 거부")
+        expect(PersonalDictionary.normalizedBlockEntry(" Apple ") ?? "nil", "apple", "PD.block 정규화: 영어 소문자")
+        expect(PersonalDictionary.normalizedBlockEntry("메ㅔㅣㄷ") ?? "nil", "메ㅔㅣㄷ", "PD.block 정규화: 한글 표기 그대로")
+        expect(PersonalDictionary.normalizedBlockEntry("애ㅜ'ㅅ") ?? "nil", "애ㅜ'ㅅ", "PD.block 정규화: 축약형 한글형(')")
+        expect(PersonalDictionary.normalizedBlockEntry("app le") == nil, true, "PD.block 검증: 공백 포함 거부")
+        expect(PersonalDictionary.normalizedBlockEntry("apple메") == nil, true, "PD.block 검증: 영한 혼합 거부")
+        expect(PersonalDictionary.normalizedBlockEntry("123") == nil, true, "PD.block 검증: 숫자 거부")
+        expect(PersonalDictionary.normalizedBlockEntry("") == nil, true, "PD.block 검증: 빈 문자열 거부")
+        do {
+            // 저장 목록 → 사전: 규칙에 안 맞는 항목은 조용히 버린다
+            let pd = PersonalDictionary(forceList: ["Vismo", "", "메ㅔㅣㄷ", "ok"], blockList: ["Apple", "메ㅔㅣㄷ", "  ", "a b"])
+            expect(pd.force == ["vismo", "ok"], true, "PD(list): force 정규화·필터")
+            expect(pd.block == ["apple", "메ㅔㅣㄷ"], true, "PD(list): block 정규화·필터")
+            expect(PersonalDictionary(forceList: [], blockList: []) == .empty, true, "PD(list): 빈 목록 = empty")
+        }
+
+        // (b) composer 통합 — 사전 판정 앞뒤로 합성
+        // vismo: 어느 사전에도 없어 지금은 미변환 (baseline)
+        expect(type("vismo").committedText, "퍄느ㅐ", "PD baseline: vismo는 사전에 없어 한글 유지")
+        do {
+            let r = typeWithPersonalDictionary("vismo", PersonalDictionary(force: ["vismo"]))
+            expect(r.client.committedText, "vismo", "PD force: 사전에 없는 단어도 변환")
+            expect(r.composer.lastConversion?.hangul ?? "", "퍄느ㅐ", "PD force: lastConversion 한글(되돌리기 가능)")
+            expect(r.composer.lastConversion?.english ?? "", "vismo", "PD force: lastConversion 영어")
+            expect(r.composer.lastEnglishWord ?? "", "vismo", "PD force: 영어 문맥 이어짐")
+        }
+        expect(
+            typeWithPersonalDictionary("vismo", PersonalDictionary(force: ["vismo"]), autoEnglish: false).client.committedText,
+            "퍄느ㅐ", "PD force: 자동 변환 꺼짐이면 force도 무력(마스터 스위치가 위)")
+        expect(
+            typeWithPersonalDictionary("vismo", PersonalDictionary(force: ["vismo"]), passive: true).client.committedText,
+            "퍄느ㅐ", "PD force: passive 경계는 화면 그대로(force 무관)")
+        expect(
+            typeWithPersonalDictionary("Vismo", PersonalDictionary(force: ["vismo"])).client.committedText,
+            "Vismo", "PD force: 대문자로 쳐도 변환, 출력은 친 그대로")
+        // 자판 대응이 안 맞으면 force도 안 걸린다 — 다른 키로 친 단어는 word가 다르다
+        expect(
+            typeWithPersonalDictionary("vismol", PersonalDictionary(force: ["vismo"])).client.committedText,
+            "퍄느ㅐㅣ", "PD force: 키열이 정확히 그 단어여야 함(vismol ≠ vismo)")
+        // 한국어 veto 단어(책=cor)도 force면 변환
+        expect(type("cor").committedText, "책", "PD baseline: 책(cor)은 veto 보호")
+        expect(
+            typeWithPersonalDictionary("cor", PersonalDictionary(force: ["cor"])).client.committedText,
+            "cor", "PD force: 우리말샘 veto(책)보다 우선")
+        // block: 사전에 있는 단어(apple)가 영어로도, 한글 표기로도 막힌다
+        expect(type("apple").committedText, "apple", "PD baseline: apple 변환")
+        do {
+            let r = typeWithPersonalDictionary("apple", PersonalDictionary(block: ["apple"]))
+            expect(r.client.committedText, "메ㅔㅣㄷ", "PD block(영어): apple 미변환")
+            expect(r.composer.lastConversion == nil, true, "PD block: 변환이 없으니 lastConversion도 없음")
+            expect(r.composer.lastEnglishWord == nil, true, "PD block: 영어 문맥도 안 생김")
+        }
+        expect(
+            typeWithPersonalDictionary("apple", PersonalDictionary(block: ["메ㅔㅣㄷ"])).client.committedText,
+            "메ㅔㅣㄷ", "PD block(한글 표기): 메ㅔㅣㄷ으로도 막힘")
+        expect(
+            typeWithPersonalDictionary("Apple", PersonalDictionary(block: ["apple"])).client.committedText,
+            "메ㅔㅣㄷ", "PD block: 대문자로 쳐도 막힘(대소문자 무시)")
+        expect(
+            typeWithPersonalDictionary("apple", PersonalDictionary(force: ["apple"], block: ["apple"])).client.committedText,
+            "메ㅔㅣㄷ", "PD 양쪽: block 우선")
+        // 다른 단어에는 영향 없음
+        expect(
+            typeWithPersonalDictionary("apple", PersonalDictionary(force: ["vismo"], block: ["banana"])).client.committedText,
+            "apple", "PD: 무관한 항목은 기존 판정 그대로(apple 변환)")
+        expect(
+            typeWithPersonalDictionary("cor", PersonalDictionary(force: ["vismo"])).client.committedText,
+            "책", "PD: 무관한 항목은 기존 판정 그대로(책 보호)")
+        // 영어 문맥(R2)도 block이 이긴다 — "good wha"의 좀은 veto, "how are"의 ㅁㄱㄷ는 변환되던 것
+        do {
+            let client = FakeClient()
+            let composer = KoreanComposer()
+            composer.personalDictionary = PersonalDictionary(block: ["are"])
+            for ch in "how" { _ = composer.handleInput(String(ch), client: client) }
+            _ = composer.commit(to: client, convertEnglish: true)
+            for ch in "are" { _ = composer.handleInput(String(ch), client: client) }
+            expect(composer.commit(to: client, convertEnglish: true), "ㅁㄱㄷ", "PD block: 영어 문맥 뒤에서도 are 미변환")
+        }
+        // 축약형·소유격(컨트롤러 경로) — base 경로도 같은 합성
+        expect(typeViaController("vismo's").committedText, "퍄느ㅐ'ㄴ", "PD baseline: vismo's 미변환")
+        expect(
+            typeViaControllerWithPersonalDictionary("vismo's", PersonalDictionary(force: ["vismo"])).committedText,
+            "vismo's", "PD force(base): vismo's도 통째로 변환")
+        expect(
+            typeViaControllerWithPersonalDictionary("apple's", PersonalDictionary(block: ["apple"])).committedText,
+            "메ㅔㅣㄷ'ㄴ", "PD block(base): apple's도 한글 유지")
+        expect(
+            typeViaControllerWithPersonalDictionary("apple's", PersonalDictionary(block: ["메ㅔㅣㄷ"])).committedText,
+            "메ㅔㅣㄷ'ㄴ", "PD block(base 한글 표기): 메ㅔㅣㄷ 금지가 메ㅔㅣㄷ'ㄴ까지")
+        expect(typeViaController("don't").committedText, "don't", "PD baseline: don't 축약형 변환")
+        expect(
+            typeViaControllerWithPersonalDictionary("don't", PersonalDictionary(block: ["don't"])).committedText,
+            "애ㅜ'ㅅ", "PD block(통째): 축약형 소사전보다 금지가 먼저")
+        expect(
+            typeViaControllerWithPersonalDictionary("don't", PersonalDictionary(block: ["애ㅜ'ㅅ"])).committedText,
+            "애ㅜ'ㅅ", "PD block(통째 한글형): 애ㅜ'ㅅ으로도 막힘")
+        expect(typeViaController("y'know").committedText, "ㅛ'ㅏㅜㅐㅈ", "PD baseline: y'know는 소사전에 없어 미변환")
+        expect(
+            typeViaControllerWithPersonalDictionary("y'know", PersonalDictionary(force: ["y'know"])).committedText,
+            "y'know", "PD force(통째): 소사전에 없는 축약형도 변환")
+        // 한글 단어는 force가 아닌 한 절대 건드리지 않는다(회귀 방어)
+        expect(
+            typeWithPersonalDictionary("dkssud", PersonalDictionary(force: ["vismo"], block: ["apple"])).client.committedText,
+            "안녕", "PD: 한글 단어(안녕)는 그대로")
+
+        // (c) 최근 되돌린 변환 — RecentReverts 순수 함수
+        do {
+            var r = RecentReverts()
+            expect(r.entries.count, 0, "RR: 처음은 비어 있음")
+            r = r.recording(hangul: "메ㅔㅣㄷ", english: "apple")
+            expect(r.entries.count, 1, "RR: 1개 추가")
+            r = r.recording(hangul: "퍄느ㅐ", english: "vismo")
+            expect(r.entries.first?.english ?? "", "vismo", "RR: 최신이 앞")
+            expect(r.entries.last?.english ?? "", "apple", "RR: 오래된 것이 뒤")
+            r = r.recording(hangul: "메ㅔㅣㄷ", english: "apple")
+            expect(r.entries.count, 2, "RR: 같은 쌍은 중복 안 됨")
+            expect(r.entries.first?.english ?? "", "apple", "RR: 같은 쌍은 최신으로 올라옴")
+            // 같은 영어라도 한글 표기가 다르면 다른 쌍(Apple/apple 등)
+            r = r.recording(hangul: "메ㅔㅣㄷ", english: "Apple")
+            expect(r.entries.count, 3, "RR: (한글, 영어) 쌍 단위로 중복 판정")
+            // "금지" 뒤 제거 — 대소문자 무시로 그 영어 항목 전부
+            let removed = r.removing(english: "apple")
+            expect(removed.entries.count, 1, "RR.removing: apple/Apple 둘 다 제거")
+            expect(removed.entries.first?.english ?? "", "vismo", "RR.removing: 나머지는 유지")
+            expect(r.removing(english: "nothere").entries.count, 3, "RR.removing: 없는 단어는 그대로")
+            // 상한 50 — 60개 넣으면 최신 50개만
+            var many = RecentReverts()
+            for i in 0..<60 { many = many.recording(hangul: "h\(i)", english: "w\(i)") }
+            expect(many.entries.count, RecentReverts.maxCount, "RR: 상한 50")
+            expect(many.entries.first?.english ?? "", "w59", "RR: 상한 넘으면 최신 유지")
+            expect(many.entries.last?.english ?? "", "w10", "RR: 가장 오래된 10개가 잘림")
+            // plist 왕복
+            let plist = r.plist
+            expect(plist.count, 3, "RR.plist: 항목 수")
+            expect(plist.first?["hangul"] ?? "", "메ㅔㅣㄷ", "RR.plist: hangul 키")
+            expect(plist.first?["english"] ?? "", "Apple", "RR.plist: english 키")
+            expect(RecentReverts(plist: plist) == r, true, "RR.plist: 왕복 동일")
+            expect(RecentReverts(plist: nil).entries.count, 0, "RR(plist:nil): 빈 목록")
+            expect(RecentReverts(plist: "garbage").entries.count, 0, "RR(plist:이상한 값): 빈 목록")
+            expect(
+                RecentReverts(plist: [["hangul": "메"], ["english": "x"], ["hangul": "", "english": "y"], ["hangul": "뭉", "english": "and"]]).entries.count,
+                1, "RR(plist): 키 빠짐·빈 값 항목은 버림")
+            expect(
+                RecentReverts(plist: [["hangul": "뭉", "english": "and"], ["hangul": "뭉", "english": "and"]]).entries.count,
+                1, "RR(plist): 저장본의 중복도 걸러냄")
+            expect(RecentReverts(entries: many.entries + many.entries).entries.count, RecentReverts.maxCount, "RR(entries): 생성자도 상한 적용")
+        }
 
         print("\(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
