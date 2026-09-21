@@ -169,6 +169,8 @@ MIT License — 자유롭게 사용, 수정, 배포하세요. 자세한 내용�
 
 실제로 써보고 불편한 점이나 버그를 [Issues](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues)로 알려주세요. 특히 한글 입력이 깨지는 사이트/앱을 발견하면 제보해주시면 개선에 큰 도움이 됩니다. 적극적인 실사용과 피드백을 환영합니다.
 
+**단어 제안**은 앱에서 바로 할 수 있습니다 — **설정 → 단어 제안**에 친 글자와 기대한 결과를 적고 "GitHub에서 제안 작성..."을 누르면 미리 채워진 이슈 작성 화면이 브라우저로 열립니다("최근 되돌린 변환" 목록의 **제안** 버튼도 같은 화면). 앱은 창을 열 뿐 아무것도 전송하지 않고, 등록은 GitHub에서 직접 합니다 ([PRIVACY.md](./PRIVACY.md) 8번).
+
 <!-- 후원 링크 자리 (URL 확정 후 추가) -->
 
 ---
@@ -222,3 +224,5 @@ Built on the shoulders of open source — gratitude to [McBopomofo](https://gith
 ## Feedback
 
 Please report bugs and broken sites/apps on the [Issues page](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues).
+
+For dictionary suggestions, use **Settings → Word suggestion**: fill in what you typed and what you expected, and the "GitHub에서 제안 작성..." button opens a pre-filled issue form in your browser. The app only opens the page and sends nothing; you submit it yourself on GitHub ([PRIVACY.md](./PRIVACY.md) #8).
