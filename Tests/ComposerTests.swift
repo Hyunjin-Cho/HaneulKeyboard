@@ -2022,6 +2022,16 @@ struct ComposerTests {
         expect(UpdateDecision.parseRelease(Data("{\"tag_name\":\"2026.09\",\"draft\":true}".utf8)) == nil, true, "업데이트: draft면 nil(fail-closed)")
         expect(UpdateDecision.parseRelease(Data("{\"tag_name\":\"2026.09\",\"prerelease\":true}".utf8)) == nil, true, "업데이트: prerelease면 nil")
         expect(UpdateDecision.parseRelease(Data("{\"tag_name\":\"2026.09\"}".utf8))?.assets.count ?? -1, 0, "업데이트: assets 없으면 빈 배열")
+        // html_url도 다운로드 URL과 같은 화이트리스트를 통과해야 채워진다 (#19 P2-1, 2026-09-21)
+        expect(UpdateDecision.parseRelease(Data("{\"tag_name\":\"2026.09\",\"html_url\":\"https://evil.example.com/releases/tag/2026.09\"}".utf8))?.pageURL == nil, true,
+               "업데이트: 허용 밖 호스트의 html_url은 버린다(릴리스 노트 링크로 임의 주소 열기 차단)")
+        expect(UpdateDecision.parseRelease(Data("{\"tag_name\":\"2026.09\",\"html_url\":\"http://github.com/Hyunjin-Cho/HaneulKeyboard/releases/tag/2026.09\"}".utf8))?.pageURL == nil, true,
+               "업데이트: HTTP html_url 거부")
+        expect(UpdateDecision.parseRelease(Data("{\"tag_name\":\"2026.09\",\"html_url\":\"https://github.com/Hyunjin-Cho/HaneulKeyboard/releases/tag/2026.09\"}".utf8))?.pageURL?.absoluteString ?? "",
+               "https://github.com/Hyunjin-Cho/HaneulKeyboard/releases/tag/2026.09",
+               "업데이트: github.com html_url은 통과")
+        expect(UpdateDecision.parseRelease(Data("{\"tag_name\":\"2026.09\",\"html_url\":\"https://evil.example.com/x\"}".utf8))?.tag ?? "", "2026.09",
+               "업데이트: html_url이 막혀도 릴리스 파싱 자체는 계속된다(링크만 안 보임)")
 
         // ── 자산 선택: 이름 정확 일치 + 허용 URL ──
         expect(UpdateDecision.selectAsset(in: release!)?.name ?? "", "HaneulKeyboard_2026.09.zip", "업데이트: 이름 정확 일치 자산 선택")

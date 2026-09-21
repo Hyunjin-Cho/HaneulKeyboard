@@ -66,7 +66,8 @@ struct ReleaseInfo: Equatable, Sendable {
     /// `tag_name` — 우리 릴리스는 tag = `MARKETING_VERSION`(예: `2026.07`).
     let tag: String
     let assets: [ReleaseAsset]
-    /// 릴리스 페이지(`html_url`). 표시용.
+    /// 릴리스 페이지(`html_url`). 표시용 — 설정의 "릴리스 노트 보기" 링크.
+    /// `parseRelease`가 `isAllowedURL`을 통과한 값만 넣는다(2026-09-21, #19 P2-1).
     let pageURL: URL?
 }
 
@@ -209,7 +210,13 @@ enum UpdateDecision {
             let size = item["size"] as? Int ?? 0
             assets.append(ReleaseAsset(name: name, downloadURL: url, size: max(0, size)))
         }
-        let pageURL = (dict["html_url"] as? String).flatMap(URL.init(string:))
+        // 🔒 2026-09-21 (#19 보안 검토 P2-1): `html_url`도 다운로드 URL과 **같은 문지기**를
+        // 통과한 것만 채운다. 이 값은 설정 화면의 "릴리스 노트 보기" 링크로 그대로 브라우저에
+        // 넘어가므로, 저장소 응답이 바뀌치기되면 임의 주소를 열어 주는 통로가 된다.
+        // 통과 못 하면 nil — 링크가 안 보일 뿐 업데이트 자체는 막지 않는다.
+        let pageURL = (dict["html_url"] as? String)
+            .flatMap(URL.init(string:))
+            .flatMap { isAllowedURL($0) ? $0 : nil }
         return ReleaseInfo(tag: tag, assets: assets, pageURL: pageURL)
     }
 
