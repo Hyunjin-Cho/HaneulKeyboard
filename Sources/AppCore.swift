@@ -52,12 +52,15 @@ final class AppCore {
     private func ensureIMEActive() {
         Task { [weak self] in
             do {
-                // 2026-09-21 (#19): 자동 업데이트로 앱이 교체된 뒤 첫 실행 — 설치된 IME 빌드번호가
-                // 임베드본보다 낮으면 설정의 "IME 설치" 버튼과 같은 경로(`installBundle`: IME 정지 →
-                // staging → 원자 교체 → LaunchServices·TIS 등록·활성화)로 갱신한다. "시작 시
-                // 복사 금지"(H-01)는 그대로 — 빌드번호가 실제로 올라간 경우에만 예외다. root 소유
-                // 설치본(/Library/Input Methods)은 `installBundle`이 복사하지 않으므로 여기서
-                // 안내 폴백으로 돌린다. 사용자 클릭 없이 TIS 활성화가 되는지는 실기기 체크리스트.
+                // 2026-09-21 (#19): 설치된 IME 빌드번호 < 임베드본이면 설정의 "IME 설치" 버튼과
+                // 같은 경로(`installBundle`: IME 정지 → staging → 원자 교체 → LaunchServices·TIS
+                // 등록·활성화)로 갱신한다. "시작 시 복사 금지"(H-01)의 예외는 **딱 이 조건**이다.
+                // ⚠️ 2026-09-21 (#19 보안 검토 P3-3 주석 정정): 종전 주석은 "자동 업데이트로 앱이
+                // 교체된 뒤 첫 실행"이라고 적었지만, 코드는 업데이트 여부를 보지 않는다 — 두 빌드
+                // 번호만 비교하므로 **설치본이 낡아 있는 동안은 매 실행마다** 이 경로를 탄다
+                // (예: 사용자가 IME만 옛 버전으로 되돌려 둔 경우). 로직은 그대로 두고 설명만 맞춘다.
+                // root 소유 설치본(/Library/Input Methods)은 `installBundle`이 복사하지 않으므로
+                // 여기서 안내 폴백으로 돌린다. 사용자 클릭 없이 TIS 활성화가 되는지는 실기기 체크리스트.
                 let builds = IMEInstaller.imeBuildNumbersForRefresh()
                 if UpdateDecision.shouldRefreshIME(installedBuild: builds.installed, bundledBuild: builds.bundled) {
                     if builds.installedURL == IMEInstaller.systemInstallURL {

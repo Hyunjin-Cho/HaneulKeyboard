@@ -31,7 +31,7 @@ _최종 수정: 2026-09-21_
 | **입력기**(`HaneulKeyboardIM.app`, 소스 `IMESources/`) — 키 입력을 보는 쪽 | **코드가 한 줄도 없습니다.** URLSession·소켓 어느 것도 쓰지 않습니다. `grep -r URLSession IMESources/` 로 직접 확인할 수 있습니다. |
 | **메뉴바 앱**(`HaneulKeyboard.app`, 소스 `Sources/`) — 설치·설정을 맡는 쪽. 키 입력을 보지 않습니다 | *(2026-09-21 추가)* **자동 업데이트 확인에만** 인터넷을 씁니다. 전부 아래 9번에 적었고, 구현은 [`Sources/Updater.swift`](./Sources/Updater.swift) 한 파일뿐입니다. |
 
-즉 **키 입력을 보는 프로세스는 인터넷에 접속할 수 없고**, 인터넷에 접속하는 프로세스는 키 입력을 보지 않습니다.
+즉 **키 입력을 보는 프로세스는 인터넷에 접속하지 않습니다**(네트워크 코드가 한 줄도 없습니다 — `grep`으로 확인할 수 있습니다). 그리고 인터넷에 접속하는 프로세스는 키 입력을 보지 않습니다. *(2026-09-21 정정: 샌드박스가 강제로 막는 것이 아니라 **코드가 없다**는 것이 사실입니다.)*
 
 ### 3. 영타 자동 변환 (메ㅔㅣㄷ → apple)
 
@@ -93,7 +93,7 @@ macOS와 호스트 앱이 보안 입력(secure event input)을 올바르게 활�
 - **GitHub가 보게 되는 것**: 다른 웹사이트에 접속할 때와 같습니다 — 요청한 주소, 접속 시각, 그리고 IP 주소(모든 인터넷 요청에 따라옵니다). 하늘키보드가 여기에 무언가를 **더해 보내지 않습니다**. GitHub의 처리 방침은 [GitHub 개인정보처리방침](https://docs.github.com/site-policy/privacy-policies/github-privacy-statement)을 따릅니다.
 - **끄면 요청이 0입니다**: "업데이트 자동 확인"을 끄면 앱은 스스로 인터넷에 나가지 않습니다. 그 상태에서는 **"지금 확인" 버튼을 누른 그 순간에만** 위 첫 번째 요청이 한 번 나갑니다.
 - **켜져 있을 때(기본값)**: 앱을 실행할 때 한 번 + 24시간마다 한 번, 위 첫 번째 요청만 보냅니다. 새 버전이 있어도 **알리기만 하고 자동으로 설치하지 않습니다** — 내려받기는 사용자가 **업데이트**를 눌러야 시작합니다.
-- **받은 파일을 검증한 뒤에만 설치합니다**: 번들 ID, 서명 Team(개발자 인증서), `codesign --verify --deep --strict`, `spctl -a -t exec`(애플 공증), 버전이 실제로 올라갔는지 — **다섯 가지가 전부 통과할 때만** 응용 프로그램 폴더의 앱을 바꿉니다. 하나라도 어긋나면 받은 파일을 버리고 기존 앱을 그대로 둡니다. 주소는 HTTPS의 GitHub 도메인으로 제한하며, 다른 곳으로 이동시키려는 응답은 따라가지 않습니다.
+- **받은 파일을 검증한 뒤에만 설치합니다**: 번들 ID, 서명 Team(개발자 인증서), `codesign --verify --deep --strict`(**애플이 발급한 인증서 사슬로 우리 Team이 서명했는지**까지 요구합니다 — 2026-09-21 강화), `spctl -a -t exec`(애플 공증), 버전이 실제로 올라갔는지 — **다섯 가지가 전부 통과할 때만** 응용 프로그램 폴더의 앱을 바꿉니다. 하나라도 어긋나면 받은 파일을 버리고 기존 앱을 그대로 둡니다. 검증에 앞서 압축을 푼 결과가 **추출 폴더 안의 실제 앱 폴더인지**(심볼릭 링크가 아닌지)도 확인합니다. 주소는 HTTPS의 GitHub 도메인으로 제한하며, 다른 곳으로 이동시키려는 응답은 따라가지 않습니다.
 - **기기에 남는 것**: 메인 앱 설정 도메인 `com.hyunjincho.haneulkeyboard`의 `haneul.updateAutoCheck`(켜짐/꺼짐)과 `haneul.updateLastCheck`(마지막으로 확인한 시각) 두 값뿐입니다. 어디로도 전송되지 않습니다.
 - 구현: [`Sources/Updater.swift`](./Sources/Updater.swift)(요청·다운로드·검증·교체), [`Sources/UpdateDecisions.swift`](./Sources/UpdateDecisions.swift)(판단 규칙), [`Sources/UpdateSettingsSection.swift`](./Sources/UpdateSettingsSection.swift)(설정 화면)
 
@@ -132,7 +132,7 @@ The distinction matters because HaneulKeyboard is **two processes**.
 | **The IME** (`HaneulKeyboardIM.app`, source `IMESources/`) — the part that sees your keystrokes | **Not a single line.** No URLSession, no sockets. Verify with `grep -r URLSession IMESources/`. |
 | **The menu bar app** (`HaneulKeyboard.app`, source `Sources/`) — the part that handles installation and settings, and never sees keystrokes | *(added 2026-09-21)* Uses the internet **only to check for updates**. Fully documented in #9 below; the implementation is a single file, [`Sources/Updater.swift`](./Sources/Updater.swift). |
 
-In other words: **the process that can see your typing cannot reach the internet**, and the process that reaches the internet cannot see your typing.
+In other words: **the process that can see your typing does not reach the internet** (it contains no networking code — verifiable with grep), and the process that reaches the internet cannot see your typing. *(corrected 2026-09-21: this is the absence of networking code, not a sandbox that forbids it.)*
 
 ### 3. Wrong-layout auto-conversion (메ㅔㅣㄷ → apple)
 
@@ -194,6 +194,6 @@ This is the **first feature that reaches the internet**, so it gets its own sect
 - **What GitHub sees**: the same as visiting any website — the URL requested, the time, and your IP address (which accompanies every internet request). HaneulKeyboard adds nothing to that. GitHub's own handling is covered by the [GitHub Privacy Statement](https://docs.github.com/site-policy/privacy-policies/github-privacy-statement).
 - **Off means zero requests**: with "Check for updates automatically" turned off, the app never reaches the network on its own. The first request above is then made **only at the moment you press "Check now"**.
 - **On (the default)**: only the first request, once at app launch and once every 24 hours. Even when a new version exists, it is **only announced, never installed automatically** — downloading begins only when you click **Update**.
-- **Downloads are verified before anything is installed**: bundle ID, signing Team (developer certificate), `codesign --verify --deep --strict`, `spctl -a -t exec` (Apple notarization), and a genuine version increase — the app in your Applications folder is replaced **only if all five pass**. If any check fails, the download is discarded and your existing app is left untouched. Addresses are restricted to GitHub's HTTPS domains, and redirects pointing elsewhere are not followed.
+- **Downloads are verified before anything is installed**: bundle ID, signing Team (developer certificate), `codesign --verify --deep --strict` (which since 2026-09-21 also requires that an Apple-issued certificate chain and **our Team** produced the signature), `spctl -a -t exec` (Apple notarization), and a genuine version increase — the app in your Applications folder is replaced **only if all five pass**. If any check fails, the download is discarded and your existing app is left untouched. Before any of that, the extracted bundle must be a **real directory inside the extraction folder**, not a symbolic link. Addresses are restricted to GitHub's HTTPS domains, and redirects pointing elsewhere are not followed.
 - **What stays on your device**: two values in the main app's defaults domain `com.hyunjincho.haneulkeyboard` — `haneul.updateAutoCheck` (on/off) and `haneul.updateLastCheck` (when it last checked). Neither is transmitted.
 - Implementation: [`Sources/Updater.swift`](./Sources/Updater.swift) (requests, download, verification, replacement), [`Sources/UpdateDecisions.swift`](./Sources/UpdateDecisions.swift) (decision rules), [`Sources/UpdateSettingsSection.swift`](./Sources/UpdateSettingsSection.swift) (Settings UI)
