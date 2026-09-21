@@ -279,9 +279,10 @@ enum UpdateDecision {
     /// 그래서 ① 링크가 아니고 ② 디렉터리이며 ③ 심볼릭 링크를 다 푼 경로가 추출 폴더 **안**일
     /// 때만 통과시킨다.
     ///
-    /// 두 경로는 **둘 다 `resolvingSymlinksInPath()`를 거친 값**이어야 한다 — macOS의
-    /// `/var/folders/...`(임시 폴더)는 `/private/var/...`의 심볼릭 링크라, 한쪽만 풀면
-    /// 정상 케이스가 접두어 비교에서 탈락한다.
+    /// 🔒 두 경로는 **둘 다 똑같은 정규화**(`resolvingSymlinksInPath().standardizedFileURL`)를
+    /// 거친 값이어야 한다. 한쪽만 풀면 `/var` ↔ `/private/var` 같은 표기 차이 때문에 정상
+    /// 케이스가 접두어 비교에서 탈락한다. (2026-09-21 실측: 임시 폴더로 실제 경로를 조립해
+    /// 양쪽에 같은 정규화를 걸면 정상 케이스가 `true`로 통과한다.)
     static func isSafeExtractedApp(
         isSymbolicLink: Bool, isDirectory: Bool,
         resolvedAppPath: String, resolvedExtractDirPath: String
