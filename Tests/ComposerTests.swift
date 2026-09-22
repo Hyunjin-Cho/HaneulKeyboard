@@ -643,6 +643,17 @@ struct ComposerTests {
         expect(type("nmn").committedText, "ㅜㅡㅜ", "#49 제외: nmn=ㅜㅡㅜ 우는 얼굴 카오모지")
         expect(type("totk").committedText, "새사", "#49 제외: totk=새사 우리말샘 등재(veto)")
         expect(type("gpa").committedText, "헴", "#49 제외: gpa=헴 우리말샘 등재(veto)")
+        // ── #70 오너 지정 단어 (2026-09-23) — dmg·pr·xhigh ──
+        // 셋 다 통로가 다르다: xhigh=사전 등재(broken 토ㅑ호), pr=shortWords(모음먼저+자음 약어 —
+        // pd=ㅔㅇ와 같은 R1 경로, 2글자는 isDictWord가 안 봐서 사전으로 못 넣는다),
+        // dmg=standaloneShortWords(clean 1음절 읗 — R5 "2음절+" 가드라 사전만으로는 미도달, gpt=헷과 같은 부류).
+        expect(type("xhigh").committedText, "xhigh", "#70 xhigh: 토ㅑ호 → xhigh (사전 등재)")
+        expect(type("pr").committedText, "pr", "#70 pr: ㅔㄱ → pr (shortWords·R1)")
+        expect(type("PR").committedText, "PR", "#70 PR: ㅖㄲ → PR (대문자도 R1, 대소문자 보존)")
+        expect(type("dmg").committedText, "dmg", "#70 dmg: 읗 → dmg (standaloneShortWords)")
+        expect(type("DMG").committedText, "DMG", "#70 DMG: d·m·g는 Shift가 자모를 안 바꿔 같은 읗 → DMG")
+        // 한국어 미손상 — 판정은 단어 단위라 읗이 낀 실존 단어는 그대로.
+        expect(type("gldmg").committedText, "히읗", "#70 히읗(gldmg) 한글 유지")
 
         // ── v3.1: 실기기 후속 3건 (2026-06-06) ──
         // 자음열 4+ 무맥락 변환 (great이 문장 첫 단어여도)
