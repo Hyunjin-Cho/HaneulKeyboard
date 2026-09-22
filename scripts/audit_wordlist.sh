@@ -69,6 +69,9 @@ elif [[ -z "$CURATED_BASE" ]]; then
 fi
 
 # ── 컴파일 (run_ime_tests.sh 패턴 — 실제 IME 소스 그대로) ──
+# 2026-09-23: PersonalDictionary.swift 추가 — #53(2026-09-21)부터 KoreanComposer가 참조하는데
+#   이 목록만 안 고쳐서 검역이 컴파일 단계에서 죽고 있었다("cannot find 'PersonalDictionary'").
+#   KoreanComposer가 새 파일의 타입을 쓰게 되면 run_ime_tests.sh 목록과 함께 여기도 고칠 것.
 WORK="$(mktemp -d)"
 BIN="$WORK/wordlist_audit"
 swiftc -O -o "$BIN" \
@@ -78,6 +81,7 @@ swiftc -O -o "$BIN" \
   IMESources/KoreanComposer.swift \
   IMESources/EnglishDetector.swift \
   IMESources/KoreanDictionary.swift \
+  IMESources/PersonalDictionary.swift \
   Tools/WordlistAudit.swift
 
 # ── 스모크 테스트: 알려진 단어로 Tier 분류와 자모 플래그를 검증 ──
