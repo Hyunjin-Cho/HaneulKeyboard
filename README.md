@@ -46,7 +46,7 @@
 4. **시스템 설정 → 키보드 → 입력 소스 → "+" → 한국어 → "하늘키보드 (두벌식)"** 추가
 5. (선택) 기존 시스템 한국어 입력기(두벌식)는 제거 권장 — 자모 깨짐 방지 효과
 
-> **제거**: 메뉴바 → 설정 → "전체 제거"가 앱·입력기·설정을 한 번에 지웁니다. `HaneulKeyboard.app`을 그냥 휴지통에 버려도 입력기가 이를 감지해 몇 분 안에 스스로 정리됩니다(한글 모드를 쓰는 동안 확인하며, 2분 안에 "제자리에 놓기"로 되돌리면 그대로 유지).
+> **제거**: 메뉴바 → 설정 → **고급** 탭 → "전체 제거..."가 앱·입력기·설정을 한 번에 지웁니다. `HaneulKeyboard.app`을 그냥 휴지통에 버려도 입력기가 이를 감지해 몇 분 안에 스스로 정리됩니다(한글 모드를 쓰는 동안 확인하며, 2분 안에 "제자리에 놓기"로 되돌리면 그대로 유지). <!-- 2026-09-23 (#72) 탭 경로 -->
 
 > **⚠️ 참고**: 한/영 전환은 **Caps Lock**으로 합니다 — macOS 시스템 기능(`TICapsLockLanguageSwitchCapable`)에 위임하므로 **별도 권한이 필요 없습니다.** 짧게 눌러 한/영 전환, 길게(1초+) 눌러 대문자 Caps Lock.
 
@@ -64,13 +64,13 @@
 - **올바른 한글은 건드리지 않습니다**: 실존 한국어 단어(우리말샘 67.7만 표제어 대조), ㅋㅋㅋ·ㅎㄷㄷ·ㅇㄱㄹㅇ 같은 초성체, ㅗㅜㅑ·ㅡㅁㅡ 같은 표현은 전부 보호됩니다. (단 하나의 예외: 영어 문맥 직후의 새→to·무→an·내→so·랙→for·뭉→and 명시 화이트리스트 — "thank you 내 much"처럼 영어 흐름 안에서는 영어 의도가 우세하다고 봅니다.)
 - *(2026.03)* **영어 사전 현대화** — 1934년판 시스템 사전의 빈자리를 공개 데이터로 보강했습니다: 고빈도 일상어 [NGSL](https://www.newgeneralservicelist.com)(`city`·`with`), 현대어·굴절형 [SCOWL](https://wordlist.aspell.net)(`playlist`·`internet`·`selfie`), 영어 인명 US Census·SSA + 유명인(`davinci`·`ronaldo`·`garcia`). 추가된 모든 단어는 **한국어 충돌 검역**(실제 조합 엔진 시뮬레이션, [`scripts/audit_wordlist.sh`](./scripts/audit_wordlist.sh))을 통과한 것만 — 한국어 보호 원칙은 그대로입니다.
 - 변환은 직접 타이핑한 경계에서만 일어나고, 마우스 클릭·앱 전환 시에는 화면에 보이던 그대로 입력됩니다.
-- **되돌리기** — 자동으로 바뀐 직후 **Shift+Space**를 누르면 원래 한글로 되돌리고, 다시 누르면 영어로 돌아옵니다. 키는 설정 → "되돌리기 키"에서 Option+Space · Control+Shift+Space · Option+Shift+Space 중 하나로 바꿀 수 있습니다(시스템·앱 단축키와 겹치면 다른 조합을 고르세요). <!-- 2026-09-21 (#54) -->
-- **앱별로 끄기** — 설정 → "앱별 자동 변환 끄기"에서 실행 중인 앱을 고르면 그 앱에서만 영타 변환을 하지 않습니다(예: 코드 편집기·터미널). <!-- 2026-09-21 (#54) -->
-- **자동으로 바뀌지 않은 단어도 되돌리기** *(2026-09-21)* — 되돌리기 키는 이제 **커서 앞 단어 전부**에 듣습니다. 자동 변환이 일부러 손대지 않는 것들 — 실존 한국어 단어와 겹쳐 막히는 `재가`(work), 사전에 있을 수 없는 `ㅡ5`(m5)·`ㅏ3`(k3) — 도 키 한 번이면 한↔영으로 바뀌고, 한 번 더 누르면 돌아옵니다. 직전에 자동 변환이 있었다면 **그 되돌리기가 먼저**입니다(종전 동작 그대로). 조합 중인 글자에는 듣지 않습니다 — 스페이스 등으로 확정한 다음 누르세요. 설정 → "모든 단어 되돌리기"에서 끌 수 있습니다. 터미널에서는 아래 "알려진 문제"와 같은 이유로 동작하지 않습니다. <!-- 2026-09-21 (#15) -->
+- **되돌리기** — 자동으로 바뀐 직후 **Shift+Space**를 누르면 원래 한글로 되돌리고, 다시 누르면 영어로 돌아옵니다. 키는 설정 → **영타 변환** 탭 → "되돌리기 키"에서 Option+Space · Control+Shift+Space · Option+Shift+Space 중 하나로 바꿀 수 있습니다(시스템·앱 단축키와 겹치면 다른 조합을 고르세요). <!-- 2026-09-21 (#54) · 2026-09-23 (#72) 탭 경로 -->
+- **앱별로 끄기** — 설정 → **영타 변환** 탭 → "앱별 자동 변환 끄기"에서 실행 중인 앱을 고르면 그 앱에서만 영타 변환을 하지 않습니다(예: 코드 편집기·터미널). <!-- 2026-09-21 (#54) · 2026-09-23 (#72) 탭 경로 -->
+- **자동으로 바뀌지 않은 단어도 되돌리기** *(2026-09-21)* — 되돌리기 키는 이제 **커서 앞 단어 전부**에 듣습니다. 자동 변환이 일부러 손대지 않는 것들 — 실존 한국어 단어와 겹쳐 막히는 `재가`(work), 사전에 있을 수 없는 `ㅡ5`(m5)·`ㅏ3`(k3) — 도 키 한 번이면 한↔영으로 바뀌고, 한 번 더 누르면 돌아옵니다. 직전에 자동 변환이 있었다면 **그 되돌리기가 먼저**입니다(종전 동작 그대로). 조합 중인 글자에는 듣지 않습니다 — 스페이스 등으로 확정한 다음 누르세요. 설정 → **영타 변환** 탭 → "바뀌지 않은 단어도 되돌리기"에서 끌 수 있습니다. 터미널에서는 아래 "알려진 문제"와 같은 이유로 동작하지 않습니다. <!-- 2026-09-21 (#15) · 2026-09-23 (#72) 탭 경로 -->
 
 ### 개인 사전 (2026-09-21)
 
-자동 변환이 내 쓰임새와 다를 때 **설정 → 개인 사전**에서 직접 고칩니다. 세 목록 전부 **이 Mac 안에만** 저장되고 어디로도 보내지 않습니다 ([PRIVACY.md](./PRIVACY.md) 7번).
+자동 변환이 내 쓰임새와 다를 때 **설정 → 개인 사전** 탭에서 직접 고칩니다. 세 목록 전부 **이 Mac 안에만** 저장되고 어디로도 보내지 않습니다 ([PRIVACY.md](./PRIVACY.md) 7번). <!-- 2026-09-23 (#72) 탭 경로 -->
 
 - **변환 추가** — 사전에 없거나 한국어 단어와 겹쳐서 안 바뀌던 영어(사내 용어·이름 등)를 적으면 **항상** 변환됩니다. 한글 모드에서 그 단어를 그대로 쳤을 때만.
 - **변환 금지** — 적힌 단어는 **절대** 변환하지 않습니다. 영어(`apple`)로 적어도, 한글 모드에서 보이는 표기(`메ㅔㅣㄷ`)로 적어도 됩니다.
@@ -80,7 +80,7 @@
 
 ### 자동 업데이트 (2026-09-21)
 
-**설정 → 업데이트**에서 새 버전을 확인하고 설치합니다.
+**설정 → 업데이트** 탭에서 새 버전을 확인하고 설치합니다. <!-- 2026-09-23 (#72) 탭 경로 -->
 
 - **업데이트 자동 확인** (기본 켜짐) — 앱을 실행할 때 한 번, 그 뒤 24시간마다 GitHub 릴리스에 새 버전이 있는지만 물어봅니다. 새 버전이 있으면 설정 화면과 메뉴바에 알려 주고, **자동으로 설치하지는 않습니다.**
 - **지금 확인** — 지금 한 번 확인합니다. 자동 확인을 꺼 두었어도 이 버튼은 동작하며, **꺼 두면 이 버튼을 누를 때 말고는 앱이 인터넷에 접속하지 않습니다.**
@@ -100,7 +100,7 @@
 - **현재 두벌식만 지원** — 다른 자판(세벌식 등)이 필요하면 [Issues](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues)로 요청해주세요. 수요가 있으면 추가를 검토합니다.
 - **일부 사이트/앱에서 동작하지 않을 수 있음** — 애초에 자모 결합 입력을 지원하지 않는 특정 웹사이트/앱에서는 입력기 종류와 무관하게 입력이 깨질 수 있습니다.
 - **웹 브라우저의 비밀번호 칸에 한글이 입력될 수 있음** — 네이버 등 브라우저의 비밀번호 칸은 macOS가 입력기를 차단하지 않아, **모든 한글 입력기(애플 기본 입력기 포함)에서 한글이 조합됩니다.** 입력기 종류와 무관한 macOS·브라우저의 동작이며, 비밀번호는 영문 모드(Caps Lock 짧게)로 입력하시면 됩니다. (시스템 설정 등 네이티브 비밀번호 칸은 macOS가 정상적으로 입력기를 차단합니다.)
-- **터미널(Terminal.app·Ghostty 등)에서는 변환 되돌리기가 동작하지 않음** — 터미널에 입력된 글자는 그 즉시 셸 프로세스의 것이 되어, 입력기가 다시 읽거나 바꿀 수단이 없습니다(macOS 구조상 한계라 입력기 종류와 무관하며, 되돌리기 키를 바꿔도 마찬가지입니다). 자동 변환 자체는 정상 동작하고, 되돌리기 키를 눌러도 아무 일도 일어나지 않습니다(텍스트가 훼손되거나 스페이스가 끼어들지 않습니다). 오변환은 백스페이스로 지우고 다시 치면 재변환되지 않습니다. 터미널에서 변환 자체가 싫다면 설정 → "앱별 자동 변환 끄기"에 터미널 앱을 추가하세요. <!-- 2026-09-21 (#54, 근거 #30) -->
+- **터미널(Terminal.app·Ghostty 등)에서는 변환 되돌리기가 동작하지 않음** — 터미널에 입력된 글자는 그 즉시 셸 프로세스의 것이 되어, 입력기가 다시 읽거나 바꿀 수단이 없습니다(macOS 구조상 한계라 입력기 종류와 무관하며, 되돌리기 키를 바꿔도 마찬가지입니다). 자동 변환 자체는 정상 동작하고, 되돌리기 키를 눌러도 아무 일도 일어나지 않습니다(텍스트가 훼손되거나 스페이스가 끼어들지 않습니다). 오변환은 백스페이스로 지우고 다시 치면 재변환되지 않습니다. 터미널에서 변환 자체가 싫다면 설정 → **영타 변환** 탭 → "앱별 자동 변환 끄기"에 터미널 앱을 추가하세요. <!-- 2026-09-21 (#54, 근거 #30) · 2026-09-23 (#72) 탭 경로 -->
 - 위와 같은 문제를 겪는 사이트/앱이 있다면 [Issues](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues)에 제보해주시면 큰 도움이 됩니다.
 - 지원되는 OS에서 광범위한 테스트가 필요합니다. 편하게 [Issues](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues)에 제보해주시면 개발에 큰 도움이 됩니다.
 
@@ -134,10 +134,12 @@ open ~/Library/Developer/Xcode/DerivedData/HaneulKeyboard-*/Build/Products/Debug
 ### 배포용 빌드 (Developer ID + Notarization)
 
 ```bash
-scripts/build_notarize_install.sh HaneulKeyboard
+ZIP_ONLY=1 scripts/build_notarize_install.sh HaneulKeyboard
 ```
 
-Apple Developer ID 인증서 + notarytool 키체인 프로필(`haneul-notary`)이 사전에 등록되어 있어야 합니다.
+Apple Developer ID 인증서 + notarytool 키체인 프로필(`haneul-notary`)이 사전에 등록되어 있어야 합니다. 결과물은 repo 루트의 `HaneulKeyboard_<버전>.zip`입니다. <!-- 2026-09-23 (#72) ZIP_ONLY·릴리스 체크리스트 -->
+
+> **릴리스를 올릴 때는 [`docs/release-checklist.md`](./docs/release-checklist.md)를 따르세요.** 앱의 자동 업데이트가 태그·파일 이름·버전 형식에 의존해서, 한 번이라도 어긋나면 모든 사용자에게 업데이트 알림이 조용히 사라집니다.
 
 ### 구조
 
@@ -182,7 +184,7 @@ MIT License — 자유롭게 사용, 수정, 배포하세요. 자세한 내용�
 
 실제로 써보고 불편한 점이나 버그를 [Issues](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues)로 알려주세요. 특히 한글 입력이 깨지는 사이트/앱을 발견하면 제보해주시면 개선에 큰 도움이 됩니다. 적극적인 실사용과 피드백을 환영합니다.
 
-**단어 제안**은 앱에서 바로 할 수 있습니다 — **설정 → 단어 제안**에 친 글자와 기대한 결과를 적고 "GitHub에서 제안 작성..."을 누르면 미리 채워진 이슈 작성 화면이 브라우저로 열립니다("최근 되돌린 변환" 목록의 **제안** 버튼도 같은 화면). 앱은 창을 열 뿐 아무것도 전송하지 않고, 등록은 GitHub에서 직접 합니다 ([PRIVACY.md](./PRIVACY.md) 8번).
+**단어 제안**은 앱에서 바로 할 수 있습니다 — **설정 → 개인 사전 탭**의 "단어 제안하기..."에서 친 글자와 기대한 결과를 적고 "GitHub에서 열기"를 누르면 미리 채워진 이슈 작성 화면이 브라우저로 열립니다("최근 되돌린 변환" 목록의 **제안** 버튼도 같은 화면). 앱은 창을 열 뿐 아무것도 전송하지 않고, 등록은 GitHub에서 직접 합니다 ([PRIVACY.md](./PRIVACY.md) 8번). <!-- 2026-09-23 (#72) 탭 경로 -->
 
 <!-- 후원 링크 자리 (URL 확정 후 추가) -->
 
@@ -200,16 +202,16 @@ Named after my daughter, 하늘 (Haneul) — "sky" in Korean.
 - **Fast Korean/English switching** with Caps Lock (short press), using the system-native path for deterministic behavior.
 - **Wrong-layout auto-correction** *(new in 2026.02, dictionaries modernized in 2026.03)* — typed English while in Korean mode? It fixes itself on commit: `메ㅔㅣㄷ`→`apple`, `how ㅁㄱㄷ you`→`how are you`. Genuine Korean is left alone — every candidate is checked against **677k Korean headwords** (국립국어원 우리말샘) plus slang/emoticon guards, with one deliberate exception (an explicit whitelist of 새→to/무→an/내→so/랙→for/뭉→and right after English context). 2026.03 modernizes the English dictionaries with [NGSL](https://www.newgeneralservicelist.com) high-frequency words (`city`, `with`), [SCOWL](https://wordlist.aspell.net) modern vocabulary (`playlist`, `internet`, `selfie`), and personal names from US Census/SSA data (`davinci`, `ronaldo`, `garcia`) — every addition passed a Korean-collision audit driven by the real composition engine.
 - **Caps Lock uppercase mode** with a long press.
-- **Menu bar control** for language switching, settings, and shortcuts. Wrong-layout auto-correction can be toggled in Settings; the revert key (default Shift+Space, also Option+Space / Control+Shift+Space / Option+Shift+Space) and a per-app off list are configurable there too. Note: reverting cannot work in terminals (Terminal.app, Ghostty…) — typed text is owned by the shell the moment it lands, so the IME has no way to take it back. <!-- 2026-09-21 (#54) -->
-- **Manual Hangul↔English toggle** *(2026-09-21)* — the revert key now works on **any word before the cursor**, not just one the IME auto-corrected: `재가` ↔ `work` (blocked from auto-correction because 재가 is a real Korean word), `ㅡ5` ↔ `m5` (impossible to auto-correct — no dictionary can hold it). Press again to switch back. Reverting an actual auto-correction still takes priority, and the whole feature can be turned off in Settings. Terminals are excluded for the same structural reason as above. <!-- 2026-09-21 (#15) -->
-- **Personal dictionary** *(2026-09-21)* — in Settings, list words that should **always** convert (in-house terms, names) or **never** convert (as English or as their Hangul-layout form), and review the conversions you reverted with Shift+Space (last 50) with a one-click "Block" button. Everything stays on your Mac — see [PRIVACY.md](./PRIVACY.md) #7.
-- **Automatic updates** *(2026-09-21)* — Settings → Updates checks GitHub Releases for a newer version (at launch and every 24 hours, on by default, and you can turn it off). A new version is only announced, never installed on its own; when you click **Update**, the download must pass all five checks — bundle ID, signing Team, `codesign`, Apple notarization (`spctl`), and a real version increase — before your app is replaced atomically and relaunched. If any check fails, the download is discarded and your existing app is untouched. Nothing about you is uploaded — see [PRIVACY.md](./PRIVACY.md) #9. <!-- 2026-09-21 (#19) -->
+- **Menu bar control** for language switching, settings, and shortcuts. Wrong-layout auto-correction can be toggled in Settings; the revert key (default Shift+Space, also Option+Space / Control+Shift+Space / Option+Shift+Space) and a per-app off list are configurable there too (**영타 변환** / Conversion tab). Note: reverting cannot work in terminals (Terminal.app, Ghostty…) — typed text is owned by the shell the moment it lands, so the IME has no way to take it back. <!-- 2026-09-21 (#54) · 2026-09-23 (#72) 탭 경로 -->
+- **Manual Hangul↔English toggle** *(2026-09-21)* — the revert key now works on **any word before the cursor**, not just one the IME auto-corrected: `재가` ↔ `work` (blocked from auto-correction because 재가 is a real Korean word), `ㅡ5` ↔ `m5` (impossible to auto-correct — no dictionary can hold it). Press again to switch back. Reverting an actual auto-correction still takes priority, and the whole feature can be turned off in Settings (**영타 변환** tab → 바뀌지 않은 단어도 되돌리기). Terminals are excluded for the same structural reason as above. <!-- 2026-09-21 (#15) · 2026-09-23 (#72) 탭 경로 -->
+- **Personal dictionary** *(2026-09-21)* — in Settings → **개인 사전** (Personal dictionary) tab, list words that should **always** convert (in-house terms, names) or **never** convert (as English or as their Hangul-layout form), and review the conversions you reverted with Shift+Space (last 50) with a one-click "Block" button. Everything stays on your Mac — see [PRIVACY.md](./PRIVACY.md) #7. <!-- 2026-09-23 (#72) 탭 경로 -->
+- **Automatic updates** *(2026-09-21)* — Settings → **업데이트** (Updates) tab checks GitHub Releases for a newer version (at launch and every 24 hours, on by default, and you can turn it off). A new version is only announced, never installed on its own; when you click **Update**, the download must pass all five checks — bundle ID, signing Team, `codesign`, Apple notarization (`spctl`), and a real version increase — before your app is replaced atomically and relaunched. If any check fails, the download is discarded and your existing app is untouched. Nothing about you is uploaded — see [PRIVACY.md](./PRIVACY.md) #9. <!-- 2026-09-21 (#19) · 2026-09-23 (#72) 탭 경로 -->
 
 Korean ↔ English input only. No other languages, no extra features.
 
 ## Install
 
-Download the latest build from [GitHub Releases](https://github.com/Hyunjin-Cho/HaneulKeyboard/releases), copy `HaneulKeyboard.app` to `/Applications/`, double-click it, and follow the 4-step onboarding wizard.
+Download the latest build from [GitHub Releases](https://github.com/Hyunjin-Cho/HaneulKeyboard/releases), copy `HaneulKeyboard.app` to `/Applications/`, double-click it, and follow the 3-step onboarding wizard. <!-- 2026-09-23 (#72) 탭 경로 -->
 
 ## Requirements
 
@@ -240,4 +242,4 @@ Built on the shoulders of open source — gratitude to [McBopomofo](https://gith
 
 Please report bugs and broken sites/apps on the [Issues page](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues).
 
-For dictionary suggestions, use **Settings → Word suggestion**: fill in what you typed and what you expected, and the "GitHub에서 제안 작성..." button opens a pre-filled issue form in your browser. The app only opens the page and sends nothing; you submit it yourself on GitHub ([PRIVACY.md](./PRIVACY.md) #8).
+For dictionary suggestions, use **Settings → 개인 사전 (Personal dictionary) tab → 단어 제안하기... (Suggest a word)**: fill in what you typed and what you expected, and the **GitHub에서 열기** (Open on GitHub) button opens a pre-filled issue form in your browser. The app only opens the page and sends nothing; you submit it yourself on GitHub ([PRIVACY.md](./PRIVACY.md) #8). <!-- 2026-09-23 (#72) 탭 경로 -->
