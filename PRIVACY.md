@@ -66,7 +66,7 @@ macOS와 호스트 앱이 보안 입력(secure event input)을 올바르게 활�
 - **저장 위치**: 입력기의 설정 도메인 `com.hyunjincho.inputmethod.haneul` (`~/Library/Preferences/`)의 `haneul.personalDict.force` · `haneul.personalDict.block` · `haneul.recentReverts` 키. 일반 텍스트 목록이라 `defaults read com.hyunjincho.inputmethod.haneul` 로 직접 확인할 수 있습니다.
 - **저장하지 않는 것**: 키 입력 자체, 앞뒤 문맥(문장), 어느 앱에서 쳤는지, 시각. "최근 되돌린 변환"은 입력기가 **스스로 화면에 넣었던** 영어 단어를 사용자가 취소했을 때 그 단어와 한글 표기만 남기며, 변환되지 않은 입력이나 한글 문장은 어떤 경우에도 기록하지 않습니다. 보안 입력이 켜진 필드에서는 위 4번대로 아예 입력기에 도달하지 않으므로 기록될 수 없습니다. 로그에도 남기지 않습니다.
 - **자동 수집 없음**: 사용자가 직접 적거나 직접 되돌린 것만 남고, 입력기가 스스로 단어를 모으거나 학습하지 않습니다. 개인 사전은 입력기 쪽에만 있고 입력기에는 네트워크 코드가 없으므로(2번), 어디로도 전송되지 않습니다 — 업데이트 확인 요청(9번)에도 담기지 않습니다.
-- **지우는 방법**: 설정 창에서 항목별 삭제(−) 또는 "최근 기록 지우기". **전체 제거**(설정 → 전체 제거, 또는 앱을 휴지통에 버려 입력기가 스스로 정리하는 경우)는 위 세 키를 포함한 `haneul.*` 설정을 모두 지웁니다.
+- **지우는 방법**: 설정 창에서 항목별 삭제(−) 또는 "최근 기록 지우기". **전체 제거**(설정 → 고급 탭 → 전체 제거, 또는 앱을 휴지통에 버려 입력기가 스스로 정리하는 경우)는 위 세 키를 포함한 `haneul.*` 설정을 모두 지웁니다. <!-- 2026-09-23 (#72) 탭 경로 -->
 - 구현: [`IMESources/PersonalDictionary.swift`](./IMESources/PersonalDictionary.swift)(판정·형식), [`Sources/PersonalDictionarySettingsSection.swift`](./Sources/PersonalDictionarySettingsSection.swift)(설정 화면), [`IMESources/HaneulInputController.swift`](./IMESources/HaneulInputController.swift)(되돌리기 기록 시점)
 
 ### 8. 단어 제안 (2026-09-21 추가)
@@ -167,7 +167,7 @@ The **Personal dictionary** section in Settings lets you correct the wrong-layou
 - **Where**: the IME's defaults domain `com.hyunjincho.inputmethod.haneul` (`~/Library/Preferences/`), keys `haneul.personalDict.force`, `haneul.personalDict.block`, `haneul.recentReverts`. They are plain lists — `defaults read com.hyunjincho.inputmethod.haneul` shows exactly what is there.
 - **What is not stored**: keystrokes, surrounding text, which app you were typing in, timestamps. "Recently reverted" records only an English word **the IME itself had inserted** and you then cancelled, plus its Hangul form; unconverted input and Korean sentences are never recorded. Fields with secure input enabled never reach the IME (#4), so nothing from them can be recorded. Nothing is written to logs.
 - **No automatic collection**: only what you enter or revert yourself is kept; the IME does not gather or learn words on its own. The personal dictionary lives in the IME, which has no networking code at all (#2), so it is never transmitted — and it is not part of the update check either (#9).
-- **How to delete**: remove entries (−) or "Clear recent" in Settings. **Full uninstall** (Settings → Uninstall everything, or the IME's self-cleanup after you trash the app) removes every `haneul.*` preference, including these three keys.
+- **How to delete**: remove entries (−) or "Clear recent" in Settings. **Full uninstall** (Settings → 고급 (Advanced) tab → 전체 제거 / Uninstall everything, or the IME's self-cleanup after you trash the app) removes every `haneul.*` preference, including these three keys. <!-- 2026-09-23 (#72) 탭 경로 -->
 - Implementation: [`IMESources/PersonalDictionary.swift`](./IMESources/PersonalDictionary.swift) (decision and format), [`Sources/PersonalDictionarySettingsSection.swift`](./Sources/PersonalDictionarySettingsSection.swift) (Settings UI), [`IMESources/HaneulInputController.swift`](./IMESources/HaneulInputController.swift) (when a revert is recorded)
 
 ### 8. Word suggestions (added 2026-09-21)
