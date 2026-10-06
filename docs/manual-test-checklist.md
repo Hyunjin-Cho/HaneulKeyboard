@@ -1,6 +1,6 @@
 # HaneulKeyboard 수동 테스트 체크리스트
 
-> **기준일:** 2026-09-21 · "(프로브가 확인 — scripts/postinstall_probe.sh N번)"이 붙은 줄은 `bash scripts/postinstall_probe.sh`의 N번 항목이 기계로 대신 확인한다(#52). 표기 없는 줄은 사람이 본다.
+> **기준일:** 2026-10-06 · "(프로브가 확인 — scripts/postinstall_probe.sh N번)"이 붙은 줄은 `bash scripts/postinstall_probe.sh`의 N번 항목이 기계로 대신 확인한다(#52). 표기 없는 줄은 사람이 본다.
 
 대상: **빌드 41 이상**의 서명·설치 완료된 배포본. 테스트 전에 앱과 `HaneulKeyboardIM.app` 빌드 번호가 대상 빌드와 일치하는지 확인한다. (프로브가 확인 — scripts/postinstall_probe.sh 1번)
 
@@ -286,3 +286,21 @@
 - [ ] 시스템 도메인(`/Library/Input Methods`) 설치본: 자동 갱신 대신 「업데이트」 탭에 "한글 입력기 갱신 필요" 경고가 뜨고, 로그에 `system-domain (root) — manual refresh needed`가 남는다.
 - [ ] 위 경고 상태에서 안내대로 직접 다시 설치하면(또는 설정의 "IME 설치"), **경고가 그 자리에서 사라진다**(앱을 재실행하지 않아도).
 - [ ] IME 빌드가 이미 최신이면 앱 시작 시 **아무 갱신도 일어나지 않는다**(로그에 refresh 줄 없음 — 시작 시 복사 금지 원칙 H-01 유지).
+
+
+## 2026-10-06 다음 배포 후보 — 숫자 이름·개인 사전·후원 안내
+
+아래는 코어 테스트 통과와 별개로 **서명·설치한 실제 앱에서** 확인한다. 구현 근거: `IMESources/KoreanComposer.swift`의 `handleDigit`/`commitAlphanumeric`/`wordBeforeCursor`, `IMESources/PersonalDictionary.swift`의 정규화/판정, `Sources/SupportView.swift`, `Sources/HaneulKeyboardApp.swift`의 `openSupport`.
+
+- [ ] TextEdit에서 하늘 입력 소스를 선택한 뒤 `T800 800T a24 A24 a16z a7R`을 입력한다. 스페이스에서 전체 이름이 영어로 바뀌고 대소문자가 그대로다. 각각 되돌리기 키를 두 번 눌러 전체가 왕복한다.
+- [ ] `약2알 물2리터 ㄱ2 ㅋㅋ123 쟤가`는 그대로다. `a1` 입력 뒤 숫자를 지우고 `k`를 입력하면 `마`로 조합된다.
+- [ ] `tangerine vismo opencode anti cinestill superia velvia`가 단독으로 변환된다.
+- [ ] 변환 추가에 `x9q`를 등록하면 다음 입력부터 적용되고, 삭제하면 적용되지 않는다. 실제 사용자 항목은 보존한다.
+- [ ] `a24` 또는 `ㅁ24`를 변환 금지에 등록하면 자동 변환되지 않는다. 양쪽 목록에 `a24`가 있어도 금지가 우선한다.
+- [ ] 전역/앱별 자동 변환 OFF와 포커스 이동에서는 숫자 이름도 한글 모드 표기 그대로 확정된다.
+- [ ] 기존 텍스트 `don't`, `don’t`, `a16z`, `a7R`, NFD 한글을 확정·붙여넣은 뒤 수동 토글하면 한 단어 전체가 바뀐다. 앞뒤 따옴표·이모지·구두점은 유지된다.
+- [ ] 숫자 이름을 한글로 되돌리면 최근 되돌림에 전체 쌍이 표시된다. 금지로 옮기기/기록 지우기/재시작 후 저장 상태를 확인한다.
+- [ ] 일반 설정과 메뉴바에서 후원 안내가 열린다. 닫기·다시 열기·Escape가 정상이다. 현재는 준비 중 안내만 있고 외부 결제 페이지로 이동하지 않는다.
+- [ ] 라이트/다크 모드에서 일반/개인 사전/후원 안내의 문구가 잘리지 않고 VoiceOver로 각 버튼을 구분할 수 있다.
+
+후원 계좌/URL 확정과 실제 연결 검증은 미완료다. 이 단계에서 #20/#29를 닫지 않는다. 다른 티켓도 배포본 적용·설치 검증 전에는 종료하지 않는다.

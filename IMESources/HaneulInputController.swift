@@ -256,6 +256,13 @@ final class HaneulInputController: IMKInputController {
             return true
         }
 
+        // 2026-10-06 (#5): 등록된 영숫자 이름의 숫자를 단어 안에 유지한다.
+        // 개인 사전에 방금 추가한 이름도 첫 숫자부터 인식하도록 새 값을 읽는다.
+        if let typed = event.characters?.first, AlphanumericWords.isDigit(typed) {
+            composer.personalDictionary = PersonalDictionary.load(from: .standard)
+            if composer.handleDigit(typed, client: composerClient) { return true }
+        }
+
         // Active boundary: the user typed a non-jamo key (space, punctuation,
         // digit, Enter...) — the only path where English auto-conversion may
         // fire. Re-read the toggle so Settings changes apply immediately.
@@ -280,10 +287,7 @@ final class HaneulInputController: IMKInputController {
         // 엔터·기타 문자는 문장 단절로 보고 리셋 ("Nice. 새로운" 보호).
         // (L-02) 실제 출력 문자 기준 — Shift+,는 '<'(문장 단절 경계)이지 ','가
         // 아니다. charactersIgnoringModifiers는 '<'를 ','로 잘못 보고했다.
-        let boundary = event.characters?.first
-        if boundary != " " && boundary != "," {
-            composer.resetEnglishContext()
-        }
+        composer.completeBoundary(event.characters?.first)
         return false
     }
 
@@ -342,7 +346,7 @@ final class HaneulInputController: IMKInputController {
         // `applyToggle`은 영어 문맥(`lastEnglishWord`)까지 함께 옮기는데, 그 부작용이 여기서도
         // 맞다(코드 확인 후 결정): 화면 끝이 실제로 영어 단어가 됐으면 다음 단어는 영어 문맥으로
         // 판정돼야 하고(M-01과 같은 이유 — 화면과 내부 상태가 어긋나면 다음 단어가 잘못 변환된다),
-        // 한글로 바꿨으면 문맥은 끊겨야 한다.
+        // 한글로 바꿨으면 문맥은 끊겨야 한다. 숫자 이름은 영어로 돌려도 문맥을 시작하지 않는다(#5).
         let toEnglish = ManualToggle.classify(word: target.word) == .hangul
         composer.applyToggle(toEnglish: toEnglish,
                              hangul: toEnglish ? target.word : toggled,

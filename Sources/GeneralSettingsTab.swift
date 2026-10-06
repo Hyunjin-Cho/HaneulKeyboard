@@ -11,6 +11,7 @@ struct GeneralSettingsTab: View {
     @Bindable var core: AppCore
     @State private var installError: Error?
     @State private var isInstalling = false
+    @State private var showingSupport = false
 
     var body: some View {
         Form {
@@ -36,8 +37,17 @@ struct GeneralSettingsTab: View {
                     notInstalledRows
                 }
             }
+            Section("응원하기") {
+                Text("하늘키보드를 함께 만들어 가요.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Button(SupportView.title + "…") { showingSupport = true }
+            }
         }
         .formStyle(.grouped)
+        .sheet(isPresented: $showingSupport) {
+            SupportView { showingSupport = false }
+        }
     }
 
     // MARK: - 설치됨

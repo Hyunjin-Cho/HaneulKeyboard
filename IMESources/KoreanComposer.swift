@@ -14,7 +14,8 @@ protocol ComposerClient {
 ///
 /// Completed syllables accumulate into a word-level buffer (shown as marked
 /// text) instead of committing eagerly. The whole word commits at a boundary:
-/// space/punctuation/digit, modifier shortcut, focus change, or deactivate.
+/// space/punctuation, modifier shortcut, focus change, or deactivate.
+/// Digits stay in the word only for registered identifier prefixes (#5).
 /// At that point, if the composed word is broken as Korean and the raw
 /// keystrokes form a known English word (e.g. 메ㅔㅣㄷ ← "apple"), the
 /// original keystrokes are committed instead — see EnglishDetector.
@@ -42,13 +43,23 @@ final class KoreanComposer {
 
     var lastCommitWasEnglish: Bool { lastEnglishWord != nil }
 
+    private var alphanumericStartAllowed = true
+
     func resetEnglishContext() {
+        alphanumericStartAllowed = true
         lastEnglishWord = nil
         // (H1) 커서 이동이 동반되는 경계(클릭·포커스이동·단축키·화살표·마침표·
         // 엔터)에서 이 메서드가 호출된다 — 그때 lastConversion도 함께 비워
         // stale 상태로 엉뚱한 위치를 교체하는 사고를 막는다. 스페이스·쉼표
         // 경계는 resetEnglishContext를 부르지 않으므로 되돌리기는 유지된다.
         lastConversion = nil
+    }
+
+    /// 실제 비자모 경계를 지난 뒤 호출. 이미 밖으로 보낸 숫자 뒤에서는
+    /// 새 후보를 시작하지 않아 123a24의 끝 a24만 바꾸지 않는다.
+    func completeBoundary(_ character: Character?) {
+        if character != " " && character != "," { resetEnglishContext() }
+        alphanumericStartAllowed = !(character.map(AlphanumericWords.isDigit) ?? false)
     }
 
     /// (M-01) shift+space 토글이 화면 텍스트를 영어↔한글로 바꾼 뒤, 내부 영어
@@ -58,72 +69,70 @@ final class KoreanComposer {
     /// lastConversion은 (hangul, english)를 그대로 유지해 연속 토글을 가능케 한다.
     /// - toEnglish: 토글 결과가 영어면 true(영어 문맥 복원), 한글이면 false(끊김).
     func applyToggle(toEnglish: Bool, hangul: String, english: String) {
-        lastEnglishWord = toEnglish ? english.lowercased() : nil
+        lastEnglishWord = toEnglish && !english.contains(where: AlphanumericWords.isDigit)
+            ? english.lowercased() : nil
         lastConversion = (hangul: hangul, english: english)
     }
 
-    /// 단어를 이루는 글자인가 — 되돌리기의 단어 경계 판정. 2026-09-21 (#15)에 `resolveToggle`
-    /// 안의 지역 함수에서 끌어올렸다(내용은 그대로). 수동 토글의 `wordBeforeCursor`가 같은
-    /// 규칙을 써야 "자동 되돌리기와 수동 토글이 같은 단어를 본다"가 보장된다.
-    /// 숫자·`'`는 **일부러 단어 문자가 아니다** — `ㅡ5`는 `ㅡ`만 잡히고 `5`는 trailing으로
-    /// 남아 제자리에 있게 되므로 결과(`m5`)는 같다.
+    /// 2026-10-06 (#76): 숫자·NFD 자모도 단어의 일부다. 아포스트로피는
+    /// 양쪽에 단어 문자가 있을 때만 내부 연결자로 취급한다(여는 따옴표 보호).
     static func isWordChar(_ c: unichar) -> Bool {
-        (c >= 0x61 && c <= 0x7A) || (c >= 0x41 && c <= 0x5A)
-            || (c >= 0xAC00 && c <= 0xD7A3)   // 완성형 음절 가–힣
-            || (c >= 0x3130 && c <= 0x318F)   // 호환 낱자모 ㄱ–ㅣ — hangul이
-                                              // "메ㅔㅣㄷ"(apple)처럼 낱자모로
-                                              // 끝나도 trailing이 먹지 않게.
+        (0x30...0x39).contains(c) || (0x61...0x7A).contains(c) || (0x41...0x5A).contains(c)
+            || (0xAC00...0xD7A3).contains(c) || (0x3130...0x318F).contains(c)
+            || (0x1100...0x11FF).contains(c)
     }
 
-    /// 2026-09-21 (#15): 커서 직전 텍스트에서 **커서 앞 단어**와 그 뒤에 붙은 경계 글자 수를
-    /// 잘라 낸다 — IMK 비의존 순수함수(수동 한↔영 토글의 대상 결정).
-    ///
-    /// `resolveToggle`과 규칙을 공유한다: 끝의 비단어 글자(스페이스·구두점·숫자)를 trailing으로
-    /// 건너뛰고, 거기서부터 왼쪽으로 단어 글자가 이어지는 만큼이 단어다.
-    /// - 단어가 하나도 없으면 nil(경계 글자뿐 — 손대지 않는다).
-    /// - 단어가 **읽기 창 맨 앞에 닿았는데** 그 지점이 문서 시작이 아니면 nil. 창 밖에 단어가
-    ///   더 이어질 수 있어 잘린 단어를 바꾸면 멀쩡한 글자를 망친다(`resolveToggle`의
-    ///   `leftIsBoundary`와 같은 안전 규칙).
-    /// - Returns: (단어, 단어 뒤 경계 글자 수). 길이는 전부 UTF-16 기준이라 호출자가 그대로
-    ///   `NSRange`에 쓸 수 있다.
+    private static func isApostrophe(_ c: unichar) -> Bool { c == 0x27 || c == 0x2019 }
+
+    private static func hasLeftBoundary(_ s: NSString, start: Int, atDocStart: Bool) -> Bool {
+        guard start > 0 else { return atDocStart }
+        let previous = s.character(at: start - 1)
+        if isWordChar(previous) { return false }
+        if isApostrophe(previous) {
+            if start == 1 { return atDocStart } // 읽기 창 밖의 접두어를 모르면 포기
+            return !isWordChar(s.character(at: start - 2))
+        }
+        return true
+    }
+
+    /// 원본 UTF-16 범위를 유지한다. 내부 숫자/아포스트로피를 포함하되
+    /// 끝의 따옴표·구두점은 제자리에 남긴다. 숫자만 있으면 변환 함수가 거부한다.
     static func wordBeforeCursor(before: String, atDocStart: Bool) -> (word: String, trailing: Int)? {
         let s = before as NSString
         var end = s.length
         while end > 0, !isWordChar(s.character(at: end - 1)) { end -= 1 }
-        let trailing = s.length - end
         var start = end
-        while start > 0, isWordChar(s.character(at: start - 1)) { start -= 1 }
-        guard start < end else { return nil }
-        guard start > 0 || atDocStart else { return nil }
-        return (s.substring(with: NSRange(location: start, length: end - start)), trailing)
+        while start > 0 {
+            let c = s.character(at: start - 1)
+            if isWordChar(c) { start -= 1; continue }
+            if isApostrophe(c), start > 1, start < end,
+               isWordChar(s.character(at: start - 2)), isWordChar(s.character(at: start)) {
+                start -= 1; continue
+            }
+            break
+        }
+        guard start < end, hasLeftBoundary(s, start: start, atDocStart: atDocStart) else { return nil }
+        return (s.substring(with: NSRange(location: start, length: end - start)), s.length - end)
     }
 
-    /// (M1) shift+space 되돌리기의 순수 매칭 로직 — IMKTextInput 비의존이라
-    /// 단위테스트 가능. 커서 직전 텍스트(before)에서 trailing boundary를
-    /// 건너뛰고 english/hangul을 "좌측이 단어경계"인 위치에서만 매칭해, 교체할
-    /// (text, 교체길이, 커서에서 거슬러 갈 거리)를 돌려준다. 매칭 실패·불안전
-    /// (brand의 끝 and 등)이면 nil. atDocStart=before의 시작(읽기 시작점)이
-    /// 문서 맨 앞인지 — 아니면 읽기 경계에 붙은 단어는 좌측을 알 수 없어 nil.
+    /// 저장된 전체 변환 쌍을 먼저 대조한 뒤 경계 문자를 건너뛴다.
+    /// 이 순서로 a24/800T뿐 아니라 i'처럼 끝의 아포스트로피도 되돌릴 수 있다.
     static func resolveToggle(before: String, english: String, hangul: String,
                               atDocStart: Bool) -> (text: String, replaceLen: Int, offsetFromEnd: Int)? {
         let s = before as NSString
         var end = s.length
-        while end > 0, !isWordChar(s.character(at: end - 1)) { end -= 1 }
-        let trailing = s.length - end
-        func leftIsBoundary(_ matchLen: Int) -> Bool {
-            let i = end - matchLen
-            if i <= 0 { return atDocStart }
-            return !isWordChar(s.character(at: i - 1))
-        }
-        let eng = english as NSString
-        let han = hangul as NSString
-        if end >= eng.length, leftIsBoundary(eng.length),
-           s.substring(with: NSRange(location: end - eng.length, length: eng.length)) == english {
-            return (hangul, eng.length, eng.length + trailing)
-        }
-        if end >= han.length, leftIsBoundary(han.length),
-           s.substring(with: NSRange(location: end - han.length, length: han.length)) == hangul {
-            return (english, han.length, han.length + trailing)
+        while end > 0 {
+            for (original, replacement) in [(english, hangul), (hangul, english)] {
+                let length = (original as NSString).length
+                let start = end - length
+                if length > 0, start >= 0,
+                   hasLeftBoundary(s, start: start, atDocStart: atDocStart),
+                   s.substring(with: NSRange(location: start, length: length)) == original {
+                    return (replacement, length, s.length - start)
+                }
+            }
+            if isWordChar(s.character(at: end - 1)) { break }
+            end -= 1
         }
         return nil
     }
@@ -165,6 +174,7 @@ final class KoreanComposer {
     /// Safety cap — a run this long without a boundary is not a word. Spill
     /// it as Hangul rather than growing the marked text without bound.
     private let maxWordUnits = 40
+    private var didSpillWord = false
 
     /// 2026-09-21 (#15): 아직 확정되지 않은 조합(marked text)이 있는가.
     /// 수동 한↔영 토글은 **클라이언트 문서에 이미 들어간 글자**만 다룬다 — marked text는 아직
@@ -195,11 +205,45 @@ final class KoreanComposer {
             let hangul = wordText()
             if !hangul.isEmpty { client.insertText(hangul) }
             word = []
+            didSpillWord = true
             lastEnglishWord = nil // spill emits Hangul — breaks English context
         }
 
         refreshMarkedText(client: client)
         return true
+    }
+
+    /// #5: 사전/개인 사전에 있는 이름의 접두어만 숫자를 marked text에 붙인다.
+    /// 일단 붙인 숫자는 후보가 나중에 어긋나도 경계까지 보관하고 기존 경로로 폴백한다.
+    @discardableResult
+    func handleDigit(_ character: Character, client: ComposerClient) -> Bool {
+        guard AlphanumericWords.isDigit(character) else { return false }
+        let candidate = PersonalDictionary.normalizedEnglish(String(word.flatMap(\.keys) + pendingKeys + [character]))
+        let hangulCandidate = (wordText() + buffer.previewString() + String(character))
+            .replacingOccurrences(of: "’", with: "'")
+        let personalPrefix = personalDictionary.force.contains {
+            $0.contains(where: AlphanumericWords.isDigit) && $0.hasPrefix(candidate)
+        } || personalDictionary.block.contains {
+            $0.contains(where: AlphanumericWords.isDigit)
+                && ($0.hasPrefix(candidate) || $0.hasPrefix(hangulCandidate))
+        }
+        guard !didSpillWord, hasBufferedDigits || (alphanumericStartAllowed
+            && (AlphanumericWords.hasPrefix(candidate) || personalPrefix)) else { return false }
+        lastConversion = nil
+        stashBuffer()
+        word.append((text: String(character), keys: [character]))
+        if word.count > maxWordUnits {
+            client.insertText(wordText())
+            word = []
+            didSpillWord = true
+            lastEnglishWord = nil
+        }
+        refreshMarkedText(client: client)
+        return true
+    }
+
+    private var hasBufferedDigits: Bool {
+        word.contains { $0.keys.count == 1 && AlphanumericWords.isDigit($0.keys[0]) }
     }
 
     /// 2026-09-19 (#34): 단어에 끼워 넣은 아포스트로피 유닛의 위치 (없으면 nil).
@@ -242,7 +286,7 @@ final class KoreanComposer {
     @discardableResult
     func commit(to client: ComposerClient, convertEnglish: Bool = false) -> String {
         stashBuffer()
-        defer { word = [] }
+        defer { word = []; didSpillWord = false }
 
         let hangul = wordText()
         guard !hangul.isEmpty else {
@@ -257,8 +301,11 @@ final class KoreanComposer {
         // produced it — an accepted suggestion's units have empty keys, and
         // converting then would commit text that differs from (and drops
         // part of) the marked text the user saw.
-        let convertible = convertEnglish && autoEnglishEnabled
+        let convertible = convertEnglish && autoEnglishEnabled && !didSpillWord
             && word.allSatisfy { !$0.keys.isEmpty }
+        if hasBufferedDigits {
+            return commitAlphanumeric(to: client, convertible: convertible, hangul: hangul, keys: keys)
+        }
         if let apostrophe = apostropheIndex {
             // 2026-09-19 (#34): `'`를 품은 단어는 축약형 경로로 판정한다.
             committed = commitTextWithApostrophe(
@@ -310,6 +357,60 @@ final class KoreanComposer {
         client.insertText(committed)
         client.setMarkedText("")
         return committed
+    }
+
+    /// 숫자 후보는 명시 목록/개인 사전 전체 일치만 영어로 확정한다.
+    /// 후보에서 벗어나면 숫자마다 단어를 끝내던 기존 결과와 마지막 변환 상태를 재현한다.
+    private func commitAlphanumeric(to client: ComposerClient, convertible: Bool,
+                                    hangul: String, keys: [Character]) -> String {
+        let raw = String(keys)
+        let decision = personalDictionary.decision(word: raw, hangul: hangul)
+        let mayConvert = convertible && KoreanDictionary.isLoaded
+        let matched = decision != .block && (decision == .forceConvert || AlphanumericWords.contains(raw))
+        let text: String
+        if !mayConvert || decision == .block {
+            text = hangul
+            lastEnglishWord = nil
+            lastConversion = nil
+        } else if matched {
+            text = raw
+            // 제품 코드는 다음 한국어를 영어 문맥으로 만들지 않는다.
+            lastEnglishWord = nil
+            lastConversion = (hangul, raw)
+        } else {
+            let fallback = KoreanComposer()
+            let sink = BufferedClient()
+            fallback.personalDictionary = personalDictionary
+            fallback.lastEnglishWord = lastEnglishWord
+            for key in keys {
+                if AlphanumericWords.isDigit(key) {
+                    fallback.commit(to: sink, convertEnglish: true)
+                    sink.insertText(String(key))
+                    fallback.resetEnglishContext()
+                } else if Contractions.isApostrophe(key) {
+                    if !fallback.handleApostrophe(key, client: sink) {
+                        fallback.commit(to: sink, convertEnglish: true)
+                        sink.insertText(String(key))
+                        fallback.resetEnglishContext()
+                    }
+                } else {
+                    _ = fallback.handleInput(String(key), client: sink)
+                }
+            }
+            fallback.commit(to: sink, convertEnglish: true)
+            text = sink.text
+            lastEnglishWord = fallback.lastEnglishWord
+            lastConversion = fallback.lastConversion
+        }
+        client.insertText(text)
+        client.setMarkedText("")
+        return text
+    }
+
+    private final class BufferedClient: ComposerClient {
+        var text = ""
+        func insertText(_ value: String) { text += value }
+        func setMarkedText(_ value: String) {}
     }
 
     /// 2026-09-19 (#34): `'`를 품은 단어의 커밋 텍스트를 만든다.
@@ -399,7 +500,15 @@ final class KoreanComposer {
         }
 
         if !word.isEmpty {
-            word.removeLast()
+            let removed = word.removeLast()
+            // 숫자 직전 음절을 다시 조합 중으로 돌린다. a1 → Backspace → k는 「마」다.
+            // 숫자 때문에 보관했던 음절이므로, 숫자를 지운 뒤 「ㅁㅏ」로 갈라지지 않게 한다.
+            if removed.keys.count == 1, let key = removed.keys.first,
+               AlphanumericWords.isDigit(key), let previous = word.last,
+               previous.keys.allSatisfy({ KeyboardLayout2Set.jamo(for: $0) != nil }) {
+                word.removeLast()
+                for key in previous.keys { _ = handleInput(String(key), client: client) }
+            }
             refreshMarkedText(client: client)
             return true
         }

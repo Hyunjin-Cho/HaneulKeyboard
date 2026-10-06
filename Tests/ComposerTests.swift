@@ -100,6 +100,7 @@ func typeWords(_ words: [String]) -> [String] {
 /// 비자모만 active boundary로 처리한다 — 축약형은 이 경로로만 재현된다.
 func typeKeyViaController(_ ch: Character, composer: KoreanComposer, client: FakeClient) {
     if Contractions.isApostrophe(ch), composer.handleApostrophe(ch, client: client) { return }
+    if AlphanumericWords.isDigit(ch), composer.handleDigit(ch, client: client) { return }
     if KeyboardLayout2Set.jamo(for: ch) != nil {
         _ = composer.handleInput(String(ch), client: client)
         return
@@ -108,6 +109,7 @@ func typeKeyViaController(_ ch: Character, composer: KoreanComposer, client: Fak
     // 클라이언트가 그 글자를 직접 넣으므로 여기서도 똑같이 기록한다.
     composer.commit(to: client, convertEnglish: true)
     client.insertText(String(ch))
+    composer.completeBoundary(ch)
 }
 
 /// 위 경로로 한 단어를 치고 active boundary(스페이스)에서 커밋한다.
@@ -128,6 +130,7 @@ func typeWordsViaController(_ words: [String]) -> [String] {
     for w in words {
         for ch in w { typeKeyViaController(ch, composer: composer, client: client) }
         committed.append(composer.commit(to: client, convertEnglish: true))
+        composer.completeBoundary(" ")
     }
     return committed
 }
@@ -1336,16 +1339,10 @@ struct ComposerTests {
                 before: "go i'm ", english: "i'm", hangul: "ㅑ'ㅡ", atDocStart: false)?.text ?? "",
             "ㅑ'ㅡ", "축약형 되돌리기: 앞에 단어가 있어도 좌측경계 통과"
         )
-        // ⚠️ 알려진 한계: `i'`처럼 `'`로 끝나는 변환은 되돌릴 수 없다.
-        // resolveToggle의 isWordChar가 `'`를 단어 문자로 보지 않아 trailing으로
-        // 먹히고 매칭이 실패한다 → nil(안전한 포기: 컨트롤러가 손대지 않는다).
-        // `'`를 단어 문자에 넣으면 `'and `(여는 따옴표 뒤 단어)의 토글이 죽으므로
-        // 일부러 그대로 둔다.
-        expect(
-            KoreanComposer.resolveToggle(
-                before: "i' ", english: "i'", hangul: "ㅑ'", atDocStart: true) == nil,
-            true, "축약형 되돌리기: `'`로 끝나면 안전하게 포기(nil)"
-        )
+        // 저장된 전체 쌍은 끝의 아포스트로피까지 되돌린다.
+        expect(KoreanComposer.resolveToggle(before: "i' ", english: "i'", hangul: "ㅑ'",
+                                             atDocStart: true)?.text ?? "",
+               "ㅑ'", "축약형 되돌리기: 끝의 아포스트로피 포함")
 
         // Contractions 순수함수
         expect(Contractions.isApostrophe("'"), true, "Contractions: U+0027")
@@ -1525,7 +1522,7 @@ struct ComposerTests {
         expect(PersonalDictionary.normalizedForceEntry("app le") == nil, true, "PD.force 검증: 공백 포함 거부")
         expect(PersonalDictionary.normalizedForceEntry("메ㅔㅣㄷ") == nil, true, "PD.force 검증: 한글 거부")
         expect(PersonalDictionary.normalizedForceEntry("'") == nil, true, "PD.force 검증: 글자 없는 ' 거부")
-        expect(PersonalDictionary.normalizedForceEntry("abc1") == nil, true, "PD.force 검증: 숫자 거부")
+        expect(PersonalDictionary.normalizedForceEntry("abc1") ?? "", "abc1", "PD.force 검증: 숫자 포함 제품명 허용")
         expect(PersonalDictionary.normalizedForceEntry("") == nil, true, "PD.force 검증: 빈 문자열 거부")
         expect(PersonalDictionary.normalizedBlockEntry(" Apple ") ?? "nil", "apple", "PD.block 정규화: 영어 소문자")
         expect(PersonalDictionary.normalizedBlockEntry("메ㅔㅣㄷ") ?? "nil", "메ㅔㅣㄷ", "PD.block 정규화: 한글 표기 그대로")
@@ -1543,28 +1540,28 @@ struct ComposerTests {
         }
 
         // (b) composer 통합 — 사전 판정 앞뒤로 합성
-        // vismo: 어느 사전에도 없어 지금은 미변환 (baseline)
-        expect(type("vismo").committedText, "퍄느ㅐ", "PD baseline: vismo는 사전에 없어 한글 유지")
+        // vismol: 어느 사전에도 없어 지금은 미변환 (baseline)
+        expect(type("vismol").committedText, "퍄느ㅐㅣ", "PD baseline: vismol는 사전에 없어 한글 유지")
         do {
-            let r = typeWithPersonalDictionary("vismo", PersonalDictionary(force: ["vismo"]))
-            expect(r.client.committedText, "vismo", "PD force: 사전에 없는 단어도 변환")
-            expect(r.composer.lastConversion?.hangul ?? "", "퍄느ㅐ", "PD force: lastConversion 한글(되돌리기 가능)")
-            expect(r.composer.lastConversion?.english ?? "", "vismo", "PD force: lastConversion 영어")
-            expect(r.composer.lastEnglishWord ?? "", "vismo", "PD force: 영어 문맥 이어짐")
+            let r = typeWithPersonalDictionary("vismol", PersonalDictionary(force: ["vismol"]))
+            expect(r.client.committedText, "vismol", "PD force: 사전에 없는 단어도 변환")
+            expect(r.composer.lastConversion?.hangul ?? "", "퍄느ㅐㅣ", "PD force: lastConversion 한글(되돌리기 가능)")
+            expect(r.composer.lastConversion?.english ?? "", "vismol", "PD force: lastConversion 영어")
+            expect(r.composer.lastEnglishWord ?? "", "vismol", "PD force: 영어 문맥 이어짐")
         }
         expect(
-            typeWithPersonalDictionary("vismo", PersonalDictionary(force: ["vismo"]), autoEnglish: false).client.committedText,
-            "퍄느ㅐ", "PD force: 자동 변환 꺼짐이면 force도 무력(마스터 스위치가 위)")
+            typeWithPersonalDictionary("vismol", PersonalDictionary(force: ["vismol"]), autoEnglish: false).client.committedText,
+            "퍄느ㅐㅣ", "PD force: 자동 변환 꺼짐이면 force도 무력(마스터 스위치가 위)")
         expect(
-            typeWithPersonalDictionary("vismo", PersonalDictionary(force: ["vismo"]), passive: true).client.committedText,
-            "퍄느ㅐ", "PD force: passive 경계는 화면 그대로(force 무관)")
+            typeWithPersonalDictionary("vismol", PersonalDictionary(force: ["vismol"]), passive: true).client.committedText,
+            "퍄느ㅐㅣ", "PD force: passive 경계는 화면 그대로(force 무관)")
         expect(
-            typeWithPersonalDictionary("Vismo", PersonalDictionary(force: ["vismo"])).client.committedText,
-            "Vismo", "PD force: 대문자로 쳐도 변환, 출력은 친 그대로")
+            typeWithPersonalDictionary("Vismol", PersonalDictionary(force: ["vismol"])).client.committedText,
+            "Vismol", "PD force: 대문자로 쳐도 변환, 출력은 친 그대로")
         // 자판 대응이 안 맞으면 force도 안 걸린다 — 다른 키로 친 단어는 word가 다르다
         expect(
-            typeWithPersonalDictionary("vismol", PersonalDictionary(force: ["vismo"])).client.committedText,
-            "퍄느ㅐㅣ", "PD force: 키열이 정확히 그 단어여야 함(vismol ≠ vismo)")
+            typeWithPersonalDictionary("vismoll", PersonalDictionary(force: ["vismol"])).client.committedText,
+            "퍄느ㅐㅣㅣ", "PD force: 키열이 정확히 그 단어여야 함(vismoll ≠ vismol)")
         // 한국어 veto 단어(책=cor)도 force면 변환
         expect(type("cor").committedText, "책", "PD baseline: 책(cor)은 veto 보호")
         expect(
@@ -1589,10 +1586,10 @@ struct ComposerTests {
             "메ㅔㅣㄷ", "PD 양쪽: block 우선")
         // 다른 단어에는 영향 없음
         expect(
-            typeWithPersonalDictionary("apple", PersonalDictionary(force: ["vismo"], block: ["banana"])).client.committedText,
+            typeWithPersonalDictionary("apple", PersonalDictionary(force: ["vismol"], block: ["banana"])).client.committedText,
             "apple", "PD: 무관한 항목은 기존 판정 그대로(apple 변환)")
         expect(
-            typeWithPersonalDictionary("cor", PersonalDictionary(force: ["vismo"])).client.committedText,
+            typeWithPersonalDictionary("cor", PersonalDictionary(force: ["vismol"])).client.committedText,
             "책", "PD: 무관한 항목은 기존 판정 그대로(책 보호)")
         // 영어 문맥(R2)도 block이 이긴다 — "good wha"의 좀은 veto, "how are"의 ㅁㄱㄷ는 변환되던 것
         do {
@@ -1605,10 +1602,10 @@ struct ComposerTests {
             expect(composer.commit(to: client, convertEnglish: true), "ㅁㄱㄷ", "PD block: 영어 문맥 뒤에서도 are 미변환")
         }
         // 축약형·소유격(컨트롤러 경로) — base 경로도 같은 합성
-        expect(typeViaController("vismo's").committedText, "퍄느ㅐ'ㄴ", "PD baseline: vismo's 미변환")
+        expect(typeViaController("vismol's").committedText, "퍄느ㅐㅣ'ㄴ", "PD baseline: vismol's 미변환")
         expect(
-            typeViaControllerWithPersonalDictionary("vismo's", PersonalDictionary(force: ["vismo"])).committedText,
-            "vismo's", "PD force(base): vismo's도 통째로 변환")
+            typeViaControllerWithPersonalDictionary("vismol's", PersonalDictionary(force: ["vismol"])).committedText,
+            "vismol's", "PD force(base): vismol's도 통째로 변환")
         expect(
             typeViaControllerWithPersonalDictionary("apple's", PersonalDictionary(block: ["apple"])).committedText,
             "메ㅔㅣㄷ'ㄴ", "PD block(base): apple's도 한글 유지")
@@ -1628,7 +1625,7 @@ struct ComposerTests {
             "y'know", "PD force(통째): 소사전에 없는 축약형도 변환")
         // 한글 단어는 force가 아닌 한 절대 건드리지 않는다(회귀 방어)
         expect(
-            typeWithPersonalDictionary("dkssud", PersonalDictionary(force: ["vismo"], block: ["apple"])).client.committedText,
+            typeWithPersonalDictionary("dkssud", PersonalDictionary(force: ["vismol"], block: ["apple"])).client.committedText,
             "안녕", "PD: 한글 단어(안녕)는 그대로")
 
         // (c) 최근 되돌린 변환 — RecentReverts 순수 함수
@@ -1888,14 +1885,14 @@ struct ComposerTests {
             expect(KoreanComposer.wordBeforeCursor(before: "재가", atDocStart: false) == nil, true,
                    "wordBeforeCursor: 읽기 창 앞에 닿음+문서 시작 아님 → 안전 nil")
             expect(KoreanComposer.wordBeforeCursor(before: "ㅡ5", atDocStart: true)?.word ?? "",
-                   "ㅡ", "wordBeforeCursor: 숫자는 단어 문자가 아니라 trailing")
+                   "ㅡ5", "wordBeforeCursor: 숫자도 단어 전체에 포함")
             expect(KoreanComposer.wordBeforeCursor(before: "ㅡ5", atDocStart: true)?.trailing ?? -1,
-                   1, "wordBeforeCursor: ㅡ5의 trailing 1 → 교체 후 m5")
+                   0, "wordBeforeCursor: ㅡ5의 trailing 0")
             expect(KoreanComposer.wordBeforeCursor(before: "   ", atDocStart: true) == nil, true,
                    "wordBeforeCursor: 경계 글자뿐이면 nil")
             expect(KoreanComposer.wordBeforeCursor(before: "", atDocStart: true) == nil, true,
                    "wordBeforeCursor: 빈 문자열 nil")
-            expect(KoreanComposer.isWordChar(0x0035), false, "isWordChar: 숫자 5는 단어 문자가 아니다")
+            expect(KoreanComposer.isWordChar(0x0035), true, "isWordChar: 숫자 5도 단어 문자")
             expect(KoreanComposer.isWordChar(0xC7AC), true, "isWordChar: 완성형 재는 단어 문자")
 
             // (h) 수동 토글로 바꾼 뒤 **한 번 더 누르면 되돌아온다** — 컨트롤러가 세우는
@@ -1903,9 +1900,9 @@ struct ComposerTests {
             expect(KoreanComposer.resolveToggle(before: "work ", english: "work", hangul: "재가",
                                                 atDocStart: true)?.text ?? "",
                    "재가", "재토글: 수동 변환 후 work → 재가")
-            expect(KoreanComposer.resolveToggle(before: "m5", english: "m", hangul: "ㅡ",
+            expect(KoreanComposer.resolveToggle(before: "m5", english: "m5", hangul: "ㅡ5",
                                                 atDocStart: true)?.text ?? "",
-                   "ㅡ", "재토글: m5의 m → ㅡ (숫자는 trailing)")
+                   "ㅡ5", "재토글: m5 전체 → ㅡ5")
 
             // (i) 조합 중(marked text)에는 수동 토글을 하지 않는다 — 문서에 아직 없기 때문.
             do {
@@ -2175,6 +2172,94 @@ struct ComposerTests {
         expect(UpdateDecision.replaceStrategy(destinationOwnerUID: 0, currentUID: 501, parentWritable: true) == .adminPrompt, true, "교체: root 소유 → 관리자 프롬프트")
         expect(UpdateDecision.replaceStrategy(destinationOwnerUID: 501, currentUID: 501, parentWritable: false) == .adminPrompt, true, "교체: 부모 폴더 쓰기 불가 → 관리자 프롬프트")
         expect(UpdateDecision.replaceStrategy(destinationOwnerUID: nil, currentUID: 501, parentWritable: true) == .adminPrompt, true, "교체: 소유자 못 읽으면 관리자 프롬프트")
+
+        expect(typeWordsViaController(["a24", "so"]).joined(separator: " "), "a24 내", "숫자 이름 뒤 한국어 보호")
+        expect(typeViaController("123 a24").committedText, "123 a24", "일반 숫자 뒤 공백에서 새 이름 시작")
+        expect(typeViaControllerWithPersonalDictionary("x9q", .empty).committedText, "ㅌ9ㅂ", "개인 사전 제거 후 미등록 이름 유지")
+
+        // ── 2026-10-06: 등록된 숫자 이름·개인 사전·수동 토글 회귀 (#5/#74~78) ──
+        for name in ["tangerine", "vismo", "opencode", "anti", "cinestill", "superia", "velvia"] {
+            expect(typeViaController(name).committedText, name, "요청 단어: \(name)")
+        }
+        for (keys, expected) in [("wOrk", "쟤가"), ("Work", "Work"), ("WORK", "WORK"), ("worK", "worK")] {
+            expect(typeViaController(keys).committedText, expected, "Shift 보호: \(keys)")
+        }
+        for name in ["T800", "t800", "800T", "800t", "a24", "A24", "a16z", "A16Z", "a7r", "a7R"] {
+            let client = FakeClient()
+            let composer = KoreanComposer()
+            for ch in name { typeKeyViaController(ch, composer: composer, client: client) }
+            let raw = client.marked
+            expect(client.committedText, "", "숫자 이름: 경계 전 확정 없음 \(name)")
+            expect(composer.commit(to: client, convertEnglish: true), name, "숫자 이름: 전체·대소문자 보존 \(name)")
+            expect(composer.lastConversion?.hangul ?? "", raw, "숫자 이름: 전체 되돌림 쌍 \(name)")
+            expect(composer.lastEnglishWord == nil, true, "숫자 이름: 다음 한국어 문맥 보호 \(name)")
+            expect(KoreanComposer.resolveToggle(before: name + " ", english: name, hangul: raw,
+                                                 atDocStart: true)?.text ?? "", raw, "숫자 이름: 직후 되돌리기 \(name)")
+            expect(typeViaController(name, autoEnglish: false).committedText, raw, "숫자 이름: 자동 변환 OFF \(name)")
+            expect(typeViaControllerWithPersonalDictionary(name, PersonalDictionary(block: [name.lowercased()])).committedText,
+                   raw, "숫자 이름: 영어 금지 \(name)")
+            expect(typeViaControllerWithPersonalDictionary(name, PersonalDictionary(block: [raw])).committedText,
+                   raw, "숫자 이름: 한글 금지 \(name)")
+            expect(typeViaControllerWithPersonalDictionary(name, PersonalDictionary(force: [name.lowercased()], block: [name.lowercased()])).committedText,
+                   raw, "숫자 이름: 금지 우선 \(name)")
+            composer.applyToggle(toEnglish: true, hangul: raw, english: name)
+            expect(composer.lastEnglishWord == nil, true, "숫자 이름: 재토글도 문맥 보호 \(name)")
+        }
+        for name in ["x9q", "42abc", "z8's", "z’8"] {
+            let pd = PersonalDictionary(forceList: [name], blockList: [])
+            expect(typeViaControllerWithPersonalDictionary(name, pd).committedText, name, "숫자 개인 사전: \(name)")
+        }
+        for (keys, expected) in [("123a24", "123ㅁ24"), ("za24", "ㅋㅁ24"), ("a24z", "ㅁ24ㅋ"),
+                                 ("a7r5", "ㅁ7ㄱ5"), ("T8000", "ㅆ8000"), ("dir2dkf", "약2알"),
+                                 ("anf2flxj", "물2리터"), ("zz123", "ㅋㅋ123"), ("r2", "ㄱ2"),
+                                 ("apple2", "apple2"), ("apple800T", "apple800ㅆ"), ("a1", "ㅁ1"), ("800", "800")] {
+            expect(typeViaController(keys).committedText, expected, "숫자 이름: 미등록·한국어 보존 \(keys)")
+        }
+        do {
+            let client = FakeClient(), composer = KoreanComposer()
+            for ch in "a24" { typeKeyViaController(ch, composer: composer, client: client) }
+            expect(composer.commit(to: client, convertEnglish: false), "ㅁ24", "숫자 이름: 포커스 이동은 화면 그대로")
+            composer.resetEnglishContext()
+            for ch in "a1" { typeKeyViaController(ch, composer: composer, client: client) }
+            expect(composer.deleteBackward(client: client), true, "숫자 이름: 숫자 백스페이스")
+            typeKeyViaController("k", composer: composer, client: client)
+            expect(client.marked, "마", "숫자 삭제 후 이전 한글 음절 조합 복원")
+            composer.commit(to: client, convertEnglish: false)
+        }
+        do {
+            let client = FakeClient(), composer = KoreanComposer()
+            for ch in "a" + String(repeating: "2", count: 90) { typeKeyViaController(ch, composer: composer, client: client) }
+            composer.commit(to: client, convertEnglish: true)
+            expect(client.committedText, "ㅁ" + String(repeating: "2", count: 90), "숫자 이름: 긴 후보 유실 없이 원문 유지")
+            expect(client.marked.isEmpty, true, "숫자 이름: 긴 후보 조합 종료")
+        }
+        for invalid in ["'apple", "a'b'c", "a’’b", "123", "a-24"] {
+            expect(PersonalDictionary.normalizedForceEntry(invalid) == nil, true, "개인 사전: 불가능한 전체 단어 거부 \(invalid)")
+        }
+        expect(PersonalDictionary.normalizedForceEntry(" A7R ") ?? "", "a7r", "개인 사전: 숫자 이름 정규화")
+        expect(PersonalDictionary.normalizedBlockEntry("ㅁ24") ?? "", "ㅁ24", "개인 사전: 숫자 한글형 금지")
+        expect(PersonalDictionary.normalizedBlockEntry("애ㅜ’ㅅ") ?? "", "애ㅜ'ㅅ", "개인 사전: 한글형 곱은 아포스트로피 정규화")
+        for word in ["don't", "don’t", "a16z", "a7R", "ㅁ24", "한글".decomposedStringWithCanonicalMapping] {
+            let found = KoreanComposer.wordBeforeCursor(before: "🎬 " + word + "! ", atDocStart: false)
+            expect(found?.word ?? "", word, "수동 토글: 전체 단어 추출 \(word)")
+            expect(found?.trailing ?? -1, 2, "수동 토글: UTF-16 뒤 경계 유지 \(word)")
+            expect(ManualToggle.manualToggle(word: found?.word ?? "") != nil, true, "수동 토글: 추출 후 실제 변환 \(word)")
+        }
+        expect(KoreanComposer.wordBeforeCursor(before: "'apple' ", atDocStart: true)?.word ?? "", "apple", "수동 토글: 바깥 따옴표 유지")
+        expect(KoreanComposer.resolveToggle(before: "don't ", english: "t", hangul: "ㅅ", atDocStart: true) == nil,
+               true, "되돌림: 축약형 끝 조각만 매칭 금지")
+        expect(KoreanComposer.resolveToggle(before: "a24 ", english: "a", hangul: "ㅁ", atDocStart: true) == nil,
+               true, "되돌림: 숫자 이름 앞 조각만 매칭 금지")
+        expect(KoreanComposer.wordBeforeCursor(before: "a16z", atDocStart: false) == nil, true, "수동 토글: 읽기 창 잘린 이름 보호")
+        let recentNumeric = RecentReverts().recording(hangul: "ㅁ24", english: "A24")
+        expect(recentNumeric.entries.first?.english ?? "", "A24", "최근 되돌림: 숫자 이름 대소문자 보존")
+        expect(PersonalDictionary.normalizedBlockEntry(recentNumeric.entries.first?.english ?? "") ?? "", "a24", "최근 되돌림: 금지로 이동 가능")
+        for blocked in ["apple2", "메ㅔㅣㄷ2"] {
+            expect(typeViaControllerWithPersonalDictionary("apple2", PersonalDictionary(forceList: [], blockList: [blocked])).committedText,
+                   "메ㅔㅣㄷ2", "숫자 금지 목록: 부분 영어 변환도 막음 \(blocked)")
+        }
+        expect(typeViaControllerWithPersonalDictionary("don’t", PersonalDictionary(forceList: [], blockList: ["애ㅜ’ㅅ"])).committedText,
+               "애ㅜ’ㅅ", "개인 사전: 곱은 아포스트로피 한글형 금지 적용")
 
         print("\(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)

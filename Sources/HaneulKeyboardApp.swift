@@ -24,6 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private var onboardingWindow: NSWindow?
     private var settingsWindow: NSWindow?
+    private var supportWindow: NSWindow?
     // deinit(nonisolated)에서 해제하므로 actor 격리에서 제외.
     nonisolated(unsafe) private var sourceObserver: NSObjectProtocol?
 
@@ -121,6 +122,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         menu.addItem(.separator())
         add(menu, "설정...", #selector(openSettings))
+        add(menu, SupportView.title + "…", #selector(openSupport))
         if hasCompleted {
             add(menu, "시작하기 다시 보기...", #selector(showOnboarding))
         }
@@ -196,6 +198,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         win.isReleasedWhenClosed = false
         win.center()
         settingsWindow = win
+        win.makeKeyAndOrderFront(nil)
+    }
+
+    @objc private func openSupport() {
+        NSApp.activate(ignoringOtherApps: true)
+        if let win = supportWindow {
+            win.makeKeyAndOrderFront(nil)
+            return
+        }
+        let hosting = NSHostingController(rootView: SupportView { [weak self] in
+            self?.supportWindow?.close()
+        })
+        let win = NSWindow(contentViewController: hosting)
+        win.title = SupportView.title
+        win.styleMask = [.titled, .closable]
+        win.isReleasedWhenClosed = false
+        win.center()
+        supportWindow = win
         win.makeKeyAndOrderFront(nil)
     }
 

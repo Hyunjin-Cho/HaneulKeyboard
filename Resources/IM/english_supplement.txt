@@ -5291,3 +5291,13 @@ zhiyun
 # 변환된다(검역 Tier C). 같은 요청의 dmg(읗)·pr(ㅔㄱ)은 사전으로는 안 되는 부류라
 # EnglishDetector의 코드 목록(standaloneShortWords·shortWords)에 넣었다.
 xhigh
+
+# 2026-10-06 오너 지정어 (#74). 시스템 대문자 시작 항목도 명시 소문자로 선별.
+# 실제 영어 이름/브랜드만: 전체 대문자 시스템 사전을 일괄 허용하지 않는다.
+tangerine
+vismo
+opencode
+anti
+cinestill
+superia
+velvia

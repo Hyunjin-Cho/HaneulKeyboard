@@ -316,7 +316,7 @@ func runMerge(_ args: [String]) {
         var notes: [String] = []
         var suspicious = false
         if a.cls == "unmappable" {
-            notes.append("두벌식 시뮬 불가(비알파벳/과장) — 수동 확인")
+            notes.append("두벌식 검사 범위 밖(비알파벳 또는 길이 상한) — 수동 확인")
         }
         if a.veto {
             notes.append("우리말샘 등재(veto) — 구조 룰 변환 불가")
@@ -390,21 +390,24 @@ func runReach(_ args: [String]) {
 
     print("word,hangul_form,class,in_urimalsaem,standalone,context,trigger,reached,diagnosis")
     var gaps = 0
+    var unsupported = 0
+    note("검사 범위: 소문자 기본 사전/문맥 3종. 개인 사전·축약형·영숫자 이름·Shift·실제 앱 이벤트는 core/GUI 검사 대상입니다.")
     for word in readWords(wordsFile) {
         let e = evaluate(word)
         let reached = e.standalone || e.context || e.trigger
-        if !reached { gaps += 1 }
+        if e.cls == "unmappable" { unsupported += 1 }
+        else if !reached { gaps += 1 }
         let row = [e.word, e.hangul, e.cls, e.inUrimalsaem ? "1" : "0",
                    e.standalone ? "1" : "0", e.context ? "1" : "0",
                    e.trigger ? "1" : "0", reached ? "1" : "0",
                    csvQuote(diagnose(e, broad: broadMirror, curated: curatedMirror))]
         print(row.joined(separator: ","))
     }
-    note("─ 도달성 요약: 미도달 \(gaps)건 (diagnosis의 ★가 and-class 후보)")
+    note("─ 도달성 요약: 미도달 \(gaps)건 · 검사 불가 \(unsupported)건 (검사 불가는 실패 판정이 아님)")
 }
 
 func diagnose(_ e: Eval, broad: Set<String>, curated: Set<String>) -> String {
-    if e.cls == "unmappable" { return "시뮬 불가(비알파벳/과장)" }
+    if e.cls == "unmappable" { return "검사 범위 밖(비알파벳 또는 길이 상한)" }
     if e.standalone { return "도달:무맥락(\(standaloneRuleGuess(e)))" }
     if e.context { return "도달:영어문맥(R2/override/화이트리스트)" }
     if e.trigger { return "도달:트리거전용(새→to류 화이트리스트)" }
@@ -419,16 +422,14 @@ func diagnose(_ e: Eval, broad: Set<String>, curated: Set<String>) -> String {
             return "★미도달:and-class(clean 1음절 — shortWords 채널만 가능, 불변식 주석 확인)"
         }
         if !curated.contains(e.word) {
-            return keys.count >= 6
-                ? "미도달:clean 6키+ — curated 등재 시 R5 가능"
-                : "미도달:clean 짧음 — curated 등재 시 문맥 변환(R2-clean) 가능"
+            return "미도달 추정:clean 2음절+ — curated 등재 시 R5 후보(개별 검역 필요)"
         }
     }
     return "미도달:기타(수동 확인)"
 }
 
 func standaloneRuleGuess(_ e: Eval) -> String {
-    if e.cls == "clean" { return "R5 curated 6키+" }
+    if e.cls == "clean" { return "추정:R5 curated 2음절+/명시 예외" }
     let consonantOnly = e.hangul.unicodeScalars.allSatisfy { (0x3131...0x314E).contains($0.value) }
     if consonantOnly, e.hangul.count >= 4 { return "자음열4+" }
     if let first = e.hangul.unicodeScalars.first, (0x314F...0x3163).contains(first.value) {
