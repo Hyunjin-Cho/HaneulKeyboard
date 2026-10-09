@@ -24,6 +24,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private var onboardingWindow: NSWindow?
     private var settingsWindow: NSWindow?
+    private var supportWindow: NSWindow?
+    private var updateNoticeWindow: NSWindow?
     // deinit(nonisolated)에서 해제하므로 actor 격리에서 제외.
     nonisolated(unsafe) private var sourceObserver: NSObjectProtocol?
 
@@ -44,13 +46,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // 사라진다).
         DispatchQueue.main.async { [weak self] in
             self?.setupStatusItem()
+            if !UserDefaults.standard.bool(forKey: "haneul.hasCompletedOnboarding") {
+                self?.showOnboarding()
+            }
         }
 
-        // 2026-09-21 (#19): 자동 업데이트 확인 스케줄(실행 시 1회 + 정기, 24시간 throttle).
+        core.updater.onUpdateAvailable = { [weak self] update in
+            self?.showUpdateNotice(update)
+        }
+        // 실행 시/정기 틱에 마지막 성공 확인에서 24시간 경과 여부와 OFF 설정을 확인한다.
         // 토글 OFF면 네트워크에 나가지 않는다. 결과는 표시만 — 설치는 사용자 클릭.
         core.updater.startAutomaticChecks()
 
-        // 입력 소스 변경 알림 → 메뉴바 한/A 글자 + core 상태 갱신.
+        // 입력 소스 변경 알림 → 메뉴바 도움말·접근성 설명 + core 상태 갱신.
         sourceObserver = DistributedNotificationCenter.default.addObserver(
             forName: NSNotification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String),
             object: nil, queue: .main
@@ -58,7 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             // queue: .main이라 항상 메인 스레드에서 실행 — main actor로 안전하게 진입.
             MainActor.assumeIsolated {
                 self?.core.refreshLanguage()
-                self?.updateButtonTitle()
+                self?.updateButtonDescription()
             }
         }
     }
@@ -66,11 +74,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "character.bubble",
-                                   accessibilityDescription: "HaneulKeyboard")
-            button.image?.isTemplate = true
-            button.imagePosition = .imageLeading
-            updateButtonTitle()
+            // 2026-10-09: 사용자 확정 처마/ㅎ. 안내 화면과 같은 템플릿을 쓴다.
+            button.image = HaneulStatusIcon.image
+            button.imagePosition = .imageOnly
+            button.title = ""
+            updateButtonDescription()
         }
         let menu = NSMenu()
         menu.delegate = self          // 열 때마다 menuNeedsUpdate로 동적 재구성
@@ -83,8 +91,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    private func updateButtonTitle() {
-        statusItem?.button?.title = InputSwitcher.isKoreanActive() ? " 한" : " A"
+    private func updateButtonDescription() {
+        let language = InputSwitcher.isKoreanActive() ? "한국어" : "영어"
+        statusItem?.button?.toolTip = "하늘키보드 · 현재 \(language)"
+        statusItem?.button?.setAccessibilityLabel("하늘키보드, 현재 \(language)")
     }
 
     // MARK: - NSMenuDelegate (메뉴 열 때마다 현재 상태로 재구성)
@@ -116,11 +126,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         // 2026-09-21 (#19): 새 버전이 있으면 알린다 — 설치는 설정의 [업데이트]에서 사용자가.
         if case .available(let update) = core.updater.phase {
-            add(menu, "새 버전 \(update.tag) 사용 가능 — 업데이트...", #selector(openSettings))
+            add(menu, "새 버전 \(update.tag) 사용 가능 — 업데이트...", #selector(openUpdateSettings))
         }
 
         menu.addItem(.separator())
         add(menu, "설정...", #selector(openSettings))
+        add(menu, SupportView.title + "…", #selector(openSupport))
         if hasCompleted {
             add(menu, "시작하기 다시 보기...", #selector(showOnboarding))
         }
@@ -145,7 +156,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         core.refreshLanguage()
         let wasKorean = core.isKoreanActive
         let switched = core.toggleLanguage()
-        updateButtonTitle()
+        updateButtonDescription()
         guard !switched else { return }
         // 2026-09-20 (#45, 리뷰 F-5): 전환 실패를 삼키지 않는다 — reenableIME(리뷰 M-3)와 같은
         // 패턴. 영어 방향은 영문 자판이 하나도 없거나 선택 불가일 때, 한국어 방향은 우리
@@ -175,20 +186,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 NSApp.activate(ignoringOtherApps: true)
                 alert.runModal()
             }
-            updateButtonTitle()
+            updateButtonDescription()
         }
     }
 
     @objc private func openSettings() {
+        showSettings(tab: nil)
+    }
+
+    @objc private func openUpdateSettings() {
+        showSettings(tab: .update)
+    }
+
+    private func showUpdateNotice(_ update: AvailableUpdate) {
+        updateNoticeWindow?.close()
+        let window = UpdateNoticeWindow.make(version: update.tag, currentVersion: Updater.currentVersion) { [weak self] in
+            self?.showSettings(tab: .update)
+        }
+        updateNoticeWindow = window
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+    }
+
+    private func showSettings(tab: SettingsTab?) {
         // SwiftUI Settings scene을 selector(showSettingsWindow:)로 여는 방식이
         // macOS 26에서 동작하지 않아(메뉴 클릭 무반응), 설정도 onboarding과 동일하게
         // NSWindow + NSHostingController로 직접 띄운다.
         NSApp.activate(ignoringOtherApps: true)
         if let win = settingsWindow {
             win.makeKeyAndOrderFront(nil)
+            if let tab {
+                NotificationCenter.default.post(name: .haneulSettingsTabRequested, object: tab)
+            }
             return
         }
-        let hosting = NSHostingController(rootView: SettingsView(core: core))
+        let hosting = NSHostingController(rootView: SettingsView(core: core, initialTab: tab ?? .general))
         let win = NSWindow(contentViewController: hosting)
         // 2026-09-21 (#60): 제목 문구는 `SettingsView.windowTitle` 한 곳에서 정한다.
         win.title = SettingsView.windowTitle
@@ -199,27 +231,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         win.makeKeyAndOrderFront(nil)
     }
 
+    @objc private func openSupport() {
+        NSApp.activate(ignoringOtherApps: true)
+        if let win = supportWindow {
+            win.makeKeyAndOrderFront(nil)
+            return
+        }
+        let win = SupportWindow.make()
+        supportWindow = win
+        win.makeKeyAndOrderFront(nil)
+    }
+
     @objc private func quit() {
         NSApplication.shared.terminate(nil)
     }
 
     @objc private func showOnboarding() {
         NSApp.activate(ignoringOtherApps: true)
-        if let win = onboardingWindow {
+        if let win = onboardingWindow, win.isVisible {
             win.makeKeyAndOrderFront(nil)
             return
         }
         // (review-0712 P3-6) 온보딩 "완료"가 이 창을 실제로 닫도록 클로저를
         // 넘긴다. 수동 NSWindow라 SwiftUI dismiss()는 동작하지 않는다.
         // isReleasedWhenClosed = false라 close() 후에도 재사용할 수 있다.
-        let hosting = NSHostingController(rootView: OnboardingView(core: core) { [weak self] in
-            self?.onboardingWindow?.close()
-        })
-        let win = NSWindow(contentViewController: hosting)
-        win.title = "HaneulKeyboard 시작하기"
-        win.styleMask = [.titled, .closable]
-        win.isReleasedWhenClosed = false   // 재사용 위해 닫혀도 해제 안 함
-        win.center()
+        let win = OnboardingWindow.make(rootView: OnboardingView(
+            core: core,
+            onSettings: { [weak self] in self?.showSettings(tab: $0) },
+            onSupport: { [weak self] in self?.openSupport() },
+            onComplete: { [weak self] in self?.onboardingWindow?.close() }))
         onboardingWindow = win
         win.makeKeyAndOrderFront(nil)
     }

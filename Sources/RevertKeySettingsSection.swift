@@ -25,6 +25,9 @@ struct RevertKeySettingsSection: View {
         RevertKeySettingsSection.imeDefaults?
             .object(forKey: RevertKey.manualToggleAllWordsKey) as? Bool
             ?? RevertKey.manualToggleAllWordsDefault
+    @State private var phoneticEnabled: Bool =
+        RevertKeySettingsSection.imeDefaults?.object(forKey: RevertKey.phoneticKey) as? Bool
+            ?? RevertKey.phoneticDefault
     @State private var disabledIDs: [String] =
         RevertKeySettingsSection.imeDefaults?.stringArray(forKey: AutoConvertPolicy.disabledAppsKey) ?? []
     @State private var showingAppPicker = false
@@ -54,6 +57,14 @@ struct RevertKeySettingsSection: View {
                     Self.imeDefaults?.set(newValue, forKey: RevertKey.manualToggleAllWordsKey)
                 }
             Text("자동으로 바뀌지 않은 단어까지 이 키로 한↔영을 바꿉니다. 예) 재가 ↔ work")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Toggle("등록된 한글 표기를 영어로 바꾸기", isOn: $phoneticEnabled)
+                .onChange(of: phoneticEnabled) { _, newValue in
+                    Self.imeDefaults?.set(newValue, forKey: RevertKey.phoneticKey)
+                }
+            Text("위 단축키로 레스토랑 → restaurant, 축구 → football처럼 바꿉니다. 다시 누르면 입력한 한글로 돌아옵니다. 일반 Space에서는 바뀌지 않으며, 등록된 표기만 지원합니다.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

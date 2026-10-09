@@ -1,0 +1,6 @@
+word,hangul_form,class,in_urimalsaem,standalone_before,standalone_after,context_before,context_after,trigger_before,trigger_after,tier,note
+american,믇걏무,broken,0,0,1,0,1,0,1,C,""
+baseball,ㅠㅁㄴ듀미ㅣ,broken,0,1,1,1,1,1,1,C,"변화 없음(베이스에서 이미 변환)"
+football,래ㅐ슈미ㅣ,broken,0,1,1,1,1,1,1,C,"변화 없음(베이스에서 이미 변환)"
+rider,걍ㄷㄱ,broken,0,1,1,1,1,1,1,C,"변화 없음(베이스에서 이미 변환)"
+sports,네ㅐㄱㅅㄴ,broken,0,1,1,1,1,1,1,C,"변화 없음(베이스에서 이미 변환)"

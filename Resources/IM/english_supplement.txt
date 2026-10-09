@@ -5291,3 +5291,111 @@ zhiyun
 # 변환된다(검역 Tier C). 같은 요청의 dmg(읗)·pr(ㅔㄱ)은 사전으로는 안 되는 부류라
 # EnglishDetector의 코드 목록(standaloneShortWords·shortWords)에 넣었다.
 xhigh
+
+# 2026-10-06 오너 지정어 (#74). 시스템 대문자 시작 항목도 명시 소문자로 선별.
+# 실제 영어 이름/브랜드만: 전체 대문자 시스템 사전을 일괄 허용하지 않는다.
+tangerine
+vismo
+opencode
+anti
+cinestill
+superia
+velvia
+
+# 2026-10-06 (#74): 과일·식물·꽃·생물·필름/카메라 대표 이름 보완.
+# 실제 코어 검역: dict_work/2026-10-06-nature-film-audit.csv.
+# clean 6개는 한글 표제어와 겹치지 않는 이름을 개별 검토했다.
+# all_jamo 4개(agfa/instax/monstera/portra)는 요청 범주의 등록된 이름만 허용.
+acros
+agfa
+allosaurus
+alocasia
+ankylosaurus
+apricot
+brachiosaurus
+bronica
+cactus
+calathea
+camellia
+dahlia
+diplodocus
+dragonfruit
+durian
+ektachrome
+ektar
+ficus
+fomapan
+freesia
+hibiscus
+hydrangea
+instax
+lomography
+lychee
+mamiya
+monstera
+passionfruit
+philodendron
+polaroid
+portra
+pothos
+provia
+pteranodon
+rollei
+rosemary
+seahorse
+sigma
+spinosaurus
+stegosaurus
+tokina
+triceratops
+tyrannosaurus
+voigtlander
+whale
+
+# 2026-10-08: art/design — 202-term audit, 39 additions.
+# Review: docs/art-design-vocabulary.md. slab (니뮤) intentionally excluded.
+# Clean forms reviewed: futurism (려셔갸느), riso (갸내), rococo (개채채).
+# All-jamo names reviewed: grattage / lineart; no Korean veto bypass added.
+animatic
+blackletter
+chromakey
+claymorphism
+dadaism
+debossing
+deco
+fauvism
+futurism
+gothic
+grattage
+grotesk
+italic
+letterform
+lineart
+maximalism
+misregistration
+monoprint
+monospace
+monospaced
+motiongraphics
+neobrutalism
+nouveau
+papercut
+ransomizer
+raymarching
+retrofuturism
+riso
+risograph
+risography
+rococo
+screenprint
+screenprinting
+smallcaps
+solarpunk
+stopmotion
+synthwave
+vaporwave
+watercolour
+
+# 2026-10-09 (#84): American is capitalized in web2 and excluded by the loader.
+# Explicit lowercase entry; Korean form 믇걏무, no Urimalsaem collision (Tier C).
+american

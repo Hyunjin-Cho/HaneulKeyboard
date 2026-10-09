@@ -1,0 +1,802 @@
+category	subcategory	hangul	english
+creative	art-style	초현실주의	surrealism
+creative	art-style	미니멀리즘	minimalism
+creative	art-style	모더니즘	modernism
+creative	art-style	포스트모더니즘	postmodernism
+creative	art-style	아르누보	art nouveau
+creative	art-style	아르데코	art deco
+creative	art-style	팝아트	pop art
+creative	art-style	옵아트	op art
+creative	art-style	큐비즘	cubism
+creative	art-style	입체주의	cubism
+creative	art-style	인상주의	impressionism
+creative	art-style	표현주의	expressionism
+creative	art-style	추상표현주의	abstract expressionism
+creative	art-style	다다이즘	dadaism
+creative	art-style	퓨처리즘	futurism
+creative	art-style	레트로	retro
+creative	art-style	빈티지	vintage
+creative	art-style	사이키델릭	psychedelic
+creative	art-style	사이버펑크	cyberpunk
+creative	art-style	스팀펑크	steampunk
+creative	art-style	바우하우스	Bauhaus
+creative	art-style	브루탈리즘	brutalism
+creative	art-style	스큐어모피즘	skeuomorphism
+creative	art-style	글래스모피즘	glassmorphism
+creative	art-style	듀오톤	duotone
+creative	art-style	모노톤	monotone
+creative	art-style	모노크롬	monochrome
+creative	art-style	실루엣	silhouette
+creative	art-style	모자이크	mosaic
+creative	art-style	패치워크	patchwork
+creative	art-style	아상블라주	assemblage
+creative	art-style	데칼코마니	decalcomania
+creative	art-style	스크랩북	scrapbook
+creative	art-style	젠탱글	Zentangle
+creative	art-style	두들	doodle
+creative	art-style	픽셀아트	pixel art
+creative	art-style	라인아트	line art
+creative	art-style	콘셉트아트	concept art
+creative	print-type	케닝	kerning
+creative	print-type	세리프	serif
+creative	print-type	산세리프	sans serif
+creative	print-type	이탤릭	italic
+creative	print-type	볼드	bold
+creative	print-type	글리프	glyph
+creative	print-type	리거처	ligature
+creative	print-type	타이프페이스	typeface
+creative	print-type	베이스라인	baseline
+creative	print-type	엑스하이트	x-height
+creative	print-type	어센더	ascender
+creative	print-type	디센더	descender
+creative	print-type	가변폰트	variable font
+creative	print-type	오픈타입	OpenType
+creative	print-type	모노스페이스	monospace
+creative	print-type	스크린프린트	screen print
+creative	print-type	실크스크린	silkscreen
+creative	print-type	리소인쇄	riso printing
+creative	print-type	석판화	lithography
+creative	print-type	리노컷	linocut
+creative	print-type	목판화	woodcut
+creative	print-type	에칭	etching
+creative	print-type	엠보싱	embossing
+creative	print-type	디보싱	debossing
+creative	print-type	오버프린트	overprint
+creative	print-type	잉크	ink
+creative	print-type	피그먼트	pigment
+creative	print-type	종이결	paper grain
+creative	print-type	망점	halftone
+creative	print-type	색분해	color separation
+creative	print-type	색판어긋남	misregistration
+creative	print-type	도련	bleed
+creative	print-type	트림마크	trim marks
+creative	print-type	컬러프로파일	color profile
+creative	camera-light	시네마	cinema
+creative	camera-light	시네마틱	cinematic
+creative	camera-light	시네마토그래피	cinematography
+creative	camera-light	필름	film
+creative	camera-light	디지털	digital
+creative	camera-light	아날로그	analog
+creative	camera-light	센서	sensor
+creative	camera-light	셔터	shutter
+creative	camera-light	셔터스피드	shutter speed
+creative	camera-light	셔터앵글	shutter angle
+creative	camera-light	아나모픽	anamorphic
+creative	camera-light	프라임렌즈	prime lens
+creative	camera-light	줌렌즈	zoom lens
+creative	camera-light	광각렌즈	wide-angle lens
+creative	camera-light	망원렌즈	telephoto lens
+creative	camera-light	어안렌즈	fisheye lens
+creative	camera-light	매크로렌즈	macro lens
+creative	camera-light	오토포커스	autofocus
+creative	camera-light	팔로우포커스	follow focus
+creative	camera-light	랙포커스	rack focus
+creative	camera-light	피킹	peaking
+creative	camera-light	보케	bokeh
+creative	camera-light	화이트밸런스	white balance
+creative	camera-light	다이내믹레인지	dynamic range
+creative	camera-light	롤링셔터	rolling shutter
+creative	camera-light	글로벌셔터	global shutter
+creative	camera-light	짐벌	gimbal
+creative	camera-light	스테디캠	Steadicam
+creative	camera-light	트라이포드	tripod
+creative	camera-light	모노포드	monopod
+creative	camera-light	핸드헬드	handheld
+creative	camera-light	돌리	dolly
+creative	camera-light	크레인	crane
+creative	camera-light	클로즈업	close-up
+creative	camera-light	롱테이크	long take
+creative	camera-light	타임랩스	time-lapse
+creative	camera-light	하이퍼랩스	hyperlapse
+creative	camera-light	슬로모션	slow motion
+creative	camera-light	키라이트	key light
+creative	camera-light	필라이트	fill light
+creative	camera-light	백라이트	backlight
+creative	camera-light	림라이트	rim light
+creative	camera-light	소프트박스	softbox
+creative	camera-light	디퓨저	diffuser
+creative	camera-light	리플렉터	reflector
+creative	camera-light	프레넬	Fresnel
+creative	camera-light	고보	gobo
+creative	camera-light	바운스	bounce
+creative	edit-color	프리프로덕션	pre-production
+creative	edit-color	프로덕션	production
+creative	edit-color	포스트프로덕션	post-production
+creative	edit-color	러프컷	rough cut
+creative	edit-color	파인컷	fine cut
+creative	edit-color	파이널컷	final cut
+creative	edit-color	점프컷	jump cut
+creative	edit-color	매치컷	match cut
+creative	edit-color	크로스컷	cross-cut
+creative	edit-color	디졸브	dissolve
+creative	edit-color	페이드인	fade-in
+creative	edit-color	페이드아웃	fade-out
+creative	edit-color	와이프	wipe
+creative	edit-color	프록시	proxy
+creative	edit-color	컨폼	conform
+creative	edit-color	트랜스코딩	transcoding
+creative	edit-color	인코딩	encoding
+creative	edit-color	디코딩	decoding
+creative	edit-color	프레임레이트	frame rate
+creative	edit-color	타임코드	timecode
+creative	edit-color	드롭프레임	drop frame
+creative	edit-color	멀티캠	multicam
+creative	edit-color	리타이밍	retiming
+creative	edit-color	스피드램프	speed ramp
+creative	edit-color	옵티컬플로	optical flow
+creative	edit-color	인터레이스	interlace
+creative	edit-color	디인터레이스	deinterlace
+creative	edit-color	오프라인편집	offline editing
+creative	edit-color	온라인편집	online editing
+creative	edit-color	컬러그레이딩	color grading
+creative	edit-color	컬러커렉션	color correction
+creative	edit-color	색보정	color grading
+creative	edit-color	색교정	color correction
+creative	edit-color	디베이어	debayer
+creative	edit-color	웨이브폼	waveform
+creative	edit-color	벡터스코프	vectorscope
+creative	edit-color	히스토그램	histogram
+creative	edit-color	감마	gamma
+creative	edit-color	게인	gain
+creative	edit-color	리프트	lift
+creative	edit-color	채도	saturation
+creative	edit-color	색온도	color temperature
+creative	edit-color	하이라이트	highlight
+creative	edit-color	미드톤	midtone
+creative	edit-color	섀도	shadow
+creative	edit-color	비네트	vignette
+creative	edit-color	디더링	dithering
+creative	edit-color	디밴딩	debanding
+creative	edit-color	레터박스	letterbox
+creative	edit-color	필러박스	pillarbox
+creative	vfx-3d	시각효과	VFX
+creative	vfx-3d	브이에프엑스	VFX
+creative	vfx-3d	모션그래픽	motion graphics
+creative	vfx-3d	모션캡처	motion capture
+creative	vfx-3d	페이셜캡처	facial capture
+creative	vfx-3d	매치무브	matchmove
+creative	vfx-3d	카메라트래킹	camera tracking
+creative	vfx-3d	키잉	keying
+creative	vfx-3d	디스필	despill
+creative	vfx-3d	알파채널	alpha channel
+creative	vfx-3d	루마키	luma key
+creative	vfx-3d	로토	roto
+creative	vfx-3d	로토페인트	roto paint
+creative	vfx-3d	그린스크린	green screen
+creative	vfx-3d	블루스크린	blue screen
+creative	vfx-3d	매트페인팅	matte painting
+creative	vfx-3d	클린플레이트	clean plate
+creative	vfx-3d	홀드아웃	holdout
+creative	vfx-3d	와이어제거	wire removal
+creative	vfx-3d	스필억제	spill suppression
+creative	vfx-3d	프리멀티플라이	premultiply
+creative	vfx-3d	언프리멀티플라이	unpremultiply
+creative	vfx-3d	디노이즈	denoise
+creative	vfx-3d	리그레인	regrain
+creative	vfx-3d	모션블러	motion blur
+creative	vfx-3d	디포커스	defocus
+creative	vfx-3d	렌즈플레어	lens flare
+creative	vfx-3d	글로	glow
+creative	vfx-3d	글리치	glitch
+creative	vfx-3d	디스토션	distortion
+creative	vfx-3d	디스플레이스먼트	displacement
+creative	vfx-3d	모델링	modeling
+creative	vfx-3d	리깅	rigging
+creative	vfx-3d	스키닝	skinning
+creative	vfx-3d	스컬프팅	sculpting
+creative	vfx-3d	리토폴로지	retopology
+creative	vfx-3d	토폴로지	topology
+creative	vfx-3d	메시	mesh
+creative	vfx-3d	폴리곤	polygon
+creative	vfx-3d	버텍스	vertex
+creative	vfx-3d	노멀	normal
+creative	vfx-3d	셰이더	shader
+creative	vfx-3d	셰이딩	shading
+creative	vfx-3d	머티리얼	material
+creative	vfx-3d	베이킹	baking
+creative	vfx-3d	언랩	unwrap
+creative	vfx-3d	익스트루드	extrude
+creative	vfx-3d	베벨	bevel
+creative	vfx-3d	서브디비전	subdivision
+creative	vfx-3d	인스턴싱	instancing
+creative	vfx-3d	파티클	particle
+creative	vfx-3d	시뮬레이션	simulation
+creative	vfx-3d	솔버	solver
+creative	vfx-3d	볼류메트릭	volumetric
+creative	vfx-3d	레이마칭	ray marching
+creative	vfx-3d	레이캐스팅	ray casting
+creative	vfx-3d	패스트레이싱	path tracing
+creative	vfx-3d	앰비언트오클루전	ambient occlusion
+creative	vfx-3d	글로벌일루미네이션	global illumination
+creative	vfx-3d	서브서피스스캐터링	subsurface scattering
+creative	vfx-3d	알베도	albedo
+creative	vfx-3d	러프니스	roughness
+creative	vfx-3d	메탈니스	metalness
+creative	vfx-3d	노멀맵	normal map
+creative	vfx-3d	범프맵	bump map
+creative	vfx-3d	렌더패스	render pass
+creative	vfx-3d	렌더팜	render farm
+creative	vfx-3d	블렌드셰이프	blend shape
+creative	vfx-3d	키네마틱스	kinematics
+creative	vfx-3d	인버스키네마틱스	inverse kinematics
+creative	vfx-3d	포워드키네마틱스	forward kinematics
+creative	audio-music	폴리	foley
+creative	audio-music	앰비언스	ambience
+creative	audio-music	룸톤	room tone
+creative	audio-music	보이스오버	voice-over
+creative	audio-music	내레이션	narration
+creative	audio-music	더빙	dubbing
+creative	audio-music	립싱크	lip sync
+creative	audio-music	사운드트랙	soundtrack
+creative	audio-music	모노	mono
+creative	audio-music	스테레오	stereo
+creative	audio-music	서라운드	surround
+creative	audio-music	패닝	panning
+creative	audio-music	이퀄라이저	equalizer
+creative	audio-music	컴프레서	compressor
+creative	audio-music	리미터	limiter
+creative	audio-music	리버브	reverb
+creative	audio-music	딜레이	delay
+creative	audio-music	에코	echo
+creative	audio-music	디에서	de-esser
+creative	audio-music	디클릭	de-click
+creative	audio-music	디클립	de-clip
+creative	audio-music	노이즈게이트	noise gate
+creative	audio-music	노이즈리덕션	noise reduction
+creative	audio-music	하이패스필터	high-pass filter
+creative	audio-music	로패스필터	low-pass filter
+creative	audio-music	크로스페이드	crossfade
+creative	audio-music	샘플레이트	sample rate
+creative	audio-music	비트뎁스	bit depth
+creative	audio-music	레이턴시	latency
+creative	audio-music	클리핑	clipping
+creative	audio-music	디더	dither
+creative	audio-music	노멀라이즈	normalize
+creative	audio-music	라우드니스	loudness
+creative	audio-music	헤드룸	headroom
+creative	audio-music	피크	peak
+creative	audio-music	스템	stem
+creative	audio-music	보컬	vocal
+creative	audio-music	코러스	chorus
+creative	audio-music	하모니	harmony
+creative	audio-music	멜로디	melody
+creative	audio-music	리듬	rhythm
+creative	audio-music	템포	tempo
+creative	audio-music	메트로놈	metronome
+creative	audio-music	신시사이저	synthesizer
+creative	audio-music	시퀀서	sequencer
+creative	audio-music	샘플러	sampler
+creative	audio-music	루프	loop
+creative	audio-music	리믹스	remix
+creative	audio-music	어쿠스틱	acoustic
+creative	audio-music	일렉트로닉	electronic
+creative	audio-music	힙합	hip-hop
+creative	audio-music	재즈	jazz
+creative	audio-music	블루스	blues
+creative	audio-music	레게	reggae
+creative	audio-music	테크노	techno
+creative	audio-music	앰비언트	ambient
+creative	audio-music	로파이	lo-fi
+creative	design-work	와이어프레임	wireframe
+creative	design-work	프로토타입	prototype
+creative	design-work	목업	mockup
+creative	design-work	무드보드	mood board
+creative	design-work	브랜딩	branding
+creative	design-work	리브랜딩	rebranding
+creative	design-work	가이드라인	guideline
+creative	design-work	키비주얼	key visual
+creative	design-work	콘텐츠	content
+creative	design-work	카피라이팅	copywriting
+creative	design-work	타깃	target
+creative	design-work	슬로건	slogan
+creative	design-work	태그라인	tagline
+creative	design-work	페르소나	persona
+creative	design-work	어포던스	affordance
+creative	design-work	인터랙션	interaction
+creative	design-work	마이크로인터랙션	microinteraction
+creative	design-work	내비게이션	navigation
+creative	design-work	랜딩페이지	landing page
+creative	design-work	히어로이미지	hero image
+creative	design-work	툴팁	tooltip
+creative	design-work	캐러셀	carousel
+creative	design-work	드롭다운	dropdown
+creative	design-work	아코디언	accordion
+creative	design-work	모달	modal
+creative	design-work	스플래시	splash
+creative	design-work	온보딩	onboarding
+creative	design-work	디자인시스템	design system
+creative	design-work	디자인토큰	design token
+everyday	food	베이글	bagel
+everyday	food	크루아상	croissant
+everyday	food	브리오슈	brioche
+everyday	food	바게트	baguette
+everyday	food	치아바타	ciabatta
+everyday	food	사워도	sourdough
+everyday	food	프레첼	pretzel
+everyday	food	스콘	scone
+everyday	food	머핀	muffin
+everyday	food	브라우니	brownie
+everyday	food	와플	waffle
+everyday	food	팬케이크	pancake
+everyday	food	토스트	toast
+everyday	food	도넛	doughnut
+everyday	food	타르트	tart
+everyday	food	파이	pie
+everyday	food	푸딩	pudding
+everyday	food	젤라토	gelato
+everyday	food	셔벗	sherbet
+everyday	food	마카롱	macaron
+everyday	food	티라미수	tiramisu
+everyday	food	치즈케이크	cheesecake
+everyday	food	캐러멜	caramel
+everyday	food	커스터드	custard
+everyday	food	생크림	fresh cream
+everyday	food	바닐라	vanilla
+everyday	food	시나몬	cinnamon
+everyday	food	그래놀라	granola
+everyday	food	오트밀	oatmeal
+everyday	food	아몬드	almond
+everyday	food	피스타치오	pistachio
+everyday	food	캐슈너트	cashew
+everyday	food	헤이즐넛	hazelnut
+everyday	food	피칸	pecan
+everyday	food	마카다미아	macadamia
+everyday	food	크랜베리	cranberry
+everyday	food	블루베리	blueberry
+everyday	food	라즈베리	raspberry
+everyday	food	체리	cherry
+everyday	food	자몽	grapefruit
+everyday	food	라임	lime
+everyday	food	코코넛	coconut
+everyday	food	패션프루트	passion fruit
+everyday	food	리치	lychee
+everyday	food	파파야	papaya
+everyday	food	바질	basil
+everyday	food	로즈메리	rosemary
+everyday	food	오레가노	oregano
+everyday	food	파슬리	parsley
+everyday	food	민트	mint
+everyday	food	올리브	olive
+everyday	food	아스파라거스	asparagus
+everyday	food	셀러리	celery
+everyday	food	주키니	zucchini
+everyday	food	라자냐	lasagna
+everyday	food	리소토	risotto
+everyday	food	뇨키	gnocchi
+everyday	food	라비올리	ravioli
+everyday	food	스파게티	spaghetti
+everyday	food	페투치네	fettuccine
+everyday	food	펜네	penne
+everyday	food	파르메산	Parmesan
+everyday	food	모차렐라	mozzarella
+everyday	food	체더	cheddar
+everyday	food	베이컨	bacon
+everyday	food	소시지	sausage
+everyday	food	미트볼	meatball
+everyday	food	타코	taco
+everyday	food	부리토	burrito
+everyday	food	케사디야	quesadilla
+everyday	food	나초	nachos
+everyday	food	팔라펠	falafel
+everyday	food	후무스	hummus
+everyday	food	커리	curry
+everyday	food	수프	soup
+everyday	food	스튜	stew
+everyday	food	오믈렛	omelet
+everyday	food	프리타타	frittata
+everyday	food	브런치	brunch
+everyday	food	뷔페	buffet
+everyday	food	케이터링	catering
+everyday	food	비건	vegan
+everyday	food	베지테리언	vegetarian
+everyday	food	글루텐프리	gluten-free
+everyday	drink-cafe	아메리카노	americano
+everyday	drink-cafe	라테	latte
+everyday	drink-cafe	카페라테	caffe latte
+everyday	drink-cafe	카페모카	caffe mocha
+everyday	drink-cafe	마키아토	macchiato
+everyday	drink-cafe	콜드브루	cold brew
+everyday	drink-cafe	디카페인	decaf
+everyday	drink-cafe	플랫화이트	flat white
+everyday	drink-cafe	아포가토	affogato
+everyday	drink-cafe	핸드드립	pour-over coffee
+everyday	drink-cafe	로스팅	roasting
+everyday	drink-cafe	블렌드	blend
+everyday	drink-cafe	싱글오리진	single origin
+everyday	drink-cafe	바리스타	barista
+everyday	drink-cafe	테이크아웃	takeout
+everyday	drink-cafe	디저트카페	dessert cafe
+everyday	drink-cafe	밀크셰이크	milkshake
+everyday	drink-cafe	레모네이드	lemonade
+everyday	drink-cafe	콤부차	kombucha
+everyday	drink-cafe	얼그레이	Earl Grey
+everyday	drink-cafe	카모마일	chamomile
+everyday	drink-cafe	페퍼민트	peppermint
+everyday	drink-cafe	루이보스	rooibos
+everyday	drink-cafe	히비스커스	hibiscus
+everyday	drink-cafe	우롱차	oolong tea
+everyday	drink-cafe	녹차	green tea
+everyday	drink-cafe	홍차	black tea
+everyday	drink-cafe	아이스티	iced tea
+everyday	drink-cafe	와인	wine
+everyday	drink-cafe	레드와인	red wine
+everyday	drink-cafe	화이트와인	white wine
+everyday	drink-cafe	스파클링와인	sparkling wine
+everyday	drink-cafe	샴페인	champagne
+everyday	drink-cafe	위스키	whisky
+everyday	drink-cafe	보드카	vodka
+everyday	drink-cafe	데킬라	tequila
+everyday	drink-cafe	칵테일	cocktail
+everyday	drink-cafe	모히토	mojito
+everyday	drink-cafe	마르가리타	margarita
+everyday	drink-cafe	마티니	martini
+everyday	drink-cafe	에일	ale
+everyday	drink-cafe	라거	lager
+everyday	drink-cafe	스타우트	stout
+everyday	travel	호스텔	hostel
+everyday	travel	게스트하우스	guesthouse
+everyday	travel	캡슐호텔	capsule hotel
+everyday	travel	부티크호텔	boutique hotel
+everyday	travel	프런트데스크	front desk
+everyday	travel	컨시어지	concierge
+everyday	travel	룸서비스	room service
+everyday	travel	미니바	minibar
+everyday	travel	어메니티	amenity
+everyday	travel	라운지	lounge
+everyday	travel	로비	lobby
+everyday	travel	스위트룸	suite
+everyday	travel	트윈룸	twin room
+everyday	travel	더블룸	double room
+everyday	travel	싱글룸	single room
+everyday	travel	오션뷰	ocean view
+everyday	travel	시티뷰	city view
+everyday	travel	여권	passport
+everyday	travel	탑승권	boarding pass
+everyday	travel	보딩패스	boarding pass
+everyday	travel	게이트	gate
+everyday	travel	공항터미널	airport terminal
+everyday	travel	수하물	baggage
+everyday	travel	기내수하물	carry-on baggage
+everyday	travel	환승	transfer
+everyday	travel	레이오버	layover
+everyday	travel	스톱오버	stopover
+everyday	travel	면세점	duty-free shop
+everyday	travel	이코노미클래스	economy class
+everyday	travel	비즈니스클래스	business class
+everyday	travel	퍼스트클래스	first class
+everyday	travel	렌터카	rental car
+everyday	travel	셔틀	shuttle
+everyday	travel	페리	ferry
+everyday	travel	크루즈	cruise
+everyday	travel	케이블카	cable car
+everyday	travel	트램	tram
+everyday	travel	메트로	metro
+everyday	travel	모노레일	monorail
+everyday	travel	가이드	guide
+everyday	travel	투어	tour
+everyday	travel	랜드마크	landmark
+everyday	travel	기념품	souvenir
+everyday	travel	엽서	postcard
+everyday	travel	도미토리	dormitory
+everyday	travel	글램핑	glamping
+everyday	travel	카라반	caravan
+everyday	lifestyle-work	스니커즈	sneakers
+everyday	lifestyle-work	로퍼	loafer
+everyday	lifestyle-work	샌들	sandal
+everyday	lifestyle-work	부츠	boots
+everyday	lifestyle-work	슬리퍼	slippers
+everyday	lifestyle-work	카디건	cardigan
+everyday	lifestyle-work	블레이저	blazer
+everyday	lifestyle-work	후디	hoodie
+everyday	lifestyle-work	스웨트셔츠	sweatshirt
+everyday	lifestyle-work	데님	denim
+everyday	lifestyle-work	청바지	jeans
+everyday	lifestyle-work	팬츠	pants
+everyday	lifestyle-work	스커트	skirt
+everyday	lifestyle-work	드레스	dress
+everyday	lifestyle-work	블라우스	blouse
+everyday	lifestyle-work	트렌치코트	trench coat
+everyday	lifestyle-work	롱패딩	long puffer jacket
+everyday	lifestyle-work	비니	beanie
+everyday	lifestyle-work	스카프	scarf
+everyday	lifestyle-work	백팩	backpack
+everyday	lifestyle-work	토트백	tote bag
+everyday	lifestyle-work	숄더백	shoulder bag
+everyday	lifestyle-work	크로스백	crossbody bag
+everyday	lifestyle-work	선글라스	sunglasses
+everyday	lifestyle-work	액세서리	accessory
+everyday	lifestyle-work	모이스처라이저	moisturizer
+everyday	lifestyle-work	선크림	sunscreen
+everyday	lifestyle-work	컨디셔너	conditioner
+everyday	lifestyle-work	립밤	lip balm
+everyday	lifestyle-work	핸드크림	hand cream
+everyday	lifestyle-work	바디워시	body wash
+everyday	lifestyle-work	메이크업	makeup
+everyday	lifestyle-work	파운데이션	foundation
+everyday	lifestyle-work	컨실러	concealer
+everyday	lifestyle-work	마스카라	mascara
+everyday	lifestyle-work	아이섀도	eyeshadow
+everyday	lifestyle-work	인테리어	interior
+everyday	lifestyle-work	소파	sofa
+everyday	lifestyle-work	테이블	table
+everyday	lifestyle-work	데스크	desk
+everyday	lifestyle-work	매트리스	mattress
+everyday	lifestyle-work	쿠션	cushion
+everyday	lifestyle-work	커튼	curtain
+everyday	lifestyle-work	블라인드	blind
+everyday	lifestyle-work	카펫	carpet
+everyday	lifestyle-work	캔들	candle
+everyday	lifestyle-work	일정	schedule
+everyday	lifestyle-work	스케줄	schedule
+everyday	lifestyle-work	캘린더	calendar
+everyday	lifestyle-work	데드라인	deadline
+everyday	lifestyle-work	마일스톤	milestone
+everyday	lifestyle-work	피드백	feedback
+everyday	lifestyle-work	브리핑	briefing
+everyday	lifestyle-work	브레인스토밍	brainstorming
+everyday	lifestyle-work	워크숍	workshop
+everyday	lifestyle-work	세미나	seminar
+everyday	lifestyle-work	웨비나	webinar
+everyday	lifestyle-work	프레젠테이션	presentation
+everyday	lifestyle-work	포트폴리오	portfolio
+everyday	lifestyle-work	프리랜서	freelancer
+everyday	lifestyle-work	스타트업	startup
+everyday	lifestyle-work	마케팅	marketing
+everyday	lifestyle-work	캠페인	campaign
+everyday	lifestyle-work	뉴스레터	newsletter
+everyday	lifestyle-work	구독	subscription
+computing	hardware-network	데스크톱	desktop
+computing	hardware-network	워크스테이션	workstation
+computing	hardware-network	메인보드	motherboard
+computing	hardware-network	마더보드	motherboard
+computing	hardware-network	그래픽카드	graphics card
+computing	hardware-network	사운드카드	sound card
+computing	hardware-network	캡처카드	capture card
+computing	hardware-network	랜카드	network adapter
+computing	hardware-network	방열판	heatsink
+computing	hardware-network	쿨러	cooler
+computing	hardware-network	파워서플라이	power supply
+computing	hardware-network	스토리지	storage
+computing	hardware-network	하드디스크	hard disk
+computing	hardware-network	플래시메모리	flash memory
+computing	hardware-network	도킹스테이션	docking station
+computing	hardware-network	와이파이	Wi-Fi
+computing	hardware-network	이더넷	Ethernet
+computing	hardware-network	대역폭	bandwidth
+computing	hardware-network	패킷	packet
+computing	hardware-network	프로토콜	protocol
+computing	hardware-network	도메인	domain
+computing	hardware-network	호스팅	hosting
+computing	hardware-network	프록시서버	proxy server
+computing	hardware-network	방화벽	firewall
+computing	hardware-network	암호화	encryption
+computing	hardware-network	복호화	decryption
+computing	hardware-network	인증	authentication
+computing	hardware-network	이중인증	two-factor authentication
+computing	hardware-network	엔드포인트	endpoint
+computing	hardware-network	로드밸런서	load balancer
+computing	hardware-network	타임아웃	timeout
+computing	hardware-network	세션	session
+computing	hardware-network	스트리밍	streaming
+computing	hardware-network	버퍼링	buffering
+computing	hardware-network	썸네일	thumbnail
+computing	hardware-network	해상도	resolution
+computing	hardware-network	화면비	aspect ratio
+computing	hardware-network	주사율	refresh rate
+computing	hardware-network	터치스크린	touchscreen
+computing	development	프로그래밍	programming
+computing	development	코딩	coding
+computing	development	개발자	developer
+computing	development	프런트엔드	frontend
+computing	development	백엔드	backend
+computing	development	풀스택	full stack
+computing	development	프레임워크	framework
+computing	development	라이브러리	library
+computing	development	패키지	package
+computing	development	모듈	module
+computing	development	컴포넌트	component
+computing	development	클래스	class
+computing	development	객체	object
+computing	development	함수	function
+computing	development	변수	variable
+computing	development	상수	constant
+computing	development	배열	array
+computing	development	문자열	string
+computing	development	정수	integer
+computing	development	불리언	boolean
+computing	development	제네릭	generic
+computing	development	콜백	callback
+computing	development	클로저	closure
+computing	development	람다	lambda
+computing	development	이터레이터	iterator
+computing	development	재귀	recursion
+computing	development	비동기	async
+computing	development	동기화	synchronization
+computing	development	스레드	thread
+computing	development	프로세스	process
+computing	development	동시성	concurrency
+computing	development	뮤텍스	mutex
+computing	development	세마포어	semaphore
+computing	development	데드락	deadlock
+computing	development	컴파일	compile
+computing	development	컴파일러	compiler
+computing	development	인터프리터	interpreter
+computing	development	런타임	runtime
+computing	development	링커	linker
+computing	development	빌드	build
+computing	development	배포	deployment
+computing	development	커밋	commit
+computing	development	브랜치	branch
+computing	development	머지	merge
+computing	development	리베이스	rebase
+computing	development	풀리퀘스트	pull request
+computing	development	체리픽	cherry-pick
+computing	development	리팩터링	refactoring
+computing	development	유닛테스트	unit test
+computing	development	통합테스트	integration test
+computing	development	회귀테스트	regression test
+computing	development	목객체	mock object
+computing	development	스텁	stub
+computing	development	벤치마크	benchmark
+computing	development	프로파일링	profiling
+computing	development	최적화	optimization
+computing	development	파서	parser
+computing	development	직렬화	serialization
+computing	development	역직렬화	deserialization
+computing	development	정규식	regex
+computing	development	쿼리	query
+computing	development	인덱스	index
+computing	development	스키마	schema
+computing	development	트랜잭션	transaction
+computing	development	마이그레이션	migration
+computing	development	오브저버	observer
+computing	development	싱글턴	singleton
+computing	development	의존성	dependency
+computing	development	추상화	abstraction
+computing	development	캡슐화	encapsulation
+computing	development	상속	inheritance
+computing	development	다형성	polymorphism
+computing	development	컨테이너	container
+computing	development	가상머신	virtual machine
+computing	development	웹훅	webhook
+computing	development	직렬큐	serial queue
+computing	ai	인공지능	AI
+computing	ai	에이아이	AI
+computing	ai	머신러닝	machine learning
+computing	ai	딥러닝	deep learning
+computing	ai	신경망	neural network
+computing	ai	트랜스포머	transformer
+computing	ai	임베딩	embedding
+computing	ai	토크나이저	tokenizer
+computing	ai	토큰화	tokenization
+computing	ai	파인튜닝	fine-tuning
+computing	ai	사전학습	pretraining
+computing	ai	강화학습	reinforcement learning
+computing	ai	지도학습	supervised learning
+computing	ai	비지도학습	unsupervised learning
+computing	ai	전이학습	transfer learning
+computing	ai	증류	distillation
+computing	ai	양자화	quantization
+computing	ai	멀티모달	multimodal
+computing	ai	추론	inference
+computing	ai	데이터셋	dataset
+computing	ai	텐서	tensor
+computing	ai	벡터데이터베이스	vector database
+computing	ai	컨텍스트	context
+computing	ai	컨텍스트윈도	context window
+computing	ai	프롬프트엔지니어링	prompt engineering
+computing	ai	검색증강생성	RAG
+computing	ai	할루시네이션	hallucination
+computing	ai	오버피팅	overfitting
+computing	ai	언더피팅	underfitting
+computing	ai	손실함수	loss function
+computing	ai	그래디언트	gradient
+computing	ai	하이퍼파라미터	hyperparameter
+computing	ai	옵티마이저	optimizer
+computing	ai	어텐션	attention
+computing	ai	셀프어텐션	self-attention
+computing	ai	배치사이즈	batch size
+computing	ai	체크포인트	checkpoint
+computing	ai	학습률	learning rate
+computing	ai	드롭아웃	dropout
+computing	ai	에이전트	agent
+computing	ai	스피치투텍스트	speech-to-text
+computing	ai	텍스트투스피치	text-to-speech
+computing	ai	음성인식	speech recognition
+computing	ai	음성합성	speech synthesis
+gaming	genre	게임	game
+gaming	genre	게이밍	gaming
+gaming	genre	아케이드	arcade
+gaming	genre	어드벤처	adventure
+gaming	genre	액션게임	action game
+gaming	genre	롤플레잉	role-playing
+gaming	genre	퍼즐	puzzle
+gaming	genre	플랫포머	platformer
+gaming	genre	로그라이크	roguelike
+gaming	genre	로그라이트	roguelite
+gaming	genre	메트로배니아	metroidvania
+gaming	genre	샌드박스	sandbox
+gaming	genre	오픈월드	open world
+gaming	genre	서바이벌	survival
+gaming	genre	배틀로열	battle royale
+gaming	genre	핵앤슬래시	hack and slash
+gaming	genre	턴제	turn-based
+gaming	genre	리듬게임	rhythm game
+gaming	genre	레이싱게임	racing game
+gaming	genre	슈팅게임	shooting game
+gaming	genre	슈터	shooter
+gaming	genre	비주얼노벨	visual novel
+gaming	genre	덱빌딩	deck-building
+gaming	genre	타워디펜스	tower defense
+gaming	genre	인디게임	indie game
+gaming	play	플레이어	player
+gaming	play	캐릭터	character
+gaming	play	아바타	avatar
+gaming	play	싱글플레이	single-player
+gaming	play	멀티플레이	multiplayer
+gaming	play	협동플레이	co-op
+gaming	play	매치메이킹	matchmaking
+gaming	play	튜토리얼	tutorial
+gaming	play	퀘스트	quest
+gaming	play	사이드퀘스트	side quest
+gaming	play	미션	mission
+gaming	play	레벨	level
+gaming	play	스테이지	stage
+gaming	play	던전	dungeon
+gaming	play	보스	boss
+gaming	play	레이드	raid
+gaming	play	루팅	looting
+gaming	play	인벤토리	inventory
+gaming	play	아이템	item
+gaming	play	크래프팅	crafting
+gaming	play	스킬	skill
+gaming	play	스탯	stat
+gaming	play	버프	buff
+gaming	play	너프	nerf
+gaming	play	디버프	debuff
+gaming	play	콤보	combo
+gaming	play	패링	parrying
+gaming	play	히트박스	hitbox
+gaming	play	리스폰	respawn
+gaming	play	스폰	spawn
+gaming	play	세이브	save
+gaming	play	로드	load
+gaming	play	엔딩	ending
+gaming	play	이스터에그	easter egg
+gaming	play	스피드런	speedrun
+gaming	play	노히트	no-hit
+gaming	play	노데스	no-death
+gaming	play	하드코어	hardcore
+gaming	play	캐주얼	casual
+gaming	play	시즌패스	season pass
+gaming	play	배틀패스	battle pass
+gaming	play	리플레이	replay
+gaming	play	게임모드	game mode
+gaming	play	모딩	modding
+gaming	play	치트	cheat
+gaming	play	랜덤	random
+gaming	play	확장팩	expansion pack
+gaming	play	프레임드롭	frame drop
+gaming	play	수직동기화	VSync
+gaming	play	업스케일링	upscaling
+gaming	play	레이트레이싱	ray tracing

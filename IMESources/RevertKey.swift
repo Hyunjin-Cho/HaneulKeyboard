@@ -40,6 +40,11 @@ enum RevertKey: String, CaseIterable {
     /// 저장값이 없을 때의 기본값 — **켜짐**(오너 확정, #15).
     static let manualToggleAllWordsDefault = true
 
+    /// #84 · 2026-10-09: 같은 단축키에서 등록된 한글 발음의 영문 표기를 우선한다.
+    /// 기존 자판 토글과 독립적으로 끌 수 있다. 일반 Space 자동 변환과는 무관하다.
+    static let phoneticKey = "haneul.phoneticConversionEnabled"
+    static let phoneticDefault = true
+
     /// `NSEvent.ModifierFlags`와 비트가 같은 자체 OptionSet — AppKit 없이 비교하기 위한 것.
     /// 값은 macOS SDK `NSEvent.h`의 정의 그대로(2026-09-21 Xcode 27 SDK에서 실측 확인),
     /// 테스트가 이 상수를 SDK 값과 대조한다.

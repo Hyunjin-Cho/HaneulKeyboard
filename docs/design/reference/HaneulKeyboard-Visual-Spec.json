@@ -1,0 +1,186 @@
+{
+  "name": "HaneulKeyboard visual reference",
+  "version": 1,
+  "notes_ko": [
+    "사용자가 최종 확정하여 첨부한 1024×1024 PNG를 기준으로 분석했습니다.",
+    "원본은 이미지 생성 결과이며, 물리적 인쇄 설정값·분리된 색판·폰트 파일·노이즈 강도 같은 제작 파라미터는 제공되지 않았습니다.",
+    "measured는 이미지에서 추출한 근삿값입니다. 잉크색은 HSV 색상 범위로 분류한 채도 높은 픽셀의 RGB 중앙값이므로 실제 인쇄 잉크 번호 또는 원래의 색상 지정값이 아닙니다.",
+    "recommended_starting_values는 안내 화면의 느낌을 맞추기 위한 조정 시작값이며 원본 제작값을 역산한 결과가 아닙니다.",
+    "종이결 크기 및 색판 어긋남은 1024px 디자인 기준입니다. 실제 표시 크기에 비례해 조절하세요.",
+    "폰트는 생성된 커스텀 글자 형태이며 실제 폰트명과 폰트 파일은 없습니다."
+  ],
+  "measured": {
+    "source_filename": "HaneulKeyboard-Paper-Sample-1-1024(1).png",
+    "dimensions": [
+      1024,
+      1024
+    ],
+    "source_sha256": "9aba475716450b9310a321ccea5ba00f94179d5b546653ab44d96462bc076a06",
+    "export_equals_attachment": false,
+    "paper": {
+      "hex": "#F7F2E5",
+      "rgb": [
+        247,
+        242,
+        229
+      ],
+      "rgb_p10": [
+        242,
+        234,
+        220
+      ],
+      "rgb_p90": [
+        251,
+        247,
+        236
+      ],
+      "luminance_std_0_to_255": 4.63,
+      "highpass_std_0_to_255": 3.95,
+      "sample_rectangles_px": [
+        [
+          30,
+          480,
+          155,
+          695
+        ],
+        [
+          930,
+          480,
+          1000,
+          740
+        ],
+        [
+          400,
+          765,
+          650,
+          790
+        ]
+      ]
+    },
+    "inks": {
+      "pink": {
+        "hex": "#FA109C",
+        "rgb": [
+          250,
+          16,
+          156
+        ],
+        "pixel_count": 67459
+      },
+      "cyan": {
+        "hex": "#0396FB",
+        "rgb": [
+          3,
+          150,
+          251
+        ],
+        "pixel_count": 107433
+      },
+      "yellow": {
+        "hex": "#FCDC0C",
+        "rgb": [
+          252,
+          220,
+          12
+        ],
+        "pixel_count": 29776
+      },
+      "indigo": {
+        "hex": "#2120A2",
+        "rgb": [
+          33,
+          32,
+          162
+        ],
+        "pixel_count": 44955
+      },
+      "green": {
+        "hex": "#08A866",
+        "rgb": [
+          8,
+          168,
+          102
+        ],
+        "pixel_count": 12810
+      },
+      "orange": {
+        "hex": "#FB6F21",
+        "rgb": [
+          251,
+          111,
+          33
+        ],
+        "pixel_count": 3886
+      }
+    }
+  },
+  "recommended_starting_values": {
+    "coordinate_reference_px": 1024,
+    "paper": {
+      "base_hex": "#F7F2E5",
+      "texture_style": "고운 미색 무코팅 인쇄지 / 긴 섬유가 두드러지지 않는 촘촘한 종이결",
+      "grain_feature_size_px": [
+        1,
+        4
+      ],
+      "texture_overlay_opacity": [
+        0.04,
+        0.08
+      ],
+      "target_sampled_luminance_std_0_to_255": [
+        4,
+        6
+      ],
+      "calibration_note": "레이어 불투명도는 사용하는 질감 원본과 혼합 방식에 따라 달라집니다. 최종 합성의 종이 영역 밝기 표준편차 4~6을 보조 지표로 삼아 눈으로 맞추세요. 이는 물리적 표면 거칠기 지표가 아닙니다."
+    },
+    "ink": {
+      "base_colors": {
+        "pink": "#FA109C",
+        "cyan": "#0396FB",
+        "yellow": "#FCDC0C"
+      },
+      "overlap_reference_colors": {
+        "indigo": "#2120A2",
+        "green": "#08A866",
+        "orange": "#FB6F21"
+      },
+      "application": "장식 색면은 평면으로 구성하고, 겹침 부분은 추출한 혼색을 직접 지정하면 결과색을 안정적으로 맞출 수 있습니다.",
+      "fine_paper_pinholes_size_px": [
+        0.5,
+        1.5
+      ],
+      "fine_pinholes_area_fraction": [
+        0.02,
+        0.05
+      ],
+      "illustration_halftone_dot_diameter_px": [
+        1.5,
+        3
+      ],
+      "illustration_halftone_dot_pitch_px": [
+        3,
+        5
+      ],
+      "decorative_plate_offset_px": [
+        4,
+        8
+      ],
+      "plate_offset_rule": "색판별 방향과 변위를 일정하게 유지하고, 오브젝트마다 무작위로 바꾸지 않습니다.",
+      "text_rule": "색판 어긋남과 잉크 구멍은 장식·큰 제목에 사용하고, 안내 본문·버튼 문구는 선명한 일반 텍스트로 둡니다.",
+      "avoid": [
+        "입체 그림자",
+        "광택",
+        "엠보싱",
+        "물감 요철",
+        "굵고 긴 섬유",
+        "균일한 외곽선처럼 보이는 다중 색테두리"
+      ]
+    },
+    "onboarding_connection": {
+      "first_priority": "배경의 기본색을 #F7F2E5로 맞추고 종이결의 밀도·크기를 아이콘에 맞춥니다.",
+      "second_priority": "안내의 청록/파랑 장식은 #0396FB를 출발점으로 삼고 작은 분홍·노랑 포인트를 반복합니다.",
+      "third_priority": "큰 장식 색면에만 고운 잉크 입자와 제한된 망점을 적용합니다."
+    }
+  },
+  "qualitative_generation_direction_ko": "같은 따뜻한 아이보리 밝기를 유지한 고운 무코팅 종이, 작고 부드러운 불규칙한 종이 입자, 아주 짧고 옅은 섬유, 평평한 리소그래프 잉크, 분홍·청록·노랑의 겹침과 일정한 색판 어긋남. 얼룩·접힘·광택·엠보싱 없이 표현."
+}

@@ -1,245 +1,256 @@
 # 하늘키보드 (HaneulKeyboard)
 
 <p align="center">
-  <a href="https://github.com/Hyunjin-Cho/HaneulKeyboard/releases/latest"><img src="https://img.shields.io/github/v/release/Hyunjin-Cho/HaneulKeyboard?style=flat-square" alt="latest release"></a>
-  <a href="https://github.com/Hyunjin-Cho/HaneulKeyboard/releases"><img src="https://img.shields.io/github/downloads/Hyunjin-Cho/HaneulKeyboard/total?style=flat-square" alt="downloads"></a>
-  <a href="https://github.com/Hyunjin-Cho/HaneulKeyboard/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Hyunjin-Cho/HaneulKeyboard?style=flat-square" alt="license"></a>
-  <a href="https://github.com/Hyunjin-Cho/HaneulKeyboard/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Hyunjin-Cho/HaneulKeyboard/ci.yml?branch=main&amp;label=CI&amp;style=flat-square" alt="CI"></a>
-  <a href="#요구사항"><img src="https://img.shields.io/badge/macOS-14%2B-blue?style=flat-square&amp;logo=apple" alt="macOS 14+"></a>
+  <img src="Resources/Brand/HaneulKeyboard-Main.png" width="160" alt="단청과 한복, 리소그래프 색 겹침으로 표현한 하늘키보드 아이콘"><br>
+  <a href="https://github.com/Hyunjin-Cho/HaneulKeyboard/releases"><img src="https://img.shields.io/badge/release-정식%20출시%20준비-blue?style=flat-square" alt="release: 정식 출시 준비"></a>
+  <a href="https://github.com/Hyunjin-Cho/HaneulKeyboard/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-green?style=flat-square" alt="license"></a>
+  <a href="#요구사항"><img src="https://img.shields.io/badge/macOS-14%2B-blue?style=flat-square&amp;logo=apple" alt="macOS 14 이상"></a>
 </p>
 
-빠른 한↔영 전환과 안정적인 한글 입력을 위한 macOS 메뉴바 유틸리티 + 입력기(IME).
+빠른 한↔영 전환과 한글 입력을 위한 macOS 메뉴바 앱 + 전용 입력기(IME)입니다. 사랑하는 딸 **하늘**이의 이름에서 따왔습니다.
 
-사랑하는 딸 **하늘**이의 이름에서 따왔습니다.
+> ⚠️ **베타버전이 끝났습니다. 이제 곧 정식버전이 출시됩니다. 조금만 기다려주세요.**
+>
+> 기준일: **2026-10-10**. 아래는 정식 출시를 준비 중인 현재 작업 트리의 기능 안내입니다. 기존 `2026.01`~`2026.07`은 베타 이력이며, 앱 설치 ZIP의 배포는 종료했습니다. GitHub의 **Source code** 파일은 설치 앱이 아닙니다. 정식 설치 파일은 준비가 끝나면 [배포 페이지](https://github.com/Hyunjin-Cho/HaneulKeyboard/releases)에 게시합니다.
+
+## 어떤 앱인가요?
+
+한글 모드인 줄 모르고 영어 단어를 입력했을 때, **Space나 문장부호로 단어를 끝내면** 영어로 바로잡습니다. `메ㅔㅣㄷ` → `apple`처럼 **자판을 잘못 선택해 생긴 입력**을 고치는 기능입니다.
+
+| 하고 싶은 일 | 사용 방법 |
+|---|---|
+| 한글 ↔ 영어 전환 | Caps Lock 짧게 누르기 |
+| 대문자 Caps Lock | Caps Lock 길게 누르기 |
+| 영타 자동 변환 | 한글 모드에서 영어 단어를 입력한 뒤 Space 또는 문장부호 |
+| 바뀐 단어 되돌리기 | **Shift+Space**. 다시 누르면 영어로 돌아갑니다. |
+| 자동으로 바뀌지 않은 단어 직접 전환 | 확정된 커서 앞 단어에서 **Shift+Space** (`ㅡ5` ↔ `m5`, `ㅏ3` ↔ `k3`) |
+| 등록된 발음을 영문으로 | **Shift+Space** (`레스토랑` → `restaurant`). 다시 누르면 원래 한글로 돌아갑니다. |
+| 내 단어 추가·변환 금지 | 설정 → **개인 사전** |
+| 안내 다시 보기 | 메뉴바 → **시작하기 다시 보기...** |
+
+현재는 두벌식 한글·영어 입력을 지원합니다. 출시 준비 코드에는 **등록된 한글 발음 → 영문 표기** 변환도 포함되어 있으며, 설치본 검증은 [#84](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/84)에서 추적합니다.
 
 ## 데모
 
-> 한글 모드인 채로 영어를 치면 — 깨진 한글이 **스페이스를 누르는 순간** 자동으로 영어로 바뀝니다.
+아래 영상은 영타 자동 변환의 동작 예시입니다. 현재 안내 화면과 아이콘은 새 디자인으로 바뀌었습니다.
 
 <p align="center">
-  <img src="haneul-demo-3.gif" width="520" alt="영타 자동 변환"><br><br>
-  <img src="haneul-demo-4.gif" width="520" alt="영타 자동 변환"><br><br>
-  <img src="haneul-demo-1.gif" width="520" alt="thank you 문장 변환">
+  <img src="haneul-demo-3.gif" width="520" alt="메ㅔㅣㄷ를 apple로 자동 변환"><br><br>
+  <img src="haneul-demo-4.gif" width="520" alt="한글 모드에서 영어 단어 입력"><br><br>
+  <img src="haneul-demo-1.gif" width="520" alt="영어 문맥을 이어 thank you 문장 변환">
 </p>
 
-## 주요 기능
+## 설치와 5단계 시작하기
 
-- **안정적인 한글 조합** — 전용 입력 소스로 자모 깨짐 없이 한글을 조합합니다.
-- **빠른 한/영 전환** — Caps Lock(짧게)으로 즉시 전환. 시스템 native 경로를 사용해 결정적으로 동작합니다.
-- **영타 자동 변환** *(2026.02 신규 · 2026.03 사전 현대화)* — 한글 모드인 줄 모르고 영어를 쳤을 때, 스페이스를 누르는 순간 자동으로 영어로 바꿔줍니다. `메ㅔㅣㄷ`→`apple`, `ㅡ드ㅐ교`→`memory`, `how ㅁㄱㄷ you`→`how are you`. 올바른 한글과 ㅋㅋㅋ·ㅗㅜㅑ 같은 표현은 건드리지 않습니다 — **우리말샘 표제어 67.7만 개**로 실존 한국어를 확인합니다 (단 하나의 예외: 영어 문맥 직후의 새→to·무→an·내→so·랙→for·뭉→and 명시 목록). 2026.03부터 `and`·`city`·`playlist` 같은 기본·현대어와 `davinci`·`ronaldo` 같은 인명까지 변환합니다.
-- **Caps Lock 대문자 모드** — Caps Lock 길게 LED 토글(대문자 모드).
-- **메뉴바에서 제어** — 한국어/영어 전환, 설정을 메뉴바 아이콘에서. 영타 변환은 설정에서 켜고 끌 수 있고, 되돌리기 키와 앱별 끄기도 설정에서 고릅니다.
-- **자동 업데이트** *(2026-09-21 신규)* — 새 버전이 나오면 알려주고, 버튼 한 번으로 내려받아 서명·애플 공증을 검증한 뒤 스스로 교체합니다. 설정에서 끌 수 있습니다 (아래 [자동 업데이트](#자동-업데이트-2026-09-21)).
+**정식 설치 파일 게시 후** 다음 순서로 설치합니다.
 
-한↔영 입력에만 집중합니다. 다른 언어 지원 및 다른 기능은 없습니다.
+1. 배포 페이지의 `HaneulKeyboard_<버전>.zip`을 받아 압축을 풉니다.
+2. `HaneulKeyboard.app`을 **응용 프로그램(`/Applications`)** 폴더에 넣고 실행합니다.
+3. 메뉴바의 하늘키보드 아이콘 → **시작하기...**를 엽니다.
+4. 1단계의 **하늘키보드 설치**를 누르고, 2단계 안내에 따라 **시스템 설정 → 키보드 → 텍스트 입력 → 편집 → + → 한국어 → 하늘키보드 (두벌식)**을 추가·선택합니다. macOS 버전에 따라 설정 화면의 배치는 다를 수 있습니다.
+5. 3·4단계에서 자동 변환과 되돌리기를 연습하고, 5단계에서 메뉴바 사용법을 확인합니다.
 
-## 설치
+기존 Apple ‘두벌식’은 필요에 따라 제거하고, 영어 입력용 **ABC는 남겨 주세요**. Caps Lock 전환은 macOS 기능을 사용하며 별도의 손쉬운 사용 권한을 요구하지 않습니다.
 
-[GitHub Releases](https://github.com/Hyunjin-Cho/HaneulKeyboard/releases)에서 최신 버전을 받으세요.
+안내 화면은 종이 질감, 단청 처마, 색동, 한복 인물로 구성했습니다. 인물은 **페이지마다 다른 다섯 자세**로 표시되며 다음·이전으로 넘길 때 바뀝니다. 3·4단계의 입력칸에서는 직접 연습할 수 있습니다. 설치·설정이 아직 끝나지 않았다면 마지막 화면에서 설치 단계로 돌아갈 수 있습니다.
 
-### 설치 방법 (일반 사용자)
+**제거:** 메뉴바 → 설정 → **고급 → 전체 제거...**에서 앱·입력기·설정을 정리할 수 있습니다. 앱만 휴지통으로 옮긴 경우의 입력기 정리 동작과 확인 방법은 [수동 검사 안내](docs/manual-test-checklist.md)를 참고하세요.
 
-1. 다운로드한 `.zip` 압축 풀고 `HaneulKeyboard.app`을 **응용 프로그램(`/Applications/`)** 폴더로 복사
-2. `HaneulKeyboard.app` 더블클릭 → 메뉴바에 아이콘 표시
-3. 메뉴바 아이콘 → **"시작하기..."** → 온보딩 따라가기
-   - **"IME 설치"** 버튼 클릭 (`~/Library/Input Methods/`에 설치)
-4. **시스템 설정 → 키보드 → 입력 소스 → "+" → 한국어 → "하늘키보드 (두벌식)"** 추가
-5. (선택) 기존 시스템 한국어 입력기(두벌식)는 제거 권장 — 자모 깨짐 방지 효과
+## 변환은 어떻게 동작하나요?
 
-> **제거**: 메뉴바 → 설정 → **고급** 탭 → "전체 제거..."가 앱·입력기·설정을 한 번에 지웁니다. `HaneulKeyboard.app`을 그냥 휴지통에 버려도 입력기가 이를 감지해 몇 분 안에 스스로 정리됩니다(한글 모드를 쓰는 동안 확인하며, 2분 안에 "제자리에 놓기"로 되돌리면 그대로 유지). <!-- 2026-09-23 (#72) 탭 경로 -->
+### 영타 자동 변환과 한국어 보호
 
-> **⚠️ 참고**: 한/영 전환은 **Caps Lock**으로 합니다 — macOS 시스템 기능(`TICapsLockLanguageSwitchCapable`)에 위임하므로 **별도 권한이 필요 없습니다.** 짧게 눌러 한/영 전환, 길게(1초+) 눌러 대문자 Caps Lock.
+영어 사전, 한국어 사전, 앞 단어의 문맥을 함께 확인합니다. 실제 한국어 단어, 초성체, 자모 이모티콘과 겹치는 입력은 보호합니다. 일부 짧은 단어는 검토된 영어 문맥에서만 바뀌며 모든 단어를 무조건 영어로 바꾸지는 않습니다.
 
-## 사용법
+- `how ㅁㄱㄷ you` → `how are you`처럼 영어 흐름을 이어 처리합니다.
+- 직접 입력한 Space·문장부호에서 판정합니다. 클릭·앱 전환으로 입력을 확정할 때는 화면에 보이는 글자를 유지합니다.
+- **설정 → 영타 변환**에서 전체 자동 변환을 끄거나 앱별로 끌 수 있습니다.
+- 자동 변환이 틀렸다면 기본 **Shift+Space**로 되돌립니다. 설정에서 Option+Space / Control+Shift+Space / Option+Shift+Space로 바꿀 수 있습니다.
+- ‘바뀌지 않은 단어도 되돌리기’를 켜면 사전에 없는 단어도 자판 위치를 기준으로 직접 바꿀 수 있습니다. **직전 변환의 되돌리기가 우선**입니다. 등록 발음은 조합 중에도 바로 바뀌고, 그 밖의 조합 중인 글자는 먼저 확정합니다.
 
-- **Caps Lock** 짧게 누름 → 한/영 전환
-- **Caps Lock** 길게 누름 → Caps Lock LED 토글 (대문자 모드)
-- 하늘 키보드에서 영어단어를 치면 전환 가능
+판정 근거: [EnglishDetector](IMESources/EnglishDetector.swift), [KoreanComposer](IMESources/KoreanComposer.swift), [수동 자판 변환](IMESources/ManualToggle.swift). 영어 사전 구성은 [manifest](dict_work/dict_manifest.tsv)에서 관리하고, 추가 단어는 실제 조합기로 한국어 충돌을 검사합니다.
 
-### 영타 자동 변환 (2026.02 · 2026.03 사전 현대화)
+### 등록된 한글 표기를 영어로 바꾸기
 
-한글 모드에서 영어 단어를 치면 — 예: `apple`이 `메ㅔㅣㄷ`로 보임 — **스페이스/문장부호를 누르는 순간 자동으로 영어로 교정**됩니다. 별도 조작이 필요 없습니다.
+출시 준비 코드에 **검토한 표기 1,903개**를 추가했습니다(2026-10-09 사전 기준: 기본 1,868개 + 숫자 이름 35개). **Shift+Space** 또는 설정한 되돌리기 키를 누를 때만 동작합니다.
 
-- 직전 단어가 영어면 짧은 단어도 이어서 교정: `how ㅁㄱㄷ you` → `how are you`, `thank you 내 much 랙` → `thank you so much for`, `apples 뭉 oranges` → `apples and oranges`
-- **올바른 한글은 건드리지 않습니다**: 실존 한국어 단어(우리말샘 67.7만 표제어 대조), ㅋㅋㅋ·ㅎㄷㄷ·ㅇㄱㄹㅇ 같은 초성체, ㅗㅜㅑ·ㅡㅁㅡ 같은 표현은 전부 보호됩니다. (단 하나의 예외: 영어 문맥 직후의 새→to·무→an·내→so·랙→for·뭉→and 명시 화이트리스트 — "thank you 내 much"처럼 영어 흐름 안에서는 영어 의도가 우세하다고 봅니다.)
-- *(2026.03)* **영어 사전 현대화** — 1934년판 시스템 사전의 빈자리를 공개 데이터로 보강했습니다: 고빈도 일상어 [NGSL](https://www.newgeneralservicelist.com)(`city`·`with`), 현대어·굴절형 [SCOWL](https://wordlist.aspell.net)(`playlist`·`internet`·`selfie`), 영어 인명 US Census·SSA + 유명인(`davinci`·`ronaldo`·`garcia`). 추가된 모든 단어는 **한국어 충돌 검역**(실제 조합 엔진 시뮬레이션, [`scripts/audit_wordlist.sh`](./scripts/audit_wordlist.sh))을 통과한 것만 — 한국어 보호 원칙은 그대로입니다.
-- 변환은 직접 타이핑한 경계에서만 일어나고, 마우스 클릭·앱 전환 시에는 화면에 보이던 그대로 입력됩니다.
-- **되돌리기** — 자동으로 바뀐 직후 **Shift+Space**를 누르면 원래 한글로 되돌리고, 다시 누르면 영어로 돌아옵니다. 키는 설정 → **영타 변환** 탭 → "되돌리기 키"에서 Option+Space · Control+Shift+Space · Option+Shift+Space 중 하나로 바꿀 수 있습니다(시스템·앱 단축키와 겹치면 다른 조합을 고르세요). <!-- 2026-09-21 (#54) · 2026-09-23 (#72) 탭 경로 -->
-- **앱별로 끄기** — 설정 → **영타 변환** 탭 → "앱별 자동 변환 끄기"에서 실행 중인 앱을 고르면 그 앱에서만 영타 변환을 하지 않습니다(예: 코드 편집기·터미널). <!-- 2026-09-21 (#54) · 2026-09-23 (#72) 탭 경로 -->
-- **자동으로 바뀌지 않은 단어도 되돌리기** *(2026-09-21)* — 되돌리기 키는 이제 **커서 앞 단어 전부**에 듣습니다. 자동 변환이 일부러 손대지 않는 것들 — 실존 한국어 단어와 겹쳐 막히는 `재가`(work), 사전에 있을 수 없는 `ㅡ5`(m5)·`ㅏ3`(k3) — 도 키 한 번이면 한↔영으로 바뀌고, 한 번 더 누르면 돌아옵니다. 직전에 자동 변환이 있었다면 **그 되돌리기가 먼저**입니다(종전 동작 그대로). 조합 중인 글자에는 듣지 않습니다 — 스페이스 등으로 확정한 다음 누르세요. 설정 → **영타 변환** 탭 → "바뀌지 않은 단어도 되돌리기"에서 끌 수 있습니다. 터미널에서는 아래 "알려진 문제"와 같은 이유로 동작하지 않습니다. <!-- 2026-09-21 (#15) · 2026-09-23 (#72) 탭 경로 -->
+| 입력 | 단축키를 누른 결과 |
+|---|---|
+| 레스토랑 / 워크 / 라이트 | restaurant / work / light |
+| 애플 / 삼성 / 엔비디아 | Apple / Samsung / NVIDIA |
+| 아이폰 / 맥스튜디오 | iPhone / Mac Studio |
+| 갤럭시24 / 아이폰17 | Galaxy24 / iPhone17 |
+| 축구 / 미식축구 / 라이더 / 스포츠 | football / american football / rider / sports |
+| 시각효과 / 색보정 / 폴리 | VFX / color grading / foley |
+| 아메리카노 / 베이글 / 기내수하물 | americano / bagel / carry-on baggage |
+| 로그라이크 / 셰이더 / 파인튜닝 | roguelike / shader / fine-tuning |
+| 애니메이션 / 스톱모션 / 영화 / 디스코드 | animation / stop-motion / movie / Discord |
+| 선물 / 선물거래 / 주식 | gift / futures trading / stock |
 
-### 개인 사전 (2026-09-21)
+발음 표기뿐 아니라 `축구 → football` 같은 지정 대응도 정확히 등록한 단어만 지원합니다. 일반 번역이나 문맥 추론은 하지 않습니다. 아트·영상·사운드, 생활·음식·여행, 컴퓨터·AI·게임, 스포츠·브랜드·금융 등의 [범주와 수량](docs/vocabulary-categories.md)를 별도로 관리합니다.
 
-자동 변환이 내 쓰임새와 다를 때 **설정 → 개인 사전** 탭에서 직접 고칩니다. 세 목록 전부 **이 Mac 안에만** 저장되고 어디로도 보내지 않습니다 ([PRIVACY.md](./PRIVACY.md) 7번). <!-- 2026-09-23 (#72) 탭 경로 -->
+`선물`은 항상 `gift`로 바꿉니다. 금융 의미는 `선물거래`·`선물계약`처럼 구분해 등록합니다. 인명·음악 그룹명은 이 한글→영문 대응 사전에서 제외했습니다.
 
-- **변환 추가** — 사전에 없거나 한국어 단어와 겹쳐서 안 바뀌던 영어(사내 용어·이름 등)를 적으면 **항상** 변환됩니다. 한글 모드에서 그 단어를 그대로 쳤을 때만.
-- **변환 금지** — 적힌 단어는 **절대** 변환하지 않습니다. 영어(`apple`)로 적어도, 한글 모드에서 보이는 표기(`메ㅔㅣㄷ`)로 적어도 됩니다.
-- **최근 되돌린 변환** — Shift+Space로 되돌린 변환이 (한글 표기 → 영어)로 최근 50개까지 쌓입니다. 잘못 바뀐 단어는 옆의 **금지** 버튼 한 번으로 변환 금지 목록에 들어갑니다.
+다시 누르면 **실제로 입력했던 한글**로 돌아옵니다. 일반 Space에서는 발음 변환하지 않습니다. `겔럭시`, `에플`, `레스토랑에서`처럼 사전에 없는 표기는 추측하지 않으며, 모든 단어 토글이 켜져 있으면 기존 자판 배열 변환을 따릅니다. 설정 → 영타 변환 → 되돌리기에서 **등록된 한글 표기를 영어로 바꾸기**를 끌 수 있습니다. 자동 변환 끄기·개인 사전의 자동 변환 금지와는 별개의 명시적 조작입니다.
 
-저장한 즉시 다음 단어부터 반영됩니다(재시작 불필요).
+숫자 이름은 갤럭시 S·아이폰의 확인된 세대 번호와 다음 3개 번호만 명시적으로 등록합니다. **미발표 번호는 입력 편의를 위한 예약 표기이며 출시 정보가 아닙니다.** 모든 제품·파생형·용량 조합을 만들지 않습니다. 범위, 원본 사전, 검증 및 설치 후 확인할 항목은 [발음 변환 명세](docs/phonetic-conversion.md)를 참고하세요.
 
-### 자동 업데이트 (2026-09-21)
+### 숫자 이름·단위·아트 용어
 
-**설정 → 업데이트** 탭에서 새 버전을 확인하고 설치합니다. <!-- 2026-09-23 (#72) 탭 경로 -->
+현재 출시 준비 코드에는 다음 지원이 포함되어 있습니다. 실제 앱 설치 후 확인할 항목은 [출시 후보 기록](docs/releases/2026.9-test.md)에 남깁니다.
 
-- **업데이트 자동 확인** (기본 켜짐) — 앱을 실행할 때 한 번, 그 뒤 24시간마다 GitHub 릴리스에 새 버전이 있는지만 물어봅니다. 새 버전이 있으면 설정 화면과 메뉴바에 알려 주고, **자동으로 설치하지는 않습니다.**
-- **지금 확인** — 지금 한 번 확인합니다. 자동 확인을 꺼 두었어도 이 버튼은 동작하며, **꺼 두면 이 버튼을 누를 때 말고는 앱이 인터넷에 접속하지 않습니다.**
-- **업데이트** — 눌렀을 때만 내려받습니다. 받은 파일은 **번들 ID · 서명 Team · `codesign` · 애플 공증(`spctl`) · 버전 상승** 다섯 가지를 **전부** 통과해야 설치되고, 하나라도 어긋나면 받은 파일을 버리고 **지금 쓰던 앱을 그대로 둡니다.** 설치는 기존 앱을 먼저 지우지 않는 원자적 교체라 중간에 실패해도 앱이 사라지지 않습니다. 끝나면 새 버전으로 다시 열립니다.
-- 앱이 새 버전으로 바뀌면 **입력기(IME)도 함께 갱신**됩니다. 관리자 권한으로 `/Library/Input Methods`에 설치한 경우에는 자동 갱신이 안 되므로 설정에 "IME 갱신 필요" 안내가 뜹니다.
-- 자동 업데이트는 앱이 **응용 프로그램 폴더(`/Applications`)** 에 있을 때만 동작합니다. 다른 위치에서 실행 중이면 안내만 하고 중단합니다.
-- 나가는 데이터는 **없습니다** — 무엇을 요청하고 무엇을 보내지 않는지는 [PRIVACY.md](./PRIVACY.md) 9번에 전부 적혀 있습니다.
+| 종류 | 예시와 범위 |
+|---|---|
+| 숫자가 섞인 이름 | `T800`, `800T`, `a24`, `a16z`, `a7r` 등 **단어 전체가 등록된 이름**. 입력한 대소문자를 유지합니다. |
+| 단위 | `oz`, `km`, `kg`, `12mp`, `100ml`, `35mm`, `1.25 kg` 등. 짧은 단위 중 일부는 숫자와 함께 썼을 때만 변환합니다. |
+| 아트·디자인 | `risograph`, `ransomizer`, `surrealism` 등 미술·인쇄·타이포그래피·영상 분야의 검토된 단어. |
 
-## 요구사항
+단위의 값을 환산하거나 표기 대소문자를 교정하는 기능은 아닙니다. `ml` 단독처럼 한글과 겹치는 입력은 보호하며, `km/h`·`m/s²` 같은 복합 표기 전체를 지원하는 것은 아닙니다. 자세한 범위와 검증 결과는 [단위 지원](docs/measurement-units.md), [아트·디자인 용어](docs/art-design-vocabulary.md)를 참고하세요.
 
-- **macOS Sonoma (14.0) 이상** — macOS 26 (Tahoe)·27에서 테스트 완료
-- Apple Silicon (M1/M2/M3/M4) 및 Intel 모두 지원 — Intel Mac은 macOS 14~26에서만 지원됩니다 (macOS 27부터 Apple silicon 전용 OS — 빌드는 계속 Universal)
+### 개인 사전
 
-## 알려진 문제
+**설정 → 개인 사전**에서 세 목록을 관리합니다. 저장하면 다음 단어부터 반영됩니다.
 
-- **후보 창(팝업)에서 입력 중인 글자가 연하게 표시됨** — 사용상 문제는 없어 현재 상태를 유지합니다.
-- **현재 두벌식만 지원** — 다른 자판(세벌식 등)이 필요하면 [Issues](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues)로 요청해주세요. 수요가 있으면 추가를 검토합니다.
-- **일부 사이트/앱에서 동작하지 않을 수 있음** — 애초에 자모 결합 입력을 지원하지 않는 특정 웹사이트/앱에서는 입력기 종류와 무관하게 입력이 깨질 수 있습니다.
-- **웹 브라우저의 비밀번호 칸에 한글이 입력될 수 있음** — 네이버 등 브라우저의 비밀번호 칸은 macOS가 입력기를 차단하지 않아, **모든 한글 입력기(애플 기본 입력기 포함)에서 한글이 조합됩니다.** 입력기 종류와 무관한 macOS·브라우저의 동작이며, 비밀번호는 영문 모드(Caps Lock 짧게)로 입력하시면 됩니다. (시스템 설정 등 네이티브 비밀번호 칸은 macOS가 정상적으로 입력기를 차단합니다.)
-- **터미널(Terminal.app·Ghostty 등)에서는 변환 되돌리기가 동작하지 않음** — 터미널에 입력된 글자는 그 즉시 셸 프로세스의 것이 되어, 입력기가 다시 읽거나 바꿀 수단이 없습니다(macOS 구조상 한계라 입력기 종류와 무관하며, 되돌리기 키를 바꿔도 마찬가지입니다). 자동 변환 자체는 정상 동작하고, 되돌리기 키를 눌러도 아무 일도 일어나지 않습니다(텍스트가 훼손되거나 스페이스가 끼어들지 않습니다). 오변환은 백스페이스로 지우고 다시 치면 재변환되지 않습니다. 터미널에서 변환 자체가 싫다면 설정 → **영타 변환** 탭 → "앱별 자동 변환 끄기"에 터미널 앱을 추가하세요. <!-- 2026-09-21 (#54, 근거 #30) · 2026-09-23 (#72) 탭 경로 -->
-- 위와 같은 문제를 겪는 사이트/앱이 있다면 [Issues](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues)에 제보해주시면 큰 도움이 됩니다.
-- 지원되는 OS에서 광범위한 테스트가 필요합니다. 편하게 [Issues](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues)에 제보해주시면 개발에 큰 도움이 됩니다.
+- **변환 추가:** 기본 사전에 없는 영어 단어·제품명을 등록합니다. 숫자가 섞인 이름도 지원하며 실제로 한 단어로 처리할 수 있는 형태만 받습니다.
+- **변환 금지:** 영어 표기나 한글 모드 표기를 등록합니다. 같은 항목이 변환 추가에도 있으면 **금지가 우선**합니다. 직접 누르는 수동 한영 전환은 별개입니다.
+- **최근 되돌린 변환:** 되돌린 한글·영어 쌍을 최근 50개까지 보관하고, 금지하거나 단어 제안으로 연결합니다.
+
+개인 사전은 이 Mac의 설정에 저장됩니다. 한글 발음과 영어를 자유롭게 짝짓는 번역 사전은 아닙니다.
+
+## 설정과 업데이트
+
+설정은 **일반 / 영타 변환 / 개인 사전 / 업데이트 / 고급**의 다섯 탭입니다. 입력기 설치·화면 스타일·응원 안내, 변환과 단축키, 단어 관리, 업데이트, 제거 기능을 각각 찾을 수 있습니다.
+
+**설정 → 업데이트**에서 현재 버전과 최근 확인한 최신 버전을 볼 수 있습니다.
+
+- **자동 확인**은 기본으로 켜져 있습니다. 앱 실행 약 15초 뒤와 이후 매시간 확인 시점이 되었는지 살피고, 마지막 성공 확인에서 **24시간**이 지났을 때 GitHub에 조회합니다.
+- 새 버전과 설치 파일을 발견하면 **현재 버전 → 새 버전** 안내창을 띄웁니다. 같은 버전은 재실행 후에도 자동으로 반복해서 알리지 않습니다.
+- **지금 확인**은 자동 확인을 꺼도 사용할 수 있고, 이미 알린 새 버전도 다시 보여줍니다.
+- **설치는 사용자가 업데이트를 눌렀을 때만** 시작합니다. 번들 ID, 서명 Team, 코드 서명, Apple 공증, 버전 상승을 검사합니다. 검증에 실패하면 기존 앱을 유지합니다.
+- 자동 업데이트는 `/Applications`에 있는 앱을 대상으로 합니다. 사용자 폴더에 설치한 IME도 함께 갱신하며, 시스템 폴더(`/Library/Input Methods`)에 설치한 경우 별도 갱신 안내가 나타날 수 있습니다.
+
+GitHub의 새 버전을 알아내려면 주기적인 조회가 필요합니다. 서버에서 즉시 보내는 푸시 알림 방식은 아니며, 사용자가 주기를 고르는 설정은 없습니다. 구현과 검증 근거는 [Updater](Sources/Updater.swift), [UpdateDecision](Sources/UpdateDecisions.swift), [배포 체크리스트](docs/release-checklist.md)에 있습니다.
+
+## 개인정보와 후원
+
+**키 입력·개인 사전을 AI 서비스로 보내지 않습니다.** 한글을 조합하는 입력기에는 네트워크 코드가 없고, 메뉴바 앱은 업데이트 확인·다운로드에 GitHub를 사용합니다. 입력 내용의 서버 저장·분석·학습 기능은 없습니다. 직접 등록한 개인 사전과 최근 되돌린 변환은 기기에 저장합니다.
+
+단어 제안은 **설정 → 개인 사전 → 단어 제안하기...**에서 GitHub 작성 화면을 열어 사용자가 제출하는 방식입니다. 제안 화면을 여는 과정에서 사용자가 작성한 제안이 URL에 포함됩니다. 자세한 저장·전송 범위와 비밀번호 입력의 한계는 [개인정보 안내](PRIVACY.md)에 설명되어 있습니다.
+
+**하늘키보드는 무료입니다.** 메뉴바나 설정의 **하늘키보드 응원하기**에서 후원 안내를 볼 수 있습니다. 현재 후원 연결은 준비 중이며, 후원 여부가 입력 기능을 제한하지 않습니다.
+
+## 요구사항과 알려진 한계
+
+- 빌드의 최소 대상은 **macOS Sonoma 14.0**이며, 배포 대상은 **Apple Silicon + Intel Universal**입니다. Mac 자체가 해당 macOS를 지원해야 합니다.
+- 현재 **두벌식**만 지원합니다.
+- 일부 앱·사이트의 입력 처리 방식에 따라 동작이 다를 수 있습니다.
+- **Terminal·Ghostty 등에서는 커서 앞 글자의 교체가 지원되지 않아 되돌리기·수동 전환을 사용할 수 없습니다.** 영타 자동 변환은 별개로 동작하며, 원치 않으면 앱별로 끌 수 있습니다.
+- 웹 비밀번호 칸 등에서 앱이 보안 입력을 올바르게 활성화하지 않으면 한글 조합이 가능할 수 있습니다. 민감한 입력은 **ABC 영어 모드**를 사용하세요.
+- 후보 창의 글자가 연하게 표시되는 현상이 있습니다. 지원 OS·앱 조합별 실제 사용 검증은 계속 진행 중입니다.
 
 ## 버전 체계
 
-하늘키보드는 **CalVer(Calendar Versioning)** 를 따릅니다: `연도.릴리스[.핫픽스]`
+**정식 버전부터 `YYYY.MM.DD` — 연도.월.일**을 사용합니다. 예를 들어 **2026년 10월 10일에 실제 배포하면 `2026.10.10`**입니다. 이 날짜는 예시이며 출시일 공지가 아닙니다.
 
-- `2026.01`, `2026.02`, `2026.03` … — `2026`은 **연도**, 두 번째 칸은 **그 해의 릴리스 순번**입니다(달력의 월과 무관). 2026년 첫 릴리스가 `2026.01`, 두 번째가 `2026.02`.
-- `2026.02.01`, `2026.02.02` … — **핫픽스(긴급 수정)가 있을 때만** 세 번째 칸을 덧붙입니다. 예) `2026.02` 출시 후 버그 수정본이 `2026.02.01`.
+- `2026.01`~`2026.07`은 과거 순번형 **베타** 번호입니다. 당시 두 번째 칸은 월이 아니었습니다. 배포 글 제목에 `-beta`를 표시합니다.
+- 정식 버전의 Git 태그, 앱의 `MARKETING_VERSION`, `HaneulKeyboard_<버전>.zip` 이름을 일치시킵니다. 별도의 빌드 번호도 올립니다.
+- 이전 순번형 설치본과 비교할 수 있도록 앱은 숫자 2~3칸을 읽습니다. `2026.9`보다 `2026.10.10`이 최신입니다.
+- **같은 날짜·같은 버전으로 파일만 교체하지 않습니다.** 현재 업데이트는 버전과 빌드 번호가 모두 올라야 인식합니다. 같은 날 추가 정식 배포가 필요하면 게시 전에 번호 정책을 별도로 정해야 합니다.
 
-> 점으로 나뉜 각 칸은 독립된 정수이며 소수점이 아닙니다. 예) `2026.02.10`이 `2026.02.09`보다 최신입니다.
-
-## 개발자용 빌드
-
-```bash
-# 1. 의존성 설치
-brew install xcodegen
-
-# 2. 프로젝트 생성
-xcodegen generate
-
-# 3. 빌드 (Debug)
-xcodebuild -scheme HaneulKeyboard -configuration Debug build
-
-# 4. 실행
-open ~/Library/Developer/Xcode/DerivedData/HaneulKeyboard-*/Build/Products/Debug/HaneulKeyboard.app
-```
-
-메인 앱이 IME 번들(`HaneulKeyboardIM.app`)을 `Contents/Helpers/`에 자동 포함하므로 타겟 하나만 빌드하면 됩니다.
-
-### 배포용 빌드 (Developer ID + Notarization)
-
-```bash
-ZIP_ONLY=1 scripts/build_notarize_install.sh HaneulKeyboard
-```
-
-Apple Developer ID 인증서 + notarytool 키체인 프로필(`haneul-notary`)이 사전에 등록되어 있어야 합니다. 결과물은 repo 루트의 `HaneulKeyboard_<버전>.zip`입니다. <!-- 2026-09-23 (#72) ZIP_ONLY·릴리스 체크리스트 -->
-
-> **릴리스를 올릴 때는 [`docs/release-checklist.md`](./docs/release-checklist.md)를 따르세요.** 앱의 자동 업데이트가 태그·파일 이름·버전 형식에 의존해서, 한 번이라도 어긋나면 모든 사용자에게 업데이트 알림이 조용히 사라집니다.
-
-### 구조
+## 개발과 저장소 구조
 
 ```text
-HaneulKeyboard.app              # 메뉴바 앱
-└── Contents/Helpers/
-    └── HaneulKeyboardIM.app    # 입력기 번들 (IMKit)
-
-~/Library/Input Methods/
-└── HaneulKeyboardIM.app        # 설치 시 복사됨
+Sources/                  메뉴바·설정·5단계 안내·설치·업데이트
+IMESources/               두벌식 조합·영타 판정·수동 전환·개인 사전
+Resources/IM/             입력기 사전과 입력 소스 아이콘
+Resources/Brand/          앱·메뉴바 아이콘 원본
+Resources/Onboarding/     안내 그림·종이 질감·글꼴 및 라이선스
+Tests/                    코어·업데이트·안내 입력 검사
+Tools/ + scripts/         사전 검역·테스트·빌드·공증 도구
+dict_work/                사전 manifest·출처·검역 결과
+docs/                     기능 범위·디자인·배포/수동 검사 기록
+project.yml               XcodeGen 프로젝트 정의와 버전·빌드 번호
 ```
 
-| 번들 | 역할 | 기술 |
-|---|---|---|
-| `HaneulKeyboard.app` | 메뉴바 앱 — 언어 전환, IME 설치 | SwiftUI, TIS API |
-| `HaneulKeyboardIM.app` | 한글 입력기 — 자모 조합 | IMKit, IMKInputController |
+메인 앱 `HaneulKeyboard.app`은 `Contents/Helpers/HaneulKeyboardIM.app`을 포함합니다. 설치 안내가 입력기를 `~/Library/Input Methods/`에 설치합니다. 메뉴바는 AppKit `NSStatusItem`·`NSMenu`, 설정과 안내는 SwiftUI, 입력기는 IMKit을 사용합니다.
 
-## 라이선스
+```bash
+brew install xcodegen
+xcodegen generate
+xcodebuild -scheme HaneulKeyboard -configuration Debug build
 
-MIT License — 자유롭게 사용, 수정, 배포하세요. 자세한 내용은 [`LICENSE`](./LICENSE) 파일을 참고하세요.
+# 입력기 코어 / 업데이트 / 안내 입력 검사
+bash scripts/run_ime_tests.sh
+bash scripts/run_updater_tests.sh
+bash scripts/run_onboarding_tests.sh
 
-**데이터 파일 예외** (앱 코드는 MIT 그대로, 번들 데이터만 파일별 라이선스):
+# 사전 검역
+bash scripts/audit_wordlist.sh --smoke
+bash scripts/audit_units.sh
+```
 
-- 한국어 단어 목록([`Resources/IM/korean_words.txt`](./Resources/IM/korean_words.txt)) — 국립국어원 **우리말샘**에서 추출, [**CC-BY-SA 2.0 KR**](https://creativecommons.org/licenses/by-sa/2.0/kr/)
-- 현대 영어 단어 목록 — **NGSL**(New General Service List, Browne·Culligan·Phillips)에서 추출, [**CC BY-SA 4.0**](https://creativecommons.org/licenses/by-sa/4.0/)
-- 영어 단어 목록 보강 — **SCOWL/ESDB**([English Speller Database](https://wordlist.aspell.net), Kevin Atkinson)에서 추출, **MIT-like** (Copyright 2000-2026 by Kevin Atkinson)
-- 영어 인명 목록 — **미국 인구조사국**(2010 Census 성씨)·**미국 사회보장국**(Baby Names) 데이터에서 추출, **public domain**
-- 지명 목록([`english_sports_geo.txt`](./Resources/IM/english_sports_geo.txt) 일부) — **[GeoNames](https://www.geonames.org)**(북미·유럽 주/도·도시)에서 추출, [**CC BY 4.0**](https://creativecommons.org/licenses/by/4.0/)
-- 축구 클럽·선수 목록(`english_sports_geo.txt` 일부) — **[Wikidata](https://www.wikidata.org)**(잉글랜드·프랑스·스페인·이탈리아 9개 리그)에서 추출, **CC0 1.0**(퍼블릭 도메인)
+서명·공증 배포 파일은 **메인 앱 타겟**으로 만듭니다. Developer ID 인증서와 `haneul-notary` 키체인 프로필이 필요합니다.
 
-## 감사의 글
+```bash
+ZIP_ONLY=1 bash scripts/build_notarize_install.sh HaneulKeyboard
+```
 
-하늘키보드는 앞서 길을 닦아준 오픈소스와 도구들 위에 서 있습니다:
+결과물은 저장소 루트의 `HaneulKeyboard_<MARKETING_VERSION>.zip`입니다. 이 명령은 설치까지 진행하지 않습니다. 게시 전 [배포 체크리스트](docs/release-checklist.md)와 [실제 앱 검사 항목](docs/manual-test-checklist.md)을 확인하세요.
 
-- **[McBopomofo](https://github.com/openvanilla/McBopomofo)** (OpenVanilla, MIT) — IME의 TIS(Text Input Services) 등록·설치 패턴에 큰 도움을 받았습니다.
-- **[국립국어원 우리말샘](https://opendict.korean.go.kr)** (CC-BY-SA 2.0 KR) — 영타 자동 변환의 한국어 실존 단어 판정에 표제어 데이터를 사용합니다.
-- **[Claude](https://claude.com/claude-code)** (Anthropic) — 개발 과정에 함께했습니다.
+현재 준비 상태와 검증 범위는 [빌드 68 준비 기록](docs/releases/2026.9-build68-preparation.md)에 정리했습니다. 설치·공증 전 로컬 테스트 후보이며, 저장소 루트의 기존 ZIP은 빌드 62입니다.
 
-그리고 이 모든 것을 가능케 한, 인류가 쌓아 올린 오픈소스와 지식에 감사합니다. 전체 내용은 [감사의 글](./ACKNOWLEDGEMENTS.md)을 참고하세요.
+작업은 [GitHub Issues](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues)에서 기능·완성된 작업 묶음 단위로 관리합니다. 코드·테스트 후보가 준비되어도 실제 제품 적용과 필요한 설치본 검증이 남았다면 티켓은 열어 둡니다.
 
-## 제보 / 기여
+## 라이선스와 감사의 글
 
-실제로 써보고 불편한 점이나 버그를 [Issues](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues)로 알려주세요. 특히 한글 입력이 깨지는 사이트/앱을 발견하면 제보해주시면 개선에 큰 도움이 됩니다. 적극적인 실사용과 피드백을 환영합니다.
+앱 코드는 **Apache License 2.0**입니다. [LICENSE](LICENSE)와 원본 이름·주소가 담긴 [NOTICE](NOTICE)를 확인하세요. 수정·재배포·상업적 사용은 해당 라이선스 조건을 따릅니다. 배포물에는 LICENSE와 관련 NOTICE 고지를 유지하고 변경한 파일에는 수정 사실을 표시해야 합니다.
 
-**단어 제안**은 앱에서 바로 할 수 있습니다 — **설정 → 개인 사전 탭**의 "단어 제안하기..."에서 친 글자와 기대한 결과를 적고 "GitHub에서 열기"를 누르면 미리 채워진 이슈 작성 화면이 브라우저로 열립니다("최근 되돌린 변환" 목록의 **제안** 버튼도 같은 화면). 앱은 창을 열 뿐 아무것도 전송하지 않고, 등록은 GitHub에서 직접 합니다 ([PRIVACY.md](./PRIVACY.md) 8번). <!-- 2026-09-23 (#72) 탭 경로 -->
+기존 MIT 배포본에 부여한 권리는 그대로 유지됩니다. 과거 고지는 [보존한 MIT 원문](LICENSES/HaneulKeyboard-MIT-legacy.txt)에 있습니다. 사전과 글꼴에는 별도 라이선스가 적용됩니다.
 
-<!-- 후원 링크 자리 (URL 확정 후 추가) -->
+| 자료 | 라이선스 |
+|---|---|
+| 국립국어원 우리말샘 한국어 목록 | CC BY-SA 2.0 KR |
+| NGSL 영어 목록 | CC BY-SA 4.0 |
+| SCOWL/ESDB 영어 목록 | MIT-like |
+| US Census·SSA 인명 데이터 | Public Domain |
+| GeoNames 지명 | CC BY 4.0 |
+| Wikidata 축구 클럽·선수 | CC0 1.0 |
+| 고운바탕·나눔손글씨 펜 | SIL Open Font License 1.1 |
+
+[McBopomofo](https://github.com/openvanilla/McBopomofo)의 입력기 등록·설치 구조, 공개 사전과 글꼴, 오픈소스 기여자들에게 감사합니다. **[Claude](https://claude.com/claude-code)(Anthropic)**와 **[Codex · ChatGPT](https://openai.com/codex/)(OpenAI)**도 설계·개발·검증·문서·시각 디자인 과정에 함께했습니다. 개발 도구를 사용했다는 뜻이며, 앱이 입력 내용을 AI에 전송한다는 뜻은 아닙니다.
+
+출처·가공 방식·원문 라이선스는 [감사의 글](ACKNOWLEDGEMENTS.md)에 모았습니다. 버그나 단어 제안은 [Issues](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues)로 알려 주세요.
 
 ---
 
 # English
 
-A macOS menu bar utility for fast Korean ↔ English input switching and reliable Hangul typing, with a dedicated input method (IME).
+HaneulKeyboard is a macOS menu bar app and two-set Korean input method, named after my daughter Haneul — “sky” in Korean.
 
-Named after my daughter, 하늘 (Haneul) — "sky" in Korean.
+**Beta distribution has ended; the first stable version is being prepared.** Updated 2026-10-10. This README describes the current development tree, including features awaiting installed-app verification. Old releases `2026.01`–`2026.07` are beta history; their app ZIPs are no longer offered. GitHub’s “Source code” archives are not installable apps.
 
-## Features
+## Features and installation
 
-- **Reliable Hangul composition** via a dedicated input source — no broken jamo.
-- **Fast Korean/English switching** with Caps Lock (short press), using the system-native path for deterministic behavior.
-- **Wrong-layout auto-correction** *(new in 2026.02, dictionaries modernized in 2026.03)* — typed English while in Korean mode? It fixes itself on commit: `메ㅔㅣㄷ`→`apple`, `how ㅁㄱㄷ you`→`how are you`. Genuine Korean is left alone — every candidate is checked against **677k Korean headwords** (국립국어원 우리말샘) plus slang/emoticon guards, with one deliberate exception (an explicit whitelist of 새→to/무→an/내→so/랙→for/뭉→and right after English context). 2026.03 modernizes the English dictionaries with [NGSL](https://www.newgeneralservicelist.com) high-frequency words (`city`, `with`), [SCOWL](https://wordlist.aspell.net) modern vocabulary (`playlist`, `internet`, `selfie`), and personal names from US Census/SSA data (`davinci`, `ronaldo`, `garcia`) — every addition passed a Korean-collision audit driven by the real composition engine.
-- **Caps Lock uppercase mode** with a long press.
-- **Menu bar control** for language switching, settings, and shortcuts. Wrong-layout auto-correction can be toggled in Settings; the revert key (default Shift+Space, also Option+Space / Control+Shift+Space / Option+Shift+Space) and a per-app off list are configurable there too (**영타 변환** / Conversion tab). Note: reverting cannot work in terminals (Terminal.app, Ghostty…) — typed text is owned by the shell the moment it lands, so the IME has no way to take it back. <!-- 2026-09-21 (#54) · 2026-09-23 (#72) 탭 경로 -->
-- **Manual Hangul↔English toggle** *(2026-09-21)* — the revert key now works on **any word before the cursor**, not just one the IME auto-corrected: `재가` ↔ `work` (blocked from auto-correction because 재가 is a real Korean word), `ㅡ5` ↔ `m5` (impossible to auto-correct — no dictionary can hold it). Press again to switch back. Reverting an actual auto-correction still takes priority, and the whole feature can be turned off in Settings (**영타 변환** tab → 바뀌지 않은 단어도 되돌리기). Terminals are excluded for the same structural reason as above. <!-- 2026-09-21 (#15) · 2026-09-23 (#72) 탭 경로 -->
-- **Personal dictionary** *(2026-09-21)* — in Settings → **개인 사전** (Personal dictionary) tab, list words that should **always** convert (in-house terms, names) or **never** convert (as English or as their Hangul-layout form), and review the conversions you reverted with Shift+Space (last 50) with a one-click "Block" button. Everything stays on your Mac — see [PRIVACY.md](./PRIVACY.md) #7. <!-- 2026-09-23 (#72) 탭 경로 -->
-- **Automatic updates** *(2026-09-21)* — Settings → **업데이트** (Updates) tab checks GitHub Releases for a newer version (at launch and every 24 hours, on by default, and you can turn it off). A new version is only announced, never installed on its own; when you click **Update**, the download must pass all five checks — bundle ID, signing Team, `codesign`, Apple notarization (`spctl`), and a real version increase — before your app is replaced atomically and relaunched. If any check fails, the download is discarded and your existing app is untouched. Nothing about you is uploaded — see [PRIVACY.md](./PRIVACY.md) #9. <!-- 2026-09-21 (#19) · 2026-09-23 (#72) 탭 경로 -->
+- **Caps Lock:** short press to switch Korean/English, long press for uppercase mode, using macOS input-source switching.
+- **Wrong-layout correction:** type English while in Korean mode, then press Space or punctuation: `메ㅔㅣㄷ` → `apple`. Korean words and jamo expressions are protected, with reviewed context-dependent exceptions.
+- **Shift+Space:** revert the last conversion, convert an exact registered Hangul spelling (`레스토랑` → `restaurant`, `갤럭시24` → `Galaxy24`), or fall back to keyboard-layout mapping. The bundled phonetic dictionary has 1,903 entries (1,868 base entries + 35 numeric aliases; 2026-10-09). Curated mappings also include `축구` → `football`, `미식축구` → `american football`, `라이더` → `rider`, and `시각효과` → `VFX`; additional categories cover animation, cinema, brands, and finance. `선물` always maps to `gift`; `선물거래` maps to `futures trading`. Personal names and music-group names are excluded from the Hangul-to-English mapping dictionary. This is not general translation or automatic name romanization. Plain Space never invokes phonetic conversion. Phonetic conversion has its own on/off setting and uses the configured revert shortcut.
+- **Personal dictionary:** add conversion words, block unwanted conversions, and review the last 50 reverted pairs. Stored locally.
+- **Expanded vocabulary:** registered alphanumeric names (`a7r`, `800T`), units (`12mp`, `100ml`, `35mm`), and reviewed art/design terms (`risograph`, `ransomizer`, `surrealism`). Unit conversion is not a measurement calculator.
+- **Five-step onboarding:** install, select the input source, practice auto-correction, practice reverting, and find the menu bar. Paper texture, Korean architectural motifs, and five page-specific character poses connect the guide to the new icon.
+- **Updates:** optional periodic GitHub checks; a notice shows current/new versions once per new version. Installation requires a click and passes signature, notarization, identity, and version checks.
 
-Korean ↔ English input only. No other languages, no extra features.
+After the stable package is published, download `HaneulKeyboard_<version>.zip` from [Releases](https://github.com/Hyunjin-Cho/HaneulKeyboard/releases), move the app to `/Applications`, and follow **시작하기...**. Keep ABC for English and add **하늘키보드 (두벌식)** in macOS Keyboard settings. Reopen the guide with **시작하기 다시 보기...**.
 
-## Install
+Settings has five tabs: General, Conversion, Personal Dictionary, Updates, and Advanced. Removal is under **고급 → 전체 제거...**. Donations are optional; the donation destination is still being prepared.
 
-Download the latest build from [GitHub Releases](https://github.com/Hyunjin-Cho/HaneulKeyboard/releases), copy `HaneulKeyboard.app` to `/Applications/`, double-click it, and follow the 3-step onboarding wizard. <!-- 2026-09-23 (#72) 탭 경로 -->
+The build targets macOS 14+ with Universal Apple Silicon/Intel binaries. Host-app support varies; reverting/replacing committed text does not work in Terminal/Ghostty. Phonetic conversion is integrated into the development build; installed IMK/host-app verification remains tracked in [#84](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/84). It accepts curated exact spellings, not guessed misspellings. Numeric aliases include six explicitly reserved future numbers; these do not announce product releases. See the [specification](docs/phonetic-conversion.md).
 
-## Requirements
+## Privacy, versions, and credits
 
-macOS Sonoma (14.0) or later — tested on macOS 26 (Tahoe) and 27. Both Apple Silicon and Intel; Intel Macs are supported on macOS 14–26 only (macOS 27 and later run on Apple silicon only — the build stays Universal).
+The IME contains no networking code. The menu bar app contacts GitHub for update checks/downloads; typing and personal dictionaries are not uploaded to AI services. See [Privacy](PRIVACY.md) for local storage, suggestion URLs, and secure-input limitations.
 
-## Versioning
+Stable versions use **`YYYY.MM.DD`**, the actual publication date. `2026.10.10` is an example for an October 10 release, not an announced date. Legacy `2026.01`–`2026.07` beta numbers used a sequence, not months. The app still compares legacy numeric versions. Tags, app versions, and ZIP names must match, and the build number must increase. Replacing an asset under the same version does not deliver another update.
 
-CalVer: `YEAR.RELEASE[.HOTFIX]`. The second field is the release number within the year (not the calendar month): `2026.01`, `2026.02`, `2026.03` … A third field is added only for hotfixes (e.g. `2026.02.01`). Each dot-separated field is an independent integer, not a decimal.
+App code: **Apache License 2.0**, with [LICENSE](LICENSE) and [NOTICE](NOTICE) bundled in both the main app and the IME. Prior MIT distributions retain their original terms; the [legacy notice](LICENSES/HaneulKeyboard-MIT-legacy.txt) is preserved. Bundled dictionaries/fonts retain their own licenses: Urimalsaem (CC BY-SA 2.0 KR), NGSL (CC BY-SA 4.0), SCOWL/ESDB (MIT-like), US Census/SSA (public domain), GeoNames (CC BY 4.0), Wikidata (CC0), Gowun Batang/Nanum Pen Script (OFL 1.1). See [Acknowledgements](ACKNOWLEDGEMENTS.md) for sources and notices.
 
-## License
-
-MIT. See [`LICENSE`](./LICENSE).
-
-**Data exceptions** (the app code remains MIT; only bundled data files carry their own licenses):
-
-- Korean wordlist ([`Resources/IM/korean_words.txt`](./Resources/IM/korean_words.txt)) — extracted from the National Institute of Korean Language's **Urimalsaem (우리말샘)**, [**CC-BY-SA 2.0 KR**](https://creativecommons.org/licenses/by-sa/2.0/kr/)
-- Modern English wordlist — derived from the **NGSL** (New General Service List, Browne, Culligan & Phillips), [**CC BY-SA 4.0**](https://creativecommons.org/licenses/by-sa/4.0/)
-- English wordlist augmentation — derived from **SCOWL/ESDB** ([English Speller Database](https://wordlist.aspell.net), Kevin Atkinson), **MIT-like** (Copyright 2000-2026 by Kevin Atkinson)
-- English name lists — derived from **US Census Bureau** (2010 Census surnames) and **US Social Security Administration** (Baby Names) data, **public domain**
-- Place names (part of [`english_sports_geo.txt`](./Resources/IM/english_sports_geo.txt)) — derived from **[GeoNames](https://www.geonames.org)** (North American & European states/cities), [**CC BY 4.0**](https://creativecommons.org/licenses/by/4.0/)
-- Football club & player names (part of `english_sports_geo.txt`) — derived from **[Wikidata](https://www.wikidata.org)** (9 leagues across England, France, Spain, Italy), **CC0 1.0** (public domain)
-
-## Acknowledgements
-
-Built on the shoulders of open source — gratitude to [McBopomofo](https://github.com/openvanilla/McBopomofo) (TIS registration patterns), [국립국어원 우리말샘](https://opendict.korean.go.kr) (Korean headword data, CC-BY-SA 2.0 KR), [Claude](https://claude.com/claude-code) (development), and the wider body of human knowledge. See [Acknowledgements](./ACKNOWLEDGEMENTS.md).
-
-## Feedback
-
-Please report bugs and broken sites/apps on the [Issues page](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues).
-
-For dictionary suggestions, use **Settings → 개인 사전 (Personal dictionary) tab → 단어 제안하기... (Suggest a word)**: fill in what you typed and what you expected, and the **GitHub에서 열기** (Open on GitHub) button opens a pre-filled issue form in your browser. The app only opens the page and sends nothing; you submit it yourself on GitHub ([PRIVACY.md](./PRIVACY.md) #8). <!-- 2026-09-23 (#72) 탭 경로 -->
+Thanks to [McBopomofo](https://github.com/openvanilla/McBopomofo), the open-source community, **[Claude](https://claude.com/claude-code) (Anthropic)**, and **[Codex · ChatGPT](https://openai.com/codex/) (OpenAI)** for helping with development and design. Report problems or suggestions in [Issues](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues).

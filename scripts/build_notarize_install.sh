@@ -118,13 +118,8 @@ verify_gatekeeper_bundle() {
 verify_notice_resources() {
     local app_path="$1"
     local label="$2"
-    if [[ "$IS_MAIN_APP" != "1" ]]; then
-        return 0
-    fi
-    local resources_dir="$app_path/Contents/Resources"
-    require_path "$resources_dir/LICENSE" "$label LICENSE"
-    require_path "$resources_dir/ACKNOWLEDGEMENTS.md" "$label ACKNOWLEDGEMENTS.md"
-    echo "  ✓ $label includes LICENSE + ACKNOWLEDGEMENTS.md"
+    python3 "$PROJECT_ROOT/scripts/verify_license_resources.py" "$app_path"
+    echo "  ✓ $label includes current LICENSE + NOTICE + ACKNOWLEDGEMENTS.md + legacy MIT"
 }
 
 verify_embedded_helper_bundle() {

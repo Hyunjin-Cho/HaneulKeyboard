@@ -38,33 +38,40 @@ final class Updater {
     /// 틱(1시간)에 다시 시도한다.
     private(set) var lastCheck: Date?
     private(set) var autoCheckEnabled: Bool
+    private(set) var latestVersion: String?
+
+    /// AppDelegate가 실제 알림 창에 연결한다. 설치는 이 콜백에서 시작하지 않는다.
+    @ObservationIgnored var onUpdateAvailable: ((AvailableUpdate) -> Void)?
+    @ObservationIgnored private var lastNotifiedVersion: CalVer?
 
     static let autoCheckKey = "haneul.updateAutoCheck"
     static let lastCheckKey = "haneul.updateLastCheck"
-    #if DEBUG
-    /// Debug 전용 시험 훅 — `defaults write com.hyunjincho.haneulkeyboard haneul.updateRepoOverride
-    /// Hyunjin-Cho/HaneulKeyboard-updatetest` 로 조회 저장소를 바꿔 실제 릴리스 없이 끝까지
-    /// 시험한다. Release 빌드에는 이 키를 읽는 코드가 아예 없다.
+    static let latestVersionKey = "haneul.updateLatestVersion"
+    static let lastNotifiedVersionKey = "haneul.updateLastNotifiedVersion"
     static let repositoryOverrideKey = "haneul.updateRepoOverride"
-    #endif
+    static let allowUnofficialRepositoryKey = "haneul.updateAllowUnofficialRepo"
 
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let session: URLSession
+    @ObservationIgnored private let now: () -> Date
     @ObservationIgnored private var timer: Timer?
     @ObservationIgnored private var busy = false
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, session: URLSession? = nil, now: @escaping () -> Date = Date.init) {
         self.defaults = defaults
+        self.now = now
         // 기본 ON(오너 결정). 키가 없으면 true.
         autoCheckEnabled = defaults.object(forKey: Self.autoCheckKey) as? Bool ?? true
         lastCheck = defaults.object(forKey: Self.lastCheckKey) as? Date
+        latestVersion = defaults.string(forKey: Self.latestVersionKey).flatMap { CalVer($0)?.text }
+        lastNotifiedVersion = defaults.string(forKey: Self.lastNotifiedVersionKey).flatMap(CalVer.init)
 
         let config = URLSessionConfiguration.ephemeral   // 디스크 캐시·쿠키 없음
         config.timeoutIntervalForRequest = 30
         config.timeoutIntervalForResource = 10 * 60
         config.httpCookieAcceptPolicy = .never
         config.httpShouldSetCookies = false
-        session = URLSession(configuration: config, delegate: RedirectGuard(), delegateQueue: nil)
+        self.session = session ?? URLSession(configuration: config)
     }
 
     // MARK: - 설정
@@ -85,10 +92,13 @@ final class Updater {
         (Bundle.main.infoDictionary?["CFBundleVersion"] as? String).flatMap(Int.init)
     }
 
-    /// 조회할 저장소. Release = 고정값. Debug = defaults 덮어쓰기 허용(형식이 맞을 때만).
-    static var repository: String {
+    /// Debug도 별도 허용을 켜야 시험 저장소를 사용한다. Release는 항상 공식 저장소다.
+    static var repository: String { repository(defaults: .standard) }
+
+    static func repository(defaults: UserDefaults) -> String {
         #if DEBUG
-        if let override = UserDefaults.standard.string(forKey: repositoryOverrideKey),
+        if defaults.bool(forKey: allowUnofficialRepositoryKey),
+           let override = defaults.string(forKey: repositoryOverrideKey),
            UpdateDecision.isValidRepository(override) {
             return override
         }
@@ -98,8 +108,8 @@ final class Updater {
 
     // MARK: - 자동 확인 스케줄
 
-    /// 앱 실행 시 1회(24시간 throttle) + 이후 1시간마다 "24시간이 지났나"를 본다.
-    /// 24시간짜리 타이머 하나 대신 1시간 틱을 쓰는 이유: 잠자기에서 깬 뒤나 네트워크 실패
+    /// 앱 실행 시 + 이후 1시간마다 마지막 성공 확인에서 24시간이 지났는지 확인한다.
+    /// 긴 타이머 하나 대신 1시간 틱을 쓰는 이유: 잠자기에서 깬 뒤나 네트워크 실패
     /// 뒤에도 한 시간 안에 따라잡는다(`lastCheck`는 성공 시에만 갱신). 토글이 OFF면 틱은
     /// 돌아도 `shouldCheckNow`가 false라 네트워크에 나가지 않는다.
     func startAutomaticChecks() {
@@ -118,9 +128,6 @@ final class Updater {
     }
 
     private func checkIfDue() async {
-        guard UpdateDecision.shouldCheckNow(
-            autoCheckEnabled: autoCheckEnabled, lastCheck: lastCheck, now: Date(), forced: false
-        ) else { return }
         await checkNow(forced: false)
     }
 
@@ -128,18 +135,33 @@ final class Updater {
 
     /// 최신 릴리스를 조회해 `phase`를 갱신한다. `forced`는 "지금 확인" 버튼(토글 OFF여도 실행).
     func checkNow(forced: Bool = true) async {
-        guard !busy else { return }
+        guard !busy, UpdateDecision.shouldCheckNow(
+            autoCheckEnabled: autoCheckEnabled, lastCheck: lastCheck, now: now(),
+            forced: forced
+        ) else { return }
         busy = true
         defer { busy = false }
         phase = .checking
         do {
             let release = try await fetchLatestRelease()
-            let now = Date()
-            lastCheck = now
-            defaults.set(now, forKey: Self.lastCheckKey)
+            guard let releaseVersion = CalVer(release.tag) else { throw UpdateError.malformedResponse }
+            let checkedAt = now()
+            lastCheck = checkedAt
+            defaults.set(checkedAt, forKey: Self.lastCheckKey)
+            latestVersion = releaseVersion.text
+            defaults.set(latestVersion, forKey: Self.latestVersionKey)
             if let update = UpdateDecision.availableUpdate(currentVersion: Self.currentVersion, release: release) {
                 phase = .available(update)
                 haneulLog("HaneulKeyboard: update available — \(update.tag) (current \(Self.currentVersion))")
+                // 같은 버전 자동 알림은 재실행 후에도 반복하지 않는다. '지금 확인'은 재표시.
+                if forced || lastNotifiedVersion != update.version, let onUpdateAvailable {
+                    lastNotifiedVersion = update.version
+                    defaults.set(update.tag, forKey: Self.lastNotifiedVersionKey)
+                    onUpdateAvailable(update)
+                }
+            } else if let current = CalVer(Self.currentVersion), current < releaseVersion {
+                // 더 새 태그가 있지만 안전하게 받을 자산이 없으면 '최신 버전'이라고 표시하지 않는다.
+                phase = .failed("새 버전 \(release.tag)의 설치 파일이 아직 준비되지 않았어요.")
             } else {
                 phase = .upToDate
                 haneulLog("HaneulKeyboard: update check — up to date (latest \(release.tag), current \(Self.currentVersion))")
@@ -152,11 +174,12 @@ final class Updater {
     }
 
     private func fetchLatestRelease() async throws -> ReleaseInfo {
-        guard let url = UpdateDecision.latestReleaseURL(repository: Self.repository) else {
-            throw UpdateError.badRepository(Self.repository)
+        let repository = Self.repository(defaults: defaults)
+        guard let url = UpdateDecision.latestReleaseURL(repository: repository) else {
+            throw UpdateError.badRepository(repository)
         }
-        let (data, response) = try await session.data(for: Self.request(for: url))
-        guard let http = response as? HTTPURLResponse else { throw UpdateError.malformedResponse }
+        let (data, http) = try await UpdateTransport.receive(Self.request(for: url),
+            configuration: session.configuration, limit: UpdateDecision.maxReleaseMetadataBytes)
         switch http.statusCode {
         case 200:
             guard let release = UpdateDecision.parseRelease(data) else { throw UpdateError.malformedResponse }
@@ -164,7 +187,7 @@ final class Updater {
         case 300...399:
             throw UpdateError.redirectBlocked(http.value(forHTTPHeaderField: "Location") ?? "?")
         case 404:
-            throw UpdateError.noRelease(Self.repository)
+            throw UpdateError.noRelease(repository)
         case 403, 429:
             throw UpdateError.rateLimited
         default:
@@ -237,33 +260,10 @@ final class Updater {
         }
     }
 
-    /// 완료 핸들러 안에서 임시 파일을 옮긴다 — 핸들러가 돌아오면 URLSession이 임시 파일을
-    /// 지우므로, async `download(for:)`의 반환값에 기대지 않는다.
+    /// 수신 도중 ZIP 크기를 제한하고 디스크로 흘려 쓴다. 실패/취소 시 부분 파일을 지운다.
     nonisolated private static func download(_ asset: ReleaseAsset, session: URLSession, to destination: URL) async throws {
-        guard UpdateDecision.isAllowedURL(asset.downloadURL) else {
-            throw UpdateError.redirectBlocked(asset.downloadURL.absoluteString)
-        }
-        let request = request(for: asset.downloadURL)
-        let http: HTTPURLResponse = try await withCheckedThrowingContinuation { continuation in
-            let task = session.downloadTask(with: request) { tmp, response, error in
-                if let error {
-                    continuation.resume(throwing: UpdateError.network(error.localizedDescription))
-                    return
-                }
-                guard let tmp, let http = response as? HTTPURLResponse else {
-                    continuation.resume(throwing: UpdateError.malformedResponse)
-                    return
-                }
-                do {
-                    try FileManager.default.moveItem(at: tmp, to: destination)
-                } catch {
-                    continuation.resume(throwing: UpdateError.network(error.localizedDescription))
-                    return
-                }
-                continuation.resume(returning: http)
-            }
-            task.resume()
-        }
+        let (_, http) = try await UpdateTransport.receive(request(for: asset.downloadURL),
+            configuration: session.configuration, limit: UpdateDecision.maxAssetBytes, destination: destination)
         guard http.statusCode == 200 else {
             if (300...399).contains(http.statusCode) {
                 throw UpdateError.redirectBlocked(http.value(forHTTPHeaderField: "Location") ?? "?")
@@ -434,22 +434,6 @@ final class Updater {
     }
 }
 
-/// 리다이렉트를 허용 호스트(HTTPS) 안으로만 따라간다. 밖으로 나가려 하면 따라가지 않고
-/// 3xx 응답을 그대로 끝내 호출자가 `redirectBlocked`로 처리한다.
-private final class RedirectGuard: NSObject, URLSessionTaskDelegate, Sendable {
-    func urlSession(
-        _ session: URLSession, task: URLSessionTask,
-        willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest,
-        completionHandler: @escaping (URLRequest?) -> Void
-    ) {
-        if let url = request.url, UpdateDecision.isAllowedURL(url) {
-            completionHandler(request)
-        } else {
-            completionHandler(nil)
-        }
-    }
-}
-
 enum UpdateError: LocalizedError {
     case badRepository(String)
     case network(String)
@@ -458,6 +442,7 @@ enum UpdateError: LocalizedError {
     case noRelease(String)
     case redirectBlocked(String)
     case malformedResponse
+    case responseTooLarge(Int)
     case badSize(Int)
     case sizeMismatch(expected: Int, actual: Int)
     case extractFailed(String)
@@ -482,6 +467,8 @@ enum UpdateError: LocalizedError {
             return "허용되지 않은 주소로의 이동을 차단했어요 (\(target))"
         case .malformedResponse:
             return "서버 응답을 이해할 수 없어요"
+        case .responseTooLarge(let limit):
+            return "업데이트 응답이 허용 크기를 넘어서 중단했어요 (최대 \(limit) bytes)"
         case .badSize(let size):
             return "받은 파일 크기가 이상해요 (\(size) bytes)"
         case .sizeMismatch(let expected, let actual):

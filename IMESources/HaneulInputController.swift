@@ -190,7 +190,7 @@ final class HaneulInputController: IMKInputController {
                                          hangul: conv.hangul, english: conv.english)
                     // 2026-09-21 (#53): 영어→한글로 되돌린 순간만 기록한다(한글→영어 재토글은
                     // 기록 대상이 아님 — "오변환이었다"는 신호는 되돌림 쪽뿐).
-                    if r.text != conv.english {
+                    if r.text != conv.english, composer.shouldRecordAutomaticRevert {
                         recordRevert(hangul: conv.hangul, english: conv.english)
                     }
                     return true
@@ -200,28 +200,23 @@ final class HaneulInputController: IMKInputController {
             // (키를 먹지 않게 — 최소한 스페이스는 입력됨).
         }
 
-        // 2026-09-21 (#15): 되돌릴 자동변환이 **없을 때**의 수동 한↔영 토글 — 커서 앞 단어를
-        // 자판 배열만으로 바꾼다. 자동변환이 안전을 위해 일부러 포기한 영역(우리말샘 veto로
-        // 막히는 `재가`, 사전에 존재할 수 없는 `ㅡ5`)을 사용자 의도로 뚫는 탈출구다.
-        //
-        // 순서가 곧 사양이다 — **되돌리기 우선**: 위 블록이 먼저이고 `lastConversion`이 있으면
-        // 여기까지 오지 않는다(익숙한 동작을 깨지 않는다).
-        //
-        // 조건은 싼 것부터 — 공짜 상태 검사 → 키코드·수정자 사전 필터 → defaults 두 번.
-        // `couldMatch` 덕에 **맨 스페이스는 defaults를 한 번도 읽지 않는다**(종전과 같은 비용).
-        //
-        // `hasPendingComposition`: 조합 중(marked text)이면 토글하지 않는다. 그 글자는 아직
-        // 클라이언트 문서가 아니라 커서 앞을 읽어도 있을지 없을지 앱마다 다르다. 이때는 아래
-        // 일반 경계 처리로 흘려보내 평소대로 확정하고(자동 변환도 평소대로 시도된다), 그다음
-        // 누름부터 토글 대상이 된다.
-        if composer.lastConversion == nil, !composer.hasPendingComposition,
+        // #84 · 2026-10-09: 저장된 변환 쌍 → 등록 발음 → 기존 자판 토글 순서.
+        // 일반 Space는 couldMatch에서 탈락하며 발음 사전을 조회하지 않는다.
+        if composer.lastConversion == nil,
            RevertKey.couldMatch(keyCode: event.keyCode, modifierFlagsRaw: mods.rawValue),
            RevertKey.resolve(rawValue: UserDefaults.standard.string(forKey: RevertKey.defaultsKey))
-               .matches(keyCode: event.keyCode, modifierFlagsRaw: mods.rawValue),
-           UserDefaults.standard.object(forKey: RevertKey.manualToggleAllWordsKey) as? Bool
-               ?? RevertKey.manualToggleAllWordsDefault,
-           handleManualToggle(client: client) {
-            return true
+               .matches(keyCode: event.keyCode, modifierFlagsRaw: mods.rawValue) {
+            let phoneticEnabled = UserDefaults.standard.object(forKey: RevertKey.phoneticKey) as? Bool
+                ?? RevertKey.phoneticDefault
+            let keyboardEnabled = UserDefaults.standard.object(forKey: RevertKey.manualToggleAllWordsKey) as? Bool
+                ?? RevertKey.manualToggleAllWordsDefault
+            if composer.hasPendingComposition {
+                if phoneticEnabled, handlePendingPhonetic(client: client) { return true }
+            } else if (phoneticEnabled || keyboardEnabled),
+                      handleManualToggle(client: client, phoneticEnabled: phoneticEnabled,
+                                         keyboardEnabled: keyboardEnabled) {
+                return true
+            }
         }
 
         // (M-02) `.numericPad`는 passive 목록에서 뺀다 — 화살표/탐색키는
@@ -256,6 +251,15 @@ final class HaneulInputController: IMKInputController {
             return true
         }
 
+        // 2026-10-06 (#5): 등록된 영숫자 이름의 숫자를 단어 안에 유지한다.
+        // 개인 사전에 방금 추가한 이름도 첫 숫자부터 인식하도록 새 값을 읽는다.
+        if let typed = event.characters?.first, AlphanumericWords.isDigit(typed) {
+            composer.personalDictionary = PersonalDictionary.load(from: .standard)
+            if composer.handleDigit(typed, client: composerClient) { return true }
+        }
+
+        if event.characters == ".", composer.handleQuantityPoint(client: composerClient) { return true }
+
         // Active boundary: the user typed a non-jamo key (space, punctuation,
         // digit, Enter...) — the only path where English auto-conversion may
         // fire. Re-read the toggle so Settings changes apply immediately.
@@ -280,23 +284,31 @@ final class HaneulInputController: IMKInputController {
         // 엔터·기타 문자는 문장 단절로 보고 리셋 ("Nice. 새로운" 보호).
         // (L-02) 실제 출력 문자 기준 — Shift+,는 '<'(문장 단절 경계)이지 ','가
         // 아니다. charactersIgnoringModifiers는 '<'를 ','로 잘못 보고했다.
-        let boundary = event.characters?.first
-        if boundary != " " && boundary != "," {
-            composer.resetEnglishContext()
-        }
+        composer.completeBoundary(event.characters?.first)
         return false
     }
 
-    /// 2026-09-21 (#15): 커서 앞 단어를 한↔영으로 바꾼다 — 되돌릴 자동변환이 없을 때의 경로.
-    ///
-    /// 자동 되돌리기(`handle` 위쪽 블록)와 **같은 재료**를 그대로 쓴다: 커서 앞을 읽고(T1),
-    /// 단어를 잘라(`wordBeforeCursor` — `resolveToggle`과 같은 `isWordChar`), 범위를 교체하고,
-    /// 교체가 먹었는지 다시 읽어 확인한다(T2). 다른 점은 **무엇으로 바꾸는지**뿐이다 —
-    /// 사전이 아니라 `ManualToggle`의 자판 역매핑이라 veto도 사전 수록 여부도 보지 않는다.
-    ///
-    /// - Returns: 키를 소비했으면 true. false면 호출자가 평소 경계 처리로 흘려보낸다
-    ///   (최소한 스페이스는 입력된다).
-    private func handleManualToggle(client: IMKTextInput) -> Bool {
+    /// 조합 중 등록 단어는 확정된 문서를 재작성하지 않고 marked text로 한 번에 바꾼다.
+    /// 조합 범위와 화면 원문이 같을 때만 실행하여 다른 단어의 일부를 바꾸지 않는다.
+    private func handlePendingPhonetic(client: IMKTextInput) -> Bool {
+        guard let conversion = composer.pendingPhoneticConversion() else { return false }
+        let marked = client.markedRange()
+        let selection = client.selectedRange()
+        guard marked.location != NSNotFound, marked.length == (conversion.hangul as NSString).length,
+              selection.length == 0, selection.location == NSMaxRange(marked),
+              client.attributedSubstring(from: marked)?.string == conversion.hangul else { return false }
+        if marked.location > 0 {
+            guard let left = client.attributedSubstring(from: NSRange(location: marked.location - 1, length: 1))?.string,
+                  PhoneticDictionary.isBoundary(left) else { return false }
+        }
+        let right = client.attributedSubstring(from: NSRange(location: NSMaxRange(marked), length: 1))?.string
+        guard PhoneticDictionary.isBoundary(right) else { return false }
+        return composer.commitPhonetic(to: IMKComposerClient(client: client))
+    }
+
+    /// 커서 앞 확정 단어: 등록 발음 우선, 미등록이면 기존 자판 배열 토글.
+    /// 읽기 길이·선택·교체 거부 방어선은 기존 수동 토글과 동일하다.
+    private func handleManualToggle(client: IMKTextInput, phoneticEnabled: Bool, keyboardEnabled: Bool) -> Bool {
         let sel = client.selectedRange()
         // (L3) 드래그 선택 중(length>0)이거나 커서 위치를 모르면 손대지 않음 — 자동 경로와 동일.
         guard sel.location != NSNotFound, sel.length == 0 else { return false }
@@ -319,8 +331,13 @@ final class HaneulInputController: IMKInputController {
         // 인접 글자를 덮어쓴다 — 안전하게 포기한다.
         guard before.length == reqLen,
               let target = KoreanComposer.wordBeforeCursor(
-                  before: before as String, atDocStart: readStart == 0),
-              let toggled = ManualToggle.manualToggle(word: target.word) else { return false }
+                  before: before as String, atDocStart: readStart == 0) else { return false }
+        let right = target.trailing == 0
+            ? client.attributedSubstring(from: NSRange(location: sel.location, length: 1))?.string : nil
+        guard let result = ManualToggle.resolve(word: target.word,
+            phoneticEnabled: phoneticEnabled && PhoneticDictionary.isBoundary(right),
+            keyboardEnabled: keyboardEnabled) else { return false }
+        let toggled = result.text
         let wordLength = (target.word as NSString).length
         let start = sel.location - wordLength - target.trailing
         guard start >= 0 else { return false }
@@ -342,11 +359,11 @@ final class HaneulInputController: IMKInputController {
         // `applyToggle`은 영어 문맥(`lastEnglishWord`)까지 함께 옮기는데, 그 부작용이 여기서도
         // 맞다(코드 확인 후 결정): 화면 끝이 실제로 영어 단어가 됐으면 다음 단어는 영어 문맥으로
         // 판정돼야 하고(M-01과 같은 이유 — 화면과 내부 상태가 어긋나면 다음 단어가 잘못 변환된다),
-        // 한글로 바꿨으면 문맥은 끊겨야 한다.
-        let toEnglish = ManualToggle.classify(word: target.word) == .hangul
+        // 한글로 바꿨으면 문맥은 끊겨야 한다. 숫자 이름은 영어로 돌려도 문맥을 시작하지 않는다(#5).
+        let toEnglish = result.toEnglish
         composer.applyToggle(toEnglish: toEnglish,
                              hangul: toEnglish ? target.word : toggled,
-                             english: toEnglish ? toggled : target.word)
+                             english: toEnglish ? toggled : target.word, origin: result.origin)
         // 수동 경로는 #53 `recordRevert`를 **부르지 않는다**. "최근 되돌린 변환"은 자동변환이
         // 틀렸다는 신호를 모으는 목록인데, 여기서 바꾼 단어는 애초에 자동변환된 적이 없다 —
         // 넣으면 일어나지도 않은 오변환에 "금지" 버튼을 달게 된다.

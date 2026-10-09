@@ -3,9 +3,10 @@ import Foundation
 /// 2026-09-21 (#15): 되돌리기 키를 **모든 단어**로 확대하는 수동 한↔영 토글의 순수 로직.
 ///
 /// 자동 변환(`EnglishDetector`)은 일부러 포기한 영역이 있다 — 우리말샘 표제어라 veto가 막는
-/// `재가`(work), 사전에 존재할 수 없는 `ㅡ5`(m5)·`ㅏ3`(k3). 사용자가 되돌리기 키를 **직접**
+/// `재가`(work), 기본 목록에 없는 `ㅡ5`(m5)·`ㅏ3`(k3). 사용자가 되돌리기 키를 **직접**
 /// 누른 것은 "내가 영어를 치려던 거였다"는 명시적 의사표시이므로, 그 경우엔 veto도 사전도
-/// 건너뛰고 자판 배열만으로 한↔영을 바꾼다. 그래서 이 파일은 사전을 전혀 보지 않는다.
+/// 건너뛰고 자판 배열만으로 한↔영을 바꾼다. manualToggle은 사전을 보지 않는다.
+/// #84(2026-10-09)의 resolve는 그 앞에 명시적 발음 사전 조회를 붙이는 별도 선택 단계다.
 ///
 /// 두 방향 모두 **기존 자산의 역/정방향 사용**이다. 새 규칙을 만들지 않는다:
 ///   - 한 → 영(`hangulToKeys`): 완성형 음절을 유니코드 산술로 초·중·종성으로 풀고,
@@ -38,11 +39,27 @@ enum ManualToggle {
     /// `KoreanComposer.wordBeforeCursor`가 안전하게 포기한다.
     static let readSpan = 64
 
+    /// #84: 키 배열 역변환 자체는 그대로 두고, 명시적 단축키의 결과 선택만 합친다.
+    struct Result {
+        let text: String
+        let toEnglish: Bool
+        let origin: KoreanComposer.ConversionOrigin
+    }
+
+    static func resolve(word: String, phoneticEnabled: Bool, keyboardEnabled: Bool,
+                        dictionary: PhoneticDictionary = .bundled) -> Result? {
+        if phoneticEnabled, let english = dictionary.english(for: word) {
+            return Result(text: english, toEnglish: true, origin: .phonetic)
+        }
+        guard keyboardEnabled, let text = manualToggle(word: word) else { return nil }
+        return Result(text: text, toEnglish: classify(word: word) == .hangul, origin: .keyboard)
+    }
+
     // MARK: - 공개 판정
 
     /// 자모도 라틴 키도 아니지만 **그대로 통과**시키는 글자 — 숫자와 아포스트로피.
-    /// 숫자는 이 기능의 핵심 사례다(`ㅡ5` ↔ `m5`: 사전에 존재할 수 없어 자동변환이 원리적으로
-    /// 불가능한 조합). 통과 문자만으로 이뤄진 단어는 바꿀 게 없으므로 `.unsupported`다.
+    /// 숫자는 이 기능의 핵심 사례다(`ㅡ5` ↔ `m5`: 기본 목록에 없어서 개인 사전에 등록하지 않으면 자동변환되지
+    /// 않는 조합). 통과 문자만으로 이뤄진 단어는 바꿀 게 없으므로 `.unsupported`다.
     static func isPassthrough(_ character: Character) -> Bool {
         (character.isASCII && character.isNumber) || Contractions.isApostrophe(character)
     }

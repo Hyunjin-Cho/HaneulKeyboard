@@ -78,7 +78,9 @@ swiftc -O -o "$BIN" \
   IMESources/HangulJamo.swift \
   IMESources/KeyboardLayout2Set.swift \
   IMESources/Contractions.swift \
-  IMESources/KoreanComposer.swift \
+  IMESources/AlphanumericWords.swift \
+  IMESources/MeasurementUnits.swift \
+  IMESources/PhoneticDictionary.swift IMESources/KoreanComposer.swift \
   IMESources/EnglishDetector.swift \
   IMESources/KoreanDictionary.swift \
   IMESources/PersonalDictionary.swift \
@@ -106,8 +108,14 @@ if [[ "$SMOKE" == 1 ]]; then
   grep -q '^city,챠쇼,clean,0,0,1,.*,A,' "$WORK/smoke.csv" || { echo "SMOKE FAIL: city가 Tier A 아님"; fail=1; }
   grep -q '^gown,해주,clean,1,.*,C,' "$WORK/smoke.csv" || { echo "SMOKE FAIL: gown이 Tier C(veto) 아님"; fail=1; }
   grep '^nmn,' "$WORK/smoke.csv" | grep -q '자모' || { echo "SMOKE FAIL: nmn에 전부-자모 플래그 없음"; fail=1; }
+  # #77: 숫자/축약형은 이 검사기의 범위 밖이며 미도달 실패로 합산하지 않는다.
+  printf "apple\ndon't\n800t\n" > "$WORK/reach_words.txt"
+  "$BIN" reach --words "$WORK/reach_words.txt" --wordlists "$SMOKE_BASE,$SMOKE_CURATED" \
+      --curated "$SMOKE_CURATED" --korean-dict "$KOREAN_DICT" > "$WORK/reach.csv" 2> "$WORK/reach.log"
+  grep -q '미도달 0건 · 검사 불가 2건' "$WORK/reach.log" || { echo "SMOKE FAIL: 검사 범위 밖 입력을 미도달에 합산함"; fail=1; }
+  grep -q '^800t,,unmappable,.*검사 범위 밖' "$WORK/reach.csv" || { echo "SMOKE FAIL: 숫자 이름 범위 안내 없음"; fail=1; }
   if [[ "$fail" == 0 ]]; then
-    echo "SMOKE PASS: Tier A(goawor, city)/C-veto(gown)/자모 플래그(nmn) 전부 정상"
+    echo "SMOKE PASS: Tier A(goawor, city)/C-veto(gown)/자모 플래그(nmn)/검사 범위 분리 전부 정상"
     exit 0
   fi
   echo "── smoke.csv ──"; cat "$WORK/smoke.csv"

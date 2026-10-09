@@ -1,0 +1,320 @@
+category	subcategory	hangul	english
+sports	general	코치	coach
+sports	general	캡틴	captain
+sports	general	챔피언	champion
+sports	general	챔피언십	championship
+sports	general	리그	league
+sports	general	토너먼트	tournament
+sports	general	플레이오프	playoff
+sports	general	파이널	final
+sports	general	세미파이널	semifinal
+sports	general	쿼터파이널	quarterfinal
+sports	general	랭킹	ranking
+sports	general	스코어	score
+sports	general	레코드	record
+sports	general	라운드	round
+sports	general	스타디움	stadium
+sports	general	아레나	arena
+sports	general	포디움	podium
+sports	general	레퍼리	referee
+sports	general	루키	rookie
+sports	general	올스타	all-star
+sports	general	시즌	season
+sports	general	프리시즌	preseason
+sports	general	트레이닝	training
+sports	general	워밍업	warm-up
+sports	general	쿨다운	cool-down
+sports	football	축구	football
+sports	football	풋볼	football
+sports	football	풋살	futsal
+sports	football	골키퍼	goalkeeper
+sports	football	스트라이커	striker
+sports	football	미드필더	midfielder
+sports	football	디펜더	defender
+sports	football	윙어	winger
+sports	football	골	goal
+sports	football	어시스트	assist
+sports	football	패스	pass
+sports	football	드리블	dribble
+sports	football	슈팅	shooting
+sports	football	헤딩	heading
+sports	football	태클	tackle
+sports	football	오프사이드	offside
+sports	football	프리킥	free kick
+sports	football	코너킥	corner kick
+sports	football	페널티킥	penalty kick
+sports	football	스로인	throw-in
+sports	football	해트트릭	hat trick
+sports	football	골킥	goal kick
+sports	football	레드카드	red card
+sports	football	옐로카드	yellow card
+sports	baseball	야구	baseball
+sports	baseball	베이스볼	baseball
+sports	baseball	피처	pitcher
+sports	baseball	캐처	catcher
+sports	baseball	타자	batter
+sports	baseball	내야수	infielder
+sports	baseball	외야수	outfielder
+sports	baseball	홈런	home run
+sports	baseball	안타	hit
+sports	baseball	삼진	strikeout
+sports	baseball	볼넷	walk
+sports	baseball	스트라이크	strike
+sports	baseball	파울	foul
+sports	baseball	이닝	inning
+sports	baseball	더블플레이	double play
+sports	baseball	트리플플레이	triple play
+sports	baseball	번트	bunt
+sports	baseball	불펜	bullpen
+sports	baseball	덕아웃	dugout
+sports	baseball	패스트볼	fastball
+sports	baseball	커브볼	curveball
+sports	baseball	슬라이더	slider
+sports	baseball	체인지업	changeup
+sports	baseball	스플리터	splitter
+sports	baseball	싱커	sinker
+sports	baseball	너클볼	knuckleball
+sports	basketball	농구	basketball
+sports	basketball	바스켓볼	basketball
+sports	basketball	포인트가드	point guard
+sports	basketball	슈팅가드	shooting guard
+sports	basketball	스몰포워드	small forward
+sports	basketball	파워포워드	power forward
+sports	basketball	덩크	dunk
+sports	basketball	슬램덩크	slam dunk
+sports	basketball	리바운드	rebound
+sports	basketball	레이업	layup
+sports	basketball	점프슛	jump shot
+sports	basketball	자유투	free throw
+sports	basketball	스틸	steal
+sports	basketball	블록슛	blocked shot
+sports	basketball	앨리웁	alley-oop
+sports	basketball	픽앤롤	pick and roll
+sports	basketball	크로스오버	crossover
+sports	basketball	버저비터	buzzer beater
+sports	american-football	미식축구	american football
+sports	american-football	쿼터백	quarterback
+sports	american-football	러닝백	running back
+sports	american-football	와이드리시버	wide receiver
+sports	american-football	타이트엔드	tight end
+sports	american-football	라인배커	linebacker
+sports	american-football	코너백	cornerback
+sports	american-football	터치다운	touchdown
+sports	american-football	필드골	field goal
+sports	american-football	펀트	punt
+sports	american-football	인터셉션	interception
+sports	american-football	펌블	fumble
+sports	american-football	스냅	snap
+sports	american-football	킥오프	kickoff
+sports	racket-volleyball	탁구	table tennis
+sports	racket-volleyball	배드민턴	badminton
+sports	racket-volleyball	스쿼시	squash
+sports	racket-volleyball	배구	volleyball
+sports	racket-volleyball	비치발리볼	beach volleyball
+sports	racket-volleyball	라켓	racket
+sports	racket-volleyball	셔틀콕	shuttlecock
+sports	racket-volleyball	포핸드	forehand
+sports	racket-volleyball	백핸드	backhand
+sports	racket-volleyball	서브	serve
+sports	racket-volleyball	발리	volley
+sports	racket-volleyball	스매시	smash
+sports	racket-volleyball	듀스	deuce
+sports	racket-volleyball	타이브레이크	tiebreak
+sports	racket-volleyball	스파이크	spike
+sports	racket-volleyball	리베로	libero
+sports	racket-volleyball	세터	setter
+sports	water-winter	수영	swimming
+sports	water-winter	다이빙	diving
+sports	water-winter	스노클링	snorkeling
+sports	water-winter	스쿠버다이빙	scuba diving
+sports	water-winter	카약	kayak
+sports	water-winter	카누	canoe
+sports	water-winter	조정	rowing
+sports	water-winter	요트	yacht
+sports	water-winter	수구	water polo
+sports	water-winter	윈드서핑	windsurfing
+sports	water-winter	웨이크보드	wakeboard
+sports	water-winter	스케이트	skate
+sports	water-winter	아이스하키	ice hockey
+sports	water-winter	피겨스케이팅	figure skating
+sports	water-winter	스피드스케이팅	speed skating
+sports	water-winter	컬링	curling
+sports	water-winter	봅슬레이	bobsleigh
+sports	water-winter	스켈레톤	skeleton
+sports	water-winter	루지	luge
+sports	water-winter	바이애슬론	biathlon
+sports	fitness-outdoor	육상	athletics
+sports	fitness-outdoor	러닝	running
+sports	fitness-outdoor	조깅	jogging
+sports	fitness-outdoor	스프린트	sprint
+sports	fitness-outdoor	허들	hurdle
+sports	fitness-outdoor	릴레이	relay
+sports	fitness-outdoor	트라이애슬론	triathlon
+sports	fitness-outdoor	필라테스	Pilates
+sports	fitness-outdoor	크로스핏	CrossFit
+sports	fitness-outdoor	스트레칭	stretching
+sports	fitness-outdoor	스쿼트	squat
+sports	fitness-outdoor	데드리프트	deadlift
+sports	fitness-outdoor	벤치프레스	bench press
+sports	fitness-outdoor	푸시업	push-up
+sports	fitness-outdoor	풀업	pull-up
+sports	fitness-outdoor	플랭크	plank
+sports	fitness-outdoor	런지	lunge
+sports	fitness-outdoor	버피	burpee
+sports	fitness-outdoor	덤벨	dumbbell
+sports	fitness-outdoor	바벨	barbell
+sports	fitness-outdoor	케틀벨	kettlebell
+sports	fitness-outdoor	하이킹	hiking
+sports	fitness-outdoor	트레킹	trekking
+sports	fitness-outdoor	클라이밍	climbing
+sports	fitness-outdoor	볼더링	bouldering
+sports	fitness-outdoor	백패킹	backpacking
+sports	fitness-outdoor	트레일러닝	trail running
+sports	fitness-outdoor	양궁	archery
+sports	fitness-outdoor	펜싱	fencing
+sports	fitness-outdoor	복싱	boxing
+sports	fitness-outdoor	레슬링	wrestling
+sports	fitness-outdoor	럭비	rugby
+sports	fitness-outdoor	스케이트보드	skateboard
+sports	fitness-outdoor	승마	horse riding
+mobility	riding-cycling	라이더	rider
+mobility	riding-cycling	라이딩	riding
+mobility	riding-cycling	사이클링	cycling
+mobility	riding-cycling	사이클리스트	cyclist
+mobility	riding-cycling	자전거	bicycle
+mobility	riding-cycling	로드바이크	road bike
+mobility	riding-cycling	산악자전거	mountain bike
+mobility	riding-cycling	그래블바이크	gravel bike
+mobility	riding-cycling	전기자전거	electric bicycle
+mobility	riding-cycling	하이브리드바이크	hybrid bike
+mobility	riding-cycling	픽시	fixie
+mobility	riding-cycling	스프린터	sprinter
+mobility	riding-cycling	펠로톤	peloton
+mobility	riding-cycling	케이던스	cadence
+mobility	riding-cycling	페달	pedal
+mobility	riding-cycling	크랭크	crank
+mobility	riding-cycling	체인링	chainring
+mobility	riding-cycling	스프로킷	sprocket
+mobility	riding-cycling	카세트	cassette
+mobility	riding-cycling	디레일러	derailleur
+mobility	riding-cycling	핸들바	handlebar
+mobility	riding-cycling	브레이크	brake
+mobility	riding-cycling	로터	rotor
+mobility	riding-cycling	캘리퍼	caliper
+mobility	riding-cycling	휠	wheel
+mobility	riding-cycling	림	rim
+mobility	riding-cycling	스포크	spoke
+mobility	riding-cycling	허브	hub
+mobility	riding-cycling	타이어	tire
+mobility	riding-cycling	튜브	tube
+mobility	riding-cycling	튜블리스	tubeless
+mobility	riding-cycling	새들	saddle
+mobility	riding-cycling	시트포스트	seatpost
+mobility	riding-cycling	서스펜션	suspension
+mobility	riding-cycling	포크	fork
+mobility	riding-cycling	파워미터	power meter
+mobility	riding-cycling	비브쇼츠	bib shorts
+mobility	riding-cycling	클릿	cleat
+mobility	riding-cycling	클릿페달	clipless pedal
+mobility	riding-cycling	타이어펑크	puncture
+mobility	motor-transport	모터사이클	motorcycle
+mobility	motor-transport	스쿠터	scooter
+mobility	motor-transport	모터바이크	motorbike
+mobility	motor-transport	투어링	touring
+mobility	motor-transport	크루저	cruiser
+mobility	motor-transport	모터크로스	motocross
+mobility	motor-transport	엔듀로	enduro
+mobility	motor-transport	슈퍼바이크	superbike
+mobility	motor-transport	레이싱	racing
+mobility	motor-transport	레이서	racer
+mobility	motor-transport	서킷	circuit
+mobility	motor-transport	피트스톱	pit stop
+mobility	motor-transport	랩타임	lap time
+mobility	motor-transport	그리드포지션	grid position
+mobility	motor-transport	폴포지션	pole position
+mobility	motor-transport	체커드플래그	chequered flag
+mobility	motor-transport	엔진	engine
+mobility	motor-transport	모터	motor
+mobility	motor-transport	스로틀	throttle
+mobility	motor-transport	클러치	clutch
+mobility	motor-transport	기어박스	gearbox
+mobility	motor-transport	트랜스미션	transmission
+mobility	motor-transport	머플러	muffler
+mobility	motor-transport	라디에이터	radiator
+mobility	motor-transport	피스톤	piston
+mobility	motor-transport	실린더	cylinder
+mobility	motor-transport	터보	turbo
+mobility	motor-transport	인터쿨러	intercooler
+mobility	motor-transport	스티어링	steering
+mobility	motor-transport	대시캠	dashcam
+mobility	motor-transport	블루투스	Bluetooth
+brand	sports-outdoor	푸마	Puma
+brand	sports-outdoor	리복	Reebok
+brand	sports-outdoor	뉴발란스	New Balance
+brand	sports-outdoor	아식스	ASICS
+brand	sports-outdoor	언더아머	Under Armour
+brand	sports-outdoor	미즈노	Mizuno
+brand	sports-outdoor	요넥스	Yonex
+brand	sports-outdoor	윌슨	Wilson
+brand	sports-outdoor	헤드	HEAD
+brand	sports-outdoor	바볼랏	Babolat
+brand	sports-outdoor	던롭	Dunlop
+brand	sports-outdoor	스팔딩	Spalding
+brand	sports-outdoor	몰텐	Molten
+brand	sports-outdoor	미카사	Mikasa
+brand	sports-outdoor	테일러메이드	TaylorMade
+brand	sports-outdoor	캘러웨이	Callaway
+brand	sports-outdoor	타이틀리스트	Titleist
+brand	sports-outdoor	핑	PING
+brand	sports-outdoor	풋조이	FootJoy
+brand	sports-outdoor	살로몬	Salomon
+brand	sports-outdoor	호카	HOKA
+brand	sports-outdoor	브룩스	Brooks
+brand	sports-outdoor	써코니	Saucony
+brand	sports-outdoor	메렐	Merrell
+brand	sports-outdoor	파타고니아	Patagonia
+brand	sports-outdoor	노스페이스	The North Face
+brand	sports-outdoor	컬럼비아	Columbia
+brand	sports-outdoor	오스프리	Osprey
+brand	sports-outdoor	스노우피크	Snow Peak
+brand	sports-outdoor	블랙다이아몬드	Black Diamond
+brand	sports-outdoor	오클리	Oakley
+brand	sports-outdoor	가민	Garmin
+brand	cycling-motor	시마노	Shimano
+brand	cycling-motor	스램	SRAM
+brand	cycling-motor	캄파놀로	Campagnolo
+brand	cycling-motor	트렉	Trek
+brand	cycling-motor	스페셜라이즈드	Specialized
+brand	cycling-motor	자이언트	Giant
+brand	cycling-motor	캐논데일	Cannondale
+brand	cycling-motor	비앙키	Bianchi
+brand	cycling-motor	피나렐로	Pinarello
+brand	cycling-motor	콜나고	Colnago
+brand	cycling-motor	메리다	Merida
+brand	cycling-motor	오베아	Orbea
+brand	cycling-motor	서벨로	Cervelo
+brand	cycling-motor	캐니언	Canyon
+brand	cycling-motor	브롬톤	Brompton
+brand	cycling-motor	스캇	Scott
+brand	cycling-motor	라파	Rapha
+brand	cycling-motor	카스텔리	Castelli
+brand	cycling-motor	피직	Fizik
+brand	cycling-motor	슈발베	Schwalbe
+brand	cycling-motor	콘티넨탈	Continental
+brand	cycling-motor	피렐리	Pirelli
+brand	cycling-motor	미쉐린	Michelin
+brand	cycling-motor	야마하	Yamaha
+brand	cycling-motor	혼다	Honda
+brand	cycling-motor	스즈키	Suzuki
+brand	cycling-motor	가와사키	Kawasaki
+brand	cycling-motor	두카티	Ducati
+brand	cycling-motor	할리데이비슨	Harley-Davidson
+brand	cycling-motor	트라이엄프	Triumph
+brand	cycling-motor	아프릴리아	Aprilia
+brand	cycling-motor	베스파	Vespa
+brand	cycling-motor	로열엔필드	Royal Enfield
+brand	cycling-motor	쇼에이	Shoei
+brand	cycling-motor	아라이	Arai
+brand	cycling-motor	다이네즈	Dainese
+brand	cycling-motor	알파인스타스	Alpinestars
+everyday	general	아메리칸	american

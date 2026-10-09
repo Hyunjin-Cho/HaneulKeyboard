@@ -22,7 +22,7 @@ import CoreFoundation
 ///          한국어 불가, ㅑ→i). shortWords (excl. context-only) or dict.
 ///   R3   — contains a syllable not in KS X 1001 완성형 (조건 3: 솓←the).
 ///          EUC-KR encodability = membership; no data file needed.
-///   R5   — ≥6 keys AND a CURATED common-English hit (조건 8·11: 퍄녀미←
+///   R5   — ≥2 Hangul syllables AND a CURATED common-English hit (조건 8·11: 퍄녀미←
 ///          visual, 두샤시드둣←entitlement). Curated list only, so obscure
 ///          web2 collisions (야구인=dirndls, 힘찬=glacks) never fire.
 ///   R2   — previous committed word was English (조건 2·5: 새→to, ㅁ→a).
@@ -372,6 +372,14 @@ enum EnglishDetector {
             return false
         }
 
+        // #82: 명시된 단위만 추가한다. 반복/얼굴 자모·한국어 veto·슬랭은 위에서
+        // 이미 보호했다. ㅢ(ml/mL)·ㅚ(hl/hL)처럼 한 자모로 합쳐진 표기도 보존.
+        // cm=츠는 검역한 비단어 예외, 다른 멀쩡한 1음절은 숫자 수량 조건을 요구한다.
+        if MeasurementUnits.contains(String(keys)), keys.count >= 2,
+           (brokenAsKorean && units.count >= 2) || String(keys) == "cm" {
+            return true
+        }
+
         // 무맥락 단독 화이트리스트 (and=뭉): veto 통과한 1음절 비단어를 좌우
         // 문맥 무관하게 변환. R5(2음절+)가 못 잡는 1음절 구멍 — 명시 목록
         // 이라 걍 등 다른 1음절 슬랭은 건드리지 않는다.
@@ -431,7 +439,12 @@ enum EnglishDetector {
         // 힘찬=glacks)는 commonWords에 없어 차단. ★ 2음절 가드 = 1음절 슬랭
         // (걍=rid 등 우리말샘 미등재) 보호 — 검역(2026-06-19): NGSL 62개 무맥락
         // 후보 중 걍이 유일한 진짜 한국어로 확인.
-        if !brokenAsKorean, units.count >= 2, commonWords.contains(word) {
+        // 2026-10-06 (#75): wOrk(쟤가)는 의미 있는 내부 Shift를 포함한다.
+        // Title Case/ALL CAPS는 유지하되 S/C/T에서 막힌 혼합 대소문자가
+        // R5를 통해 한국어 보호를 우회하지 않게 한다(worK의 K는 자모 변화 없음).
+        let titleCase = keys.first?.isUppercase == true && keys.dropFirst().allSatisfy(\.isLowercase)
+        let conventionalCase = titleCase || keys.allSatisfy(\.isUppercase)
+        if !brokenAsKorean, units.count >= 2, (!hasShiftKey || conventionalCase), commonWords.contains(word) {
             return true
         }
 

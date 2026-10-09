@@ -3,7 +3,7 @@ import Foundation
 /// 자동 업데이트(#19)의 **판단 부분**만 모아둔 Foundation 전용 순수 함수·값 타입. (2026-09-21)
 ///
 /// 네트워크·zip 해제·서명 검사 실행·파일 교체·재실행은 AppKit/Security에 묶여 있어
-/// `Updater.swift`에 있고 CI에서 돌릴 수 없다. 그래서 "어느 버전이 더 새 것인가 /
+/// `Updater.swift`와 보안 보조 파일에 있다. CI에서는 가짜 HTTP 응답과 임시 파일로 검증한다. 그래서 "어느 버전이 더 새 것인가 /
 /// 어떤 자산을 받을 것인가 / 지금 확인할 때인가 / 검증을 통과했는가 / 어떻게 교체할
 /// 것인가"라는 **결정**만 여기로 떼어냈다(`InstallDecisions.swift`와 같은 패턴).
 /// 이 파일은 `scripts/run_ime_tests.sh`가 그대로 컴파일해 검증한다.
@@ -14,12 +14,13 @@ import Foundation
 
 // MARK: - CalVer
 
-/// `YYYY.RR[.HH]` — 점으로 나뉜 각 칸은 **독립된 정수**(README「버전 체계」: `2026.02.10`이
-/// `2026.02.09`보다 최신). 형식이 어긋나면 nil.
+/// 정식 배포는 `YYYY.MM.DD`(2026-10-09 합의). 이전 `YYYY.RR[.HH]` 설치본과의 비교를
+/// 위해 2~3칸 숫자 파싱을 유지한다. 각 칸은 독립된 정수다. 이 타입은 달력 유효성
+/// 검사기가 아니므로 실제 배포 날짜는 릴리스 체크리스트에서 확인한다.
 struct CalVer: Equatable, Comparable, Sendable, CustomStringConvertible {
     let year: Int
     let release: Int
-    /// 핫픽스 칸. 없으면 0 — `2026.08`과 `2026.08.0`은 같은 버전으로 본다.
+    /// 세 번째 칸: 정식 배포의 일(day), 이전 번호의 핫픽스. 없으면 0.
     let hotfix: Int
     /// 표시용 원문(`2026.08`). 비교에는 쓰지 않는다.
     let text: String
@@ -63,7 +64,7 @@ struct ReleaseAsset: Equatable, Sendable {
 }
 
 struct ReleaseInfo: Equatable, Sendable {
-    /// `tag_name` — 우리 릴리스는 tag = `MARKETING_VERSION`(예: `2026.07`).
+    /// `tag_name` — 정식 릴리스는 tag = `MARKETING_VERSION`(예: `2026.10.10`).
     let tag: String
     let assets: [ReleaseAsset]
     /// 릴리스 페이지(`html_url`). 표시용 — 설정의 "릴리스 노트 보기" 링크.
@@ -113,17 +114,19 @@ struct UpdateVerification: Equatable, Sendable {
 
 enum UpdateDecision {
     /// 릴리스를 조회할 GitHub 저장소(`owner/name`). Debug 빌드는 `Updater`가 defaults 키
-    /// `haneul.updateRepoOverride`로 바꿔 시험할 수 있다(Release에는 그 코드가 없다).
+    /// `haneul.updateAllowUnofficialRepo` 허용 후 `haneul.updateRepoOverride`로 시험할 수 있다(Release에는 그 코드가 없다).
     static let defaultRepository = "Hyunjin-Cho/HaneulKeyboard"
 
     /// 교체 대상이 우리 앱인지 판별하는 기준 — `AppMoveDecision`과 같은 값.
     static let appBundleID = AppMoveDecision.mainAppBundleID
 
-    /// 자동 확인 간격.
+    /// 백그라운드 확인 간격. 사용자에게 주기 설정을 요구하지 않는다.
     static let checkInterval: TimeInterval = 24 * 60 * 60
 
-    /// 자산 크기 상한. 실제 배포 zip은 6MB 안팎이라 넉넉히 잡되, 디스크를 채우는 응답은 거른다.
+    /// 자산 크기 상한. 다운로드가 끝나기 전에도 적용해 디스크를 채우는 응답은 거른다.
     static let maxAssetBytes = 200 * 1024 * 1024
+    /// GitHub 릴리스 JSON의 수신 상한 (ZIP과 별개).
+    static let maxReleaseMetadataBytes = 2 * 1024 * 1024
 
     /// 다운로드·리다이렉트를 허용하는 호스트. HTTPS만.
     /// 2026-09-21 실측: `github.com/…/releases/download/…` → 302 →
@@ -241,8 +244,7 @@ enum UpdateDecision {
     /// 지금 서버에 물어봐도 되는가.
     /// - `forced`(사용자가 "지금 확인"을 누름): 토글·간격과 무관하게 true.
     /// - 토글 OFF: false — 자동으로는 네트워크에 나가지 않는다.
-    /// - 마지막 확인이 없거나 24시간 이상 지났으면 true. 마지막 확인 시각이 미래면(시계가
-    ///   뒤로 감) 24시간을 영영 못 채우므로 낡은 것으로 보고 true.
+    /// - 마지막 확인이 없거나 24시간이 지났으면 true. 시계가 뒤로 간 경우도 확인한다.
     static func shouldCheckNow(autoCheckEnabled: Bool, lastCheck: Date?, now: Date, forced: Bool) -> Bool {
         if forced { return true }
         guard autoCheckEnabled else { return false }

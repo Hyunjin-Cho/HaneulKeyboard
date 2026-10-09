@@ -62,7 +62,7 @@ tmp = OUT + ".tmp"
 with open(tmp, "w", encoding="utf-8") as out:
     out.write("# 우리말샘 표제어 (국립국어원, CC-BY-SA 2.0 KR) — 일반어/완성한글만\n")
     out.write("# 출처: https://opendict.korean.go.kr (전체 내려받기 2026-06-03)\n")
-    out.write("# 이 데이터 파일은 CC-BY-SA 2.0 KR 라이선스를 따릅니다 (앱 코드는 MIT).\n")
+    out.write("# 이 데이터 파일은 CC-BY-SA 2.0 KR 라이선스를 따릅니다 (앱 코드는 Apache-2.0; NOTICE 참고).\n")
     out.write(f"# count: {len(words)}\n")
     for w in sorted(words):
         out.write(w + "\n")

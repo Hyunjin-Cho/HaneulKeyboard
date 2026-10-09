@@ -6,7 +6,7 @@ on:
 
 env:
   CLANG_MODULE_CACHE_PATH: ${{ github.workspace }}/.build/ModuleCache
-  SWIFT_MODULECACHE_PATH: ${{ github.workspace }}/.build/ModuleCache
+  SWIFT_MODULE_CACHE_PATH: ${{ github.workspace }}/.build/ModuleCache
 
 jobs:
   unsigned-build:
@@ -32,6 +32,12 @@ jobs:
           CODE_SIGNING_ALLOWED=NO
           build
 
+      - name: Verify bundled licenses and notices
+        run: >-
+          python3 scripts/verify_license_resources.py
+          .build/DerivedData-${{ matrix.configuration }}/Build/Products/${{ matrix.configuration }}/HaneulKeyboard.app
+          .build/DerivedData-${{ matrix.configuration }}/Build/Products/${{ matrix.configuration }}/HaneulKeyboardIM.app
+
   core-tests:
     name: Core tests
     runs-on: macos-latest
@@ -41,6 +47,12 @@ jobs:
         run: swiftc --version
       - name: Run IME core tests
         run: bash scripts/run_ime_tests.sh
+      - name: Audit registered Hangul dictionary
+        run: python3 scripts/audit_phonetic_dictionary.py
+      - name: Run update transport and trust tests (Debug and Release)
+        run: bash scripts/run_updater_tests.sh
+      - name: Run native onboarding input tests
+        run: bash scripts/run_onboarding_tests.sh
 
   wordlist-smoke:
     name: Wordlist audit smoke
