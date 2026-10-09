@@ -2,7 +2,7 @@
 
 입력기(IME)는 키보드 입력을 다루는 민감한 소프트웨어입니다. 하늘키보드가 무엇을 보고, 무엇을 저장하고, 무엇을 하지 않는지 명확하게 적습니다. 아래 모든 내용은 [공개된 소스 코드](https://github.com/Hyunjin-Cho/HaneulKeyboard)로 직접 검증할 수 있습니다.
 
-_최종 수정: 2026-09-21_
+_최종 수정: 2026-10-09_
 
 ## 한눈에 보기
 
@@ -12,7 +12,7 @@ _최종 수정: 2026-09-21_
 | 네트워크로 전송하나요? | **아니요 — 보내는 것은 없습니다.** 키 입력을 다루는 **입력기에는 네트워크 코드가 한 줄도 없고**, 입력·설정·사전 어느 것도 기기를 벗어나지 않습니다. *(2026-09-21 추가)* 설정의 "단어 제안"은 미리 채운 GitHub 양식을 **브라우저로 열 뿐**이고(아래 8번), 메뉴바 앱이 **새 버전이 나왔는지 GitHub에 물어보는** 기능이 생겼습니다 — 받아오기만 하고 올려보내는 데이터는 없으며, 설정에서 끌 수 있습니다 (아래 2번·9번). |
 | 입력 내용을 저장하나요? | **아니요.** 입력한 내용을 저장하거나 학습하지 않습니다 — 모든 판정은 메모리에서만 일어납니다. 예외는 **사용자가 직접 관리하는 개인 사전**뿐입니다: 설정에서 직접 적은 단어 목록과, Shift+Space로 **되돌린** 변환의 (한글 표기, 영어) 쌍 최근 50개가 **이 기기 안의 설정 파일에만** 남습니다 (아래 7번). |
 | 비밀번호도 보나요? | **macOS와 호스트 앱이 보안 입력을 올바르게 활성화한 필드에서는 받지 않습니다.** 다만 일부 브라우저의 웹 비밀번호 칸은 보안 입력이 켜지지 않아 키를 받을 수 있습니다. 민감한 내용은 영문(ABC) 모드로 입력하는 것을 권장합니다. |
-| 주장을 검증할 수 있나요? | 네. 전체 소스가 MIT 라이선스로 공개되어 있습니다. |
+| 주장을 검증할 수 있나요? | 네. 앱 소스는 Apache License 2.0으로 공개하며 LICENSE·NOTICE를 동봉합니다. 사전·글꼴은 별도 고지를 따릅니다. |
 
 ## 상세
 
@@ -40,6 +40,14 @@ _최종 수정: 2026-09-21_
 - 구현: [`IMESources/EnglishDetector.swift`](./IMESources/EnglishDetector.swift), [`IMESources/KoreanDictionary.swift`](./IMESources/KoreanDictionary.swift)
 - *(2026-09-21 추가)* **설정값**은 macOS 사용자 기본값(`UserDefaults`, 입력기 도메인 `com.hyunjincho.inputmethod.haneul`)에 **기기 안에만** 저장됩니다: 영타 자동 변환 켜기/끄기, 되돌리기 키 선택(`haneul.revertKey`), 자동 변환을 끌 앱 목록(`haneul.disabledAppBundleIDs` — 사용자가 고른 앱의 bundle ID 문자열만), 모든 단어 되돌리기 켜기/끄기(`haneul.manualToggleAllWords` — 참/거짓 하나, 2026-09-21 #15). 입력한 내용은 담기지 않고, 어디로도 전송되지 않으며, "전체 제거" 시 함께 지워집니다. 앱별 끄기를 위해 입력기는 변환 시점에 **현재 앱의 bundle ID만** 확인하고(목록이 비어 있으면 그마저 하지 않음) 기록하지 않습니다.
 
+### 3-1. 등록된 한글 표기 변환 (레스토랑 → restaurant, 축구 → football)
+
+- 앱에 함께 포함한 `phonetic_dictionary.json`을 메모리에서 정확히 조회합니다. AI 호출·네트워크·사용자 입력 수집·자동 학습을 하지 않습니다.
+- 사용자가 설정한 되돌리기 단축키를 누를 때만 조회하며, 일반 Space 자동 변환 사전과 분리합니다.
+- 직전 변환의 원문과 결과는 되돌리기를 위해 메모리에만 유지합니다. 발음 변환을 되돌려도 개인 사전의 ‘최근 되돌린 변환’에는 저장하지 않습니다.
+- 켜기/끄기 값 `haneul.phoneticConversionEnabled`만 같은 IME 설정 도메인에 저장하며, 전체 제거 시 함께 지워집니다.
+- 구현: `PhoneticDictionary` · `KoreanComposer.commitPhonetic` · `HaneulInputController.handle`.
+
 ### 4. 보안 입력 필드 (비밀번호 등)
 
 macOS와 호스트 앱이 보안 입력(secure event input)을 올바르게 활성화한 필드에서는 **macOS가 OS 차원에서 서드파티 IME를 우회**하므로 하늘키보드는 해당 키 입력을 전달받지 않습니다. 다만 일부 브라우저의 웹 비밀번호 칸은 macOS가 보안 입력을 켜지 않아 하늘키보드가 키를 받고 한글을 조합할 수 있습니다. 이는 애플 기본 입력기를 포함한 모든 한글 입력기에 동일한 플랫폼 한계입니다. 민감한 내용은 영문(ABC) 모드로 입력하는 것을 권장합니다. 어느 경우에도 하늘키보드는 입력 내용을 저장하거나 전송하지 않습니다.
@@ -51,7 +59,7 @@ macOS와 호스트 앱이 보안 입력(secure event input)을 올바르게 활�
 
 ### 6. 검증
 
-하늘키보드는 [MIT 라이선스 오픈소스](https://github.com/Hyunjin-Cho/HaneulKeyboard)입니다. 위의 모든 주장은 소스 코드를 직접 읽거나, 소스로부터 직접 빌드해서 확인할 수 있습니다. 의문이 있으면 [Issues](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues)에 질문해주세요.
+하늘키보드는 [Apache License 2.0 오픈소스](https://github.com/Hyunjin-Cho/HaneulKeyboard)입니다. 위의 모든 주장은 소스 코드를 직접 읽거나, 소스로부터 직접 빌드해서 확인할 수 있습니다. 의문이 있으면 [Issues](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues)에 질문해주세요.
 
 ### 7. 개인 사전 (2026-09-21 추가)
 
@@ -78,7 +86,7 @@ macOS와 호스트 앱이 보안 입력(secure event input)을 올바르게 활�
 - **보낼지는 사용자가 정합니다**: 브라우저에 열린 내용을 읽고 고친 뒤 GitHub에서 직접 등록합니다(GitHub 계정 필요). 그냥 창을 닫으면 아무 일도 일어나지 않습니다. 다만 **등록한 이슈는 공개 저장소에 남으므로** 비밀번호·개인정보는 적지 마세요.
 - 구현: [`Sources/WordSuggestion.swift`](./Sources/WordSuggestion.swift)(URL 생성 — 순수 함수, 테스트로 검증), [`Sources/WordSuggestionSettingsSection.swift`](./Sources/WordSuggestionSettingsSection.swift)(설정 화면과 여는 동작)
 
-### 9. 자동 업데이트 (2026-09-21 추가)
+### 9. 자동 업데이트 (2026-10-08 갱신)
 
 앱이 **처음으로 인터넷에 접속하는** 기능이라 따로 적습니다. 설정 창의 **업데이트** 절에서 켜고 끌 수 있습니다.
 
@@ -92,9 +100,9 @@ macOS와 호스트 앱이 보안 입력(secure event input)을 올바르게 활�
 - **올려보내는 데이터가 없습니다**: 계정·이메일·기기 식별자·설치 ID·통계 어느 것도 보내지 않습니다. `User-Agent`에 담기는 것은 **앱 버전 하나**이며, 그 값은 공개된 릴리스 번호(예: `HaneulKeyboard/2026.08`)라 사용자를 가리키지 않습니다. 쿠키를 주고받지 않고(`httpCookieAcceptPolicy = .never`), 디스크 캐시 없는 세션(`ephemeral`)을 씁니다.
 - **GitHub가 보게 되는 것**: 다른 웹사이트에 접속할 때와 같습니다 — 요청한 주소, 접속 시각, 그리고 IP 주소(모든 인터넷 요청에 따라옵니다). 하늘키보드가 여기에 무언가를 **더해 보내지 않습니다**. GitHub의 처리 방침은 [GitHub 개인정보처리방침](https://docs.github.com/site-policy/privacy-policies/github-privacy-statement)을 따릅니다.
 - **끄면 요청이 0입니다**: "업데이트 자동 확인"을 끄면 앱은 스스로 인터넷에 나가지 않습니다. 그 상태에서는 **"지금 확인" 버튼을 누른 그 순간에만** 위 첫 번째 요청이 한 번 나갑니다.
-- **켜져 있을 때(기본값)**: 앱을 실행할 때 한 번 + 24시간마다 한 번, 위 첫 번째 요청만 보냅니다. 새 버전이 있어도 **알리기만 하고 자동으로 설치하지 않습니다** — 내려받기는 사용자가 **업데이트**를 눌러야 시작합니다.
+- **켜져 있을 때(기본값)**: 앱 실행 약 15초 뒤와 실행 중 매시간 마지막 성공 확인에서 24시간이 지났는지 살펴보고, 확인할 때가 되면 위 첫 번째 요청만 보냅니다. 실패하면 다음 시간에 재시도합니다. 새 버전을 발견하면 현재·새 버전 안내창을 한 번 띄우며, 같은 버전은 재실행 뒤에도 자동으로 반복해서 알리지 않습니다. ‘지금 확인’은 같은 버전도 다시 알려줍니다. 새 버전이 있어도 **알리기만 하고 자동으로 설치하지 않습니다** — 내려받기는 사용자가 **업데이트**를 눌러야 시작합니다.
 - **받은 파일을 검증한 뒤에만 설치합니다**: 번들 ID, 서명 Team(개발자 인증서), `codesign --verify --deep --strict`(**애플이 발급한 인증서 사슬로 우리 Team이 서명했는지**까지 요구합니다 — 2026-09-21 강화), `spctl -a -t exec`(애플 공증), 버전이 실제로 올라갔는지 — **다섯 가지가 전부 통과할 때만** 응용 프로그램 폴더의 앱을 바꿉니다. 하나라도 어긋나면 받은 파일을 버리고 기존 앱을 그대로 둡니다. 검증에 앞서 압축을 푼 결과가 **추출 폴더 안의 실제 앱 폴더인지**(심볼릭 링크가 아닌지)도 확인합니다. 주소는 HTTPS의 GitHub 도메인으로 제한하며, 다른 곳으로 이동시키려는 응답은 따라가지 않습니다.
-- **기기에 남는 것**: 메인 앱 설정 도메인 `com.hyunjincho.haneulkeyboard`의 `haneul.updateAutoCheck`(켜짐/꺼짐)과 `haneul.updateLastCheck`(마지막으로 확인한 시각) 두 값뿐입니다. 어디로도 전송되지 않습니다.
+- **기기에 남는 것**: 메인 앱 설정 도메인 `com.hyunjincho.haneulkeyboard`의 `haneul.updateAutoCheck`(켜짐/꺼짐), `haneul.updateLastCheck`(마지막 성공 확인 시각), `haneul.updateLatestVersion`(최근 확인한 최신 버전), `haneul.updateLastNotifiedVersion`(이미 알린 버전) 네 값입니다. 어디로도 전송되지 않습니다.
 - 구현: [`Sources/Updater.swift`](./Sources/Updater.swift)(요청·다운로드·검증·교체), [`Sources/UpdateDecisions.swift`](./Sources/UpdateDecisions.swift)(판단 규칙), [`Sources/UpdateSettingsSection.swift`](./Sources/UpdateSettingsSection.swift)(설정 화면)
 
 ---
@@ -103,7 +111,7 @@ macOS와 호스트 앱이 보안 입력(secure event input)을 올바르게 활�
 
 An IME is sensitive software — it handles your keyboard input. This document states plainly what HaneulKeyboard sees, what it stores, and what it does not do. Every claim below is verifiable against the [public source code](https://github.com/Hyunjin-Cho/HaneulKeyboard).
 
-_Last updated: 2026-09-21_
+_Last updated: 2026-10-08_
 
 ## At a Glance
 
@@ -113,7 +121,7 @@ _Last updated: 2026-09-21_
 | Does it send anything over the network? | **No — nothing is ever uploaded.** The **IME that sees your keystrokes contains no networking code at all**, and nothing you type, configure, or save leaves the device. *(added 2026-09-21)* The "Word suggestion" feature in Settings only **opens** a pre-filled GitHub form in your browser (#8), and the menu bar app can now **ask GitHub whether a newer version exists** — a download-only check that sends no data about you, and you can turn it off (see #2 and #9). |
 | Does it store what I type? | **No.** Nothing you type is stored or learned — all decisions happen in memory only. The one exception is the **personal dictionary you manage yourself**: the word lists you enter in Settings, and the (Hangul form, English) pairs of the last 50 conversions you **reverted** with Shift+Space, kept **only in this device's preferences** (see #7). |
 | Can it see my passwords? | **Not in fields where macOS and the host app correctly enable secure input.** Some browser-based password fields do not enable it, however, so the IME may receive those keystrokes. We recommend using English (ABC) mode for sensitive input. |
-| Can I verify these claims? | Yes. The full source is open under the MIT license. |
+| Can I verify these claims? | Yes. App code is open under Apache License 2.0 with LICENSE and NOTICE; bundled data/fonts retain their own licenses. |
 
 ## Details
 
@@ -152,7 +160,7 @@ In fields where macOS and the host app correctly enable secure event input, **ma
 
 ### 6. Verifiability
 
-HaneulKeyboard is [open source under the MIT license](https://github.com/Hyunjin-Cho/HaneulKeyboard). You can verify every claim above by reading the source or building it yourself. Questions are welcome on the [Issues page](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues).
+HaneulKeyboard is [open source under Apache License 2.0](https://github.com/Hyunjin-Cho/HaneulKeyboard). You can verify every claim above by reading the source or building it yourself. Questions are welcome on the [Issues page](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues).
 
 ### 7. Personal dictionary (added 2026-09-21)
 
@@ -179,7 +187,7 @@ The **Word suggestion** section in Settings, and the **"Suggest"** button on eac
 - **You decide whether to submit**: read and edit the pre-filled form in your browser, then submit it yourself on GitHub (a GitHub account is required). Closing the tab does nothing at all. Note that **a submitted issue is public**, so do not include passwords or personal information.
 - Implementation: [`Sources/WordSuggestion.swift`](./Sources/WordSuggestion.swift) (URL construction — a pure function covered by tests), [`Sources/WordSuggestionSettingsSection.swift`](./Sources/WordSuggestionSettingsSection.swift) (Settings UI and the open action)
 
-### 9. Automatic updates (added 2026-09-21)
+### 9. Automatic updates (updated 2026-10-08)
 
 This is the **first feature that reaches the internet**, so it gets its own section. You can turn it on or off in the **Updates** section of Settings.
 
@@ -193,7 +201,7 @@ This is the **first feature that reaches the internet**, so it gets its own sect
 - **Nothing about you is uploaded**: no account, email, device identifier, install ID, or usage statistics. The `User-Agent` carries **one thing — the app version** (e.g. `HaneulKeyboard/2026.08`), a public release number that does not identify you. Cookies are refused (`httpCookieAcceptPolicy = .never`) and the session is `ephemeral` (no disk cache).
 - **What GitHub sees**: the same as visiting any website — the URL requested, the time, and your IP address (which accompanies every internet request). HaneulKeyboard adds nothing to that. GitHub's own handling is covered by the [GitHub Privacy Statement](https://docs.github.com/site-policy/privacy-policies/github-privacy-statement).
 - **Off means zero requests**: with "Check for updates automatically" turned off, the app never reaches the network on its own. The first request above is then made **only at the moment you press "Check now"**.
-- **On (the default)**: only the first request, once at app launch and once every 24 hours. Even when a new version exists, it is **only announced, never installed automatically** — downloading begins only when you click **Update**.
+- **On (the default)**: the app checks whether 24 hours have passed since its last successful check, about 15 seconds after launch and hourly while running. It sends the first request only when due; failed checks retry on the next hourly tick. A notice shows the current and new versions once per new version, including across restarts. “Check now” can show the same version again. Even when a new version exists, it is **only announced, never installed automatically** — downloading begins only when you click **Update**.
 - **Downloads are verified before anything is installed**: bundle ID, signing Team (developer certificate), `codesign --verify --deep --strict` (which since 2026-09-21 also requires that an Apple-issued certificate chain and **our Team** produced the signature), `spctl -a -t exec` (Apple notarization), and a genuine version increase — the app in your Applications folder is replaced **only if all five pass**. If any check fails, the download is discarded and your existing app is left untouched. Before any of that, the extracted bundle must be a **real directory inside the extraction folder**, not a symbolic link. Addresses are restricted to GitHub's HTTPS domains, and redirects pointing elsewhere are not followed.
-- **What stays on your device**: two values in the main app's defaults domain `com.hyunjincho.haneulkeyboard` — `haneul.updateAutoCheck` (on/off) and `haneul.updateLastCheck` (when it last checked). Neither is transmitted.
+- **What stays on your device**: four values in the main app's defaults domain `com.hyunjincho.haneulkeyboard` — `haneul.updateAutoCheck` (on/off), `haneul.updateLastCheck` (last successful check), `haneul.updateLatestVersion` (last known latest version), and `haneul.updateLastNotifiedVersion` (already announced version). None is transmitted.
 - Implementation: [`Sources/Updater.swift`](./Sources/Updater.swift) (requests, download, verification, replacement), [`Sources/UpdateDecisions.swift`](./Sources/UpdateDecisions.swift) (decision rules), [`Sources/UpdateSettingsSection.swift`](./Sources/UpdateSettingsSection.swift) (Settings UI)

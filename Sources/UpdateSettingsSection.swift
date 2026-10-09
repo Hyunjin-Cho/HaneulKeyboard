@@ -27,12 +27,16 @@ struct UpdateSettingsSection: View {
                     .foregroundStyle(.secondary)
             }
 
+            LabeledContent("최근 확인한 최신 버전") {
+                Text(updater.latestVersion ?? "아직 확인하지 않았어요")
+                    .foregroundStyle(.secondary)
+            }
             Toggle("업데이트 자동 확인", isOn: Binding(
                 get: { updater.autoCheckEnabled },
                 set: { updater.setAutoCheckEnabled($0) }
             ))
-            Text("켜 두면 앱을 실행할 때와 하루에 한 번 GitHub 릴리스에서 새 버전을 확인합니다. 새 버전이 있어도 자동으로 설치하지 않고 알려만 드립니다. 끄면 \"지금 확인\"을 누를 때만 인터넷에 접속합니다.")
-                .font(.caption)
+            Text("새 버전을 발견하면 한 번 알려드려요. 설치는 직접 선택할 수 있어요. 자동 확인을 끄면 ‘지금 확인’을 누를 때만 인터넷에 접속해요.")
+                .font(.callout)
                 .foregroundStyle(.secondary)
 
             statusLine
@@ -80,7 +84,7 @@ struct UpdateSettingsSection: View {
     private var statusLine: some View {
         switch updater.phase {
         case .idle:
-            Text("아직 확인하지 않았습니다.")
+            Text(updater.lastCheck == nil ? "아직 확인하지 않았습니다." : "‘지금 확인’을 누르면 최신 상태를 다시 확인할 수 있어요.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         case .checking:

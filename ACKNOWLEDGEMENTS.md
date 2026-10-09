@@ -1,8 +1,31 @@
 # 감사의 글 (Acknowledgements)
 
+> 기준일: 2026-10-10
+
 하늘키보드는 혼자 만든 것이 아닙니다. 앞서 길을 닦아준 수많은 오픈소스와 도구, 그리고 그것을 가능케 한 사람들의 어깨 위에 서 있습니다.
 
+## 하늘키보드 코드와 원본 고지
+
+- 현재 앱 코드: Apache License 2.0. 원문은 `LICENSE`, 원본 프로젝트 이름과 주소는 `NOTICE`에 있습니다.
+- 원본: **HaneulKeyboard (하늘키보드)** · Copyright (c) 2026 Hyunjin Cho · https://github.com/Hyunjin-Cho/HaneulKeyboard
+- 이전 MIT 배포분의 고지는 소스의 `LICENSES/HaneulKeyboard-MIT-legacy.txt`와 앱/입력기 리소스의 `HaneulKeyboard-MIT-legacy.txt`에 보존합니다. 기존 MIT 배포본의 이용 조건을 소급 변경하지 않습니다.
+- 아래 외부 코드·사전·글꼴의 라이선스는 각각 유지합니다. 앱 코드의 라이선스 변경으로 이 자료들을 Apache로 바꾸지 않습니다.
+- 적용 근거: `project.yml` 두 타겟의 resources, `scripts/verify_license_resources.py`. 메인 앱과 설치되는 입력기에 LICENSE·NOTICE·감사의 글·과거 MIT 고지를 동봉합니다.
+
 ## 직접적으로 도움받은 프로젝트
+
+### 고운바탕 (Gowun Batang)
+- 출처: https://github.com/google/fonts/tree/main/ofl/gowunbatang / https://github.com/yangheeryu/Gowun-Batang
+- Copyright 2021 The Gowun Batang Project Authors. SIL Open Font License 1.1.
+- 5단계 리소그래프 안내의 제목에 수정하지 않은 Bold 원본을 사용합니다. 앱 내부에만 등록하며 시스템에는 설치하지 않습니다.
+- 원문 라이선스: `Resources/Onboarding/GowunBatang-OFL.txt`. 반영일: 2026-10-09.
+- 원본 TTF SHA256: `dbfcaa646e5831e7478524924f02906f550285a5050699b4e38c9950b3ec4b94`.
+
+### 나눔손글씨 펜 (Nanum Pen Script)
+- 출처: https://github.com/google/fonts/tree/main/ofl/nanumpenscript
+- Copyright (c) 2010, NHN Corporation. SIL Open Font License 1.1.
+- 시작하기의 짧은 손글씨 안내에 원본 폰트를 사용합니다. 글꼴을 수정하지 않았으며 원문 라이선스는 `Resources/Onboarding/NanumPenScript-OFL.txt`에 동봉합니다. 앱 내 등록만 하며 시스템 글꼴로 설치하지 않습니다.
+- 반영일: 2026-10-07. 원본 TTF SHA256: `6f0d1ab29c7894010dc88831fb7a0a51edb79136e450344183de5b1a8b52bd43`.
 
 ### McBopomofo (OpenVanilla)
 - 저장소: https://github.com/openvanilla/McBopomofo
@@ -52,9 +75,17 @@
 - 라이선스: CC0 1.0 (퍼블릭 도메인)
 - 영타 자동 변환의 **축구 클럽·선수 사전**(잉글랜드·프랑스·스페인·이탈리아 9개 리그)의 출처입니다. 구조화된 지식을 퍼블릭 도메인으로 공개한 Wikidata 커뮤니티에 감사드립니다.
 
-### Claude (Anthropic)
+## 개발에 함께한 도구
+
+### Anthropic — Claude
 - https://claude.com/claude-code
 - 설계 논의, 디버깅, 문서 작성 등 개발 과정 전반에 함께했습니다.
+
+### OpenAI — Codex · ChatGPT
+- https://openai.com/codex/
+- 기능 설계와 코드 구현, 기존 기능과의 충돌 검토, 테스트와 문서 정리에 함께했습니다.
+- 단청과 종이 질감을 담은 시작하기 안내의 시각 디자인, 이미지 제작과 인물 자세 작업에도 도움을 받았습니다.
+- 개발에 사용한 도구이며, 앱이 사용자의 입력을 AI 서비스로 보내는 기능은 아닙니다.
 
 ## 참고한 오픈소스 입력기
 
@@ -73,9 +104,19 @@ plist·entitlements 구조와 IME 아키텍처를 비교·학습하는 데 참�
 
 # Acknowledgements (English)
 
+> Updated: 2026-10-10
+
 HaneulKeyboard builds on the work of the open-source projects, tools, and people who came before it.
 
+## Application license and original attribution
+
+Current application code is licensed under Apache License 2.0. `NOTICE` identifies **HaneulKeyboard (하늘키보드)**, Copyright (c) 2026 Hyunjin Cho, and the original project at https://github.com/Hyunjin-Cho/HaneulKeyboard. Both the main app and IME bundle LICENSE, NOTICE, this acknowledgements file, and the historical MIT notice (`LICENSES/HaneulKeyboard-MIT-legacy.txt` in source). Prior MIT distributions keep their original terms. Third-party materials below retain their respective licenses.
+
 ## Direct help
+
+- **[Gowun Batang](https://github.com/yangheeryu/Gowun-Batang)** — Copyright 2021 The Gowun Batang Project Authors, SIL Open Font License 1.1. Unmodified Bold font for risograph onboarding headings, registered only within the app. Full license: `Resources/Onboarding/GowunBatang-OFL.txt` (2026-10-09).
+
+- **[Nanum Pen Script](https://github.com/google/fonts/tree/main/ofl/nanumpenscript)** — Copyright (c) 2010, NHN Corporation, SIL Open Font License 1.1. The unmodified font is bundled for brief handwritten onboarding cues, with the full license in `Resources/Onboarding/NanumPenScript-OFL.txt` (2026-10-07). Registered for this app process only.
 
 - **[McBopomofo](https://github.com/openvanilla/McBopomofo)** (OpenVanilla, MIT) — A Bopomofo input method for Taiwanese Mandarin. Its approach to **registering and installing a TIS (Text Input Services) input method on macOS** — a signed, notarized host app that installs the IME bundle — was a decisive reference.
 - **[Urimalsaem (우리말샘)](https://opendict.korean.go.kr)** (National Institute of Korean Language, CC-BY-SA 2.0 KR) — Source of the 677k Korean headwords used by the wrong-layout auto-correction to verify real Korean words.
@@ -86,7 +127,10 @@ HaneulKeyboard builds on the work of the open-source projects, tools, and people
 - **Bundled name data:** `english_names.txt` contains 28,378 processed Census/SSA entries. `english_names_extra.txt` is a hand-curated famous-person supplement and is not sourced from Census or SSA.
 - **[GeoNames](https://www.geonames.org)** (CC BY 4.0) — Source of the place-name dictionary (North American & European states/provinces + cities with population 50k+) used by the wrong-layout auto-correction.
 - **[Wikidata](https://www.wikidata.org)** (Wikimedia, CC0 1.0 Public Domain) — Source of the football club & player dictionary (9 leagues across England, France, Spain, Italy) used by the wrong-layout auto-correction.
-- **[Claude](https://claude.com/claude-code)** (Anthropic) — A companion throughout design, debugging, and documentation.
+## Development tools
+
+- **Anthropic — [Claude](https://claude.com/claude-code)** — A companion throughout design, debugging, and documentation.
+- **OpenAI — [Codex · ChatGPT](https://openai.com/codex/)** — Helped with feature design, code implementation, compatibility reviews, tests, and documentation, as well as the dancheong and paper-textured onboarding artwork and character poses. These are development tools; the app does not send typing to an AI service.
 
 ## Studied for reference
 

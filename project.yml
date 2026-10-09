@@ -7,8 +7,8 @@ options:
 
 settings:
   base:
-    MARKETING_VERSION: "2026.08"
-    CURRENT_PROJECT_VERSION: "51"
+    MARKETING_VERSION: "2026.9"
+    CURRENT_PROJECT_VERSION: "68"
   configs:
     Debug:
       CODE_SIGN_STYLE: Manual
@@ -39,7 +39,15 @@ targets:
       - path: IMESources/PersonalDictionary.swift
       - path: Resources/AppIcon.icns
         buildPhase: resources
+      - path: Resources/MenuBar
+        buildPhase: resources
+      - path: Resources/Onboarding
+        buildPhase: resources
       - path: LICENSE
+        buildPhase: resources
+      - path: NOTICE
+        buildPhase: resources
+      - path: LICENSES/HaneulKeyboard-MIT-legacy.txt
         buildPhase: resources
       - path: ACKNOWLEDGEMENTS.md
         buildPhase: resources
@@ -48,6 +56,9 @@ targets:
         embed: false
     postBuildScripts:
       - name: "Embed HaneulKeyboardIM into Contents/Helpers"
+        # #84 · 2026-10-09: IME 사전만 바뀌어도 앱 안의 입력기 사본을 갱신한다.
+        # 출력 디렉터리만 선언하면 증분 빌드에서 이전 사전이 남을 수 있다.
+        basedOnDependencyAnalysis: false
         outputFiles:
           - $(TARGET_BUILD_DIR)/$(CONTENTS_FOLDER_PATH)/Helpers/HaneulKeyboardIM.app
         script: |
@@ -83,6 +94,14 @@ targets:
     deploymentTarget: "14.0"
     sources:
       - path: IMESources
+      - path: LICENSE
+        buildPhase: resources
+      - path: NOTICE
+        buildPhase: resources
+      - path: LICENSES/HaneulKeyboard-MIT-legacy.txt
+        buildPhase: resources
+      - path: ACKNOWLEDGEMENTS.md
+        buildPhase: resources
       - path: Resources/IM
         buildPhase: resources
     info:
@@ -100,7 +119,8 @@ targets:
         TISIntendedLanguage: ko
         TICapsLockLanguageSwitchCapable: true
         TISIconIsTemplate: true
-        tsInputMethodIconFileKey: haneul.png
+        tsInputMethodIconFileKey: HaneulInputTemplate.png
+        tsInputMethodAlternateIconFileKey: HaneulInputSelected.png
         tsInputMethodCharacterRepertoireKey:
           - Hang
           - Kore
@@ -117,15 +137,17 @@ targets:
               tsInputModeIsVisibleKey: true
               tsInputModeDefaultStateKey: true
               tsInputModeJISKeyboardShortcutKey: 0
-              tsInputModeMenuIconFileKey: haneul.png
-              tsInputModeAlternateMenuIconFileKey: haneul.png
-              tsInputModePaletteIconFileKey: haneul.png
+              tsInputModeMenuIconFileKey: HaneulInputTemplate.png
+              tsInputModeAlternateMenuIconFileKey: HaneulInputSelected.png
+              tsInputModePaletteIconFileKey: HaneulInputTemplate.png
           tsVisibleInputModeOrderedArrayKey:
             - com.hyunjincho.inputmethod.haneul.korean
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.hyunjincho.inputmethod.haneul
         CODE_SIGN_ENTITLEMENTS: HaneulKeyboardIM.entitlements
+        # TIS icon keys name concrete PNG files; do not merge them into TIFFs.
+        COMBINE_HIDPI_IMAGES: "NO"
 
 schemes:
   HaneulKeyboard:

@@ -10,8 +10,8 @@ import SwiftUI
 struct GeneralSettingsTab: View {
     @Bindable var core: AppCore
     @State private var installError: Error?
-    @State private var isInstalling = false
     @State private var showingSupport = false
+    @AppStorage(WindowAppearance.defaultsKey) private var appearance = WindowAppearance.glass
 
     var body: some View {
         Form {
@@ -36,6 +36,17 @@ struct GeneralSettingsTab: View {
                 } else {
                     notInstalledRows
                 }
+            }
+            Section("화면 스타일") {
+                Picker("스타일", selection: $appearance) {
+                    Text("Glass").tag(WindowAppearance.glass)
+                    Text("Solid").tag(WindowAppearance.solid)
+                }
+                .pickerStyle(.segmented)
+                Text("설정·후원 창에 적용돼요. Glass는 배경이 비치고, Solid는 배경을 가려요.")
+                    .font(.caption).foregroundStyle(.secondary)
+                    Text("시작하기 안내는 두 스타일 모두 종이 배경으로 보여요. Mac의 ‘투명도 줄이기’가 켜져 있으면 다른 창도 뒤 배경을 가려요.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             Section("응원하기") {
                 Text("하늘키보드를 함께 만들어 가요.")
@@ -83,6 +94,7 @@ struct GeneralSettingsTab: View {
                     }
                 }
             }
+            .disabled(core.isPreparingIME)
         }
     }
 
@@ -104,22 +116,14 @@ struct GeneralSettingsTab: View {
 
         HStack(spacing: 12) {
             Button("입력기 설치") {
-                isInstalling = true
                 Task {
-                    do {
-                        _ = try await IMEInstaller.installBundle()
-                        core.refreshIMEStatus()
-                        installError = nil
-                    } catch {
-                        installError = error
-                    }
-                    isInstalling = false
+                    installError = await core.installIME()
                 }
             }
             .buttonStyle(.borderedProminent)
-            .disabled(isInstalling)
+            .disabled(core.isPreparingIME)
 
-            if isInstalling {
+            if core.isPreparingIME {
                 ProgressView()
                     .controlSize(.small)
                     .accessibilityLabel("설치 중")

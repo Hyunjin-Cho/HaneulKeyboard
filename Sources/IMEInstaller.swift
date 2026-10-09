@@ -72,51 +72,15 @@ enum IMEInstaller {
         return state.enabled ? .ready : .installedDisabled
     }
 
-    /// (H-01) 설치 후보 IME 번들을 신뢰할 수 있는가.
-    /// Release: ① 코드 서명이 유효하고 ② 메인 앱과 **같은 Team Identifier**로
-    /// 서명됐을 때만 true. Team ID를 하드코딩하지 않고 메인 앱 자신의 Team을
-    /// 기준으로 삼으므로, 오픈소스를 포크해 자기 인증서로 빌드한 경우에도
-    /// (메인 앱+IME가 같은 Team이면) 정상 동작하고, 우리와 다른 Team의 외부
-    /// 번들만 거부된다. Debug: 미서명 개발 빌드를 위해 검사를 건너뛴다.
+    /// Apple이 발급한 인증서로 서명됐고 메인 앱과 같은 Team인지 확인한다.
+    /// 포크는 자기 Team으로 서명한 메인 앱/IME를 사용할 수 있다.
     static func isTrustedIMEBundle(at url: URL) -> Bool {
         isSameTeamSignedBundle(at: url)
     }
 
-    /// 위 신뢰 검사의 범용 형태 — "유효하게 서명됐고 메인 앱과 같은 Team인가".
-    /// IME 번들뿐 아니라 메인 앱 자신을 교체할 때(AppMover)도 같은 기준이
-    /// 필요해 분리했다. (review-0712 P2-1)
+    /// Debug도 기본 검증. 미서명 개발 테스트는 haneul.debugSkipTeamCheck 명시 허용이 필요하다.
     static func isSameTeamSignedBundle(at url: URL) -> Bool {
-        #if DEBUG
-        return true
-        #else
-        var staticCode: SecStaticCode?
-        guard SecStaticCodeCreateWithPath(url as CFURL, [], &staticCode) == errSecSuccess,
-              let code = staticCode,
-              SecStaticCodeCheckValidity(code, [], nil) == errSecSuccess else {
-            return false
-        }
-        guard let myTeam = teamIdentifier(at: Bundle.main.bundleURL),
-              let candidateTeam = teamIdentifier(at: url),
-              myTeam == candidateTeam else {
-            return false
-        }
-        return true
-        #endif
-    }
-
-    /// 번들의 코드 서명에서 Team Identifier를 읽는다. 미서명/추출 실패 시 nil.
-    private static func teamIdentifier(at url: URL) -> String? {
-        var staticCode: SecStaticCode?
-        guard SecStaticCodeCreateWithPath(url as CFURL, [], &staticCode) == errSecSuccess,
-              let code = staticCode else {
-            return nil
-        }
-        var infoCF: CFDictionary?
-        guard SecCodeCopySigningInformation(code, SecCSFlags(rawValue: kSecCSSigningInformation), &infoCF) == errSecSuccess,
-              let info = infoCF as? [String: Any] else {
-            return nil
-        }
-        return info[kSecCodeInfoTeamIdentifier as String] as? String
+        BundleTrust.isSameTeamSignedBundle(at: url)
     }
 
     /// 번들의 빌드 번호(CFBundleVersion, 단조증가 정수). 버전 비교용. 문자열

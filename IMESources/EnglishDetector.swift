@@ -372,6 +372,14 @@ enum EnglishDetector {
             return false
         }
 
+        // #82: 명시된 단위만 추가한다. 반복/얼굴 자모·한국어 veto·슬랭은 위에서
+        // 이미 보호했다. ㅢ(ml/mL)·ㅚ(hl/hL)처럼 한 자모로 합쳐진 표기도 보존.
+        // cm=츠는 검역한 비단어 예외, 다른 멀쩡한 1음절은 숫자 수량 조건을 요구한다.
+        if MeasurementUnits.contains(String(keys)), keys.count >= 2,
+           (brokenAsKorean && units.count >= 2) || String(keys) == "cm" {
+            return true
+        }
+
         // 무맥락 단독 화이트리스트 (and=뭉): veto 통과한 1음절 비단어를 좌우
         // 문맥 무관하게 변환. R5(2음절+)가 못 잡는 1음절 구멍 — 명시 목록
         // 이라 걍 등 다른 1음절 슬랭은 건드리지 않는다.

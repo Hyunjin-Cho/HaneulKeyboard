@@ -1,0 +1,10 @@
+HaneulKeyboard (하늘키보드)
+Copyright (c) 2026 Hyunjin Cho
+Original project: https://github.com/Hyunjin-Cho/HaneulKeyboard
+
+This distribution includes software developed for HaneulKeyboard.
+The application code is licensed under the Apache License, Version 2.0.
+Bundled dictionaries, fonts, and third-party material retain their respective
+licenses and attribution notices; see ACKNOWLEDGEMENTS.md and the bundled
+license files. The previous MIT notice is retained in
+HaneulKeyboard-MIT-legacy.txt (LICENSES/ in the source distribution).

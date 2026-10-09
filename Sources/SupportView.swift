@@ -22,5 +22,6 @@ struct SupportView: View {
         }
         .padding(24)
         .frame(width: 400)
+        .haneulWindowAppearance()
     }
 }

@@ -41,7 +41,7 @@ struct PersonalDictionarySettingsSection: View {
                 Picker("개인 사전 목록", selection: $listKind) {
                     Text("변환 추가").tag(ListKind.force)
                     Text("변환 금지").tag(ListKind.block)
-                    Text("최근 되돌림").tag(ListKind.recent)
+                    Text("되돌린 단어").tag(ListKind.recent)
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
@@ -95,7 +95,7 @@ struct PersonalDictionarySettingsSection: View {
 
     @ViewBuilder
     private var recentRows: some View {
-        Text("되돌리기 키로 한글로 되돌린 변환입니다. 이 기기에만 최근 \(RecentReverts.maxCount)개까지 남고 어디로도 보내지 않습니다. \"금지\"를 누르면 변환 금지 목록으로 옮깁니다.")
+        Text("영어로 바뀌었다가 직접 한글로 되돌린 단어예요. 이 기기에만 최근 \(RecentReverts.maxCount)개까지 남아요. ‘금지’를 누르면 다음부터 자동으로 바꾸지 않아요.")
             .font(.caption)
             .foregroundStyle(.secondary)
             .lineLimit(Self.captionLines, reservesSpace: true)

@@ -15,7 +15,7 @@ protocol ComposerClient {
 /// Completed syllables accumulate into a word-level buffer (shown as marked
 /// text) instead of committing eagerly. The whole word commits at a boundary:
 /// space/punctuation, modifier shortcut, focus change, or deactivate.
-/// Digits stay in the word only for registered identifier prefixes (#5).
+/// Digits stay in the word for registered identifiers (#5) or quantities (#82).
 /// At that point, if the composed word is broken as Korean and the raw
 /// keystrokes form a known English word (e.g. 메ㅔㅣㄷ ← "apple"), the
 /// original keystrokes are committed instead — see EnglishDetector.
@@ -39,13 +39,29 @@ final class KoreanComposer {
     /// 직전에 영어로 변환된 단어 — (변환 전 한글, 변환 후 영어). shift+space로
     /// 영어↔한글을 토글할 때 쓴다(㉠ 직후만). 다음 입력(자모/백스페이스)이
     /// 들어오면 nil로 리셋 = "변환 직후, 다음 글자 치기 전"에만 유효.
-    private(set) var lastConversion: (hangul: String, english: String)?
+    private(set) var lastConversion: (hangul: String, english: String)? {
+        didSet {
+            if lastConversion == nil {
+                lastConversionUsedQuantity = false
+                lastConversionOrigin = .automatic
+            }
+        }
+    }
+    private var lastConversionUsedQuantity = false
+    enum ConversionOrigin { case automatic, keyboard, phonetic }
+    private(set) var lastConversionOrigin: ConversionOrigin = .automatic
+    var shouldRecordAutomaticRevert: Bool {
+        lastConversion != nil && lastConversionOrigin == .automatic
+    }
 
     var lastCommitWasEnglish: Bool { lastEnglishWord != nil }
 
     private var alphanumericStartAllowed = true
+    /// 활성 경계에서 확정한 수량. 바로 다음 Space 한 번 뒤 단위에만 사용한다.
+    private var lastQuantity: String?
 
     func resetEnglishContext() {
+        lastQuantity = nil
         alphanumericStartAllowed = true
         lastEnglishWord = nil
         // (H1) 커서 이동이 동반되는 경계(클릭·포커스이동·단축키·화살표·마침표·
@@ -58,6 +74,7 @@ final class KoreanComposer {
     /// 실제 비자모 경계를 지난 뒤 호출. 이미 밖으로 보낸 숫자 뒤에서는
     /// 새 후보를 시작하지 않아 123a24의 끝 a24만 바꾸지 않는다.
     func completeBoundary(_ character: Character?) {
+        if character != " " { lastQuantity = nil }
         if character != " " && character != "," { resetEnglishContext() }
         alphanumericStartAllowed = !(character.map(AlphanumericWords.isDigit) ?? false)
     }
@@ -68,10 +85,20 @@ final class KoreanComposer {
     /// 변환된다(예: "want "→"ㅈ무ㅅ " 되돌린 뒤 "to "의 새가 다시 to로 변환).
     /// lastConversion은 (hangul, english)를 그대로 유지해 연속 토글을 가능케 한다.
     /// - toEnglish: 토글 결과가 영어면 true(영어 문맥 복원), 한글이면 false(끊김).
-    func applyToggle(toEnglish: Bool, hangul: String, english: String) {
-        lastEnglishWord = toEnglish && !english.contains(where: AlphanumericWords.isDigit)
+    func applyToggle(toEnglish: Bool, hangul: String, english: String,
+                     origin: ConversionOrigin? = nil) {
+        lastQuantity = nil
+        let samePair = lastConversion?.hangul == hangul && lastConversion?.english == english
+        let conversionOrigin = origin ?? (samePair ? lastConversionOrigin : .keyboard)
+        let quantityToggle = lastConversionUsedQuantity
+            && samePair
+        // 발음 변환은 한국어 문장 안에서 의도적으로 바꾼 한 단어다.
+        // 이를 근거로 뒤의 정상 한글까지 자동 영타 변환하지 않는다.
+        lastEnglishWord = toEnglish && conversionOrigin != .phonetic && !quantityToggle && !english.contains(where: AlphanumericWords.isDigit)
             ? english.lowercased() : nil
         lastConversion = (hangul: hangul, english: english)
+        lastConversionUsedQuantity = quantityToggle
+        lastConversionOrigin = conversionOrigin
     }
 
     /// 2026-10-06 (#76): 숫자·NFD 자모도 단어의 일부다. 아포스트로피는
@@ -176,12 +203,31 @@ final class KoreanComposer {
     private let maxWordUnits = 40
     private var didSpillWord = false
 
-    /// 2026-09-21 (#15): 아직 확정되지 않은 조합(marked text)이 있는가.
-    /// 수동 한↔영 토글은 **클라이언트 문서에 이미 들어간 글자**만 다룬다 — marked text는 아직
-    /// 문서가 아니라서 커서 앞을 읽으면 그 단어가 있을 수도, 없을 수도 있다(앱마다 다르다).
-    /// 조합 중이면 토글하지 않고 평소 경계 처리로 흘려보낸다: 그 한 번으로 단어가 확정되고
-    /// (자동 변환도 평소대로 시도된다), 그다음 누름부터 토글 대상이 된다.
+    /// #84: 조합 중 등록 발음은 한 번의 단축키로 확정한다. 미등록 조합의 기존 경계 처리는 유지한다.
     var hasPendingComposition: Bool { !word.isEmpty || !buffer.isEmpty }
+
+    func pendingPhoneticConversion(dictionary: PhoneticDictionary = .bundled)
+        -> (hangul: String, english: String)? {
+        guard !didSpillWord, alphanumericStartAllowed else { return nil }
+        let hangul = wordText() + buffer.previewString()
+        guard let english = dictionary.english(for: hangul) else { return nil }
+        return (hangul, english)
+    }
+
+    /// marked text 교체는 조합기의 원본을 사용한다. 문서의 좌우 경계 확인은 컨트롤러가 담당한다.
+    /// 일반 commit/Space 경로에서는 절대 호출하지 않는다.
+    @discardableResult
+    func commitPhonetic(to client: ComposerClient, dictionary: PhoneticDictionary = .bundled) -> Bool {
+        guard let conversion = pendingPhoneticConversion(dictionary: dictionary) else { return false }
+        buffer = SyllableBuffer()
+        pendingKeys = []
+        word = []
+        didSpillWord = false
+        client.insertText(conversion.english)
+        client.setMarkedText("")
+        applyToggle(toEnglish: true, hangul: conversion.hangul, english: conversion.english, origin: .phonetic)
+        return true
+    }
 
     func handleInput(_ input: String, client: ComposerClient) -> Bool {
         guard let scalar = input.unicodeScalars.first else { return false }
@@ -213,7 +259,7 @@ final class KoreanComposer {
         return true
     }
 
-    /// #5: 사전/개인 사전에 있는 이름의 접두어만 숫자를 marked text에 붙인다.
+    /// #5/#82: 등록 이름 접두어 또는 단어 처음의 수량을 marked text에 붙인다.
     /// 일단 붙인 숫자는 후보가 나중에 어긋나도 경계까지 보관하고 기존 경로로 폴백한다.
     @discardableResult
     func handleDigit(_ character: Character, client: ComposerClient) -> Bool {
@@ -228,7 +274,8 @@ final class KoreanComposer {
                 && ($0.hasPrefix(candidate) || $0.hasPrefix(hangulCandidate))
         }
         guard !didSpillWord, hasBufferedDigits || (alphanumericStartAllowed
-            && (AlphanumericWords.hasPrefix(candidate) || personalPrefix)) else { return false }
+            && (candidate.allSatisfy(AlphanumericWords.isDigit)
+                || AlphanumericWords.hasPrefix(candidate) || personalPrefix)) else { return false }
         lastConversion = nil
         stashBuffer()
         word.append((text: String(character), keys: [character]))
@@ -244,6 +291,18 @@ final class KoreanComposer {
 
     private var hasBufferedDigits: Bool {
         word.contains { $0.keys.count == 1 && AlphanumericWords.isDigit($0.keys[0]) }
+    }
+
+    /// 수량의 소수점 하나만 보관한다. 문장 마침표/제품명 속 점은 기존 경계로 둔다.
+    func handleQuantityPoint(client: ComposerClient) -> Bool {
+        let keys = word.flatMap(\.keys) + pendingKeys
+        guard !didSpillWord, !keys.isEmpty,
+              keys.allSatisfy(AlphanumericWords.isDigit) else { return false }
+        lastConversion = nil
+        stashBuffer()
+        word.append((text: ".", keys: ["."]))
+        refreshMarkedText(client: client)
+        return true
     }
 
     /// 2026-09-19 (#34): 단어에 끼워 넣은 아포스트로피 유닛의 위치 (없으면 nil).
@@ -286,7 +345,8 @@ final class KoreanComposer {
     @discardableResult
     func commit(to client: ComposerClient, convertEnglish: Bool = false) -> String {
         stashBuffer()
-        defer { word = []; didSpillWord = false }
+        var nextQuantity: String?
+        defer { word = []; didSpillWord = false; lastQuantity = nextQuantity }
 
         let hangul = wordText()
         guard !hangul.isEmpty else {
@@ -295,6 +355,8 @@ final class KoreanComposer {
         }
 
         let committed: String
+        lastConversionUsedQuantity = false
+        lastConversionOrigin = .automatic
         let keys = word.flatMap(\.keys)
         let units = word.map(\.text)
         // Conversion may only fire when EVERY unit carries the keys that
@@ -304,6 +366,7 @@ final class KoreanComposer {
         let convertible = convertEnglish && autoEnglishEnabled && !didSpillWord
             && word.allSatisfy { !$0.keys.isEmpty }
         if hasBufferedDigits {
+            if convertible, MeasurementUnits.isQuantity(String(keys)) { nextQuantity = String(keys) }
             return commitAlphanumeric(to: client, convertible: convertible, hangul: hangul, keys: keys)
         }
         if let apostrophe = apostropheIndex {
@@ -328,7 +391,12 @@ final class KoreanComposer {
             && committed.allSatisfy {
                 ($0.isASCII && $0.isLetter) || Contractions.isApostrophe($0)
             }
-        if isAscii {
+        if isAscii, lastQuantity != nil, MeasurementUnits.contains(String(keys)) {
+            // 숫자 다음 단위가 뒤의 정상 한글을 영어 문맥으로 만들지 않는다.
+            lastEnglishWord = nil
+            lastConversion = (hangul, committed)
+            lastConversionUsedQuantity = true
+        } else if isAscii {
             // 2026-09-20 (#44, 리뷰 F-6): 문맥 단어는 사전 조회와 같은 정규화를 거친다 —
             // 곱은 아포스트로피(U+2019)를 `'`로 통일해야 `don’t` 뒤의 해(go)가
             // goDoTriggers(직선 따옴표만)와 맞는다. 화면에 넣는 committed·lastConversion은
@@ -366,9 +434,18 @@ final class KoreanComposer {
         let raw = String(keys)
         let decision = personalDictionary.decision(word: raw, hangul: hangul)
         let mayConvert = convertible && KoreanDictionary.isLoaded
-        let matched = decision != .block && (decision == .forceConvert || AlphanumericWords.contains(raw))
+        let quantity = MeasurementUnits.splitQuantity(raw)
+        let unitHangul = quantity.map { String(hangul.dropFirst($0.amount.count)) } ?? ""
+        // `ml` 또는 `ㅢ` 금지도 `100ml`에 적용한다. 전체 항목과 단위 금지 모두 우선.
+        let unitBlocked = quantity.map {
+            personalDictionary.decision(word: $0.unit, hangul: unitHangul) == .block
+        } ?? false
+        let quantityMatches = quantity.map {
+            MeasurementUnits.allowsAfterQuantity($0.unit, hangul: unitHangul)
+        } ?? false
+        let matched = decision == .forceConvert || AlphanumericWords.contains(raw) || quantityMatches
         let text: String
-        if !mayConvert || decision == .block {
+        if !mayConvert || decision == .block || unitBlocked {
             text = hangul
             lastEnglishWord = nil
             lastConversion = nil
@@ -377,6 +454,7 @@ final class KoreanComposer {
             // 제품 코드는 다음 한국어를 영어 문맥으로 만들지 않는다.
             lastEnglishWord = nil
             lastConversion = (hangul, raw)
+            lastConversionUsedQuantity = quantityMatches
         } else {
             let fallback = KoreanComposer()
             let sink = BufferedClient()
@@ -393,14 +471,20 @@ final class KoreanComposer {
                         sink.insertText(String(key))
                         fallback.resetEnglishContext()
                     }
-                } else {
+                } else if KeyboardLayout2Set.jamo(for: key) != nil {
                     _ = fallback.handleInput(String(key), client: sink)
+                } else {
+                    fallback.commit(to: sink, convertEnglish: true)
+                    sink.insertText(String(key))
+                    fallback.resetEnglishContext()
                 }
             }
             fallback.commit(to: sink, convertEnglish: true)
             text = sink.text
             lastEnglishWord = fallback.lastEnglishWord
             lastConversion = fallback.lastConversion
+            lastConversionOrigin = fallback.lastConversionOrigin
+            lastConversionUsedQuantity = fallback.lastConversionUsedQuantity
         }
         client.insertText(text)
         client.setMarkedText("")
@@ -481,6 +565,10 @@ final class KoreanComposer {
         case .forceConvert:
             return KoreanDictionary.isLoaded
         case nil:
+            if lastQuantity != nil,
+               MeasurementUnits.allowsAfterQuantity(String(keys), hangul: units.joined()) {
+                return true
+            }
             return EnglishDetector.shouldConvert(
                 units: units, keys: keys, previousEnglishWord: lastEnglishWord)
         }

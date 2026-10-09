@@ -31,7 +31,7 @@ struct PersonalDictionary: Equatable {
         static let block = "haneul.personalDict.block"
     }
 
-    /// 변환 추가 — 소문자 a–z·숫자와 `'` 한 개까지(`normalizedForceEntry`로 정규화된 값).
+    /// 변환 추가 — 소문자 a–z·숫자와 `'` 한 개, 또는 `1.5ml` 형태의 소수 수량.
     var force: Set<String>
     /// 변환 금지 — 영어(소문자) 또는 그 한글 자판 표기(`normalizedBlockEntry`로 정규화된 값).
     /// 커밋 때 영어 키열과 한글 표기를 **둘 다** 이 집합에 대조한다.
@@ -77,7 +77,7 @@ struct PersonalDictionary: Equatable {
 
     // MARK: - 입력 정규화 (설정 앱의 입력 검증과 저장 시 정규화가 같은 함수를 쓴다)
 
-    /// 변환 추가 항목: 앞뒤 공백 제거 → 소문자 → `’`를 `'`로. 알파벳·숫자와 내부/뒤 아포스트로피 하나까지 허용하고
+    /// 변환 추가 항목: 앞뒤 공백 제거 → 소문자 → `’`를 `'`로. 알파벳·숫자와 내부/뒤 아포스트로피 하나, 또는 소수 수량을 허용하고
     /// 글자가 하나 이상이어야 한다(`'`만으로는 단어가 아니다). 아니면 nil.
     static func normalizedForceEntry(_ raw: String) -> String? {
         let s = normalizedEnglish(raw.trimmingCharacters(in: .whitespacesAndNewlines))
@@ -111,6 +111,11 @@ struct PersonalDictionary: Equatable {
     }
 
     private static func isEnglishEntry(_ s: String) -> Bool {
+        // #82: 수량 한 개의 소수점만 허용. 되돌린 1.5ml도 전체 항목으로 금지/추가 가능.
+        // 도메인·점으로 나눈 임의 이름은 여전히 한 단어가 아니므로 거부한다.
+        if let suffix = decimalQuantitySuffix(s) {
+            return suffix.allSatisfy { $0.isASCII && $0.isLetter }
+        }
         // #5/#78: 숫자 이름은 허용하되 앞 따옴표/두 번째 따옴표는 조합기가
         // 한 단어로 취급하지 않으므로 등록하지 않는다. 숫자뿐인 항목도 제외.
         guard !s.isEmpty, s.first != "'", s.filter({ $0 == "'" }).count <= 1 else { return false }
@@ -119,6 +124,7 @@ struct PersonalDictionary: Equatable {
     }
 
     private static func isHangulEntry(_ s: String) -> Bool {
+        if let suffix = decimalQuantitySuffix(s) { return isHangulEntry(String(suffix)) }
         guard s.first != "'", s.filter({ $0 == "'" }).count <= 1 else { return false }
         var hasHangul = false
         for scalar in s.unicodeScalars {
@@ -130,6 +136,15 @@ struct PersonalDictionary: Equatable {
             }
         }
         return hasHangul
+    }
+
+    private static func decimalQuantitySuffix(_ s: String) -> Substring? {
+        let parts = s.split(separator: ".", omittingEmptySubsequences: false)
+        guard parts.count == 2, !parts[0].isEmpty,
+              parts[0].allSatisfy({ $0.isASCII && $0.isNumber }) else { return nil }
+        let digits = parts[1].prefix { $0.isASCII && $0.isNumber }
+        let suffix = parts[1].dropFirst(digits.count)
+        return !digits.isEmpty && !suffix.isEmpty ? suffix : nil
     }
 }
 

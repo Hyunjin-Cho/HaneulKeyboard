@@ -13,6 +13,8 @@ final class AppCore {
     /// 2026-09-21 (#19): 설치된 IME가 임베드본보다 오래됐는데 자동 갱신을 못 했다(root 소유
     /// 설치본이거나 갱신 실패). 설정의 「업데이트」 절이 "IME 갱신 필요" 안내를 띄우는 폴백.
     private(set) var imeRefreshNeeded = false
+    /// 설치/시작 시 자동 갱신을 한 번에 하나만 진행한다. 안내창과 설정이 공유한다.
+    private(set) var isPreparingIME = false
     /// 자동 업데이트(#19). 스케줄 시작은 `AppDelegate.applicationDidFinishLaunching`에서.
     let updater = Updater()
 
@@ -35,8 +37,8 @@ final class AppCore {
 
     // 입력 소스 변경 관찰은 AppDelegate가 단독으로 한다(거기서 core.refreshLanguage()
     // 를 호출). AppCore가 중복 관찰하면 actor 격리 경고만 늘어 제거했다.
-    init() {
-        ensureIMEActive()
+    init(activateIMEOnLaunch: Bool = true) {
+        if activateIMEOnLaunch { ensureIMEActive() }
     }
 
     /// Guarantees TIS REGISTRATION/ENABLE on every app launch, without copying
@@ -50,7 +52,9 @@ final class AppCore {
     /// So we keep register/enable here, but move bundle copying behind explicit
     /// consent buttons in Settings/Onboarding.
     private func ensureIMEActive() {
+        isPreparingIME = true
         Task { [weak self] in
+            defer { self?.isPreparingIME = false }
             do {
                 // 2026-09-21 (#19): 설치된 IME 빌드번호 < 임베드본이면 설정의 "IME 설치" 버튼과
                 // 같은 경로(`installBundle`: IME 정지 → staging → 원자 교체 → LaunchServices·TIS
@@ -98,6 +102,23 @@ final class AppCore {
         }
     }
 
+    /// 사용자 버튼에서 호출하는 공통 설치 경로. 시작 시 자동 갱신과 겹치지 않는다.
+    func installIME() async -> Error? {
+        guard !isPreparingIME else { return nil }
+        isPreparingIME = true
+        defer { isPreparingIME = false }
+        do {
+            _ = try await IMEInstaller.installBundle()
+            imeActivationError = nil
+            await updateIMEStatus()
+            return nil
+        } catch {
+            imeActivationError = error
+            await updateIMEStatus()
+            return error
+        }
+    }
+
     func refreshLanguage() {
         let current = InputSwitcher.isKoreanActive()
         if current != isKoreanActive {
@@ -122,12 +143,15 @@ final class AppCore {
         // 맞춰지므로 안내가 그 자리에서 사라져야 한다 — 한 번 켜지면 재실행 전까지 남던 버그.
         let builds = IMEInstaller.imeBuildNumbersForRefresh()
         let stale = UpdateDecision.shouldRefreshIME(installedBuild: builds.installed, bundledBuild: builds.bundled)
-        if !stale && imeRefreshNeeded { imeRefreshNeeded = false }
+        if stale != imeRefreshNeeded { imeRefreshNeeded = stale }
     }
 
     /// 꺼진 입력 소스를 다시 켠다 — 설치 버튼과 같은 경로(TISEnableInputSource, GUI 앱 컨텍스트).
     /// 번들을 새로 복사하지는 않는다. 실패는 호출자(메뉴)가 사용자에게 보여 준다(리뷰 M-3). (#32)
     func reenableIME() async -> Error? {
+        guard !isPreparingIME else { return nil }
+        isPreparingIME = true
+        defer { isPreparingIME = false }
         var failure: Error?
         do {
             _ = try await IMEInstaller.activateInstalled()

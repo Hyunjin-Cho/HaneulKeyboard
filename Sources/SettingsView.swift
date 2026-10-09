@@ -1,5 +1,9 @@
 import SwiftUI
 
+extension Notification.Name {
+    static let haneulSettingsTabRequested = Notification.Name("haneul.settingsTabRequested")
+}
+
 /// 설정 창의 탭. (2026-09-21, #60)
 /// 탭 순서 = 화면에 보이는 순서이고, `SettingsView`의 `TabView` 선택 상태가 이 값을 쓴다.
 enum SettingsTab: Hashable {
@@ -74,6 +78,11 @@ struct SettingsView: View {
         // 시안의 목표("기본 상태에서 스크롤 0")를 지키려고 높이만 660으로 올렸다.
         // 탭별 실측: 일반 312 · 영타 변환 624 · 개인 사전 550 · 업데이트 319 · 고급 126.
         .frame(width: 640, height: 660)
+        .scrollContentBackground(.hidden)
+        .haneulWindowAppearance()
+        .onReceive(NotificationCenter.default.publisher(for: .haneulSettingsTabRequested)) { notification in
+            if let tab = notification.object as? SettingsTab { selectedTab = tab }
+        }
         .alert("하늘키보드를 모두 지울까요?", isPresented: $showingUninstallConfirm) {
             Button("취소", role: .cancel) { }
             Button("모두 지우기", role: .destructive) {

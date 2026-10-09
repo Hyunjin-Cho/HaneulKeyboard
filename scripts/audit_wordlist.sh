@@ -79,7 +79,8 @@ swiftc -O -o "$BIN" \
   IMESources/KeyboardLayout2Set.swift \
   IMESources/Contractions.swift \
   IMESources/AlphanumericWords.swift \
-  IMESources/KoreanComposer.swift \
+  IMESources/MeasurementUnits.swift \
+  IMESources/PhoneticDictionary.swift IMESources/KoreanComposer.swift \
   IMESources/EnglishDetector.swift \
   IMESources/KoreanDictionary.swift \
   IMESources/PersonalDictionary.swift \

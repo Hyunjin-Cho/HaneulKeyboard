@@ -101,6 +101,7 @@ func typeWords(_ words: [String]) -> [String] {
 func typeKeyViaController(_ ch: Character, composer: KoreanComposer, client: FakeClient) {
     if Contractions.isApostrophe(ch), composer.handleApostrophe(ch, client: client) { return }
     if AlphanumericWords.isDigit(ch), composer.handleDigit(ch, client: client) { return }
+    if ch == ".", composer.handleQuantityPoint(client: client) { return }
     if KeyboardLayout2Set.jamo(for: ch) != nil {
         _ = composer.handleInput(String(ch), client: client)
         return
@@ -227,6 +228,13 @@ struct ComposerTests {
     static func main() {
         if CommandLine.arguments.count >= 3, CommandLine.arguments[1] == "--probe-kdict" {
             KoreanDictionary.wordlistPath = CommandLine.arguments[2]
+            if !KoreanDictionary.isLoaded {
+                guard typeViaController("100ml").committedText == "100ㅢ",
+                      typeViaController("100 ml").committedText == "100 ㅢ",
+                      typeViaController("cm").committedText == "츠",
+                      typeViaControllerWithPersonalDictionary("1.5ml", PersonalDictionary(force: ["1.5ml"])).committedText == "1.5ㅢ"
+                else { print("단위 변환 fail-closed 실패"); exit(1) }
+            }
             print(KoreanDictionary.isLoaded ? "true" : "false")
             return
         }
@@ -1969,6 +1977,25 @@ struct ComposerTests {
         expect(ver("2026.08 ") == nil, true, "CalVer: 공백 거부")
         expect(ver("２０２６.08") == nil, true, "CalVer: 전각 숫자 거부")
 
+        // 2026-10-09: 정식 배포 YYYY.MM.DD, 이전 순번형 설치본에서의 전환도 유지.
+        expect(ver("2026.10.10")?.description ?? "", "2026.10.10", "날짜 버전: 원문 표시")
+        expect(ver("2026.07")! < ver("2026.10.10")!, true, "날짜 버전: 공개 베타에서 상승")
+        expect(ver("2026.9")! < ver("2026.10.10")!, true, "날짜 버전: 내부 후보에서 상승")
+        expect(ver("2026.10.09")! < ver("2026.10.10")!, true, "날짜 버전: 일 비교")
+        expect(ver("2026.10.31")! < ver("2026.11.01")!, true, "날짜 버전: 월 경계")
+        expect(ver("2026.12.31")! < ver("2027.01.01")!, true, "날짜 버전: 연도 경계")
+        expect(ver("2026.07-beta") == nil, true, "날짜 버전: 베타 태그는 정식 업데이트 대상 아님")
+        expect(UpdateDecision.isVersionIncrease(currentVersion: "2026.9", currentBuild: 62,
+                   newVersion: "2026.10.10", newBuild: 63), true, "날짜 버전: 내부 후보에서 정식으로 교체 허용")
+        expect(UpdateDecision.isVersionIncrease(currentVersion: "2026.10.10", currentBuild: 63,
+                   newVersion: "2026.10.10", newBuild: 64), false, "날짜 버전: 같은 날 같은 번호 재게시로 업데이트되지 않음")
+        let datedRelease = ReleaseInfo(tag: "2026.10.10", assets: [ReleaseAsset(
+            name: "HaneulKeyboard_2026.10.10.zip",
+            downloadURL: URL(string: "https://github.com/Hyunjin-Cho/HaneulKeyboard/releases/download/2026.10.10/HaneulKeyboard_2026.10.10.zip")!,
+            size: 1_000)], pageURL: nil)
+        expect(UpdateDecision.availableUpdate(currentVersion: "2026.9", release: datedRelease)?.tag ?? "",
+               "2026.10.10", "날짜 버전: 태그와 파일명이 일치하는 정식 업데이트 탐지")
+
         // ── 저장소·URL·자산 이름 ──
         expect(UpdateDecision.isValidRepository("Hyunjin-Cho/HaneulKeyboard"), true, "업데이트: 정상 슬러그")
         expect(UpdateDecision.isValidRepository("Hyunjin-Cho/HaneulKeyboard-updatetest"), true, "업데이트: 테스트 슬러그")
@@ -2177,6 +2204,34 @@ struct ComposerTests {
         expect(typeViaController("123 a24").committedText, "123 a24", "일반 숫자 뒤 공백에서 새 이름 시작")
         expect(typeViaControllerWithPersonalDictionary("x9q", .empty).committedText, "ㅌ9ㅂ", "개인 사전 제거 후 미등록 이름 유지")
 
+        // 2026-10-06 (#74): 대표 범주의 실제 컨트롤러 경로 + 개인 사전 금지 우선 회귀.
+        let categoryText = try! String(contentsOfFile: "dict_work/2026-10-06-nature-film-coverage.txt", encoding: .utf8)
+        let categoryWords = categoryText.split(separator: "\n").map(String.init).filter { !$0.hasPrefix("#") && !$0.isEmpty }
+        expect(categoryWords.count, 201, "범주 대표 이름 표본 수")
+        for name in categoryWords {
+            expect(typeViaController(name).committedText, name, "범주 이름 자동 변환: \(name)")
+            let hangul = typeViaController(name, autoEnglish: false).committedText
+            expect(typeViaControllerWithPersonalDictionary(name, PersonalDictionary(force: [name], block: [name])).committedText,
+                   hangul, "범주 이름도 개인 사전 금지 우선: \(name)")
+        }
+
+        // 2026-10-08: 아트 용어의 실제 입력 결과와 개인 사전 금지 우선.
+        // slab=니뮤는 한글 표현 보호 때문에 curated 승격에서 제외했다.
+        let artText = try! String(contentsOfFile: "dict_work/2026-10-08-art-design-coverage.txt", encoding: .utf8)
+        let artWords = artText.split(separator: "\n").map(String.init).filter { !$0.hasPrefix("#") && !$0.isEmpty }
+        expect(artWords.count, 202, "아트·디자인 대표 용어 표본 수")
+        for word in artWords {
+            expect(typeViaController(word).committedText, word == "slab" ? "니뮤" : word,
+                   "아트 용어 자동 변환/한글 보호: \(word)")
+            let hangul = typeViaController(word, autoEnglish: false).committedText
+            expect(hangul != word, true, "아트 용어 자동 변환 OFF: \(word)")
+            expect(typeViaControllerWithPersonalDictionary(word, PersonalDictionary(force: [word], block: [word])).committedText,
+                   hangul, "아트 용어도 개인 사전 금지 우선: \(word)")
+        }
+        expect(typeViaControllerWithPersonalDictionary("slab", PersonalDictionary(force: ["slab"])).committedText,
+               "slab", "보류한 용어는 사용자 명시 추가로 변환 가능")
+        expect(typeViaController("slabb").committedText, "니뮤ㅠ", "아트 용어 보완 후 한글 감정 표현 보호")
+
         // ── 2026-10-06: 등록된 숫자 이름·개인 사전·수동 토글 회귀 (#5/#74~78) ──
         for name in ["tangerine", "vismo", "opencode", "anti", "cinestill", "superia", "velvia"] {
             expect(typeViaController(name).committedText, name, "요청 단어: \(name)")
@@ -2261,6 +2316,115 @@ struct ComposerTests {
         expect(typeViaControllerWithPersonalDictionary("don’t", PersonalDictionary(forceList: [], blockList: ["애ㅜ’ㅅ"])).committedText,
                "애ㅜ’ㅅ", "개인 사전: 곱은 아포스트로피 한글형 금지 적용")
 
+        // ── 2026-10-07 (#82): 단위·수량 — 실제 컨트롤러와 같은 키 분배 ──
+        // 검역에서 확인한 실제 한글 충돌은 숫자 뒤에서도 그대로 남긴다.
+        let quantityKoreanCollisions = ["dm": "으", "dl": "이", "cl": "치", "wk": "자", "em": "드"]
+        for unit in MeasurementUnits.symbols.sorted() {
+            let expected = quantityKoreanCollisions[unit] ?? unit
+            let raw = typeViaController(unit, autoEnglish: false).committedText
+            for (amount, separator) in [("100", ""), ("100", " "), ("1.25", "")] {
+                expect(typeViaController(amount + separator + unit).committedText, amount + separator + expected,
+                       "단위 전수 수량: \(amount)\(separator)\(unit)")
+            }
+            expect(typeViaController("100" + unit, autoEnglish: false).committedText, "100" + raw,
+                   "단위 전수 OFF: \(unit)")
+            expect(typeViaControllerWithPersonalDictionary("100" + unit, PersonalDictionary(forceList: [], blockList: [unit])).committedText,
+                   "100" + raw, "단위 전수 개인 금지: \(unit)")
+        }
+        for unit in ["oz", "km", "cm", "kg", "mg", "lb", "ft", "yd", "Hz", "kHz", "MHz",
+                     "fps", "rpm", "mol", "kPa", "kcal", "mAh", "Mbps", "dpi", "px", "mp", "MP", "Mp"] {
+            expect(typeViaController(unit).committedText, unit, "단위 단독: \(unit)")
+        }
+        for value in ["12oz", "100ml", "100mL", "35mm", "2cm", "5km", "24fps", "48kHz",
+                      "100Mbps", "10GB", "10dB", "10dL", "5mW", "5MW", "800ml", "8000ml",
+                      "100 ml", "35 mm", "10 GB", "10 dB", "10 dL", "0.5ml", "1.25 kg",
+                      "-12.5km", "+5mL", "(100ml)", "100cc", "5qt",
+                      "12mp", "12MP", "12Mp", "12 mp", "12 MP", "12.5mp", "12.5MP"] {
+            expect(typeViaController(value).committedText, value, "숫자+단위: \(value)")
+        }
+        for (keys, expected) in [("ml", "ㅢ"), ("mL", "ㅢ"), ("mm", "ㅡㅡ"), ("cc", "ㅊㅊ"),
+                                 ("qt", "ㅂㅅ"), ("dl", "이"), ("cl", "치"), ("wk", "자"),
+                                 ("100dl", "100이"), ("100 dl", "100 이"), ("3cl", "3치"),
+                                 ("10wk", "10자"), ("5ro", "5개"), ("3aud", "3명"),
+                                 ("2flxj", "2리터"), ("3dnjs", "3원"), ("10rue", "10겯"),
+                                 ("100mlx", "100ㅢㅌ"), ("100mLx", "100ㅢㅌ"),
+                                 ("100  ml", "100  ㅢ"), ("100\nml", "100\nㅢ"),
+                                 ("100,ml", "100,ㅢ"), ("1.ml", "1.ㅢ"),
+                                 ("100ml dl", "100ml 이"), ("100 ml dl", "100 ml 이")] {
+            expect(typeViaController(keys).committedText, expected, "단위: 한글·경계 보호 \(keys)")
+        }
+        for value in ["100ml", "100 ml", "1.5ml", "800ml", "35mm", "10GB", "10dB", "12mp", "12MP"] {
+            let raw = typeViaController(value, autoEnglish: false).committedText
+            let client = FakeClient(), composer = KoreanComposer()
+            for ch in value { typeKeyViaController(ch, composer: composer, client: client) }
+            let beforeCommit = client.committedText + client.marked
+            composer.commit(to: client, convertEnglish: false)
+            expect(client.committedText, beforeCommit, "단위: 포커스 이동은 표시 그대로 \(value)")
+            expect(composer.lastConversion == nil, true, "단위: passive 되돌림 없음 \(value)")
+            expect(raw != value, true, "단위: 자동 변환 OFF \(value)")
+        }
+        for blocked in ["ml", "ㅢ", "100ml", "100ㅢ"] {
+            expect(typeViaControllerWithPersonalDictionary("100ml", PersonalDictionary(block: [blocked])).committedText,
+                   "100ㅢ", "단위: 금지 항목 \(blocked)")
+        }
+        expect(typeViaControllerWithPersonalDictionary("100 ml", PersonalDictionary(block: ["ml"])).committedText,
+               "100 ㅢ", "단위: 띄어쓴 단위 금지")
+        for blocked in ["mp", "ㅡㅔ", "12mp", "12ㅡㅔ"] {
+            expect(typeViaControllerWithPersonalDictionary("12mp", PersonalDictionary(block: [blocked])).committedText,
+                   "12ㅡㅔ", "메가픽셀: 약어/전체 항목 금지 \(blocked)")
+        }
+        expect(typeViaController("12mp dl").committedText, "12mp 이", "메가픽셀 뒤 한국어 문맥 보호")
+        expect(typeViaControllerWithPersonalDictionary("100ml", PersonalDictionary(force: ["100ml"], block: ["ml"])).committedText,
+               "100ㅢ", "단위: 전체 강제보다 단위 금지 우선")
+        for blocked in ["1.5ml", "1.5ㅢ"] {
+            let dictionary = PersonalDictionary(forceList: [], blockList: [blocked])
+            expect(dictionary.block.contains(blocked), true, "소수 단위 금지 등록: \(blocked)")
+            expect(typeViaControllerWithPersonalDictionary("1.5ml", dictionary).committedText,
+                   "1.5ㅢ", "소수 단위 금지 적용: \(blocked)")
+        }
+        expect(typeViaControllerWithPersonalDictionary("1.5foo", PersonalDictionary(forceList: ["1.5foo"], blockList: [])).committedText,
+               "1.5foo", "개인 사전: 명시한 소수 수량 전체 추가")
+        for invalid in ["a.b", "1.ml", ".5ml", "1.2.3ml", "1.2", "1.2a3"] {
+            expect(PersonalDictionary.normalizedForceEntry(invalid) == nil, true, "개인 사전: 수량 아닌 점 보호 \(invalid)")
+        }
+        for value in ["100ml", "1.25ml", "800ml", "10GB", "12mp", "12MP"] {
+            let client = FakeClient(), composer = KoreanComposer()
+            for ch in value { typeKeyViaController(ch, composer: composer, client: client) }
+            let raw = client.marked
+            composer.commit(to: client, convertEnglish: true)
+            expect(composer.lastEnglishWord == nil, true, "단위: 다음 한글 문맥 보호 \(value)")
+            expect(composer.lastConversion?.hangul ?? "", raw, "단위: 전체 원문 저장 \(value)")
+            expect(KoreanComposer.resolveToggle(before: value + " ", english: value, hangul: raw,
+                                                 atDocStart: true)?.text ?? "", raw, "단위: 전체 수량 되돌림 \(value)")
+        }
+        do {
+            let client = FakeClient(), composer = KoreanComposer()
+            for ch in "100 ml " { typeKeyViaController(ch, composer: composer, client: client) }
+            composer.applyToggle(toEnglish: false, hangul: "ㅢ", english: "ml")
+            composer.applyToggle(toEnglish: true, hangul: "ㅢ", english: "ml")
+            expect(composer.lastEnglishWord == nil, true, "단위: 띄어쓴 수량 재토글도 영어 문맥 차단")
+        }
+        do {
+            let client = FakeClient(), composer = KoreanComposer()
+            for ch in "100 " { typeKeyViaController(ch, composer: composer, client: client) }
+            composer.resetEnglishContext() // 앱·입력칸·커서 이동
+            for ch in "ml" { typeKeyViaController(ch, composer: composer, client: client) }
+            composer.commit(to: client, convertEnglish: true)
+            expect(client.committedText, "100 ㅢ", "단위: 숫자 문맥 이동 시 폐기")
+        }
+        do {
+            let client = FakeClient(), composer = KoreanComposer()
+            for ch in "12.5ml" { typeKeyViaController(ch, composer: composer, client: client) }
+            for _ in 0..<4 { expect(composer.deleteBackward(client: client), true, "단위: 자모/소수점 삭제") }
+            expect(client.marked, "12", "단위: 소수점까지 지운 숫자")
+            for ch in "oz" { typeKeyViaController(ch, composer: composer, client: client) }
+            expect(composer.commit(to: client, convertEnglish: true), "12oz", "단위: 삭제 후 다른 단위")
+        }
+        let longQuantity = String(repeating: "1", count: 95)
+        expect(typeViaController(longQuantity).committedText, longQuantity, "단위: 긴 숫자 유실 없음")
+        expect(typeViaController("123.456.789").committedText, "123.456.789", "단위: 여러 점 숫자 유실 없음")
+
+        runPhoneticTests()
         print("\(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
     }
