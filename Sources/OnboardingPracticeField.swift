@@ -75,7 +75,7 @@ final class OnboardingPracticeTextView: NSTextView {
 
     private func reportProgress() {
         guard observationDepth == 0 else { return }
-        _ = progress.observe(text: string, hasMarkedText: hasMarkedText())
+        _ = progress.observe(text: string, hasMarkedText: hasMarkedText(), markedRange: markedRange())
         scheduleProgressDelivery()
     }
 
@@ -124,6 +124,11 @@ final class OnboardingPracticeTextView: NSTextView {
         textContainer?.widthTracksTextView = true
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    convenience init(frame: NSRect, dictionary: PhoneticDictionary) {
+        self.init(frame: frame)
+        progress = OnboardingPracticeProgress(dictionary: dictionary)
+    }
 
     override func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
         observationDepth += 1

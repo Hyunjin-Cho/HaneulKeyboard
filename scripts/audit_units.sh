@@ -5,9 +5,11 @@ cd "$(dirname "$0")/.."
 UNIT_AUDIT_WORK=$(mktemp -d)
 trap 'rm -rf "$UNIT_AUDIT_WORK"' EXIT
 swiftc -O -module-cache-path "$UNIT_AUDIT_WORK/cache" -o "$UNIT_AUDIT_WORK/audit" \
+  Shared/InputInferencePolicy.swift \
+  IMESources/ManualToggle.swift \
   IMESources/HangulJamo.swift IMESources/KeyboardLayout2Set.swift \
   IMESources/Contractions.swift IMESources/AlphanumericWords.swift IMESources/MeasurementUnits.swift \
-  IMESources/PhoneticDictionary.swift IMESources/KoreanComposer.swift IMESources/EnglishDetector.swift \
+  IMESources/PhoneticDictionary.swift IMESources/EnglishParticleSplitter.swift IMESources/KoreanComposer.swift IMESources/EnglishDetector.swift \
   IMESources/KoreanDictionary.swift IMESources/PersonalDictionary.swift \
   Tools/MeasurementUnitAudit.swift
 "$UNIT_AUDIT_WORK/audit"

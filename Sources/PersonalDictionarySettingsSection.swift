@@ -18,6 +18,7 @@ import Combine
 ///     그 순간 IME가 새 기록을 얹으면 한쪽이 덮인다. 잃는 것은 설정값이 아니라 참고 기록
 ///     한 줄이라 허용한다(정합성 장치를 두면 IME 입력 경로가 무거워진다).
 struct PersonalDictionarySettingsSection: View {
+    var isSelected: Bool = true
     /// 세그먼트 3칸 — 한 번에 하나만 보인다. (2026-09-21, #60)
     enum ListKind: Hashable {
         case force, block, recent
@@ -34,10 +35,15 @@ struct PersonalDictionarySettingsSection: View {
     @State private var blockInput = ""
     @State private var forceError: String?
     @State private var blockError: String?
+    private struct Suggestion: Identifiable {
+        let id = UUID()
+        let entry: RecentReverts.Entry
+    }
+    @State private var suggestion: Suggestion?
 
     var body: some View {
         Group {
-            Section("개인 사전") {
+            HaneulSettingsSection("개인 사전") {
                 Picker("개인 사전 목록", selection: $listKind) {
                     Text("변환 추가").tag(ListKind.force)
                     Text("변환 금지").tag(ListKind.block)
@@ -55,6 +61,9 @@ struct PersonalDictionarySettingsSection: View {
             }
         }
         .onAppear(perform: load)
+        .onChange(of: isSelected) { _, selected in
+            if selected { load() }
+        }
         // 되돌리기는 다른 앱에서 일어난다 — 설정 창으로 돌아온 순간 다시 읽어 최신을 보여준다.
         // (UserDefaults.didChangeNotification은 다른 프로세스의 변경에는 오지 않는다.)
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
@@ -63,6 +72,9 @@ struct PersonalDictionarySettingsSection: View {
         // 2026-09-21 (#60): 탭을 옮겨 다니는 동안에도 최신 기록을 보여준다 — 창이 이미 활성인
         // 상태에서 탭만 바꾸면 didBecomeActive가 오지 않는다.
         .onChange(of: listKind) { _, _ in load() }
+        .sheet(item: $suggestion) { draft in
+            WordSuggestionSettingsSection(typed: draft.entry.hangul, expected: draft.entry.english, kind: .block)
+        }
     }
 
     // MARK: - 세그먼트별 본문
@@ -70,11 +82,11 @@ struct PersonalDictionarySettingsSection: View {
     @ViewBuilder
     private var forceRows: some View {
         Text("자동 변환이 켜진 앱에서, 여기 적은 단어·제품명은 사전에 없거나 한국어와 겹쳐도 영어로 바꿉니다. 변환 금지에도 있으면 금지가 우선합니다.")
-            .font(.caption)
+            .font(SettingsTypography.body)
             .foregroundStyle(.secondary)
             .lineLimit(Self.captionLines, reservesSpace: true)
         addRow(
-            text: $forceInput, prompt: "영어 단어·제품명 (예: vismo, a7r)", error: forceError,
+            text: $forceInput, prompt: "영어 단어·제품명 (예: apple, banana)", error: forceError,
             fieldLabel: "변환 추가할 영어 단어",
             addLabel: "변환 추가 목록에 단어 추가", action: addForce)
         wordList(force, emptyText: "추가한 단어가 없습니다.", remove: removeForce)
@@ -82,8 +94,8 @@ struct PersonalDictionarySettingsSection: View {
 
     @ViewBuilder
     private var blockRows: some View {
-        Text("여기 적은 단어는 자동으로 영어로 바꾸지 않습니다. 영어(a24)나 한글 모드 표기(ㅁ24)로 적어 주세요. 변환 추가에도 있으면 금지가 우선합니다.")
-            .font(.caption)
+        Text("여기 적은 단어는 자동으로 영어로 바꾸지 않습니다. 영어(apple)나 한글 모드 표기(메ㅔㅣㄷ)로 적어 주세요. 변환 추가에도 있으면 금지가 우선합니다.")
+            .font(SettingsTypography.body)
             .foregroundStyle(.secondary)
             .lineLimit(Self.captionLines, reservesSpace: true)
         addRow(
@@ -95,8 +107,8 @@ struct PersonalDictionarySettingsSection: View {
 
     @ViewBuilder
     private var recentRows: some View {
-        Text("영어로 바뀌었다가 직접 한글로 되돌린 단어예요. 이 기기에만 최근 \(RecentReverts.maxCount)개까지 남아요. ‘금지’를 누르면 다음부터 자동으로 바꾸지 않아요.")
-            .font(.caption)
+        Text("영어로 바뀌었다가 직접 한글로 되돌린 단어예요. 이 기기에만 최근 \(RecentReverts.maxCount)개까지 남아요. ‘변환 금지 추가’를 누르면 다음부터 자동으로 바꾸지 않아요.")
+            .font(SettingsTypography.body)
             .foregroundStyle(.secondary)
             .lineLimit(Self.captionLines, reservesSpace: true)
 
@@ -113,11 +125,11 @@ struct PersonalDictionarySettingsSection: View {
                             .accessibilityHidden(true)
                         Text(entry.english)
                         Spacer()
-                        Button("금지") { blockRecent(entry) }
+                        Button("변환 금지 추가") { blockRecent(entry) }
                             .buttonStyle(.bordered)
                             .controlSize(.small)
                             .accessibilityLabel("\(entry.english) 변환 금지")
-                        Button("제안") { suggestRecent(entry) }
+                        Button("제안…") { suggestRecent(entry) }
                             .buttonStyle(.bordered)
                             .controlSize(.small)
                             .accessibilityLabel("\(entry.english) 변환 금지 제안하기")
@@ -127,6 +139,7 @@ struct PersonalDictionarySettingsSection: View {
             }
         }
         .listStyle(.bordered(alternatesRowBackgrounds: true))
+        .font(SettingsTypography.body)
         .frame(height: Self.listHeight)
 
         HStack {
@@ -155,6 +168,7 @@ struct PersonalDictionarySettingsSection: View {
                 // **왼쪽 라벨**로 붙어 입력칸을 반으로 줄인다. 시안 와이어프레임대로 안내 문구를
                 // 칸 안 placeholder로 내리고, 이름은 접근성 라벨로 남긴다.
                 TextField("", text: text, prompt: Text(prompt))
+                    .font(SettingsTypography.body)
                     .labelsHidden()
                     .textFieldStyle(.roundedBorder)
                     .autocorrectionDisabled()
@@ -166,7 +180,7 @@ struct PersonalDictionarySettingsSection: View {
             }
             if let error {
                 Text(error)
-                    .font(.caption)
+                    .font(SettingsTypography.body)
                     .foregroundStyle(.red)
             }
         }
@@ -198,6 +212,7 @@ struct PersonalDictionarySettingsSection: View {
             }
         }
         .listStyle(.bordered(alternatesRowBackgrounds: true))
+        .font(SettingsTypography.body)
         .frame(height: Self.listHeight)
     }
 
@@ -255,24 +270,21 @@ struct PersonalDictionarySettingsSection: View {
 
     // MARK: - 최근 되돌린 변환
 
-    /// "금지": 그 영어 단어를 변환 금지에 넣고 목록에서 뺀다 — 설정 앱이 recentReverts 키를
+    /// "금지": 선택한 기록의 금지 키를 추가하고 해당 기록을 목록에서 뺀다 — 설정 앱이 recentReverts 키를
     /// 쓰는 유일한 자리(파일 상단 주석의 경쟁 허용 근거 참조).
     private func blockRecent(_ entry: RecentReverts.Entry) {
-        if let word = PersonalDictionary.normalizedBlockEntry(entry.english) {
-            insertBlock(word)
-        }
+        guard let word = entry.blockEntry else { return }
+        insertBlock(word)
         guard let defaults = Self.imeDefaults else { return }
-        let updated = RecentReverts.load(from: defaults).removing(english: entry.english)
+        let updated = RecentReverts.load(from: defaults).removing(blockedBy: word)
         updated.save(to: defaults)
         recent = updated.entries
     }
 
-    /// 2026-09-21 (#55): "제안" — 이 항목의 (한글 표기, 영어)를 채운 GitHub 이슈 작성 화면을
-    /// 브라우저로 연다. 되돌렸다는 것은 "이 단어는 바뀌면 안 된다"는 뜻이라 종류는 `block` 고정.
-    /// 앱은 창을 열 뿐 아무것도 전송하지 않는다(PRIVACY.md 8번).
+    /// 2026-10-10 (#55): 항목을 제안 시트에 채운다. 이메일/GitHub는 시트에서 고른다.
+    /// 되돌린 항목은 변환 금지 제안으로 시작하며 사용자가 종류를 바꿀 수 있다.
     private func suggestRecent(_ entry: RecentReverts.Entry) {
-        WordSuggestionSettingsSection.openIssue(
-            typed: entry.hangul, expected: entry.english, kind: .block)
+        suggestion = Suggestion(entry: entry)
     }
 
     private func clearRecent() {

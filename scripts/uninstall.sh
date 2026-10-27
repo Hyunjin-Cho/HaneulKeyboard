@@ -1,97 +1,28 @@
 #!/usr/bin/env bash
-# uninstall.sh — full removal of HaneulKeyboard footprint.
-# Use this when the main app won't open or you can't get to its Settings.
-#
-# Usage:
-#   bash scripts/uninstall.sh
-#
-# Removes:
-#   - Running HaneulKeyboardIM process
-#   - ~/Library/Input Methods/HaneulKeyboardIM.app (+ any *.bak.* siblings)
-#   - LaunchServices registrations for our bundle ID
-#   - UserDefaults under com.hyunjincho.haneulkeyboard,
-#     com.hyunjincho.inputmethod.haneul, and NSGlobalDomain haneul.*
-#
-# Does NOT remove (macOS requires user GUI action):
-#   - The enabled input source entry in System Settings → Keyboard → Input Sources
-#   - The main app bundle itself (HaneulKeyboard.app on Desktop / wherever you put it)
-#
-# Both of those are clearly reported at the end.
-
-set -u
-
-BUNDLE_ID="com.hyunjincho.inputmethod.haneul"
-IME_NAME="HaneulKeyboardIM"
-MAIN_APP_DOMAIN="com.hyunjincho.haneulkeyboard"
-IME_DEFAULTS_DOMAIN="com.hyunjincho.inputmethod.haneul"
-INPUT_METHODS_DIR="$HOME/Library/Input Methods"
-LSREG="/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister"
-
-echo "════════════════════════════════════════════"
-echo "  HaneulKeyboard — full uninstall"
-echo "════════════════════════════════════════════"
-echo
-
-echo "→ 1. Stop running IME process"
-if pgrep -x "$IME_NAME" >/dev/null 2>&1; then
-    killall "$IME_NAME" 2>/dev/null && echo "  ✓ killed" || echo "  ⚠ kill failed (may need re-run)"
-else
-    echo "  (not running)"
+# 2026-10-11 B안: 앱과 같은 Swift 정책·관측 코드를 임시 실행기로 컴파일한다.
+# 새 설치 서비스/상주 helper가 아니다. 메인 앱이 안 열릴 때 개발 도구가 있는 환경의 복구용.
+# 정확한 정식 IME 두 경로만 대상. 백업·Downloads·개발 산출물·휴지통은 지우지 않는다.
+set -euo pipefail
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+if [[ "$#" -gt 1 ]] || [[ "$#" -eq 1 && "$1" != "--help" && "$1" != "--inspect" ]]; then
+    echo "사용법: bash scripts/uninstall.sh [--inspect | --help]" >&2
+    exit 64
 fi
-echo
-
-echo "→ 2. Remove ~/Library/Input Methods/HaneulKeyboardIM.app (and any .bak siblings)"
-found=0
-for item in "$INPUT_METHODS_DIR/$IME_NAME.app" "$INPUT_METHODS_DIR/$IME_NAME.app".bak.*; do
-    if [ -e "$item" ]; then
-        rm -rf "$item" && echo "  ✓ removed $(basename "$item")" && found=$((found+1))
-    fi
-done
-[ "$found" -eq 0 ] && echo "  (nothing to remove)"
-echo
-
-echo "→ 2b. Remove system-domain IME (/Library/Input Methods) if present (admin)"
-SYS_IME="/Library/Input Methods/$IME_NAME.app"
-if [ -e "$SYS_IME" ]; then
-    echo "  시스템 도메인 설치 발견 — 관리자 권한으로 삭제합니다 (비밀번호 입력)."
-    if sudo rm -rf "$SYS_IME"; then
-        echo "  ✓ removed (system)"
-        [ -x "$LSREG" ] && "$LSREG" -u "$SYS_IME" 2>/dev/null
-    else
-        echo "  ⚠ 삭제 실패 — 수동 제거 필요: sudo rm -rf \"$SYS_IME\""
-    fi
-else
-    echo "  (시스템 도메인 설치 없음)"
+if [[ "${1:-}" == "--help" ]]; then
+    echo '사용법: bash scripts/uninstall.sh [--inspect | --help]'
+    echo '정식 입력기·설정만 정리하며 메인 앱은 Finder에서 직접 제거해 주세요.'
+    echo 'Swift/Xcode 명령줄 도구가 필요해요. --inspect는 조회만 해요.'
+    exit 0
 fi
-echo
-
-echo "→ 3. Unregister bundle from LaunchServices"
-if [ -x "$LSREG" ]; then
-    # Unregister by path (idempotent — succeeds even if path is gone)
-    "$LSREG" -u "$INPUT_METHODS_DIR/$IME_NAME.app" 2>/dev/null
-    echo "  ✓ unregistered"
-else
-    echo "  ⚠ lsregister not found at expected path"
+if ! command -v swiftc >/dev/null 2>&1; then
+    echo 'Swift 명령줄 도구를 찾지 못해 아무것도 지우지 않았어요. 설치한 앱의 설정 → 앱 관리 → 전체 제거를 이용해 주세요.' >&2
+    exit 69
 fi
-echo
-
-echo "→ 4. Clear UserDefaults"
-defaults delete "$MAIN_APP_DOMAIN" 2>/dev/null && echo "  ✓ cleared $MAIN_APP_DOMAIN" || echo "  (no $MAIN_APP_DOMAIN domain found)"
-defaults delete "$IME_DEFAULTS_DOMAIN" 2>/dev/null && echo "  ✓ cleared $IME_DEFAULTS_DOMAIN" || echo "  (no $IME_DEFAULTS_DOMAIN domain found)"
-# Stray haneul.* keys in NSGlobalDomain
-for key in $(defaults read NSGlobalDomain 2>/dev/null | grep -oE '"haneul\.[a-zA-Z]+"' | tr -d '"'); do
-    defaults delete NSGlobalDomain "$key" 2>/dev/null && echo "  ✓ cleared NSGlobalDomain → $key"
-done
-echo
-
-echo "════════════════════════════════════════════"
-echo "  Done. Two manual steps remain:"
-echo "════════════════════════════════════════════"
-echo
-echo "  a) System Settings → Keyboard → Input Sources →"
-echo "     select \"하늘키보드 (두벌식)\" → click \"-\" to remove."
-echo "     (macOS does not let scripts modify enabled input sources.)"
-echo
-echo "  b) Move HaneulKeyboard.app itself to the Trash."
-echo "     (Whatever folder you launched it from — usually ~/Desktop.)"
-echo
+WORK_DIR="$(mktemp -d)"
+trap 'rm -rf "$WORK_DIR"' EXIT
+swiftc -parse-as-library -target "$(uname -m)-apple-macos14.0" -module-cache-path "$WORK_DIR/module-cache" \
+    "$ROOT_DIR/Shared/RemovalPolicy.swift" "$ROOT_DIR/Shared/RemovalObservation.swift" \
+    "$ROOT_DIR/Shared/RemovalAdminScript.swift" "$ROOT_DIR/Sources/BundleTrust.swift" \
+    "$ROOT_DIR/scripts/RemovalCommand.swift" "$ROOT_DIR/scripts/RemovalCommandMain.swift" \
+    -o "$WORK_DIR/uninstall"
+"$WORK_DIR/uninstall" "$@"

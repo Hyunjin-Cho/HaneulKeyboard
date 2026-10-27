@@ -46,6 +46,8 @@ WORKLOG.md
 .claude/scheduled_tasks.lock
 /HaneulKeyboard-설치.zip
 /HaneulKeyboard_*.zip
+/HaneulKeyboard_*.dmg
+/.tools/
 /HaneulKeyboard.app
 
 # Internal review/verification artifacts — never publish
@@ -58,3 +60,9 @@ crucible/
 
 # 2026-09-21 (#52): 로컬 검증용 무서명 빌드 산출물(.tmp/dd 등) — 커밋 금지
 /.tmp/
+
+# Internal review artifacts and session handoffs stay local.
+/Review/
+/docs/HANDOFF_*.md
+/docs/handoff-*.md
+/docs/feedback/

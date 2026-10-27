@@ -10,13 +10,20 @@ final class AppCore {
     /// 번들은 있는데 입력 소스가 꺼져 있음(시스템 설정에서 뺀 경우). (#32)
     private(set) var imeDisabled = false
     private(set) var imeActivationError: Error?
+    private(set) var imeSettingsRefreshWarning: String?
     /// 2026-09-21 (#19): 설치된 IME가 임베드본보다 오래됐는데 자동 갱신을 못 했다(root 소유
     /// 설치본이거나 갱신 실패). 설정의 「업데이트」 절이 "IME 갱신 필요" 안내를 띄우는 폴백.
     private(set) var imeRefreshNeeded = false
     /// 설치/시작 시 자동 갱신을 한 번에 하나만 진행한다. 안내창과 설정이 공유한다.
-    private(set) var isPreparingIME = false
+    let operationGate: ProductOperationGate
+    private(set) var removalPendingExit = false
+    var isPreparingIME: Bool { operationGate.operation != nil || removalPendingExit }
+    var isRemovingProduct: Bool { operationGate.operation == .removingProduct || removalPendingExit }
+    private(set) var imeOnDisk = false
+    private(set) var lastInputRemovalReport: RemovalReport?
+    private var statusRefreshGeneration = 0
     /// 자동 업데이트(#19). 스케줄 시작은 `AppDelegate.applicationDidFinishLaunching`에서.
-    let updater = Updater()
+    let updater: Updater
 
     /// IME가 "메인 앱이 아직 있는가"를 판단할 때 쓰는 기록 — 앱이 실행될 때마다 IME
     /// 설정 도메인에 자기 경로와 파일 번호(inode)를 남긴다. IME는 이 경로(와 같은 이름·
@@ -38,6 +45,9 @@ final class AppCore {
     // 입력 소스 변경 관찰은 AppDelegate가 단독으로 한다(거기서 core.refreshLanguage()
     // 를 호출). AppCore가 중복 관찰하면 actor 격리 경고만 늘어 제거했다.
     init(activateIMEOnLaunch: Bool = true) {
+        let gate = ProductOperationGate()
+        operationGate = gate
+        updater = Updater(operationGate: gate)
         if activateIMEOnLaunch { ensureIMEActive() }
     }
 
@@ -52,9 +62,10 @@ final class AppCore {
     /// So we keep register/enable here, but move bundle copying behind explicit
     /// consent buttons in Settings/Onboarding.
     private func ensureIMEActive() {
-        isPreparingIME = true
+        guard let token = operationGate.begin(.activating) else { return }
         Task { [weak self] in
-            defer { self?.isPreparingIME = false }
+            guard let self else { return }
+            defer { self.operationGate.finish(token) }
             do {
                 // 2026-09-21 (#19): 설치된 IME 빌드번호 < 임베드본이면 설정의 "IME 설치" 버튼과
                 // 같은 경로(`installBundle`: IME 정지 → staging → 원자 교체 → LaunchServices·TIS
@@ -68,35 +79,37 @@ final class AppCore {
                 let builds = IMEInstaller.imeBuildNumbersForRefresh()
                 if UpdateDecision.shouldRefreshIME(installedBuild: builds.installed, bundledBuild: builds.bundled) {
                     if builds.installedURL == IMEInstaller.systemInstallURL {
-                        self?.imeRefreshNeeded = true
+                        self.imeRefreshNeeded = true
                         haneulLog("HaneulKeyboard: installed IME build \(builds.installed ?? -1) < bundled \(builds.bundled ?? -1) but install is system-domain (root) — manual refresh needed")
                     } else {
                         do {
                             let result = try await IMEInstaller.installBundle()
-                            self?.imeRefreshNeeded = false
-                            self?.imeActivationError = nil
-                            await self?.updateIMEStatus()
+                            self.imeRefreshNeeded = false
+                            self.imeActivationError = nil
+                            self.imeSettingsRefreshWarning = result.settingsRefreshWarning
+                            await self.updateIMEStatus()
                             haneulLog("HaneulKeyboard: IME refreshed to bundled build \(builds.bundled ?? -1) at \(result.url.path) (was \(builds.installed ?? -1))")
                             return
                         } catch {
-                            self?.imeRefreshNeeded = true
+                            self.imeRefreshNeeded = true
                             haneulLog("HaneulKeyboard: IME refresh failed — \(error.localizedDescription); falling back to activation of installed build")
                         }
                     }
                 }
                 guard let result = try await IMEInstaller.activateInstalled() else {
-                    await self?.updateIMEStatus()
+                    await self.updateIMEStatus()
                     haneulLog("HaneulKeyboard: no installed IME bundle found — activation skipped")
                     return
                 }
-                self?.imeActivationError = nil
-                await self?.updateIMEStatus()
+                self.imeActivationError = nil
+                self.imeSettingsRefreshWarning = result.settingsRefreshWarning
+                await self.updateIMEStatus()
                 haneulLog("HaneulKeyboard: IME ensured active at \(result.url.path)")
             } catch IMEInstallError.bundleNotFound {
                 haneulLog("HaneulKeyboard: IME bundle not found — ensure skipped")
             } catch {
-                self?.imeActivationError = error
-                self?.imeInstalled = false
+                self.imeActivationError = error
+                self.imeInstalled = false
                 haneulLog("HaneulKeyboard: IME ensure failed — \(error.localizedDescription)")
             }
         }
@@ -104,12 +117,12 @@ final class AppCore {
 
     /// 사용자 버튼에서 호출하는 공통 설치 경로. 시작 시 자동 갱신과 겹치지 않는다.
     func installIME() async -> Error? {
-        guard !isPreparingIME else { return nil }
-        isPreparingIME = true
-        defer { isPreparingIME = false }
+        guard !removalPendingExit, let token = operationGate.begin(.installing) else { return ProductOperationError.busy }
+        defer { operationGate.finish(token) }
         do {
-            _ = try await IMEInstaller.installBundle()
+            let result = try await IMEInstaller.installBundle()
             imeActivationError = nil
+            imeSettingsRefreshWarning = result.settingsRefreshWarning
             await updateIMEStatus()
             return nil
         } catch {
@@ -117,6 +130,33 @@ final class AppCore {
             await updateIMEStatus()
             return error
         }
+    }
+
+    /// 2026-10-10 (#88): 앱 관리에서도 설치/갱신과 같은 실행 잠금을 공유한다.
+    func uninstallIME() async -> Error? {
+        guard !removalPendingExit, let token = operationGate.begin(.removingInputMethod) else { return ProductOperationError.busy }
+        defer { operationGate.finish(token) }
+        let report = await IMEInstaller.uninstall()
+        lastInputRemovalReport = report
+        await updateIMEStatus()
+        if report.complete { imeActivationError = nil; imeSettingsRefreshWarning = nil; return nil }
+        return IMEInstallError.uninstallFailed(report.statusText)
+    }
+
+    func removeFullProduct() async -> Uninstaller.Outcome {
+        guard !removalPendingExit, let token = operationGate.begin(.removingProduct) else {
+            return Uninstaller.Outcome(report: .blocked(mode: .wholeProduct, reason: ProductOperationError.busy.localizedDescription))
+        }
+        defer { operationGate.finish(token) }
+        guard updater.pauseForRemoval() else {
+            return Uninstaller.Outcome(report: .blocked(mode: .wholeProduct, reason: "업데이트 교체가 진행 중이에요. 끝난 뒤 다시 시도해 주세요"))
+        }
+        // 작업 시작을 먼저 화면에 반영한다. 작업권은 await 구간에도 유지된다.
+        await Task.yield()
+        let result = Uninstaller.run()
+        removalPendingExit = result.fullyRemoved
+        if !result.fullyRemoved { updater.resumeAfterRemoval(); await updateIMEStatus() }
+        return result
     }
 
     func refreshLanguage() {
@@ -133,7 +173,11 @@ final class AppCore {
     }
 
     private func updateIMEStatus() async {
+        statusRefreshGeneration += 1
+        let generation = statusRefreshGeneration
         let state = await IMEInstaller.installationState()
+        guard generation == statusRefreshGeneration else { return }
+        imeOnDisk = [RemovalObservation.userIME, RemovalObservation.systemIME].contains { RemovalObservation.absence(at: $0) != .alreadyAbsent }
         let ready = state == .ready
         let disabled = state == .installedDisabled
         if ready != imeInstalled { imeInstalled = ready }
@@ -149,13 +193,13 @@ final class AppCore {
     /// 꺼진 입력 소스를 다시 켠다 — 설치 버튼과 같은 경로(TISEnableInputSource, GUI 앱 컨텍스트).
     /// 번들을 새로 복사하지는 않는다. 실패는 호출자(메뉴)가 사용자에게 보여 준다(리뷰 M-3). (#32)
     func reenableIME() async -> Error? {
-        guard !isPreparingIME else { return nil }
-        isPreparingIME = true
-        defer { isPreparingIME = false }
+        guard !removalPendingExit, let token = operationGate.begin(.activating) else { return ProductOperationError.busy }
+        defer { operationGate.finish(token) }
         var failure: Error?
         do {
-            _ = try await IMEInstaller.activateInstalled()
+            let result = try await IMEInstaller.activateInstalled()
             imeActivationError = nil
+            imeSettingsRefreshWarning = result?.settingsRefreshWarning
         } catch {
             imeActivationError = error
             failure = error
@@ -168,6 +212,7 @@ final class AppCore {
     /// 2026-09-20 (#45, 리뷰 F-5): 종전엔 반환값을 버려 메뉴가 조용히 실패했다.
     @discardableResult
     func toggleLanguage() -> Bool {
+        guard !isRemovingProduct else { return false }
         let switched = InputSwitcher.toggle()
         refreshLanguage()
         return switched

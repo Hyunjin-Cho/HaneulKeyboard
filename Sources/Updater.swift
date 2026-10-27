@@ -1,21 +1,21 @@
 import AppKit
 import Foundation
 
-/// 자동 업데이트 — GitHub 최신 릴리스 확인 → zip 다운로드 → 검증 → `/Applications` 교체 →
-/// 재실행. (2026-09-21, #19 — 오너 결정: Sparkle 대신 직접 구현. 서드파티 바이너리
+/// 새 버전 알림과 사용자 선택 설치 — 자동 확인은 알림만, 설치 버튼은 다운로드 → 검증 → 앱 교체.
+/// (2026-10-24 명칭·설정 화면 통합; 2026-09-21, #19 — 오너 결정: Sparkle 대신 직접 구현. 서드파티 바이너리
 /// 프레임워크를 IME 앱에 싣지 않는다. 흐름은 exelban/stats Updater를 참고했고 코드는 새로 썼다.)
 ///
 /// 보안 경계 — 이 파일은 **인터넷에서 받은 파일로 앱을 갈아끼운다.** 그래서:
 /// - 검증(`UpdateVerification` 5종) 전에는 어떤 파일도 `/Applications`에 닿지 않는다.
-/// - 옛 번들을 먼저 지우지 않는다 — 새 번들을 옆(staging)에 놓고 원자 교체. 어느 단계가
-///   실패해도 기존 앱이 그대로 남는다.
+/// - 옛 번들을 먼저 지우지 않는다 — 새 번들을 옆(staging)에 놓고 교체한다. 관리자
+///   교체 실패 시 원래 위치로 복구하며, 복구까지 실패하면 남은 백업·복원 경로를 안내한다.
 /// - 외부 명령은 전부 `Process` 인자 배열로 넘긴다(셸 문자열 조립 금지). 유일한 예외는
-///   root 소유 설치본의 관리자 프롬프트인데, `IMEInstaller.removeWithAdminPrivileges`와
-///   같은 방식(AppleScript 리터럴 이스케이프 + `quoted form of`)으로 경로를 감싼다.
+///   root 소유 설치본의 관리자 프롬프트다. 경로의 POSIX 인용 + 전체 명령의 AppleScript
+///   리터럴 이스케이프로 보호한다(`UpdateReplacementScript`).
 /// - HTTPS만, 리다이렉트는 `UpdateDecision.allowedHosts` 안에서만 따라간다.
 /// - 나가는 데이터는 요청 헤더(`Accept`·`User-Agent: HaneulKeyboard/<버전>`)뿐이다.
-///   키 입력·설정·사전 어떤 것도 보내지 않는다. (PRIVACY.md 「자동 업데이트」 절)
-/// - 자동 확인은 "새 버전 있음"을 **표시만** 한다. 설치는 사용자가 [업데이트]를 눌러야 한다.
+///   키 입력·설정·사전 어떤 것도 보내지 않는다. (PRIVACY.md 「새 버전 알림과 설치」 절)
+/// - 자동 확인은 "새 버전 있음"을 **표시만** 한다. 설치는 사용자가 [새 버전 설치]를 눌러야 한다.
 ///
 /// 판단(버전 비교·자산 선택·throttle·검증 합성·교체 전략)은 `UpdateDecisions.swift`의
 /// 순수 함수에 있고 테스트 하네스가 검증한다. 여기는 그 판단을 실행하는 손발이다.
@@ -56,8 +56,13 @@ final class Updater {
     @ObservationIgnored private let now: () -> Date
     @ObservationIgnored private var timer: Timer?
     @ObservationIgnored private var busy = false
+    @ObservationIgnored private let operationGate: ProductOperationGate
+    @ObservationIgnored private var removalPaused = false
+    @ObservationIgnored private var responseEpoch = 0
+    @ObservationIgnored private var wasScheduled = false
 
-    init(defaults: UserDefaults = .standard, session: URLSession? = nil, now: @escaping () -> Date = Date.init) {
+    init(defaults: UserDefaults = .standard, session: URLSession? = nil, now: @escaping () -> Date = Date.init, operationGate: ProductOperationGate? = nil) {
+        self.operationGate = operationGate ?? ProductOperationGate()
         self.defaults = defaults
         self.now = now
         // 기본 ON(오너 결정). 키가 없으면 true.
@@ -77,6 +82,7 @@ final class Updater {
     // MARK: - 설정
 
     func setAutoCheckEnabled(_ enabled: Bool) {
+        guard !removalPaused else { return }
         autoCheckEnabled = enabled
         defaults.set(enabled, forKey: Self.autoCheckKey)
         haneulLog("HaneulKeyboard: update auto-check \(enabled ? "on" : "off")")
@@ -85,7 +91,7 @@ final class Updater {
     // 2026-09-21 (#19): 다운로드는 `nonisolated`한 정적 함수에서 돌므로 요청 조립·버전 읽기도
     // 메인 액터 밖에서 쓸 수 있어야 한다. `Bundle.main.infoDictionary`는 읽기 전용이라 안전.
     nonisolated static var currentVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0"
+        UpdateDecision.releaseVersion(info: Bundle.main.infoDictionary) ?? "0.0"
     }
 
     nonisolated static var currentBuild: Int? {
@@ -113,7 +119,8 @@ final class Updater {
     /// 뒤에도 한 시간 안에 따라잡는다(`lastCheck`는 성공 시에만 갱신). 토글이 OFF면 틱은
     /// 돌아도 `shouldCheckNow`가 false라 네트워크에 나가지 않는다.
     func startAutomaticChecks() {
-        guard timer == nil else { return }
+        guard timer == nil, !removalPaused else { return }
+        wasScheduled = true
         // 첫 확인은 조금 늦춘다 — AppMover가 옮기고 재실행하는 경우 곧 종료될 인스턴스가
         // 헛되이 요청하지 않게, 그리고 메뉴바·IME 활성화가 먼저 끝나게.
         Task { [weak self] in
@@ -131,19 +138,35 @@ final class Updater {
         await checkNow(forced: false)
     }
 
+    /// 조회 응답이 뒤늦게 도착해도 전체 제거 중/이후 설정을 다시 쓰지 않는다.
+    func pauseForRemoval() -> Bool {
+        switch phase { case .downloading, .verifying, .installing: return false; default: break }
+        removalPaused = true; responseEpoch += 1
+        timer?.invalidate(); timer = nil
+        if phase == .checking { phase = .idle }
+        return true
+    }
+    func resumeAfterRemoval() {
+        removalPaused = false; responseEpoch += 1
+        if wasScheduled { startAutomaticChecks() }
+    }
+
     // MARK: - 확인
 
-    /// 최신 릴리스를 조회해 `phase`를 갱신한다. `forced`는 "지금 확인" 버튼(토글 OFF여도 실행).
-    func checkNow(forced: Bool = true) async {
-        guard !busy, UpdateDecision.shouldCheckNow(
+    /// 최신 릴리스를 조회해 `phase`를 갱신한다. `forced`는 토글 OFF/주기와 무관한 직접 확인.
+    /// 2026-10-24: 설정의 직접 확인은 showNotice=false로 같은 화면에 결과를 표시한다.
+    func checkNow(forced: Bool = true, showNotice: Bool = true) async {
+        guard !busy, !removalPaused, operationGate.operation == nil, UpdateDecision.shouldCheckNow(
             autoCheckEnabled: autoCheckEnabled, lastCheck: lastCheck, now: now(),
             forced: forced
         ) else { return }
         busy = true
         defer { busy = false }
         phase = .checking
+        let epoch = responseEpoch
         do {
             let release = try await fetchLatestRelease()
+            guard epoch == responseEpoch, !removalPaused else { return }
             guard let releaseVersion = CalVer(release.tag) else { throw UpdateError.malformedResponse }
             let checkedAt = now()
             lastCheck = checkedAt
@@ -153,8 +176,13 @@ final class Updater {
             if let update = UpdateDecision.availableUpdate(currentVersion: Self.currentVersion, release: release) {
                 phase = .available(update)
                 haneulLog("HaneulKeyboard: update available — \(update.tag) (current \(Self.currentVersion))")
-                // 같은 버전 자동 알림은 재실행 후에도 반복하지 않는다. '지금 확인'은 재표시.
-                if forced || lastNotifiedVersion != update.version, let onUpdateAvailable {
+                // 설정에 결과를 표시한 버전도 알림 이력에 포함해 나중의 중복 팝업을 막는다.
+                if !showNotice {
+                    lastNotifiedVersion = update.version
+                    defaults.set(update.tag, forKey: Self.lastNotifiedVersionKey)
+                // 조회 중 OFF로 바꾼 경우에도 응답 시점의 설정을 지킨다.
+                } else if (forced || autoCheckEnabled),
+                          (forced || lastNotifiedVersion != update.version), let onUpdateAvailable {
                     lastNotifiedVersion = update.version
                     defaults.set(update.tag, forKey: Self.lastNotifiedVersionKey)
                     onUpdateAvailable(update)
@@ -167,6 +195,7 @@ final class Updater {
                 haneulLog("HaneulKeyboard: update check — up to date (latest \(release.tag), current \(Self.currentVersion))")
             }
         } catch {
+            guard epoch == responseEpoch, !removalPaused else { return }
             let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             phase = .failed(message)
             haneulLog("HaneulKeyboard: update check failed — \(message)")
@@ -207,11 +236,14 @@ final class Updater {
     // MARK: - 설치
 
     /// 사용자가 [업데이트]를 눌렀을 때. 다운로드 → 해제 → 검증 → 교체 → 재실행.
-    /// 어느 단계가 실패해도 `/Applications`의 기존 앱은 그대로다.
+    /// 교체 실패 시 기존 앱을 복구한다. 복구까지 실패하면 백업과 원래 경로를 안내한다.
     func installAvailableUpdate() async {
-        guard case .available(let update) = phase, !busy else { return }
+        guard case .available(let update) = phase, !busy, !removalPaused else { return }
+        guard let token = operationGate.begin(.updating) else {
+            phase = .failed(ProductOperationError.busy.localizedDescription); return
+        }
         busy = true
-        defer { busy = false }
+        defer { busy = false; operationGate.finish(token) }
 
         let destination = AppMoveDecision.destinationURL()
         let running = Bundle.main.bundleURL.standardizedFileURL.path
@@ -252,7 +284,7 @@ final class Updater {
                 try Self.replaceWithAdminPrivileges(destination: destination, with: verifiedApp)
             }
             haneulLog("HaneulKeyboard: update \(update.tag) installed at \(destination.path) (\(strategy)) — relaunching")
-            relaunch(at: destination)
+            try await relaunch(at: destination)
         } catch {
             let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             phase = .failed(message)
@@ -318,7 +350,7 @@ final class Updater {
             notarizationAccepted: run("/usr/sbin/spctl", ["-a", "-t", "exec", app.path]).status == 0,
             versionIncreases: UpdateDecision.isVersionIncrease(
                 currentVersion: currentVersion, currentBuild: currentBuild,
-                newVersion: info?["CFBundleShortVersionString"] as? String,
+                newVersion: UpdateDecision.releaseVersion(info: info),
                 newBuild: (info?["CFBundleVersion"] as? String).flatMap(Int.init)
             )
         )
@@ -356,61 +388,47 @@ final class Updater {
         }
     }
 
-    /// root 소유 설치본(빌드 스크립트의 sudo 설치) — 표준 관리자 암호 창. 순서는 같다:
-    /// staging 복사 → 옛 번들을 옆으로 → 새 번들 제자리 → 옛 번들 삭제. `mv`는 같은 볼륨이라
-    /// rename이고, 어느 단계가 실패하면 `&&` 사슬이 멈춰 옛 번들이 남는다(옆으로 옮겨진 채일
-    /// 수 있어 그 경우 경로를 안내한다).
-    /// 경로 인용은 `IMEInstaller.removeWithAdminPrivileges`와 동일한 두 계층(AppleScript
-    /// 리터럴 이스케이프 + `quoted form of`).
+    /// root 소유 설치본 — staging 복사 → 옛 번들 백업 → 새 번들 배치.
+    /// 새 번들 배치가 실패하면 같은 관리자 명령 안에서 백업을 원래 위치로 복구한다.
+    /// 복구도 실패하면 백업을 보존하고 실제 백업·복원 경로를 안내한다(리뷰 F-1).
     @MainActor
     private static func replaceWithAdminPrivileges(destination: URL, with source: URL) throws {
         let parent = destination.deletingLastPathComponent()
         let token = UUID().uuidString
         let staging = parent.appendingPathComponent(".\(destination.lastPathComponent).update-\(token)")
         let old = parent.appendingPathComponent(".\(destination.lastPathComponent).old-\(token)")
-        func quoted(_ path: String) -> String {
-            let literal = path
-                .replacingOccurrences(of: "\\", with: "\\\\")
-                .replacingOccurrences(of: "\"", with: "\\\"")
-            return "quoted form of \"\(literal)\""
-        }
-        let command = [
-            "\"/usr/bin/ditto \" & \(quoted(source.path)) & \" \" & \(quoted(staging.path))",
-            "\" && /bin/mv \" & \(quoted(destination.path)) & \" \" & \(quoted(old.path))",
-            "\" && /bin/mv \" & \(quoted(staging.path)) & \" \" & \(quoted(destination.path))",
-            "\" && /bin/rm -rf \" & \(quoted(old.path))",
-        ].joined(separator: " & ")
-        let script = "do shell script \(command) with administrator privileges"
+        let replacement = UpdateReplacementScript(source: source, destination: destination,
+                                                  staging: staging, backup: old)
         var errorInfo: NSDictionary?
-        guard let appleScript = NSAppleScript(source: script) else {
+        guard let appleScript = NSAppleScript(source: replacement.appleScriptSource) else {
             throw UpdateError.replaceFailed("관리자 권한 요청 스크립트 생성 실패")
         }
-        appleScript.executeAndReturnError(&errorInfo)
+        let result = appleScript.executeAndReturnError(&errorInfo)
         if let errorInfo {
             let message = errorInfo[NSAppleScript.errorMessage] as? String ?? "알 수 없는 오류"
-            if FileManager.default.fileExists(atPath: old.path), !FileManager.default.fileExists(atPath: destination.path) {
-                throw UpdateError.replaceFailed("\(message) — 기존 앱은 \(old.path)에 남아 있어요")
+            if FileManager.default.fileExists(atPath: old.path) {
+                throw UpdateError.replaceRecoveryFailed(reason: message, backupPath: old.path,
+                                                        destinationPath: destination.path)
             }
             throw UpdateError.replaceFailed(message)
+        }
+        if let notice = result.stringValue, !notice.isEmpty {
+            haneulLog("HaneulKeyboard: update replacement — \(notice)")
         }
     }
 
     /// `AppMover`와 같은 패턴 — 교체된 번들을 새 인스턴스로 열고 현재 인스턴스를 종료한다.
     /// 열기에 실패하면 종료하지 않는다(메뉴바 앱이 설명 없이 사라지지 않게).
-    private func relaunch(at url: URL) {
+    private func relaunch(at url: URL) async throws {
         let config = NSWorkspace.OpenConfiguration()
         config.createsNewApplicationInstance = true
-        NSWorkspace.shared.openApplication(at: url, configuration: config) { [weak self] _, error in
-            Task { @MainActor [weak self] in
-                if let error {
-                    let message = UpdateError.relaunchFailed(error.localizedDescription).errorDescription ?? ""
-                    self?.phase = .failed(message)
-                    haneulLog("HaneulKeyboard: update relaunch failed — \(error.localizedDescription)")
-                    return
-                }
-                NSApp.terminate(nil)
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            NSWorkspace.shared.openApplication(at: url, configuration: config) { _, error in
+                if let error { continuation.resume(throwing: UpdateError.relaunchFailed(error.localizedDescription)) }
+                else { continuation.resume() }
             }
         }
+        NSApp.terminate(nil)
     }
 
     // MARK: - Process
@@ -449,6 +467,7 @@ enum UpdateError: LocalizedError {
     case verificationFailed([String])
     case notInApplications(String)
     case replaceFailed(String)
+    case replaceRecoveryFailed(reason: String, backupPath: String, destinationPath: String)
     case relaunchFailed(String)
 
     var errorDescription: String? {
@@ -478,9 +497,17 @@ enum UpdateError: LocalizedError {
         case .verificationFailed(let failures):
             return "검증 실패로 설치하지 않았어요: " + failures.joined(separator: ", ")
         case .notInApplications(let path):
-            return "자동 업데이트는 응용 프로그램 폴더(/Applications)에 설치된 앱에서만 할 수 있어요. 지금 실행 위치: \(path)"
+            return "새 버전 설치는 응용 프로그램 폴더(/Applications)에 설치된 앱에서만 할 수 있어요. 지금 실행 위치: \(path)"
         case .replaceFailed(let reason):
-            return "앱 교체 실패 — 기존 앱은 그대로예요. (\(reason))"
+            return "앱 교체 실패 — \(reason)"
+        case .replaceRecoveryFailed(let reason, let backupPath, let destinationPath):
+            return """
+            앱 교체 후 자동 복구를 마치지 못했어요. 기존 앱의 백업은 남겨뒀어요.
+            백업: \(backupPath)
+            복원할 위치: \(destinationPath)
+            Finder의 ‘폴더로 이동’으로 백업을 찾은 뒤 원래 위치와 이름으로 되돌려 주세요(관리자 권한 필요).
+            (\(reason))
+            """
         case .relaunchFailed(let reason):
             return "새 버전은 설치됐지만 다시 열지 못했어요 — 응용 프로그램 폴더의 HaneulKeyboard를 직접 실행해 주세요. (\(reason))"
         }

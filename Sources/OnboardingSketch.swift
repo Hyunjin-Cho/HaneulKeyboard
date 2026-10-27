@@ -33,12 +33,7 @@ struct OnboardingSketchNote: View {
 
 private struct SketchArrow: Shape {
     func path(in rect: CGRect) -> Path {
-        var p = Path()
-        func at(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: rect.minX + x * rect.width, y: rect.minY + y * rect.height) }
-        p.move(to: at(0.05, 0.04))
-        p.addCurve(to: at(0.93, 0.85), control1: at(-0.08, 0.5), control2: at(0.42, 0.66))
-        p.move(to: at(0.70, 0.94)); p.addLine(to: at(0.93, 0.85)); p.addLine(to: at(0.80, 0.54))
-        return p
+        Path(HaneulSketchPath.arrow(in: rect))
     }
 }
 
@@ -76,6 +71,7 @@ struct OnboardingMenuHint: View {
 }
 
 struct OnboardingConversionDemo: View {
+    var compact = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var scheme
     @State private var frame = 0
@@ -86,10 +82,10 @@ struct OnboardingConversionDemo: View {
     var body: some View {
         VStack(spacing: 8) {
             HStack(alignment: .top) {
-                OnboardingSketchNote(text: "한/영 키는 그대로 두세요")
+                OnboardingSketchNote(text: "한/영 키는 그대로 두세요", compact: compact)
                     .foregroundStyle(OnboardingRiso.ink(for: scheme))
                 Spacer()
-            }.frame(height: 80)
+            }.frame(height: compact ? 44 : 80)
             HStack(spacing: 14) {
                 Text(showsResult ? "메ㅔㅣㄷ → apple" : words[frame])
                     .font(.system(size: showsResult ? 34 : 48, weight: .medium))
@@ -99,7 +95,7 @@ struct OnboardingConversionDemo: View {
                     .frame(width: 124, height: 32)
                     .background(OnboardingRiso.yellow.opacity(frame == 5 ? 0.6 : 0.2), in: RoundedRectangle(cornerRadius: 7))
                     .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(OnboardingRiso.yellow.opacity(0.5)))
-            }.frame(height: 68)
+            }.frame(height: compact ? 44 : 68)
             HStack {
                 Label("한글 모드 유지", systemImage: "checkmark.circle").font(.system(size: 14))
                 Spacer()
@@ -107,8 +103,7 @@ struct OnboardingConversionDemo: View {
                     .buttonStyle(OnboardingRisoButtonStyle(prominent: false))
             }.padding(.top, 10)
         }
-        .frame(maxWidth: .infinity).padding(20)
-        .modifier(OnboardingPrintPanel())
+        .feedbackPanel(.information)
         .task(id: "\(replay)-\(reduceMotion)") {
             frame = 0
             guard !reduceMotion else { return }

@@ -6,9 +6,9 @@ import Foundation
 ///
 /// 원칙 세 가지:
 ///   1. **기기 안에만.** IME 설정 도메인(`com.hyunjincho.inputmethod.haneul`)의 defaults 키에
-///      저장되고 네트워크·자동 수집은 없다(PRIVACY.md). 전체 제거 시
-///      `Uninstaller.clearUserDefaults`·`OrphanWatcher.clearLeftovers`가 `haneul.*` 접두어로
-///      함께 지운다 — 여기서 따로 할 일은 없다.
+///      저장되고 네트워크·자동 수집은 없다(PRIVACY.md). 앱의 전체 제거는 IME 제거 성공
+///      뒤 공통 `RemovalSequence` 관문에서 실행 종료·등록·입력 소스까지 확인한 뒤 정리한다.
+///      Finder 자동 정리(`OrphanWatcher.selfRemove`)는 개인 사전·설정을 항상 보존한다(2026-10-11 B안).
 ///   2. **판정은 순수 함수.** 로딩(`load(from:)`)과 판정(`decision`)을 분리한다.
 ///   3. **저장 형식은 plist 원시 타입(`[String]`)만.** `defaults read`로 사용자가 직접 확인할
 ///      수 있어야 "무엇을 저장하는가"라는 주장이 검증 가능하다.
@@ -156,7 +156,7 @@ struct PersonalDictionary: Equatable {
 /// secure input 중에는 컨트롤러 진입부에서 이미 걸러져 여기까지 오지 않는다.
 ///
 /// 저장 규약: **IME만 쓴다**(되돌린 순간 `recording` 후 저장). 설정 앱은 읽기와 삭제만 —
-/// "금지" 버튼의 항목 제거(`removing(english:)`)와 "최근 기록 지우기". "금지" 버튼이 두
+/// "금지" 버튼의 항목 제거(`removing(blockedBy:)`)와 "최근 기록 지우기". "금지" 버튼이 두
 /// 프로세스가 같은 키를 쓰는 유일한 경우인데, 경쟁이 나도 잃는 것은 참고 기록 한 줄이라
 /// 허용한다(설정값이 아니다).
 ///
@@ -167,6 +167,13 @@ struct RecentReverts: Equatable {
     struct Entry: Hashable {
         var hangul: String
         var english: String
+
+        /// 혼합 결과(github에)는 영어 전용 금지 형식이 아니므로 원래 한글 전체를 금지한다.
+        /// 기존 저장 형식을 유지하면서 설정의 「변환 금지 추가」가 조용히 실패하지 않게 한다.
+        var blockEntry: String? {
+            PersonalDictionary.normalizedBlockEntry(english)
+                ?? PersonalDictionary.normalizedBlockEntry(hangul)
+        }
     }
 
     static let key = "haneul.recentReverts"
@@ -217,12 +224,10 @@ struct RecentReverts: Equatable {
         return RecentReverts(entries: list)
     }
 
-    /// "금지" 버튼 뒤 — 그 영어 단어의 항목을 전부 지운다(대소문자·곱은 따옴표 무시:
-    /// `Apple`과 `apple`은 같은 금지 항목에 걸리므로 목록에서도 함께 빠진다).
-    func removing(english: String) -> RecentReverts {
-        let target = PersonalDictionary.normalizedEnglish(english)
-        return RecentReverts(entries: entries.filter {
-            PersonalDictionary.normalizedEnglish($0.english) != target
-        })
+    /// "금지" 버튼 뒤 — 실제로 추가한 금지 키에 해당하는 기록만 지운다.
+    /// `Apple`/`apple`은 함께 지우고, 서로 다른 한글 원문을 쓰는 혼합 기록은 구분한다.
+    func removing(blockedBy raw: String) -> RecentReverts {
+        guard let target = PersonalDictionary.normalizedBlockEntry(raw) else { return self }
+        return RecentReverts(entries: entries.filter { $0.blockEntry != target })
     }
 }

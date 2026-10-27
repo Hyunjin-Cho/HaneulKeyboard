@@ -1,0 +1,2 @@
+# Finder background bookmark fix is included in 1.6.7.
+dmgbuild==1.6.7

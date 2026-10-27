@@ -58,7 +58,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // 토글 OFF면 네트워크에 나가지 않는다. 결과는 표시만 — 설치는 사용자 클릭.
         core.updater.startAutomaticChecks()
 
-        // 입력 소스 변경 알림 → 메뉴바 도움말·접근성 설명 + core 상태 갱신.
+        // 입력 소스 변경 알림은 메뉴바 도움말·접근성 설명과 실제 상태 갱신에만 사용한다.
         sourceObserver = DistributedNotificationCenter.default.addObserver(
             forName: NSNotification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String),
             object: nil, queue: .main
@@ -104,7 +104,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         core.refreshLanguage()
         core.refreshIMEStatus()
         let hasCompleted = UserDefaults.standard.bool(forKey: "haneul.hasCompletedOnboarding")
-        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+        let version = Updater.currentVersion
 
         addDisabled(menu, "HaneulKeyboard \(version)")
         addDisabled(menu, core.isKoreanActive ? "현재: 한국어" : "현재: 영어")
@@ -124,9 +124,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             addDisabled(menu, "한글 입력기(IME) 미설치 — 설정에서 설치 권장")
         }
 
-        // 2026-09-21 (#19): 새 버전이 있으면 알린다 — 설치는 설정의 [업데이트]에서 사용자가.
+        // 2026-10-24: 메뉴와 알림 모두 기존 버전·업데이트 화면으로 안내한다.
         if case .available(let update) = core.updater.phase {
-            add(menu, "새 버전 \(update.tag) 사용 가능 — 업데이트...", #selector(openUpdateSettings))
+            add(menu, "새 버전 \(update.tag) — \(SettingsTab.update.title)…", #selector(openUpdateSettings))
         }
 
         menu.addItem(.separator())
@@ -220,7 +220,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
             return
         }
-        let hosting = NSHostingController(rootView: SettingsView(core: core, initialTab: tab ?? .general))
+        let hosting = NSHostingController(rootView: SettingsView(core: core, initialTab: tab ?? .inputFeatures))
         let win = NSWindow(contentViewController: hosting)
         // 2026-09-21 (#60): 제목 문구는 `SettingsView.windowTitle` 한 곳에서 정한다.
         win.title = SettingsView.windowTitle

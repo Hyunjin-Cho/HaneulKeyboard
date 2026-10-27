@@ -3,7 +3,11 @@
 # for HaneulKeyboard app/IME targets. Run on the Mac Studio (has Developer ID + notarytool profile).
 #
 # Usage (release — always this):
-#   ZIP_ONLY=1 scripts/build_notarize_install.sh HaneulKeyboard
+#   PACKAGE_ONLY=1 scripts/build_notarize_install.sh HaneulKeyboard
+#   ZIP_ONLY=1 is retained as a compatibility alias; both create DMG + updater ZIP.
+# Local signed installation candidate, preserving published packages and installed apps:
+#   CANDIDATE_ONLY=1 scripts/build_notarize_install.sh HaneulKeyboard
+#   Output: .build/candidates/<version>-b<build>/ (same public filenames).
 #
 # IME-only target (dev/test only — TIS registration debugging etc.), requires
 # ALLOW_IME_TARGET=1:
@@ -13,7 +17,7 @@
 #   1. Verify toolchain + credentials are present.
 #   2. xcodegen → xcodebuild Release universal binary.
 #   3. ditto → notarytool submit --wait → stapler.
-#   4. codesign/spctl gates on the stapled app and final distribution zip payload.
+#   4. Verify app/ZIP, build the drag installer DMG, sign/notarize/staple the DMG.
 #   5. optionally sudo install to /Applications or /Library/Input Methods/.
 #   6. Re-register with LaunchServices.
 #   7. Restart the installed target process.
@@ -22,6 +26,12 @@
 #   9. Print next steps for picker verification.
 
 set -euo pipefail
+
+case "${CANDIDATE_ONLY:-0}" in
+    0) ;;
+    1) export PACKAGE_ONLY=1 ;;
+    *) echo "CANDIDATE_ONLY must be 0 or 1." >&2; exit 2 ;;
+esac
 
 TARGET="${1:-}"
 if [[ -z "$TARGET" ]]; then
@@ -49,6 +59,7 @@ DEVID_CERT_PATTERN="Developer ID Application: Hyunjin Cho"
 # 2026-09-21 (#52): 설치 후 재등록(8.)·비정본 해제(8.5)·빌드 산출물 해제(unregister_build_products)가 같이 쓴다.
 LSREG=/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister
 ZIP_VERIFY_EXTRACT_ROOT=""
+PACKAGE_STAGE=""
 
 cleanup_zip_verify_extract_root() {
     if [[ -n "${ZIP_VERIFY_EXTRACT_ROOT:-}" ]]; then
@@ -57,7 +68,11 @@ cleanup_zip_verify_extract_root() {
     fi
 }
 
-trap cleanup_zip_verify_extract_root EXIT
+cleanup_package_stage() {
+    cleanup_zip_verify_extract_root
+    if [[ -n "${PACKAGE_STAGE:-}" ]]; then rm -rf "$PACKAGE_STAGE"; fi
+}
+trap cleanup_package_stage EXIT
 
 # Main app vs IME bundle install destinations differ.
 # - HaneulKeyboard (GUI menu-bar app): /Applications — required for stable
@@ -205,6 +220,7 @@ echo
 echo "→ Pre-flight"
 command -v xcodegen >/dev/null || { echo "  ✗ xcodegen not installed (brew install xcodegen)"; exit 1; }
 command -v xcodebuild >/dev/null || { echo "  ✗ xcodebuild not found"; exit 1; }
+if [[ "$IS_MAIN_APP" == "1" ]]; then bash scripts/package_dmg.sh --check-tools; fi
 
 if ! security find-identity -p codesigning -v | grep -q "$DEVID_CERT_PATTERN"; then
     echo "  ✗ Developer ID Application cert missing in keychain ($DEVID_CERT_PATTERN)"
@@ -231,6 +247,7 @@ echo "→ xcodebuild Release ($TARGET)"
 # 뒤져 `head -1`로 첫 결과를 골라, 옛 산출물(.noindex·다른 프로젝트 해시)이
 # 섞이면 "방금 빌드"가 아닌 걸 notarize/install할 수 있었다.
 DERIVED="$PROJECT_ROOT/.build/DerivedData"
+if [[ "${CANDIDATE_ONLY:-0}" == "1" ]]; then DERIVED="$PROJECT_ROOT/.build/DerivedData-Candidate"; fi
 xcodebuild -scheme "$TARGET" -configuration Release -derivedDataPath "$DERIVED" -quiet build ARCHS='arm64 x86_64' ONLY_ACTIVE_ARCH=NO
 echo "  ✓ Build succeeded"
 echo
@@ -245,6 +262,32 @@ echo
 
 verify_release_artifacts "$RELEASE_APP"
 
+# 같은 공개 이름의 기존 결과물은 덮어쓰지 않는다. 후보는 별도 빌드/경로에서 만든다.
+VERSION=$(defaults read "$RELEASE_APP/Contents/Info.plist" CFBundleShortVersionString)
+RELEASE_SUFFIX=$(defaults read "$RELEASE_APP/Contents/Info.plist" HaneulReleaseSuffix 2>/dev/null || true)
+if [[ "$RELEASE_SUFFIX" != "" && "$RELEASE_SUFFIX" != "_hotfix" ]]; then
+    echo "✗ Invalid release suffix: $RELEASE_SUFFIX" >&2
+    exit 1
+fi
+VERSION="${VERSION}${RELEASE_SUFFIX}"
+PACKAGE_OUTPUT_DIR="$PROJECT_ROOT"
+if [[ "${CANDIDATE_ONLY:-0}" == "1" ]]; then
+    BUILD_NUMBER=$(defaults read "$RELEASE_APP/Contents/Info.plist" CFBundleVersion)
+    [[ "$VERSION" =~ ^[0-9]{4}\.[0-9]{1,2}(\.[0-9]{1,2})?(_hotfix)?$ && "$BUILD_NUMBER" =~ ^[0-9]+$ ]] || {
+        echo "✗ Invalid candidate version/build." >&2; exit 1;
+    }
+    PACKAGE_OUTPUT_DIR="$PROJECT_ROOT/.build/candidates/${VERSION}-b${BUILD_NUMBER}"
+fi
+FINAL_ZIP="$PACKAGE_OUTPUT_DIR/${TARGET}_${VERSION}.zip"
+FINAL_DMG="$PACKAGE_OUTPUT_DIR/${TARGET}_${VERSION}.dmg"
+if [[ -e "$FINAL_ZIP" || ( "$IS_MAIN_APP" == "1" && -e "$FINAL_DMG" ) ]]; then
+    echo "✗ Existing package for $VERSION; nothing overwritten. Confirm the release date/version first." >&2
+    exit 1
+fi
+mkdir -p "$PROJECT_ROOT/.build"
+mkdir -p "$PACKAGE_OUTPUT_DIR"
+PACKAGE_STAGE=$(mktemp -d "$PROJECT_ROOT/.build/package.XXXXXX")
+
 # ─── 3. Verify signing ──────────────────────────────
 echo "→ Signing summary"
 codesign -dvv "$RELEASE_APP" 2>&1 | grep -E "Authority|TeamIdentifier|Identifier|Sealed" | sed 's/^/  /'
@@ -252,8 +295,7 @@ echo
 
 # ─── 4. Notarize ────────────────────────────────────
 echo "→ Notarize (zip → submit --wait)"
-ZIP="/tmp/$TARGET.zip"
-rm -f "$ZIP"
+ZIP="$PACKAGE_STAGE/notarization-upload.zip"
 ditto -c -k --keepParent "$RELEASE_APP" "$ZIP"
 SUBMIT_OUTPUT=$(xcrun notarytool submit "$ZIP" --keychain-profile "$NOTARY_PROFILE" --wait 2>&1)
 echo "$SUBMIT_OUTPUT" | sed 's/^/  /'
@@ -276,9 +318,7 @@ verify_codesign_bundle "$RELEASE_APP" "$TARGET app"
 verify_embedded_helper_bundle "$RELEASE_APP" "$TARGET app"
 echo
 
-VERSION=$(defaults read "$RELEASE_APP/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null || echo unknown)
-OUT="$PROJECT_ROOT/${TARGET}_${VERSION}.zip"
-rm -f "$OUT"
+OUT="$PACKAGE_STAGE/${TARGET}_${VERSION}.zip"
 echo "→ Package final distribution zip"
 ditto -c -k --keepParent "$RELEASE_APP" "$OUT"
 echo "  ✓ Final zip created: $OUT"
@@ -291,15 +331,54 @@ echo "→ Gatekeeper assessment"
 verify_gatekeeper_bundle "$RELEASE_APP" "$TARGET app"
 echo
 
-# ─── 6.5 ZIP_ONLY: 노타리+staple 검증 끝난 앱을 배포 zip으로만 뽑고 종료 ───
+# ─── 6.25 First-install DMG (updater keeps using the ZIP above) ───
+if [[ "$IS_MAIN_APP" == "1" ]]; then
+    STAGED_DMG="$PACKAGE_STAGE/${TARGET}_${VERSION}.dmg"
+    echo "→ Package Finder drag installer"
+    bash scripts/package_dmg.sh "$RELEASE_APP" "$STAGED_DMG"
+    codesign --force --timestamp --sign "$DEVID_CERT_PATTERN" "$STAGED_DMG"
+    codesign --verify --strict "$STAGED_DMG"
+    echo "→ Notarize DMG"
+    DMG_SUBMIT=$(xcrun notarytool submit "$STAGED_DMG" --keychain-profile "$NOTARY_PROFILE" --wait 2>&1)
+    echo "$DMG_SUBMIT" | sed 's/^/  /'
+    if ! echo "$DMG_SUBMIT" | grep -q "status: Accepted"; then
+        echo "✗ DMG notarization was not accepted; packages remain unpublished." >&2
+        exit 1
+    fi
+    xcrun stapler staple "$STAGED_DMG"
+    xcrun stapler validate "$STAGED_DMG"
+    codesign --verify --strict "$STAGED_DMG"
+    spctl --assess --type open --context context:primary-signature "$STAGED_DMG"
+    DMGBUILD_TOOL="${DMGBUILD:-$PROJECT_ROOT/.tools/dmg/bin/dmgbuild}"
+    "${DMGBUILD_PY:-${DMGBUILD_TOOL%/*}/python}" scripts/verify_dmg.py "$STAGED_DMG" "$RELEASE_APP"
+fi
+
+# 둘 다 검증한 뒤에만 설치용 DMG와 업데이트용 ZIP를 공개/후보 출력 경로에 내놓는다.
+mv -n "$OUT" "$FINAL_ZIP"
+[[ ! -e "$OUT" ]] || { echo "✗ ZIP appeared during packaging; nothing overwritten." >&2; exit 1; }
+OUT="$FINAL_ZIP"
+if [[ "$IS_MAIN_APP" == "1" ]]; then
+    mv -n "$STAGED_DMG" "$FINAL_DMG"
+    [[ ! -e "$STAGED_DMG" ]] || { echo "✗ DMG appeared during packaging; nothing overwritten." >&2; exit 1; }
+    (cd "$PACKAGE_OUTPUT_DIR" && shasum -a 256 "$(basename "$FINAL_DMG")" > "$(basename "$FINAL_DMG").sha256")
+    echo "  ✓ First-install DMG: $FINAL_DMG"
+fi
+(cd "$PACKAGE_OUTPUT_DIR" && shasum -a 256 "$(basename "$OUT")" > "$(basename "$OUT").sha256")
+
+# ─── 6.5 PACKAGE_ONLY (legacy ZIP_ONLY): 배포 파일만 생성, 설치하지 않는다 ───
 # 설치(sudo)는 건너뛴다 — 자격(notarytool profile)은 있으나 sudo 비번을
 # 비대화형으로 넣을 수 없는 환경이나, 배포용 산출물만 필요할 때 쓴다.
-# 결과물은 repo 루트의 <Target>_<MARKETING_VERSION>.zip 이다.
-if [[ "${ZIP_ONLY:-0}" == "1" ]]; then
+# 결과물은 같은 공개 이름의 .dmg(첫 설치)와 .zip(앱 안 업데이트)다.
+if [[ "${PACKAGE_ONLY:-${ZIP_ONLY:-0}}" == "1" ]]; then
     unregister_build_products   # 2026-09-21 (#52): 설치를 건너뛰어도 산출물 등록은 뺀다
     echo "════════════════════════════════════════════"
-    echo "  ✅ 노타리+staple 및 검증 완료된 배포 zip 생성 (설치 skip)"
+    if [[ "${CANDIDATE_ONLY:-0}" == "1" ]]; then
+        echo "  ✅ 서명·공증·검증을 통과한 설치 테스트 후보 생성 (설치 skip)"
+    else
+        echo "  ✅ 서명·공증·검증을 통과한 배포 파일 생성 (설치 skip)"
+    fi
     echo "  → $OUT"
+    if [[ "$IS_MAIN_APP" == "1" ]]; then echo "  → $FINAL_DMG"; fi
     echo "════════════════════════════════════════════"
     exit 0
 fi

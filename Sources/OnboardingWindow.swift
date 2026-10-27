@@ -6,12 +6,17 @@ import SwiftUI
 @MainActor
 enum OnboardingWindow {
     static func make(rootView: OnboardingView) -> NSWindow {
+        var rootView = rootView
+        let available = NSScreen.main?.visibleFrame.size ?? OnboardingView.size
+        let size = NSSize(width: min(OnboardingView.size.width, available.width - 32),
+                          height: min(OnboardingView.size.height, available.height - 32))
+        rootView.windowSize = size
         let hosting = NSHostingView(rootView: rootView)
         hosting.safeAreaRegions = []
-        hosting.frame = NSRect(origin: .zero, size: OnboardingView.size)
+        hosting.frame = NSRect(origin: .zero, size: size)
         hosting.autoresizingMask = [.width, .height]
 
-        let window = NSWindow(contentRect: NSRect(origin: .zero, size: OnboardingView.size),
+        let window = NSWindow(contentRect: NSRect(origin: .zero, size: size),
                               styleMask: [.titled, .closable, .fullSizeContentView],
                               backing: .buffered, defer: false)
         window.title = "하늘키보드 시작하기"
@@ -21,9 +26,9 @@ enum OnboardingWindow {
         window.backgroundColor = .clear
         window.isMovableByWindowBackground = true
         window.contentView = hosting
-        window.setContentSize(OnboardingView.size)
-        window.contentMinSize = OnboardingView.size
-        window.contentMaxSize = OnboardingView.size
+        window.setContentSize(size)
+        window.contentMinSize = size
+        window.contentMaxSize = size
         window.isReleasedWhenClosed = false
         window.center()
         return window

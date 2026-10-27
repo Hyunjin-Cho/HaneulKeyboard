@@ -1,6 +1,67 @@
 # 어휘 범주와 확장 순서
 
-기준일: **2026-10-09**, 개발 빌드67, #84. 아래 수치는 해당 날짜 작업 트리의 원본에서 산출했다. 설치본 적용 여부와 분리한다.
+기준일: **2026-10-18**. 기준 HEAD `de12669` + `feat/T01-particle-rebuild` 미커밋 변경. 최신 등록 한글 사전과 이전 영타 참조 목록 이력을 구분한다. 실제 설치본89와 로컬 후보는 다르다.
+
+## 현재 등록 한글 사전 — 후속 명사1,507개 추가
+
+첫138개 보강에 이어 일반 명사1,507개를 더했다. 현재 **한글3,694개 / 고유 영문3,564개**, 기본3,659개+번호35개다. 기존2,187개 객체와 분류를 그대로 보존했다. 우리말샘의 품사·뜻 수 대조와 루트의 한영 쌍 검토를 거쳤으며 전체 명사 지원 완료는 아니다. [검토·출처·보류 상세](feedback/2026-10-18-build89/04-noun-expansion-review.md), [새 목록](../dict_work/2026-10-18-phonetic-reviewed-nouns.tsv), 원본 `Resources/IM/phonetic_dictionary.json`. 입력110,683/0·사전 감사·Release Universal 메인/IME 무서명 컴파일 통과. 사전 SHA `98966f22ab6b5a42e6475ac86c09de887544f70355c58b81215b0b6dc0c8db82`.
+
+## 2026-10-14 당시 — 일반 명사62개 추가
+
+사용자 승인으로 일반 명사66개를 검토해62개를 추가했다. 생활용품·장소·자연·동물·언어·명시 용량 표현이며 새 애매한 뜻/사람 지칭 가위·화장지·강아지·호랑이는 제외했다. 단어word·물water·책상desk·저장용량storage capacity를 지원하고 용량 단독은 추가하지 않는다. 기존1,987개 항목 객체를 보존해 **2,049개 한글 / 2,019개 영문 결과**, 기본2,014개+번호35개다. `everyday/nature`는새메타데이터분류이며제품카테고리enum·자동영타사전은변경하지않았다.
+
+정본 [명사62개 대응·검증방식·공개 참고](../dict_work/2026-10-14-phonetic-common-nouns.tsv)와 [등록 사전](phonetic-conversion.md). 대응은직접작성/독립검토했고공식참고확인과자체작성동의어·긴표현을구분했다. 입력33,941/0·문맥215/0·슬래시553/0·독립NSTextView245/0. 일반Space번역·조사제거·인명추론없음. 최신사전SHA `fd357f774ffe1ff10767ffbc405bfa9719cfe54a3776f6590d804499f745ab6c`, `.tmp/nouns88-2026-10-14/dictionary-audit.json` 실측. 아래영타목록보완은다른사전의이력이며발음사전을변경하지않았다는문장은그작업범위기준이다.
+
+## 2026-10-14 — 생명체·촬영·브랜드·개발 영문 참조 목록 보완
+
+기존 [201개 대표 표본](../dict_work/2026-10-06-nature-film-coverage.txt)과 2026-10-06의 45개 보완을 실제 조합기로 다시 확인하고 모두 보존했다. 기존 기록을 전체 미구현으로 해석하지 않았다. 291개 조사 후보에서 이미 지원되는 항목을 제외한 뒤, 박물관·식물원·제조사의 직접 자료로 철자를 확인하여 초기 81개를 보완했다. #16 후속 대조에서 `lsp`·`fork` 두 항목을 추가하고, 완료 범위 대조에서 #74 본문에 남아 있던 카메라·현상·생활 브랜드 8개를 공식 제조사 자료로 확인해 **최종 91개 항목을 보완**했다. `jaboticaba`는 확인 자료에 있었지만 이미 시스템 사전으로 변환되어 중복 추가하지 않았다.
+
+- `Resources/IM/english_names_extra.txt`: 새 이름·약어 **84개**. 전부 깨진 한글형이므로 broad 역할로만 등록했다. 초기 75개의 변경 전 코어 검역과 후속 `lsp`·#74 본문8개의 최신 코어 검역을 합친 기록은 Tier A/B=0, C=84이며 모두 한국어 표제어와 충돌하지 않았다.
+- `Resources/IM/english_supplement.txt`: 기존 broad 목록이나 시스템 사전에만 있던 생물 이름 6개와 `fork`, 총 **7개**를 curated에 추가했다. angelfish·cockatiel·coral·eland·guanaco·turtle·fork의 완성 한글형을 각각 검토했으며 전체 한국어 표제어와 충돌하지 않았다. 검역의 Tier A=7은 무맥락 변환이 새로 생긴다는 뜻이며, 경고를 없애거나 veto를 우회했다는 뜻은 아니다. coral의 `책미`·eland의 `디뭉`·fork의 `래가`는 각각 `책`·`디`·`래`에 대한 어근 경고도 기록하고 검토했다.
+
+후속 두 항목은 [Microsoft LSP 공식 설명](https://microsoft.github.io/language-server-protocol/)과 [GitHub Forks 공식 설명](https://docs.github.com/en/pull-requests/reference/forks)에서 철자를 확인했다. `lsp`는 `ㅣ네`로 조합되며 미등재였고, `fork`는 `래가`로 조합되며 broad만으로는 변환되지 않았다. `래` 어근 경고는 보존하고 `래가` 전체의 표제어 미등재를 기록했다. `노래가`·`오래가`의 전체 원문과 `www`의 반복 자모 보호도 별도 회귀로 확인했다. 사전 보완으로 조사나 단어의 일부를 잘라 바꾸지 않으며, 한국어 veto·짧은 단어·반복키의 예외를 추가하지 않았다.
+
+| 확인한 분야 | 보완 항목 | 예시 |
+|---|---:|---|
+| 생물·식물·과일·멸종 파충류 | 52 | quokka, clownfish, haworthia, salak, parasaurolophus |
+| 카메라·촬영 장비·광학 용어 | 19 | Tilta, Viltrox, Atomos, Contax, Summicron, microcontrast |
+| 필름·필름 제조사·현상 | 10 | Kentmere, ULTRAMAX, Ferrania, remjet, Filmomat |
+| 생활·오디오 브랜드 | 8 | Spigen, Audioengine, ZWILLING, LeCreuset, LocknLock |
+| 개발·코드 협업 | 2 | LSP, fork |
+
+#74 본문의 `contax`, `summicron`, `remjet`, `microcontrast`, `filmomat`, `zwilling`, `lecreuset`, `locknlock`도 최신 조합기로 확인해 broad에만 추가했다. 여덟 한글형은 모두 깨진 자모를 포함하고 한국어 전체 표제어와 충돌하지 않았으며, 단독·`the`·`want` 문맥에서 변환된다. [ZEISS 역사](https://www.zeiss.com/corporate/en/about-zeiss/past/history/technological-milestones/camera-and-cine-lenses.html), [Leica 렌즈 이름](https://leica-camera.com/en-US/photography/understanding-leica-lenses), [Kodak 용어집](https://www.kodak.com/en/motion/page/glossary-of-motion-picture-terms/), [ZEISS 광학 설명](https://www.zeiss.com/photonics-and-optics/us/photography/products/lenses-for-videography/otus-ml-lenses.html), [Filmomat](https://www.filmomat.eu/), [ZWILLING](https://www.zwilling.com/us/knives/), [Le Creuset](https://www.lecreuset.com/stores), [LocknLock](https://www.locknlock.com/eng)에서 철자를 확인했다. 공식 페이지 제목의 `LeCreuset`와 본문의 `Le Creuset`를 함께 기록하며, 사용자 지정 `lecreuset`만 정확히 등록했다. 공백을 제거해 모든 브랜드를 합성하는 규칙은 만들지 않았다. `silverfast`는 새 정확 복합어 기능이 켜져 있으면 `silver`+`fast`로 이미 변환되어 중복 등록하지 않았다. 정확 복합어 설정 OFF에서는 그 경로가 동작하지 않으며, 명시 사전 역할과 구분한다.
+
+공룡 17개와 다른 멸종 파충류 3개를 기록에서 구분했다. `Mosasaurus`·`Plesiosaurus`·`Quetzalcoatlus`를 공룡으로 묶지 않았다. 박물관에 기록된 이름 철자를 확인한 작업이며 모든 이름이 최신 분류의 유효명이라는 보증은 아니다. 회사·필름 이름 등록도 현재 판매나 재고를 보증하지 않는다. 출력은 사용자가 실제 친 ASCII 철자와 대소문자를 유지한다.
+
+숫자·공백·하이픈을 제거하거나 다른 문자로 바꾼 `sevenartisans`, `redpanda`, `panf`, `trix` 같은 임의 표기를 넣지 않았다. HP5·FP4·XP2·TRI-X는 알파벳 TXT 로더의 범위 밖이며 기존 별도 숫자 이름 기능을 임의로 넓히지 않았다. 전부 자모가 되는 `bergger`도 신규 broad 기본 제외 정책을 유지했다. 공식 원문 확인이 남은 이름 등 **19개 후보의 제외·보류 이유**는 기록에 남겼다. `aplle`·`applle` 같은 오타를 새 단어로 등록하거나 고치지 않았다.
+
+검증은 실제 `KoreanComposer`·`EnglishDetector`·`PersonalDictionary`를 사용하는 [독립 어휘 테스트](../Tests/VocabularyExtensionTests.swift)로 수행했다. **변경 전 코어와 최신 입력 코어에서 각각 2,632 통과, 0 실패**다. 최종 91개 활성 확정, 자동 변환 OFF, 수동 경계, 원문 되돌림, 개인 금지 우선, #74 본문8개의 단독·영어 문맥 변환과 한국어 veto 보호, 기존 201개 표본과 한국어·반복키·얼굴 자모 보호, 미등록 오타 `aplle`·`applle`의 미변환을 확인했다. 전체 IME 검사도 변경 전/후 각각 **25,281 통과, 0 실패**다. `ㅡㅁㅡ` 같은 분리 자모는 순차 타이핑에서 재조합될 수 있으므로 화면에 조합된 원문과 변환 후를 비교하고 판정기의 분리 자모 보호도 별도로 확인한다. 이 검사는 실제 앱 이벤트·실기 설치 확인을 대신하지 않는다.
+
+- 실행: `python3 Tests/run_vocabulary_extension_tests.py`.
+- [철자·공식 출처·역할·판정·제외 기록](../dict_work/2026-10-14-nature-camera-extension.tsv), [추가 91개 표본](../dict_work/2026-10-14-nature-camera-coverage.txt).
+- [broad 검역](../dict_work/2026-10-14-nature-camera-broad-audit.csv), [curated 검역](../dict_work/2026-10-14-nature-camera-curated-audit.csv).
+- [현재 코어 도달성 결과](../dict_work/2026-10-14-nature-camera-after.csv): 91개 모두 무맥락 변환에 도달, 미도달/검사 불가 0개.
+- 후보 검역은 해당 전체 단어와 명시한 도달성 목록의 변화만 측정한다. curated 구성 단어 추가로 생기는 모든 다른 붙여쓰기 조합을 전수 검역했다는 뜻은 아니다. 복합어 정책·한글/개인 금지·모호한 분해의 검증은 `Tests/InputInferenceTests.swift`에 있고, 특정 조합의 변화는 `audit_wordlist.sh --reachability ... --compound on|off`로 별도 비교한다.
+- [코어/자원 SHA와 실행 결과](../.tmp/goal86-2026-10-14/vocabulary/test-current-core/vocabulary-tests.json). 이전 코어 결과는 같은 폴더의 `test-baseline-core`에 분리했다.
+
+이는 선별한 표본의 누락 보완이며 세계 전체 생명체·브랜드·장비 이름의 수록 완료가 아니다. 한글 이름을 영어로 번역하는 발음 사전은 이번에 변경하지 않았다. 실제 배포 빌드의 자원 포함과 설치 입력 확인은 남아 있다.
+
+현재 여섯 번들 파일의 로더 기준 중복 제거 참조 항목은 **130,300개**다. `english_names_extra.txt`는 53→137개, `english_supplement.txt`는 5,286→5,293개이며 나머지 네 파일은 보존했다. 단어별 사전 역할이 바뀐 91항목과 고유 참조 항목의 증가 89개는 서로 다른 수치다. macOS `/usr/share/dict/words`·코드 약어/단위/숫자 목록은 이 번들 합계에 넣지 않는다.
+
+## 2026-10-10 확장 이력 — 과일·과학·현물·외형
+
+`dict_work/2026-10-10-phonetic-fruit-science.tsv`의 직접 작성한 대응을 원본 JSON과 대조하여 **84개** 추가했다. 기존1,903개는 전부 보존했다. 총1,987개 한글 →1,962개 영문 결과이며, 최신 전체 수량/분류는 `scripts/audit_phonetic_dictionary.py` 출력이 정본이다.
+
+| 추가 분야 | 새 한글 표기 | 예시 |
+|---|---:|---|
+| 과일 | 16 | 사과→apple, 딸기→strawberry, 포도→grape, 수박→watermelon |
+| 과학·수학 | 64 | 알파→alpha, 원자→atom, 분자→molecule, 행렬→matrix |
+| 금융 | 1 | 현물→spot(사용자 지정) |
+| 외형·디자인 | 3 | 솔리드→solid, 글래스/글라스→glass |
+
+알파·베타·감마는 그리스 문자 이름이며 수학·물리의 기호나 소프트웨어 버전 이름 등에도 쓰인다. 기존 beta/gamma/lambda 및 파이→pie·시그마→Sigma를 덮어쓰지 않았다. 이 단축키 사전에는 파이상수→pi·시그마기호→sigma를 구분해 등록했다. 일반 Space 자동 영타 기능의 목록은 변경하지 않았다.
+
+아래 표/수량은 **2026-10-09 빌드67 기준의 보존 기록**이다. 이후 발음 사전 변화는 [빌드69 피드백](releases/2026.9-build69-feedback.md), 2026-10-14 영문 참조 목록 변화는 위 최신 보완 기록을 따른다.
 
 ## 서로 다른 두 사전
 

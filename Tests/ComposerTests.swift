@@ -232,6 +232,8 @@ struct ComposerTests {
                 guard typeViaController("100ml").committedText == "100ㅢ",
                       typeViaController("100 ml").committedText == "100 ㅢ",
                       typeViaController("cm").committedText == "츠",
+                      typeViaController("githubdp").committedText == "햐소ㅕㅠ에",
+                      typeWithPersonalDictionary("githubdp", PersonalDictionary(force: ["github"])).client.committedText == "햐소ㅕㅠ에",
                       typeViaControllerWithPersonalDictionary("1.5ml", PersonalDictionary(force: ["1.5ml"])).committedText == "1.5ㅢ"
                 else { print("단위 변환 fail-closed 실패"); exit(1) }
             }
@@ -546,6 +548,24 @@ struct ComposerTests {
         // ── v3 리뷰 회귀: 활용형/구어 보호 3중 가드 ──
         expect(typeWords(["commit", "goT"]).last ?? "", "했", "Shift 가드: 했 보호")
         expect(typeWords(["game", "wuT"]).last ?? "", "졌", "Shift 가드: 졌 보호")
+        // 2026-10-14: 짧은 영어 화이트리스트도 의미 있는 Shift를 존중한다.
+        // sO는 so(내)가 아니라 냬(ㅒ)이며, 영어 문맥에서도 원문을 보존한다.
+        expect(typeWords(["the", "sO"]).last ?? "", "냬", "R2 Shift 가드: the 뒤 냬 보호")
+        expect(typeWords(["want", "sO"]).last ?? "", "냬", "R2 Shift 가드: want 뒤 냬 보호")
+        expect(typeWords(["the", "So"]).last ?? "", "So", "R2 Shift no-op: the 뒤 So 변환 유지")
+        // 오너 요청 명사·조사 결합은 일반 Space에서 자동 번역하지 않는다.
+        for noun in ["단어", "용량", "물", "책", "사람", "사진", "영상", "파일", "소리", "이름", "주소", "설정"] {
+            for suffix in ["", "은", "을", "의"] {
+                let original = noun + suffix
+                let keys = ManualToggle.hangulToKeys(original)!
+                expect(typeViaController(keys + " ").committedText, original + " ",
+                       "명사·조사 일반 Space 보존: \(original)")
+                for previous in ["the", "want"] {
+                    expect(typeWordsViaController([previous, keys]).last ?? "", original,
+                           "영어 뒤 명사·조사 보존: \(previous) \(original)")
+                }
+            }
+        }
         expect(typeWords(["the", "rid"]).last ?? "", "rid", "ㅑ 1음절: 걍→rid (the 뒤, 되돌리기 커버)")
         expect(typeWords(["merge", "gowns"]).last ?? "", "해준", "curated 가드: 해준 보호")
         expect(typeWords(["really", "glacks"]).last ?? "", "힘찬", "curated 가드: 힘찬 보호")
@@ -1026,70 +1046,7 @@ struct ComposerTests {
         )
 
         // ── 전체 제거: 메인 앱을 지워도 되는가 (P2-2 회귀 방지) ──
-        expect(
-            UninstallDecision.shouldRemoveMainApp(removedIMEBundle: true),
-            true, "제거: IME 삭제 성공 → 메인 앱도 삭제"
-        )
-        expect(
-            UninstallDecision.shouldRemoveMainApp(removedIMEBundle: false),
-            false, "제거: IME 삭제 실패 → 메인 앱 보존(재시도 수단)"
-        )
-
-        // ── 전체 제거: 결과 판정과 문구 ──
-        func outcome(
-            killed: Bool = true, ime: Bool = true, mainApp: Bool = true, kept: Bool = false,
-            ls: Bool = true, defaults: Bool = true, picker: Bool = false
-        ) -> UninstallOutcome {
-            UninstallOutcome(
-                killedProcess: killed, removedIMEBundle: ime, removedMainApp: mainApp,
-                keptMainAppForRetry: kept, unregisteredLS: ls,
-                clearedUserDefaults: defaults, stillEnabledInPicker: picker
-            )
-        }
-
-        let allOK = outcome()
-        expect(allOK.fullyRemoved, true, "제거 결과: 전 단계 성공이면 fullyRemoved")
-        expect(allOK.statusText.contains("완료."), true, "제거 결과: 완료 문구")
-
-        // 관리자 암호창 취소 → IME가 남음 → 메인 앱 보존 + 재시도 안내
-        let adminCancelled = outcome(ime: false, mainApp: false, kept: true)
-        expect(adminCancelled.fullyRemoved, false, "제거 결과: IME 삭제 실패면 완료 아님")
-        expect(
-            adminCancelled.statusText.contains("다시 실행"), true,
-            "제거 결과: 재시도 안내 문구"
-        )
-        expect(
-            adminCancelled.statusText.contains("건너뜀(재시도용 보존)"), true,
-            "제거 결과: 메인 앱 보존을 그대로 표시"
-        )
-        expect(
-            adminCancelled.statusText.contains("완료."), false,
-            "제거 결과: 실패했는데 완료라고 말하지 않음"
-        )
-
-        // 입력 소스가 picker에 남아있음 → 시스템 설정 안내
-        let stillEnabled = outcome(picker: true)
-        expect(stillEnabled.fullyRemoved, false, "제거 결과: picker에 남으면 완료 아님")
-        expect(
-            stillEnabled.statusText.contains("시스템 설정"), true,
-            "제거 결과: picker 정리 안내"
-        )
-
-        // LaunchServices 등록 해제 실패 → 부분 실패로 정직하게 보고
-        let lsFailed = outcome(ls: false)
-        expect(lsFailed.fullyRemoved, false, "제거 결과: LS 등록 해제 실패면 완료 아님")
-        expect(
-            lsFailed.statusText.contains("완료."), false,
-            "제거 결과: LS 실패 시 완료 문구 없음"
-        )
-        expect(
-            lsFailed.statusText.contains("일부 단계가 실패"), true,
-            "제거 결과: 부분 실패 안내"
-        )
-
-        // 설정 초기화 실패도 동일하게 완료로 처리하지 않는다
-        let defaultsFailed = outcome(defaults: false)
-        expect(defaultsFailed.fullyRemoved, false, "제거 결과: 설정 초기화 실패면 완료 아님")
+        // 전체 제거 실행 검증은 Tests/UninstallTests.swift에서 실제 공통 순서를 실행한다.
 
         // ═══ 앱 삭제 ↔ IME 연동: 자기 정리 판단 (#32, 2026-09-19) ═══
         // 파일을 지우지 않고 "지워도 되는가"만 검증한다. 오탐(앱이 살아 있는데 IME가
@@ -1652,10 +1609,10 @@ struct ComposerTests {
             r = r.recording(hangul: "메ㅔㅣㄷ", english: "Apple")
             expect(r.entries.count, 3, "RR: (한글, 영어) 쌍 단위로 중복 판정")
             // "금지" 뒤 제거 — 대소문자 무시로 그 영어 항목 전부
-            let removed = r.removing(english: "apple")
+            let removed = r.removing(blockedBy: "apple")
             expect(removed.entries.count, 1, "RR.removing: apple/Apple 둘 다 제거")
             expect(removed.entries.first?.english ?? "", "vismo", "RR.removing: 나머지는 유지")
-            expect(r.removing(english: "nothere").entries.count, 3, "RR.removing: 없는 단어는 그대로")
+            expect(r.removing(blockedBy: "nothere").entries.count, 3, "RR.removing: 없는 단어는 그대로")
             // 상한 50 — 60개 넣으면 최신 50개만
             var many = RecentReverts()
             for i in 0..<60 { many = many.recording(hangul: "h\(i)", english: "w\(i)") }
@@ -1686,7 +1643,17 @@ struct ComposerTests {
         do {
             expect(WordSuggestion.Kind.add.displayName, "변환 추가 제안", "WS: add 표시 이름")
             expect(WordSuggestion.Kind.block.displayName, "변환 금지 제안", "WS: block 표시 이름")
-            expect(WordSuggestion.Kind.allCases.count, 2, "WS: 종류는 둘")
+            expect(WordSuggestion.Kind.allCases.count, 3, "WS: 단어 추가·금지와 분야 제안")
+            for url in [WordSuggestion.issueURL(typed: "영상 후반 작업", expected: "", kind: .field),
+                        WordSuggestion.emailURL(typed: "영상 후반 작업", expected: "", kind: .field)] {
+                expect(url != nil, true, "분야 제안: 영어 결과 없이도 작성 가능")
+                let body = url.flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false) }?
+                    .queryItems?.first { $0.name == "body" }?.value ?? ""
+                expect(body.contains("산업군·분야") && body.contains("영상 후반 작업"), true,
+                       "분야 제안: 양쪽 작성창에 분야와 내용 보존")
+            }
+            expect(WordSuggestion.issueURL(typed: " ", expected: "", kind: .field) == nil,
+                   true, "빈 분야 제안은 작성 불가")
 
             // 제목
             expect(
@@ -1701,6 +1668,20 @@ struct ComposerTests {
             expect(WordSuggestion.issueURL(typed: "메ㅔㅣㄷ", expected: "", kind: .add) == nil, true, "WS: 기대 결과 비면 nil")
             expect(WordSuggestion.issueURL(typed: " \n ", expected: "apple", kind: .add) == nil, true, "WS: 공백·줄바꿈만이면 nil")
             expect(WordSuggestion.issueURL(typed: "메ㅔㅣㄷ", expected: "apple", kind: .add) != nil, true, "WS: 정상 입력은 URL")
+            if let email = WordSuggestion.emailURL(typed: "ㅊ+ㅊ", expected: "c+c", kind: .block,
+                                                   note: "a&b#c", appVersion: "2026.10.15_hotfix", osVersion: "27.0") {
+                let components = URLComponents(url: email, resolvingAgainstBaseURL: false)!
+                expect(components.scheme ?? "", "mailto", "이메일 제안: 작성창만 열기")
+                expect(components.path, "lifeismotive@gmail.com", "이메일 제안: 승인된 수신자 고정")
+                let query = components.queryItems ?? []
+                expect(Set(query.map(\.name)) == Set(["subject", "body"]), true, "이메일 제안: 수신자/헤더 주입 없음")
+                expect(query.first { $0.name == "subject" }?.value ?? "", "[단어 제안] ㅊ+ㅊ → c+c (변환 금지)", "이메일 제목 인코딩")
+                expect(query.first { $0.name == "body" }?.value?.contains("a&b#c") == true, true, "이메일 본문 특수 문자 보존")
+            } else { expect(false, true, "이메일 제안 생성") }
+            expect(WordSuggestion.emailURL(typed: "", expected: "apple", kind: .add) == nil, true, "이메일 제안: 빈 필수 값 거부")
+            let longEmail = WordSuggestion.emailURL(typed: "메ㅔㅣㄷ", expected: "apple", kind: .add,
+                                                    note: String(repeating: "긴 한글 메모 &+\n", count: 1000))
+            expect(longEmail != nil && longEmail!.absoluteString.count <= WordSuggestion.maxURLLength, true, "이메일 제안: URL 길이 상한")
 
             // 인코딩 — 비예약 문자만 남기고 전부 UTF-8 바이트별 %XX
             expect(WordSuggestion.percentEncoded("a+b"), "a%2Bb", "WS 인코딩: + (GitHub이 공백으로 읽는 문자)")
@@ -1995,6 +1976,42 @@ struct ComposerTests {
             size: 1_000)], pageURL: nil)
         expect(UpdateDecision.availableUpdate(currentVersion: "2026.9", release: datedRelease)?.tag ?? "",
                "2026.10.10", "날짜 버전: 태그와 파일명이 일치하는 정식 업데이트 탐지")
+
+        // 2026-10-10: 공개 이름의 _hotfix와 Apple 숫자 버전 항목을 연결한다.
+        expect(ver("2026.10.15")! < ver("2026.10.15_hotfix")!, true, "핫픽스는 같은 날짜의 기본판보다 새 버전")
+        expect(ver("2026.10.15_hotfix")! < ver("2026.10.16")!, true, "다음 날짜는 전날 핫픽스보다 새 버전")
+        expect(ver("2026.10.15_hotfix")?.description ?? "", "2026.10.15_hotfix", "핫픽스 표기 보존")
+        for invalid in ["2026.10_hotfix", "2026.10.15_hotfix2", "2026.10.15_hotfix_hotfix", "2026.10.15_HOTFIX",
+                        "2026.2.15_hotfix", "2026.13.15_hotfix", "2026.02.29_hotfix", "2026.04.31_hotfix"] {
+            expect(ver(invalid) == nil, true, "확정된 핫픽스 형식만 허용: \(invalid)")
+        }
+        expect(UpdateDecision.releaseVersion(info: ["CFBundleShortVersionString": "2026.10.15", "HaneulReleaseSuffix": "_hotfix"]) ?? "",
+               "2026.10.15_hotfix", "서명된 번들 항목에서 공개 핫픽스 버전 읽기")
+        expect(UpdateDecision.releaseVersion(info: ["CFBundleShortVersionString": "2026.9"]) ?? "", "2026.9", "과거 번들 호환")
+        expect(UpdateDecision.releaseVersion(info: ["CFBundleShortVersionString": "2026.10.15", "HaneulReleaseSuffix": "oops"]) == nil,
+               true, "미확인 번들 접미어 거부")
+        expect(UpdateDecision.releaseVersion(info: ["CFBundleShortVersionString": "2026.10.15", "HaneulReleaseSuffix": 1]) == nil,
+               true, "잘못된 번들 항목 타입 거부")
+        expect(UpdateDecision.isVersionIncrease(currentVersion: "2026.10.15", currentBuild: 69,
+                   newVersion: "2026.10.15_hotfix", newBuild: 70), true, "기본판에서 핫픽스 설치 허용")
+        expect(UpdateDecision.isVersionIncrease(currentVersion: "2026.10.15_hotfix", currentBuild: 70,
+                   newVersion: "2026.10.15", newBuild: 71), false, "핫픽스에서 기본판으로 역행 금지")
+        let hotfixRelease = ReleaseInfo(tag: "2026.10.15_hotfix", assets: [ReleaseAsset(
+            name: "HaneulKeyboard_2026.10.15_hotfix.zip",
+            downloadURL: URL(string: "https://github.com/Hyunjin-Cho/HaneulKeyboard/releases/download/2026.10.15_hotfix/HaneulKeyboard_2026.10.15_hotfix.zip")!,
+            size: 1_000)], pageURL: nil)
+        expect(UpdateDecision.availableUpdate(currentVersion: "2026.10.15", release: hotfixRelease)?.tag ?? "",
+               "2026.10.15_hotfix", "핫픽스 파일명과 태그의 실제 업데이트 탐지")
+        let installerAsset = ReleaseAsset(name: "HaneulKeyboard_2026.10.15_hotfix.dmg",
+            downloadURL: URL(string: "https://github.com/Hyunjin-Cho/HaneulKeyboard/releases/download/2026.10.15_hotfix/HaneulKeyboard_2026.10.15_hotfix.dmg")!, size: 1_000)
+        let dualFormatRelease = ReleaseInfo(tag: hotfixRelease.tag, assets: [installerAsset] + hotfixRelease.assets, pageURL: nil)
+        expect(UpdateDecision.availableUpdate(currentVersion: "2026.10.15", release: dualFormatRelease)?.asset.name ?? "",
+               "HaneulKeyboard_2026.10.15_hotfix.zip", "첫 설치 DMG와 함께 있어도 앱 안 업데이트는 ZIP 선택")
+        expect(UpdateDecision.availableUpdate(currentVersion: "2026.10.15_hotfix", release: dualFormatRelease) == nil,
+               true, "같은 날짜 핫픽스는 다시 제공하지 않음")
+        expect(UpdateDecision.availableUpdate(currentVersion: "2026.10.15", release:
+            ReleaseInfo(tag: hotfixRelease.tag, assets: [installerAsset], pageURL: nil)) == nil,
+               true, "업데이트 ZIP 누락이면 DMG로 임의 대체하지 않음")
 
         // ── 저장소·URL·자산 이름 ──
         expect(UpdateDecision.isValidRepository("Hyunjin-Cho/HaneulKeyboard"), true, "업데이트: 정상 슬러그")
@@ -2424,6 +2441,7 @@ struct ComposerTests {
         expect(typeViaController(longQuantity).committedText, longQuantity, "단위: 긴 숫자 유실 없음")
         expect(typeViaController("123.456.789").committedText, "123.456.789", "단위: 여러 점 숫자 유실 없음")
 
+        runEnglishParticleTests()
         runPhoneticTests()
         print("\(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
