@@ -87,6 +87,14 @@ struct SlashEnglishSession {
         // A host without range support still receives '/' followed immediately
         // by plain Backspace. End the temporary mode, leaving deletion to it.
         guard let context else { return true }
+        // #87: range support can disappear between '/' and Backspace. NSNotFound
+        // is unavailable geometry, not proof that the caret moved elsewhere.
+        // Only the first plain Backspace gets this fallback; marked text and
+        // an actual nonadjacent caret still block it.
+        guard Self.noMarkedText(context.markedRange) else { return false }
+        if context.selection.location == NSNotFound, context.selection.length == 0 {
+            return true
+        }
         // Available geometry must agree. An unknown substring alone must not
         // prevent this one adjacent deletion; contradictory/marked ranges do.
         guard context.triggerText == nil, Self.validSelection(context.selection),

@@ -8,6 +8,8 @@
 # Local signed installation candidate, preserving published packages and installed apps:
 #   CANDIDATE_ONLY=1 scripts/build_notarize_install.sh HaneulKeyboard
 #   Output: .build/candidates/<version>-b<build>/ (same public filenames).
+# Local Developer ID build only; no notarization, packages, or installation:
+#   LOCAL_BUILD_ONLY=1 scripts/build_notarize_install.sh HaneulKeyboard
 #
 # IME-only target (dev/test only — TIS registration debugging etc.), requires
 # ALLOW_IME_TARGET=1:
@@ -26,6 +28,17 @@
 #   9. Print next steps for picker verification.
 
 set -euo pipefail
+
+case "${LOCAL_BUILD_ONLY:-0}" in
+    0) ;;
+    1)
+        if [[ "${CANDIDATE_ONLY:-0}" != "0" || "${PACKAGE_ONLY:-0}" != "0" || "${ZIP_ONLY:-0}" != "0" ]]; then
+            echo "LOCAL_BUILD_ONLY cannot be combined with package/candidate modes." >&2
+            exit 2
+        fi
+        ;;
+    *) echo "LOCAL_BUILD_ONLY must be 0 or 1." >&2; exit 2 ;;
+esac
 
 case "${CANDIDATE_ONLY:-0}" in
     0) ;;
@@ -211,7 +224,11 @@ unregister_build_products() {
 cd "$PROJECT_ROOT"
 
 echo "════════════════════════════════════════════"
-echo "  Build + Notarize + Install: $TARGET"
+if [[ "${LOCAL_BUILD_ONLY:-0}" == "1" ]]; then
+    echo "  Local signed build only: $TARGET (no notarization or install)"
+else
+    echo "  Build + Notarize + Install: $TARGET"
+fi
 echo "  Project: $PROJECT_ROOT"
 echo "════════════════════════════════════════════"
 echo
@@ -220,7 +237,7 @@ echo
 echo "→ Pre-flight"
 command -v xcodegen >/dev/null || { echo "  ✗ xcodegen not installed (brew install xcodegen)"; exit 1; }
 command -v xcodebuild >/dev/null || { echo "  ✗ xcodebuild not found"; exit 1; }
-if [[ "$IS_MAIN_APP" == "1" ]]; then bash scripts/package_dmg.sh --check-tools; fi
+if [[ "$IS_MAIN_APP" == "1" && "${LOCAL_BUILD_ONLY:-0}" != "1" ]]; then bash scripts/package_dmg.sh --check-tools; fi
 
 if ! security find-identity -p codesigning -v | grep -q "$DEVID_CERT_PATTERN"; then
     echo "  ✗ Developer ID Application cert missing in keychain ($DEVID_CERT_PATTERN)"
@@ -228,10 +245,12 @@ if ! security find-identity -p codesigning -v | grep -q "$DEVID_CERT_PATTERN"; t
     exit 1
 fi
 
-if ! xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1; then
-    echo "  ✗ notarytool keychain profile '$NOTARY_PROFILE' missing."
-    echo "    Re-create with: xcrun notarytool store-credentials \"$NOTARY_PROFILE\" --apple-id <email> --team-id 6RH6FXY82P"
-    exit 1
+if [[ "${LOCAL_BUILD_ONLY:-0}" != "1" ]]; then
+    if ! xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1; then
+        echo "  ✗ notarytool keychain profile '$NOTARY_PROFILE' missing."
+        echo "    Re-create with: xcrun notarytool store-credentials \"$NOTARY_PROFILE\" --apple-id <email> --team-id 6RH6FXY82P"
+        exit 1
+    fi
 fi
 echo "  ✓ Toolchain + credentials OK"
 echo
@@ -248,6 +267,7 @@ echo "→ xcodebuild Release ($TARGET)"
 # 섞이면 "방금 빌드"가 아닌 걸 notarize/install할 수 있었다.
 DERIVED="$PROJECT_ROOT/.build/DerivedData"
 if [[ "${CANDIDATE_ONLY:-0}" == "1" ]]; then DERIVED="$PROJECT_ROOT/.build/DerivedData-Candidate"; fi
+if [[ "${LOCAL_BUILD_ONLY:-0}" == "1" ]]; then DERIVED="$PROJECT_ROOT/.build/DerivedData-Local"; fi
 xcodebuild -scheme "$TARGET" -configuration Release -derivedDataPath "$DERIVED" -quiet build ARCHS='arm64 x86_64' ONLY_ACTIVE_ARCH=NO
 echo "  ✓ Build succeeded"
 echo
@@ -261,6 +281,18 @@ echo "  → $RELEASE_APP"
 echo
 
 verify_release_artifacts "$RELEASE_APP"
+
+if [[ "${LOCAL_BUILD_ONLY:-0}" == "1" ]]; then
+    verify_codesign_bundle "$RELEASE_APP" "$TARGET local build"
+    verify_notice_resources "$RELEASE_APP" "$TARGET local build"
+    if [[ "$IS_MAIN_APP" == "1" ]]; then
+        verify_notice_resources "$RELEASE_APP/Contents/Helpers/HaneulKeyboardIM.app" "local embedded helper"
+    fi
+    unregister_build_products
+    echo "✓ Local signed build ready: $RELEASE_APP"
+    echo "  Not notarized. No package, upload, or installation was performed."
+    exit 0
+fi
 
 # 같은 공개 이름의 기존 결과물은 덮어쓰지 않는다. 후보는 별도 빌드/경로에서 만든다.
 VERSION=$(defaults read "$RELEASE_APP/Contents/Info.plist" CFBundleShortVersionString)

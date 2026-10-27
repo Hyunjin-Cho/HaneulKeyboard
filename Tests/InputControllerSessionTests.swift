@@ -444,6 +444,23 @@ final class ProbeClient: NSObject, IMKTextInput {
                 result("immediate_slash_delete_\(unavailable)_\(prefix.isEmpty)",c,h)
             }
         }
+        // #87: capability can disappear after '/' was already anchored. This
+        // differs from a host whose selection is unavailable for the entire run.
+        for prefix in ["", "앞🙂 "] {
+            for readable in [false,true] {
+                let (c,h) = fresh(); h.setField(0,text:prefix)
+                press(c,h,"/",code:44)
+                h.reportMissingSelectionRange = true
+                h.unreadable = !readable
+                hostDelete(c,h)
+                check(h.text == prefix && !c.probeSlashActive,"slash_selection_disappears_delete_ends_\(readable)")
+                h.reportMissingSelectionRange = false
+                h.unreadable = false
+                press(c,h,"h",code:4)
+                check(h.text == prefix + "ㅗ","slash_selection_disappears_korean_\(readable)")
+                result("slash_selection_disappears_\(readable)_\(prefix.isEmpty)",c,h)
+            }
+        }
         for (delimiter,key,flags): (String,UInt16,NSEvent.ModifierFlags) in [
             (")",29,.shift),("]",30,[]),("}",30,.shift)
         ] {
