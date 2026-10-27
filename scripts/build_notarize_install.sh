@@ -423,7 +423,17 @@ sudo cp -R "$RELEASE_APP" "$STAGING_PATH"
     verify_embedded_helper_bundle "$STAGING_PATH" "$TARGET staged app"
     verify_notice_resources "$STAGING_PATH" "$TARGET staged app"
 )
-if [[ -e "$INSTALL_PATH" ]]; then
+# #95: validate the existing product immediately before backup, not only the
+# incoming staging bundle. An unknown app, broken link, or unreadable signature
+# must stay untouched; rollback only removes our staging directory in this case.
+if [[ "$IS_MAIN_APP" == "1" ]]; then
+    EXPECTED_INSTALL_ID="com.hyunjincho.haneulkeyboard"
+else
+    EXPECTED_INSTALL_ID="com.hyunjincho.inputmethod.haneul"
+fi
+python3 "$PROJECT_ROOT/scripts/verify_install_destination.py" \
+    "$INSTALL_PATH" "$STAGING_PATH" "$EXPECTED_INSTALL_ID"
+if [[ -e "$INSTALL_PATH" || -L "$INSTALL_PATH" ]]; then
     # 백업은 반드시 Input Methods/Applications 폴더 "밖"(/tmp)으로 —
     # 같은 폴더의 .bak은 TIS/Spotlight가 또 하나의 앱으로 집어서
     # 유령 항목을 만든다(2026-06-06). /tmp는 재부팅 시 자동 청소.

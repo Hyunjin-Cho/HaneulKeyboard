@@ -25,6 +25,23 @@ import CryptoKit
             guard condition else { fatalError(message) }
             checks += 1
         }
+        // #93: an empty commit owns no marked text and must preserve the host selection.
+        for active in [false, true] {
+            for selectedLength in [0, 8] {
+                let untouched = OnboardingPracticeTextView(frame: .zero)
+                let untouchedClient = TextClient(editor: untouched)
+                untouched.string = "앞 😀 selected text"
+                let selection = NSRange(location: ("앞 😀 " as NSString).length, length: selectedLength)
+                untouched.setSelectedRange(selection)
+                let empty = KoreanComposer()
+                for _ in 0..<2 {
+                    check(empty.commit(to: untouchedClient, convertEnglish: active).isEmpty, "빈 확정 반환값")
+                    check(untouched.string == "앞 😀 selected text", "빈 확정은 선택한 글자를 보존")
+                    check(untouched.selectedRange() == selection, "빈 확정은 UTF16 선택 범위를 보존")
+                    check(!untouched.hasMarkedText(), "빈 확정은 새 조합을 만들지 않음")
+                }
+            }
+        }
         let editor = OnboardingPracticeTextView(frame: NSRect(x: 0, y: 0, width: 636, height: 105))
         var observedStages: [OnboardingPracticeStage] = []
         editor.onProgressChange = { observedStages.append($0) }

@@ -58,7 +58,10 @@ enum InputInferenceTests {
         composer.dictionaryCompoundEnabled = compounds
         composer.personalDictionary = dictionary
         composer.beginExternalEnglishContext(external)
-        for key in keys { _ = composer.handleInput(String(key), client: sink) }
+        for key in keys {
+            if AlphanumericWords.isDigit(key), composer.handleDigit(key, client: sink) { continue }
+            _ = composer.handleInput(String(key), client: sink)
+        }
         composer.commit(to: sink, convertEnglish: active)
         return sink.output
     }
@@ -219,6 +222,25 @@ enum InputInferenceTests {
         check(commit("helloworld", compounds: false,
               dictionary: PersonalDictionary(forceList: ["helloworld"], blockList: [])), "helloworld",
               "explicit personal force remains independently available")
+
+        // #94: numeric fallback must use the same policy as the original composer.
+        for prefix in ["1", "123"] {
+            for word in ["helloworld", "hellovideo"] {
+                let raw = prefix + word
+                let original = prefix + hangul(word)
+                check(commit(raw), raw, "numeric compound ON \(raw)")
+                check(commit(raw, compounds: false), original, "numeric compound OFF \(raw)")
+                check(commit(raw, automatic: false), original, "numeric master OFF \(raw)")
+                check(commit(raw, active: false), original, "numeric passive commit \(raw)")
+                check(commit(raw, dictionary: PersonalDictionary(forceList: [], blockList: [word])),
+                      original, "numeric constituent block \(raw)")
+                check(commit(raw, dictionary: PersonalDictionary(forceList: [], blockList: [raw])),
+                      original, "numeric whole-word block \(raw)")
+                check(commit(raw, compounds: false,
+                      dictionary: PersonalDictionary(forceList: [raw], blockList: [])),
+                      raw, "numeric explicit force remains independent \(raw)")
+            }
+        }
 
         let suite = "haneul.input-inference.tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
