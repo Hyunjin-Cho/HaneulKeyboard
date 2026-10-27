@@ -146,6 +146,17 @@ final class ProbeClient: NSObject, IMKTextInput {
         EnglishDetector.curatedPaths = Set(EnglishDetector.curatedWordlistNames.map { "Resources/IM/\($0).txt" })
         KoreanDictionary.wordlistPath = "Resources/IM/korean_words.txt"
         check(PhoneticDictionary.bundled.english(for: "사과") == "apple", "bundled_dictionary_available")
+        // #93: real controller modifier paths must leave settled selections untouched.
+        for flags: NSEvent.ModifierFlags in [.command, .control, .option, .function] {
+            let (c,h) = fresh()
+            h.setField(0, text: "keep selected text")
+            let selection = NSRange(location: 5, length: 8)
+            h.selection = selection
+            check(!press(c,h,"c",code:8,flags:flags,deliver:false), "empty_modifier_passes_through")
+            check(h.text == "keep selected text", "empty_modifier_preserves_text")
+            check(h.selection == selection, "empty_modifier_preserves_selection")
+            result("empty_modifier_\(flags.rawValue)",c,h)
+        }
         for committed in [false, true] {
             for key in RevertKey.allCases {
                 for extras: NSEvent.ModifierFlags in [[], .capsLock, .function, [.capsLock, .function]] {

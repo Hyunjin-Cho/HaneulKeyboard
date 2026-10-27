@@ -1,6 +1,6 @@
 # HaneulKeyboard 수동 테스트 체크리스트
 
-> **기준일:** 2026-10-25 · "(프로브가 확인 — scripts/postinstall_probe.sh N번)"이 붙은 줄은 `bash scripts/postinstall_probe.sh`의 N번 항목이 기계로 대신 확인한다(#52). 표기 없는 줄은 사람이 본다.
+> **기준일:** 2026-10-28 · "(프로브가 확인 — scripts/postinstall_probe.sh N번)"이 붙은 줄은 `bash scripts/postinstall_probe.sh`의 N번 항목이 기계로 대신 확인한다(#52). 표기 없는 줄은 사람이 본다.
 
 대상: **현재 `project.yml`이 가리키는 최신 배포 후보**의 서명·공증·설치 완료된 배포본. `MARKETING_VERSION`·`HANEUL_RELEASE_SUFFIX`·`CURRENT_PROJECT_VERSION`과 앱/`HaneulKeyboardIM.app`의 버전·빌드가 일치하는지 확인한다. (프로브가 확인 — scripts/postinstall_probe.sh 1번)
 
@@ -8,7 +8,15 @@
 
 현재 합격 기준은 아래 활성 검사 절을 따른다. 맨 아래 **과거 후보별 검사 기록**은 당시 빌드·문구·수량을 보존한 참고 자료이며 현재 합격 기준과 구분한다. 2026-10-11 리뷰 F-3 반영 근거: `IMESources/PersonalDictionary.swift:normalizedForceEntry`, `Sources/WordSuggestion.swift:issueURL/emailURL`, `Sources/WordSuggestionSettingsSection.swift:open`, `PRIVACY.md` 8번.
 
-## 2026-10-25 현재 검수 후보93
+## 2026-10-28 리뷰 수정 후보98 (#93/#94/#95)
+
+기준 코드: main `557c944`에 리뷰 수정을 추가한 소스 후보. 빌드97의 승인 그림·입력 기능을 보존하며 `project.yml`의 다음 빌드 번호는98이다. 설치본 갱신·공증·정식 배포는 이 수정 범위에 포함하지 않는다. 아래 입력 항목은 자동 검사 통과와 별도로 실제 설치본에서 확인해야 한다.
+
+- [ ] 한글 모드에서 이미 확정된 글자를 선택하고 Cmd+C·Ctrl/Option 단축키·방향키를 누른다. 조합이 없으면 선택한 글자와 선택 범위가 보존되며 단축키가 정상 동작한다. 실제 조합의 확정·Backspace도 확인한다. 근거: `KoreanComposer.commit`, `OnboardingPracticeTests`, `InputControllerSessionTests`.
+- [ ] 복합어 인식 OFF에서 `1helloworld`·`123hellovideo`를 입력하고 Space를 누른다. 숫자는 보존되고 단어는 한글로 남는다. ON, 전체 자동 변환 OFF, 개인 금지/명시 추가를 함께 확인한다. 근거: `KoreanComposer.commitAlphanumeric`, `InputInferenceTests`.
+- [x] 개발 설치 대상의 다른 제품 ID·신뢰할 수 없는 Team/서명·심볼릭 링크·잘못된 파일은 원본 보존 후 중단한다. 실제 설치 구간의 정상 교체·배치 실패 복구는 임시 폴더와 서명 fixture로 검사한다. `python3 scripts/test_install_destination.py`를 사용하며 시스템 관리자 설치 성공으로 표시하지 않는다.
+
+## 과거 — 2026-10-25 검수 후보93
 
 앱·입력기93 설치 및 실행 파일/서명 일치, 설정·개인 사전 보존을 확인했다. 설치 프로브12통과/3미통과이며 공증 보류에 따른 Gatekeeper2건·staple1건이다. 슬래시781/0, controller825/0·145시나리오, 입력110829/0, 안내350/0, updater Release/Debug 각각447/0. 실제 물리 키와 설치 앱의 화면/새 공개 릴리스 업데이트 검증은 남았다. 아래 과거 후보의 ‘설치 전/미수정’ 표시는 해당 날짜의 기록이다. 현재 범위는 [현재 인계](HANDOFF_2026-10-25_motion-and-remaining-work.md)를 따른다.
 

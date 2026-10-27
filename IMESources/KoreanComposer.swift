@@ -407,7 +407,8 @@ final class KoreanComposer {
 
         let hangul = wordText()
         guard !hangul.isEmpty else {
-            client.setMarkedText("")
+            // #93: without our own composition, empty marked text replaces the
+            // host's selection. Passive shortcuts must leave that selection alone.
             return ""
         }
 
@@ -548,6 +549,7 @@ final class KoreanComposer {
             let fallback = KoreanComposer()
             let sink = BufferedClient()
             fallback.personalDictionary = personalDictionary
+            fallback.dictionaryCompoundEnabled = dictionaryCompoundEnabled
             fallback.lastEnglishWord = lastEnglishWord
             for key in keys {
                 if AlphanumericWords.isDigit(key) {

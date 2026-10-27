@@ -8,7 +8,7 @@ options:
 settings:
   base:
     MARKETING_VERSION: "2026.9"
-    CURRENT_PROJECT_VERSION: "97"
+    CURRENT_PROJECT_VERSION: "98"
     HANEUL_RELEASE_SUFFIX: ""
   configs:
     Debug:
