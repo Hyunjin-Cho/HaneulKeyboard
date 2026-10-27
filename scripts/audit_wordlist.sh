@@ -86,7 +86,7 @@ swiftc -O -module-cache-path "$WORK/module-cache" -o "$BIN" \
   IMESources/Contractions.swift \
   IMESources/AlphanumericWords.swift \
   IMESources/MeasurementUnits.swift \
-  IMESources/PhoneticDictionary.swift IMESources/KoreanComposer.swift \
+  IMESources/PhoneticDictionary.swift IMESources/EnglishParticleSplitter.swift IMESources/KoreanComposer.swift \
   IMESources/EnglishDetector.swift \
   IMESources/KoreanDictionary.swift \
   IMESources/PersonalDictionary.swift \

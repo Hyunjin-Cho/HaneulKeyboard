@@ -169,6 +169,60 @@ final class UpdateReleaseStub: URLProtocol {
         await updater.checkNow(forced: false)
         check(notices.last == "2099.5", "창 연결 후 안내 가능")
 
+        // 2026-10-24: 버전·업데이트의 직접 확인은 화면에 결과를 남기고 팝업을 겹쳐 띄우지 않는다.
+        let inlineSuite = "haneul.updater-inline-tests.\(UUID().uuidString)"
+        let inlineDefaults = UserDefaults(suiteName: inlineSuite)!
+        defer { inlineDefaults.removePersistentDomain(forName: inlineSuite) }
+        var inlineNotices: [String] = []
+        var inlineUpdater = Updater(defaults: inlineDefaults, session: session, now: { clock })
+        inlineUpdater.onUpdateAvailable = { inlineNotices.append($0.tag) }
+        inlineUpdater.setAutoCheckEnabled(false)
+        UpdateReleaseStub.respond(tag: "2099.6")
+        await inlineUpdater.checkNow(forced: true, showNotice: false)
+        check(inlineNotices.isEmpty, "설정 직접 확인: 알림 OFF여도 조회하지만 팝업 없음")
+        if case .available(let available) = inlineUpdater.phase {
+            check(available.tag == "2099.6", "설정 직접 확인: 같은 화면의 설치 가능 상태에 결과 전달")
+        } else { check(false, "설정 직접 확인: 결과 상태 유실") }
+        check(inlineDefaults.string(forKey: Updater.lastNotifiedVersionKey) == "2099.6", "설정에 표시한 버전도 알림 이력에 기록")
+        await inlineUpdater.checkNow(forced: true, showNotice: false)
+        check(inlineNotices.isEmpty, "설정 직접 확인 반복에도 팝업 없음")
+        inlineUpdater.setAutoCheckEnabled(true)
+        inlineUpdater = Updater(defaults: inlineDefaults, session: session, now: { clock })
+        inlineUpdater.onUpdateAvailable = { inlineNotices.append($0.tag) }
+        clock.addTimeInterval(24 * 60 * 60)
+        await inlineUpdater.checkNow(forced: false)
+        check(inlineNotices.isEmpty, "설정에서 확인한 버전은 재실행 후 자동 알림도 중복 없음")
+        clock.addTimeInterval(24 * 60 * 60)
+        UpdateReleaseStub.respond(tag: "2099.7")
+        await inlineUpdater.checkNow(forced: false)
+        check(inlineNotices == ["2099.7"], "다른 새 버전의 자동 알림은 유지")
+
+        // 2026-10-25 (#83): 조회 중 알림을 OFF로 바꾸면 늦은 응답도 창을 띄우지 않는다.
+        let offDuringCheckSuite = "haneul.updater-off-during-check.\(UUID().uuidString)"
+        let offDuringCheckDefaults = UserDefaults(suiteName: offDuringCheckSuite)!
+        defer { offDuringCheckDefaults.removePersistentDomain(forName: offDuringCheckSuite) }
+        let offDuringCheckUpdater = Updater(defaults: offDuringCheckDefaults, session: session, now: { clock })
+        var offDuringCheckNotices: [String] = []
+        offDuringCheckUpdater.onUpdateAvailable = { offDuringCheckNotices.append($0.tag) }
+        UpdateReleaseStub.respond(tag: "2099.8")
+        UpdateReleaseStub.holdNextResponse()
+        let automaticCheck = Task { await offDuringCheckUpdater.checkNow(forced: false) }
+        while !UpdateReleaseStub.hasPendingResponse { await Task.yield() }
+        offDuringCheckUpdater.setAutoCheckEnabled(false)
+        UpdateReleaseStub.releaseResponse()
+        await automaticCheck.value
+        check(offDuringCheckNotices.isEmpty, "조회 중 OFF: 늦은 자동 응답으로 알리지 않음")
+        check(offDuringCheckDefaults.string(forKey: Updater.lastNotifiedVersionKey) == nil,
+              "조회 중 OFF: 표시하지 않은 버전을 알림 이력에 넣지 않음")
+        check(offDuringCheckUpdater.latestVersion == "2099.8" && offDuringCheckUpdater.lastCheck == clock,
+              "조회 중 OFF: 이미 받은 최신 정보는 설정에 보존")
+        if case .available = offDuringCheckUpdater.phase {
+            check(true, "조회 중 OFF: 다운로드·설치 없이 사용 가능 상태 유지")
+        } else { check(false, "조회 중 OFF: 다운로드·설치 없이 사용 가능 상태 유지") }
+        await offDuringCheckUpdater.checkNow(forced: true, showNotice: false)
+        check(offDuringCheckNotices.isEmpty && offDuringCheckDefaults.string(forKey: Updater.lastNotifiedVersionKey) == "2099.8",
+              "조회 중 OFF 뒤 직접 확인: 같은 설정 화면에만 결과 표시")
+
         // 동시에 호출해도 첫 요청이 완료되기 전에는 두 번째 요청을 시작하지 않는다.
         let countBeforeConcurrent = UpdateReleaseStub.requestCount
         let concurrentUpdater = updater

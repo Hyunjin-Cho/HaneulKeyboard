@@ -13,7 +13,7 @@ swiftc -o "$BIN" \
   IMESources/Contractions.swift \
   IMESources/AlphanumericWords.swift \
   IMESources/MeasurementUnits.swift \
-  IMESources/PhoneticDictionary.swift IMESources/KoreanComposer.swift \
+  IMESources/PhoneticDictionary.swift IMESources/EnglishParticleSplitter.swift IMESources/KoreanComposer.swift \
   IMESources/ManualToggle.swift \
   IMESources/EnglishDetector.swift \
   IMESources/KoreanDictionary.swift \
@@ -26,7 +26,7 @@ swiftc -o "$BIN" \
   Sources/InstallDecisions.swift \
   Sources/WordSuggestion.swift \
   Sources/UpdateDecisions.swift \
-  Tests/PhoneticTests.swift \
+  Tests/EnglishParticleTests.swift Tests/PhoneticTests.swift \
   Tests/ComposerTests.swift
 
 "$BIN"

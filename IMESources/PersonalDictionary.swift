@@ -156,7 +156,7 @@ struct PersonalDictionary: Equatable {
 /// secure input 중에는 컨트롤러 진입부에서 이미 걸러져 여기까지 오지 않는다.
 ///
 /// 저장 규약: **IME만 쓴다**(되돌린 순간 `recording` 후 저장). 설정 앱은 읽기와 삭제만 —
-/// "금지" 버튼의 항목 제거(`removing(english:)`)와 "최근 기록 지우기". "금지" 버튼이 두
+/// "금지" 버튼의 항목 제거(`removing(blockedBy:)`)와 "최근 기록 지우기". "금지" 버튼이 두
 /// 프로세스가 같은 키를 쓰는 유일한 경우인데, 경쟁이 나도 잃는 것은 참고 기록 한 줄이라
 /// 허용한다(설정값이 아니다).
 ///
@@ -224,12 +224,10 @@ struct RecentReverts: Equatable {
         return RecentReverts(entries: list)
     }
 
-    /// "금지" 버튼 뒤 — 그 영어 단어의 항목을 전부 지운다(대소문자·곱은 따옴표 무시:
-    /// `Apple`과 `apple`은 같은 금지 항목에 걸리므로 목록에서도 함께 빠진다).
-    func removing(english: String) -> RecentReverts {
-        let target = PersonalDictionary.normalizedEnglish(english)
-        return RecentReverts(entries: entries.filter {
-            PersonalDictionary.normalizedEnglish($0.english) != target
-        })
+    /// "금지" 버튼 뒤 — 실제로 추가한 금지 키에 해당하는 기록만 지운다.
+    /// `Apple`/`apple`은 함께 지우고, 서로 다른 한글 원문을 쓰는 혼합 기록은 구분한다.
+    func removing(blockedBy raw: String) -> RecentReverts {
+        guard let target = PersonalDictionary.normalizedBlockEntry(raw) else { return self }
+        return RecentReverts(entries: entries.filter { $0.blockEntry != target })
     }
 }

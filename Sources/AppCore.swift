@@ -21,6 +21,7 @@ final class AppCore {
     var isRemovingProduct: Bool { operationGate.operation == .removingProduct || removalPendingExit }
     private(set) var imeOnDisk = false
     private(set) var lastInputRemovalReport: RemovalReport?
+    private var statusRefreshGeneration = 0
     /// 자동 업데이트(#19). 스케줄 시작은 `AppDelegate.applicationDidFinishLaunching`에서.
     let updater: Updater
 
@@ -172,7 +173,10 @@ final class AppCore {
     }
 
     private func updateIMEStatus() async {
+        statusRefreshGeneration += 1
+        let generation = statusRefreshGeneration
         let state = await IMEInstaller.installationState()
+        guard generation == statusRefreshGeneration else { return }
         imeOnDisk = [RemovalObservation.userIME, RemovalObservation.systemIME].contains { RemovalObservation.absence(at: $0) != .alreadyAbsent }
         let ready = state == .ready
         let disabled = state == .installedDisabled

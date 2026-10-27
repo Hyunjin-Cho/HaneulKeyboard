@@ -2,7 +2,7 @@
 
 입력기(IME)는 키보드 입력을 다루는 민감한 소프트웨어입니다. 하늘키보드가 무엇을 보고, 무엇을 저장하고, 무엇을 하지 않는지 명확하게 적습니다. 아래 모든 내용은 [공개된 소스 코드](https://github.com/Hyunjin-Cho/HaneulKeyboard)로 직접 검증할 수 있습니다.
 
-_최종 수정: 2026-10-14_
+_최종 수정: 2026-10-24_
 
 ## 한눈에 보기
 
@@ -89,21 +89,21 @@ macOS와 호스트 앱이 보안 입력(secure event input)을 올바르게 활�
 - 제안 내용에 비밀번호·개인정보를 적지 마세요. 실제 제출 전 내용을 확인할 수 있습니다.
 - 구현: `Sources/WordSuggestion.swift`의 `emailURL`·`issueURL`, `Sources/WordSuggestionSettingsSection.swift`의 작성창 열기, `Sources/PersonalDictionarySettingsSection.swift`의 `suggestRecent`.
 
-### 9. 자동 업데이트 (2026-10-08 갱신)
+### 9. 새 버전 알림과 설치 (2026-10-24 갱신)
 
-앱이 **처음으로 인터넷에 접속하는** 기능이라 따로 적습니다. 설정 창의 **업데이트** 절에서 켜고 끌 수 있습니다.
+앱이 **처음으로 인터넷에 접속하는** 기능이라 따로 적습니다. 설정 창의 **버전·업데이트**에서 **새 버전 알림**을 켜고 끌 수 있습니다.
 
 **나가는 요청은 두 가지뿐입니다.**
 
 | 언제 | 어디로 | 무엇이 담기나 |
 |---|---|---|
 | 새 버전 확인 | `https://api.github.com/repos/Hyunjin-Cho/HaneulKeyboard/releases/latest` | **요청 본문 없음.** 헤더 2개뿐: `Accept: application/vnd.github+json`, `User-Agent: HaneulKeyboard/<버전>` |
-| 새 버전 내려받기 (사용자가 **업데이트** 버튼을 눌렀을 때만) | `https://github.com/.../releases/download/<버전>/HaneulKeyboard_<버전>.zip` (GitHub의 자산 CDN으로 자동 이동) | 같은 헤더 2개뿐 |
+| 새 버전 내려받기 (사용자가 **새 버전 설치** 버튼을 눌렀을 때만) | `https://github.com/.../releases/download/<버전>/HaneulKeyboard_<버전>.zip` (GitHub의 자산 CDN으로 자동 이동) | 같은 헤더 2개뿐 |
 
 - **올려보내는 데이터가 없습니다**: 계정·이메일·기기 식별자·설치 ID·통계 어느 것도 보내지 않습니다. `User-Agent`에 담기는 것은 **앱 버전 하나**이며, 그 값은 공개된 릴리스 번호(예: `HaneulKeyboard/2026.08`)라 사용자를 가리키지 않습니다. 쿠키를 주고받지 않고(`httpCookieAcceptPolicy = .never`), 디스크 캐시 없는 세션(`ephemeral`)을 씁니다.
 - **GitHub가 보게 되는 것**: 다른 웹사이트에 접속할 때와 같습니다 — 요청한 주소, 접속 시각, 그리고 IP 주소(모든 인터넷 요청에 따라옵니다). 하늘키보드가 여기에 무언가를 **더해 보내지 않습니다**. GitHub의 처리 방침은 [GitHub 개인정보처리방침](https://docs.github.com/site-policy/privacy-policies/github-privacy-statement)을 따릅니다.
-- **끄면 요청이 0입니다**: "업데이트 자동 확인"을 끄면 앱은 스스로 인터넷에 나가지 않습니다. 그 상태에서는 **"지금 확인" 버튼을 누른 그 순간에만** 위 첫 번째 요청이 한 번 나갑니다.
-- **켜져 있을 때(기본값)**: 앱 실행 약 15초 뒤와 실행 중 매시간 마지막 성공 확인에서 24시간이 지났는지 살펴보고, 확인할 때가 되면 위 첫 번째 요청만 보냅니다. 실패하면 다음 시간에 재시도합니다. 새 버전을 발견하면 현재·새 버전 안내창을 한 번 띄우며, 같은 버전은 재실행 뒤에도 자동으로 반복해서 알리지 않습니다. ‘지금 확인’은 같은 버전도 다시 알려줍니다. 새 버전이 있어도 **알리기만 하고 자동으로 설치하지 않습니다** — 내려받기는 사용자가 **업데이트**를 눌러야 시작합니다.
+- **끄면 요청이 0입니다**: "새 버전 알림"을 끄면 앱은 스스로 인터넷에 나가지 않습니다. 그 상태에서는 **"지금 확인" 버튼을 누른 그 순간에만** 위 첫 번째 요청이 한 번 나갑니다.
+- **켜져 있을 때(기본값)**: 앱 실행 약 15초 뒤와 실행 중 매시간 마지막 성공 확인에서 24시간이 지났는지 살펴보고, 확인할 때가 되면 위 첫 번째 요청만 보냅니다. 실패하면 다음 시간에 재시도합니다. 새 버전을 발견하면 현재·새 버전 안내창을 한 번 띄우며, 같은 버전은 재실행 뒤에도 자동으로 반복해서 알리지 않습니다. ‘지금 확인’의 결과는 같은 설정 화면에 표시하고 별도 알림창을 띄우지 않습니다. 설정에서 확인한 버전도 이후 자동으로 반복 안내하지 않습니다. 새 버전이 있어도 **알리기만 하고 자동으로 설치하지 않습니다** — 내려받기는 사용자가 **새 버전 설치**를 눌러야 시작합니다.
 - **받은 파일을 검증한 뒤에만 설치합니다**: 번들 ID, 서명 Team(개발자 인증서), `codesign --verify --deep --strict`(**애플이 발급한 인증서 사슬로 우리 Team이 서명했는지**까지 요구합니다 — 2026-09-21 강화), `spctl -a -t exec`(애플 공증), 버전이 실제로 올라갔는지 — **다섯 가지가 전부 통과할 때만** 응용 프로그램 폴더의 앱을 바꿉니다. 하나라도 어긋나면 받은 파일을 버리고 기존 앱을 그대로 둡니다. 검증에 앞서 압축을 푼 결과가 **추출 폴더 안의 실제 앱 폴더인지**(심볼릭 링크가 아닌지)도 확인합니다. 주소는 HTTPS의 GitHub 도메인으로 제한하며, 다른 곳으로 이동시키려는 응답은 따라가지 않습니다.
 - **기기에 남는 것**: 메인 앱 설정 도메인 `com.hyunjincho.haneulkeyboard`의 `haneul.updateAutoCheck`(켜짐/꺼짐), `haneul.updateLastCheck`(마지막 성공 확인 시각), `haneul.updateLatestVersion`(최근 확인한 최신 버전), `haneul.updateLastNotifiedVersion`(이미 알린 버전) 네 값입니다. 어디로도 전송되지 않습니다.
 - 구현: [`Sources/Updater.swift`](./Sources/Updater.swift)(요청·업데이트 흐름), [`Sources/UpdateTransport.swift`](./Sources/UpdateTransport.swift)(응답·다운로드 크기 제한), [`Sources/UpdateReplacement.swift`](./Sources/UpdateReplacement.swift)(교체·실패 복구), [`Sources/UpdateDecisions.swift`](./Sources/UpdateDecisions.swift)(판단 규칙), [`Sources/UpdateSettingsSection.swift`](./Sources/UpdateSettingsSection.swift)(설정 화면)
@@ -114,7 +114,7 @@ macOS와 호스트 앱이 보안 입력(secure event input)을 올바르게 활�
 
 An IME is sensitive software — it handles your keyboard input. This document states plainly what HaneulKeyboard sees, what it stores, and what it does not do. Every claim below is verifiable against the [public source code](https://github.com/Hyunjin-Cho/HaneulKeyboard).
 
-_Last updated: 2026-10-14_
+_Last updated: 2026-10-24_
 
 ## At a Glance
 
@@ -193,21 +193,21 @@ Settings and **Suggest…** in the reverted-word list open a review form. Choose
 - Do not include passwords or personal information. Review the draft before submitting.
 - Implementation: `Sources/WordSuggestion.swift` (`emailURL`, `issueURL`), `Sources/WordSuggestionSettingsSection.swift`, and `Sources/PersonalDictionarySettingsSection.swift` (`suggestRecent`).
 
-### 9. Automatic updates (updated 2026-10-08)
+### 9. New-version notices and installation (updated 2026-10-24)
 
-This is the **first feature that reaches the internet**, so it gets its own section. You can turn it on or off in the **Updates** section of Settings.
+This is the **first feature that reaches the internet**, so it gets its own section. You can turn it on or off using **New-version notifications** in the **Version & Updates** section of Settings.
 
 **There are exactly two outgoing requests.**
 
 | When | Where | What it carries |
 |---|---|---|
 | Version check | `https://api.github.com/repos/Hyunjin-Cho/HaneulKeyboard/releases/latest` | **No request body.** Two headers only: `Accept: application/vnd.github+json` and `User-Agent: HaneulKeyboard/<version>` |
-| Download (only after you click **Update**) | `https://github.com/.../releases/download/<version>/HaneulKeyboard_<version>.zip` (redirected to GitHub's asset CDN) | The same two headers, nothing else |
+| Download (only after you click **Install new version**) | `https://github.com/.../releases/download/<version>/HaneulKeyboard_<version>.zip` (redirected to GitHub's asset CDN) | The same two headers, nothing else |
 
 - **Nothing about you is uploaded**: no account, email, device identifier, install ID, or usage statistics. The `User-Agent` carries **one thing — the app version** (e.g. `HaneulKeyboard/2026.08`), a public release number that does not identify you. Cookies are refused (`httpCookieAcceptPolicy = .never`) and the session is `ephemeral` (no disk cache).
 - **What GitHub sees**: the same as visiting any website — the URL requested, the time, and your IP address (which accompanies every internet request). HaneulKeyboard adds nothing to that. GitHub's own handling is covered by the [GitHub Privacy Statement](https://docs.github.com/site-policy/privacy-policies/github-privacy-statement).
-- **Off means zero requests**: with "Check for updates automatically" turned off, the app never reaches the network on its own. The first request above is then made **only at the moment you press "Check now"**.
-- **On (the default)**: the app checks whether 24 hours have passed since its last successful check, about 15 seconds after launch and hourly while running. It sends the first request only when due; failed checks retry on the next hourly tick. A notice shows the current and new versions once per new version, including across restarts. “Check now” can show the same version again. Even when a new version exists, it is **only announced, never installed automatically** — downloading begins only when you click **Update**.
+- **Off means zero requests**: with "New-version notifications" turned off, the app never reaches the network on its own. The first request above is then made **only at the moment you press "Check now"**.
+- **On (the default)**: the app checks whether 24 hours have passed since its last successful check, about 15 seconds after launch and hourly while running. It sends the first request only when due; failed checks retry on the next hourly tick. A notice shows the current and new versions once per new version, including across restarts. “Check now” displays its result in the same settings screen without a separate notice window. A version seen there is not announced again by automatic checks. Even when a new version exists, it is **only announced, never installed automatically** — downloading begins only when you click **Install new version**.
 - **Downloads are verified before anything is installed**: bundle ID, signing Team (developer certificate), `codesign --verify --deep --strict` (which since 2026-09-21 also requires that an Apple-issued certificate chain and **our Team** produced the signature), `spctl -a -t exec` (Apple notarization), and a genuine version increase — the app in your Applications folder is replaced **only if all five pass**. If any check fails, the download is discarded and your existing app is left untouched. Before any of that, the extracted bundle must be a **real directory inside the extraction folder**, not a symbolic link. Addresses are restricted to GitHub's HTTPS domains, and redirects pointing elsewhere are not followed.
 - **What stays on your device**: four values in the main app's defaults domain `com.hyunjincho.haneulkeyboard` — `haneul.updateAutoCheck` (on/off), `haneul.updateLastCheck` (last successful check), `haneul.updateLatestVersion` (last known latest version), and `haneul.updateLastNotifiedVersion` (already announced version). None is transmitted.
 - Implementation: [`Sources/Updater.swift`](./Sources/Updater.swift) (requests and update flow), [`Sources/UpdateTransport.swift`](./Sources/UpdateTransport.swift) (response/download size limits), [`Sources/UpdateReplacement.swift`](./Sources/UpdateReplacement.swift) (replacement and failure recovery), [`Sources/UpdateDecisions.swift`](./Sources/UpdateDecisions.swift) (decision rules), [`Sources/UpdateSettingsSection.swift`](./Sources/UpdateSettingsSection.swift) (Settings UI)

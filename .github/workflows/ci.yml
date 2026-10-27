@@ -65,8 +65,8 @@ jobs:
         run: python3 Tests/run_vocabulary_extension_tests.py
       - name: Run slash English session and composition tests
         run: bash scripts/run_slash_tests.sh
-      - name: Run input source indicator policy and offscreen panel tests
-        run: bash scripts/run_input_source_indicator_tests.sh
+      - name: Run controller session and deletion regressions
+        run: python3 scripts/run_controller_tests.py
       - name: Audit registered Hangul dictionary
         run: python3 scripts/audit_phonetic_dictionary.py
       - name: Run update transport and trust tests (Debug and Release)

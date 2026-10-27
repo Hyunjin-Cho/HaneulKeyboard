@@ -28,8 +28,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var updateNoticeWindow: NSWindow?
     // deinit(nonisolated)에서 해제하므로 actor 격리에서 제외.
     nonisolated(unsafe) private var sourceObserver: NSObjectProtocol?
-    nonisolated(unsafe) private var indicatorPreferencesObserver: NSObjectProtocol?
-    private var inputSourceIndicator: InputSourceTransitionIndicator?
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         // 응용 프로그램 폴더 밖이면 옮긴다(App Translocation 방지) — 메뉴바 생성보다 먼저.
@@ -60,14 +58,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // 토글 OFF면 네트워크에 나가지 않는다. 결과는 표시만 — 설치는 사용자 클릭.
         core.updater.startAutomaticChecks()
 
-        // 현재 상태를 기준으로 시작한다. 이미 하늘을 쓰는 중 앱을 실행해도 전환 안내는 띄우지 않는다.
-        inputSourceIndicator = InputSourceTransitionIndicator(currentSourceID: InputSwitcher.currentSourceID())
-        indicatorPreferencesObserver = NotificationCenter.default.addObserver(
-            forName: .haneulInputSourceIndicatorPreferencesChanged, object: nil, queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.inputSourceIndicator?.preferencesDidChange() }
-        }
-        // 입력 소스 변경 알림 → 메뉴바 도움말·접근성 설명 + core 상태 + 짧은 전환 안내.
+        // 입력 소스 변경 알림은 메뉴바 도움말·접근성 설명과 실제 상태 갱신에만 사용한다.
         sourceObserver = DistributedNotificationCenter.default.addObserver(
             forName: NSNotification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String),
             object: nil, queue: .main
@@ -76,10 +67,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             MainActor.assumeIsolated {
                 self?.core.refreshLanguage()
                 self?.updateButtonDescription()
-                if let self {
-                    self.inputSourceIndicator?.sourceDidChange(to: InputSwitcher.currentSourceID(),
-                                                               isPreparingIME: self.core.isPreparingIME)
-                }
             }
         }
     }
@@ -102,13 +89,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if let sourceObserver {
             DistributedNotificationCenter.default.removeObserver(sourceObserver)
         }
-        if let indicatorPreferencesObserver {
-            NotificationCenter.default.removeObserver(indicatorPreferencesObserver)
-        }
-    }
-
-    func applicationWillTerminate(_ notification: Notification) {
-        inputSourceIndicator?.dismiss()
     }
 
     private func updateButtonDescription() {
@@ -144,9 +124,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             addDisabled(menu, "한글 입력기(IME) 미설치 — 설정에서 설치 권장")
         }
 
-        // 2026-09-21 (#19): 새 버전이 있으면 알린다 — 설치는 설정의 [업데이트]에서 사용자가.
+        // 2026-10-24: 메뉴와 알림 모두 기존 버전·업데이트 화면으로 안내한다.
         if case .available(let update) = core.updater.phase {
-            add(menu, "새 버전 \(update.tag) 사용 가능 — 업데이트...", #selector(openUpdateSettings))
+            add(menu, "새 버전 \(update.tag) — \(SettingsTab.update.title)…", #selector(openUpdateSettings))
         }
 
         menu.addItem(.separator())

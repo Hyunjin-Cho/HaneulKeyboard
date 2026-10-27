@@ -20,12 +20,14 @@ enum WordSuggestion {
         case add
         /// "이건 바뀌면 안 돼" — `typed`(친 글자)가 `expected`(원치 않는 영어)로 바뀌었다.
         case block
+        case field
 
         /// 설정 Picker와 이슈 본문에 쓰는 이름.
         var displayName: String {
             switch self {
             case .add: return "변환 추가 제안"
             case .block: return "변환 금지 제안"
+            case .field: return "산업군·분야 제안"
             }
         }
 
@@ -34,8 +36,10 @@ enum WordSuggestion {
             switch self {
             case .add: return "기대한 결과"
             case .block: return "바뀐 결과 (원치 않음)"
+            case .field: return "필요한 용어 (선택)"
             }
         }
+        var typedLabel: String { self == .field ? "산업군·분야" : "친 글자 (한글 모드에서 보인 표기)" }
     }
 
     /// 이슈 작성 페이지. `template` 파라미터는 붙이지 않는다 — 쿼리 `body`가 템플릿 본문을
@@ -64,7 +68,8 @@ enum WordSuggestion {
         typed: String, expected: String, kind: Kind,
         note: String = "", appVersion: String = "", osVersion: String = ""
     ) -> URL? {
-        guard let typedLine = singleLine(typed), let expectedLine = singleLine(expected) else { return nil }
+        guard let typedLine = singleLine(typed),
+              let expectedLine = singleLine(expected) ?? (kind == .field ? "(미지정)" : nil) else { return nil }
         let noteText = note.trimmingCharacters(in: .whitespacesAndNewlines)
         let title = issueTitle(typed: typedLine, expected: expectedLine, kind: kind)
 
@@ -82,7 +87,8 @@ enum WordSuggestion {
         typed: String, expected: String, kind: Kind,
         note: String = "", appVersion: String = "", osVersion: String = ""
     ) -> URL? {
-        guard let typedLine = singleLine(typed), let expectedLine = singleLine(expected) else { return nil }
+        guard let typedLine = singleLine(typed),
+              let expectedLine = singleLine(expected) ?? (kind == .field ? "(미지정)" : nil) else { return nil }
         let title = issueTitle(typed: typedLine, expected: expectedLine, kind: kind)
         return boundedURL(note: note.trimmingCharacters(in: .whitespacesAndNewlines)) { note in
             let body = issueBody(typed: typedLine, expected: expectedLine, kind: kind,
@@ -129,6 +135,7 @@ enum WordSuggestion {
         switch kind {
         case .add: return "\(titlePrefix) \(t) → \(e)"
         case .block: return "\(titlePrefix) \(t) → \(e) (변환 금지)"
+        case .field: return "\(titlePrefix) \(t) (산업군·분야)"
         }
     }
 
@@ -142,7 +149,7 @@ enum WordSuggestion {
         return """
         ## 단어 제안 — \(kind.displayName)
 
-        - **친 글자 (한글 모드에서 보인 표기):** \(typed)
+        - **\(kind.typedLabel):** \(typed)
         - **\(kind.expectedLabel):** \(expected)
 
         ### 메모
@@ -153,7 +160,7 @@ enum WordSuggestion {
         - macOS: \(osVersion.isEmpty ? "(알 수 없음)" : osVersion)
 
         ### 확인
-        - [ ] 이 기기에서는 설정 → 개인 사전(변환 추가 / 변환 금지)으로 먼저 해결했습니다.
+        - [ ] 모두의 사전에 반영할 제안입니다. 이 기기에서만 바꾸려면 개인 사전을 사용합니다.
         - [ ] 위 내용에 비밀번호나 개인정보가 들어 있지 않습니다.
 
         _\(footer)_

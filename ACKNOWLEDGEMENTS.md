@@ -37,6 +37,12 @@
 - https://opendict.korean.go.kr
 - 라이선스: CC-BY-SA 2.0 KR
 - 영타 자동 변환이 "이 글자가 실존하는 한국어 단어인가"를 판정할 때 쓰는 **표제어 67.7만 개**([`Resources/IM/korean_words.txt`](./Resources/IM/korean_words.txt))의 출처입니다. 우리말의 보고를 모두에게 열어준 국립국어원과 우리말샘 참여자들께 감사드립니다.
+- 2026-10-18 일반 명사 확장에서는 기존2026-06-03 원자료의 명사·뜻 번호·뜻 수·외국어 표기를 대조했습니다. 영어 대응은 직접 작성·검토했으며 원문 정의·예문을 제품에 복제하지 않았습니다. [범위와 항목별 출처](docs/feedback/2026-10-18-build89/04-noun-expansion-review.md).
+
+### 국립국어원 한국어 학습용 어휘 목록
+- 출처: https://www.korean.go.kr/front/etcData/etcDataView.do?etc_seq=71
+- 공공누리 제1유형(출처 표시). 2026-10-18 명사 보강 후보를 찾고 명사 목록에 속하는지 대조할 때 사용했습니다. 이 목록을 영어 번역 출처로 사용하지 않았습니다.
+
 
 ### New General Service List (NGSL)
 - https://www.newgeneralservicelist.com
@@ -75,6 +81,7 @@
 - https://www.wikidata.org
 - 라이선스: CC0 1.0 (퍼블릭 도메인)
 - 영타 자동 변환의 **축구 클럽·선수 사전**(잉글랜드·프랑스·스페인·이탈리아 9개 리그)의 출처입니다. 구조화된 지식을 퍼블릭 도메인으로 공개한 Wikidata 커뮤니티에 감사드립니다.
+- 2026-10-18 명사 보강에서는 후보의 한국어·영어 명칭/별칭을 보조 대조했습니다. 구조화된 명칭은 CC0이며 설명문·이미지는 복제하지 않았습니다. 항목별 링크와 직접 작성/대조 수준은 [추가 목록](dict_work/2026-10-18-phonetic-reviewed-nouns.tsv)에 기록했습니다.
 
 ## 개발에 함께한 도구
 
@@ -120,14 +127,15 @@ Current application code is licensed under Apache License 2.0. `NOTICE` identifi
 - **[Nanum Pen Script](https://github.com/google/fonts/tree/main/ofl/nanumpenscript)** — Copyright (c) 2010, NHN Corporation, SIL Open Font License 1.1. The unmodified font is bundled for brief handwritten onboarding cues, with the full license in `Resources/Onboarding/NanumPenScript-OFL.txt` (2026-10-07). Registered for this app process only.
 
 - **[McBopomofo](https://github.com/openvanilla/McBopomofo)** (OpenVanilla, MIT) — A Bopomofo input method for Taiwanese Mandarin. Its approach to **registering and installing a TIS (Text Input Services) input method on macOS** — a signed, notarized host app that installs the IME bundle — was a decisive reference.
-- **[Urimalsaem (우리말샘)](https://opendict.korean.go.kr)** (National Institute of Korean Language, CC-BY-SA 2.0 KR) — Source of the 677k Korean headwords used by the wrong-layout auto-correction to verify real Korean words.
+- **[Urimalsaem (우리말샘)](https://opendict.korean.go.kr)** (National Institute of Korean Language, CC-BY-SA 2.0 KR) — Source of the 677k Korean headwords used by the wrong-layout auto-correction to verify real Korean words. The existing 2026-06-03 snapshot also informed noun/POS/sense checks for the 2026-10-18 explicitly triggered noun expansion; definitions and examples are not bundled.
+- **[NIKL Korean vocabulary list for learners](https://www.korean.go.kr/front/etcData/etcDataView.do?etc_seq=71)** (KOGL Type 1) — Used for noun coverage checks on 2026-10-18, not as an English translation source.
 - **[New General Service List (NGSL)](https://www.newgeneralservicelist.com)** (Browne, C., Culligan, B., & Phillips, J., CC BY-SA 4.0) — Source of the 2,809 high-frequency modern English lemmas (10k+ word forms) used by the wrong-layout auto-correction to verify real English words.
 - **[US Census Bureau — 2010 Census Surnames](https://www.census.gov/topics/population/genealogy/data/2010_surnames.html)** (Public Domain) — The source dataset contains about 162k surnames. After processing and filtering, Census surnames and SSA first names are bundled together in `english_names.txt` (28,378 entries).
 - **[US Social Security Administration — Baby Names](https://www.ssa.gov/oact/babynames/)** (Public Domain) — Source of the first-name data (yearly birth registrations since 1880) used for recognizing personal names.
 - **[SCOWL / ESDB (English Speller Database)](https://wordlist.aspell.net)** (Kevin Atkinson, MIT-like license — Copyright 2000-2026 by Kevin Atkinson) — The source size-70 American English list contains about 167k words; the processed and filtered `english_modern.txt` bundled with the app contains 71,348 entries. Thanks to Kevin Atkinson and contributors (including Alan Beale of 12dicts) for decades of curating English spelling data.
 - **Bundled name data:** `english_names.txt` contains 28,378 processed Census/SSA entries. `english_names_extra.txt` is a hand-curated famous-person supplement and is not sourced from Census or SSA.
 - **[GeoNames](https://www.geonames.org)** (CC BY 4.0) — Source of the place-name dictionary (North American & European states/provinces + cities with population 50k+) used by the wrong-layout auto-correction.
-- **[Wikidata](https://www.wikidata.org)** (Wikimedia, CC0 1.0 Public Domain) — Source of the football club & player dictionary (9 leagues across England, France, Spain, Italy) used by the wrong-layout auto-correction.
+- **[Wikidata](https://www.wikidata.org)** (Wikimedia, CC0 1.0 Public Domain) — Source of the football club & player dictionary (9 leagues across England, France, Spain, Italy) used by the wrong-layout auto-correction. Structured Korean/English labels and aliases also corroborated directly authored noun mappings on 2026-10-18; descriptions and media were not copied.
 ## Development tools
 
 - **Anthropic — [Claude](https://claude.com/claude-code)** — A companion throughout design, debugging, and documentation.

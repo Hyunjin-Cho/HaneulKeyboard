@@ -78,7 +78,6 @@ struct EnglishConversionSettingsTab: View {
                 } else {
                     RevertKeySettingsSection()
                     SlashEnglishSettingsSection()
-                    InputSourceIndicatorSettingsSection()
                 }
             }
             .formStyle(.grouped)

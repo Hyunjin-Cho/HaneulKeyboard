@@ -1,8 +1,43 @@
 import Foundation
+import Carbon
 
 /// 공통 제품 순서를 그대로 실행한다. 개인 데이터 대신 임시 폴더·독립 defaults 도메인만 쓴다.
 @MainActor enum UninstallTests {
     static func run(_ check: (Bool, String) -> Void) {
+        let parent = RemovalObservation.InputSourceSnapshot(id: RemovalObservation.imeID,
+            bundleID: RemovalObservation.imeID, type: kTISTypeKeyboardInputMethodModeEnabled as String,
+            enabled: false, selected: false)
+        let child = RemovalObservation.InputSourceSnapshot(id: RemovalObservation.imeID + ".korean",
+            bundleID: RemovalObservation.imeID, type: kTISTypeKeyboardInputMode as String,
+            enabled: true, selected: false)
+        let other = "com.apple.keylayout.ABC"
+        check(RemovalObservation.inputSourceState([parent, child], currentID: other).reachedGoal,
+              "입력 소스: 꺼진 부모 아래 enabled 자식 잔류는 선택 불가")
+        var enabledParent = parent; enabledParent.enabled = true
+        check(!RemovalObservation.inputSourceState([enabledParent, child], currentID: other).reachedGoal,
+              "입력 소스: 켜진 부모/자식은 계속 차단")
+        var unknownParent = parent; unknownParent.enabled = nil
+        check(!RemovalObservation.inputSourceState([unknownParent, child], currentID: other).reachedGoal,
+              "입력 소스: 부모 활성 불명은 차단")
+        check(!RemovalObservation.inputSourceState([child], currentID: other).reachedGoal,
+              "입력 소스: 부모 미발견은 꺼짐으로 추정하지 않음")
+        check(!RemovalObservation.inputSourceState([parent, child], currentID: child.id).reachedGoal,
+              "입력 소스: 현재 우리 모드 선택 중이면 차단")
+        check(!RemovalObservation.inputSourceState([parent, child], currentID: nil).reachedGoal,
+              "입력 소스: 현재 소스 불명이면 차단")
+        check(!RemovalObservation.inputSourceState([parent, parent, child], currentID: other).reachedGoal,
+              "입력 소스: 중복 부모는 모호하므로 차단")
+        var selectedChild = child; selectedChild.selected = true
+        check(!RemovalObservation.inputSourceState([parent, selectedChild], currentID: other).reachedGoal,
+              "입력 소스: selected 자식과 현재 소스 불일치는 차단")
+        var unknownChild = child; unknownChild.selected = nil
+        check(!RemovalObservation.inputSourceState([parent, unknownChild], currentID: other).reachedGoal,
+              "입력 소스: 자식 선택 상태 불명은 차단")
+        var otherChild = child; otherChild.id = RemovalObservation.imeID + ".unexpected"
+        check(!RemovalObservation.inputSourceState([parent, otherChild], currentID: other).reachedGoal,
+              "입력 소스: 알려지지 않은 다른 모드는 예외로 풀지 않음")
+        check(RemovalObservation.inputSourceState([], currentID: other) == .alreadyAbsent,
+              "입력 소스: 부모/모드 모두 없으면 부재")
         let cases = ["success", "already-absent", "prepare-unknown", "input-unknown", "process-unknown", "cancel", "file-failed", "reappeared", "late-reappeared", "registration-unknown", "source-enabled", "source-unknown", "settings-failed", "main-failed"]
         for mode in [RemovalReport.Mode.wholeProduct, .inputMethod, .commandLine] {
             for scenario in cases {

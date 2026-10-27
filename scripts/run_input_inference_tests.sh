@@ -8,7 +8,7 @@ swiftc -module-cache-path "$INPUT_TEST_DIR/module-cache" -o "$INPUT_TEST_DIR/tes
   IMESources/HangulJamo.swift IMESources/KeyboardLayout2Set.swift \
   IMESources/Contractions.swift IMESources/AlphanumericWords.swift \
   IMESources/MeasurementUnits.swift IMESources/PhoneticDictionary.swift \
-  IMESources/KoreanComposer.swift IMESources/ManualToggle.swift \
+  IMESources/EnglishParticleSplitter.swift IMESources/KoreanComposer.swift IMESources/ManualToggle.swift \
   IMESources/EnglishDetector.swift IMESources/KoreanDictionary.swift \
   IMESources/PersonalDictionary.swift IMESources/ExternalEnglishContext.swift \
   Shared/InputInferencePolicy.swift Tests/InputInferenceTests.swift

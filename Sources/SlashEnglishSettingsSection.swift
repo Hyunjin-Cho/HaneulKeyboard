@@ -13,7 +13,7 @@ struct SlashEnglishSettingsSection: View {
                 .onChange(of: enabled) { _, value in
                     Self.imeDefaults?.set(value, forKey: SlashEnglishSession.defaultsKey)
                 }
-            Text("한글 모드에서 /를 치면 이어지는 글자가 영어로 바로 입력됩니다. 일반 Space를 한 번 누르면 한글 입력으로 돌아옵니다. 예: /help")
+            Text("한글 모드에서 /를 치면 이어지는 글자가 영어로 바로 입력됩니다. 일반 Space, 슬래시 삭제 또는 닫는 괄호 ) ] } 뒤에는 한글 입력으로 돌아옵니다. 예: /help")
                 .font(SettingsTypography.body)
                 .foregroundStyle(.secondary)
             Text("영타 자동 변환과 앱별 자동 변환 설정에 관계없이 동작합니다.")

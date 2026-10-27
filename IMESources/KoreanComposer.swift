@@ -20,16 +20,16 @@ protocol ComposerClient {
 /// keystrokes form a known English word (e.g. 메ㅔㅣㄷ ← "apple"), the
 /// original keystrokes are committed instead — see EnglishDetector.
 final class KoreanComposer {
-    /// Gates the English auto-correction at word commit. The word-level
+    /// Gates English conversion and its particle preview. The word-level
     /// buffering itself is always on.
     var autoEnglishEnabled = true
 
     /// #24: 정확 curated 단어 두 개를 붙여 쓴 경우만 보수적으로 판정한다.
     var dictionaryCompoundEnabled = InputInferencePolicy.dictionaryCompoundDefault
 
-    /// 2026-09-21 (#53): 개인 사전(변환 추가·변환 금지). 컨트롤러가 활성 경계마다
-    /// defaults에서 읽어 넘긴다(`autoEnglishEnabled`와 같은 시점). 판정 합성은
-    /// `shouldConvertWord` 한 곳에서만 한다.
+    /// 2026-09-21 (#53): 개인 사전(변환 추가·변환 금지). 컨트롤러가 표시 갱신과
+    /// 확정 전에 defaults에서 읽어 넘긴다(`autoEnglishEnabled`와 같은 시점).
+    /// 조사 판정도 전체/접두어에 같은 개인 사전 정책을 적용한다.
     var personalDictionary = PersonalDictionary.empty
 
     /// The most recent commit, when it was English (lowercased; nil = the
@@ -220,6 +220,30 @@ final class KoreanComposer {
     private let maxWordUnits = 40
     private var didSpillWord = false
 
+    private var particlePreview: EnglishParticleSplitter.Preview?
+    private var particlePreviewSuppressed = false
+    private var lastMarkedText: String?
+
+    /// 컨트롤러가 조합 범위·커서를 대조한 뒤 미확정 표시만 토글한다.
+    var pendingParticlePreviewText: String? {
+        particlePreview == nil ? nil : lastMarkedText
+    }
+
+    @discardableResult
+    func togglePendingParticlePreview(client: ComposerClient) -> Bool {
+        updateParticlePreview()
+        guard particlePreview != nil else { return false }
+        particlePreviewSuppressed.toggle()
+        refreshMarkedText(client: client)
+        return true
+    }
+
+    private func clearParticlePreview() {
+        particlePreview = nil
+        particlePreviewSuppressed = false
+        lastMarkedText = nil
+    }
+
     /// #84: 조합 중 등록 발음은 한 번의 단축키로 확정한다. 미등록 조합의 기존 경계 처리는 유지한다.
     var hasPendingComposition: Bool { !word.isEmpty || !buffer.isEmpty }
 
@@ -234,14 +258,19 @@ final class KoreanComposer {
     /// marked text 교체는 조합기의 원본을 사용한다. 문서의 좌우 경계 확인은 컨트롤러가 담당한다.
     /// 일반 commit/Space 경로에서는 절대 호출하지 않는다.
     @discardableResult
-    func commitPhonetic(to client: ComposerClient, dictionary: PhoneticDictionary = .bundled) -> Bool {
+    func commitPhonetic(to client: ComposerClient, dictionary: PhoneticDictionary = .bundled,
+                        isCurrentSession: () -> Bool = { true }) -> Bool {
         guard let conversion = pendingPhoneticConversion(dictionary: dictionary) else { return false }
         buffer = SyllableBuffer()
         pendingKeys = []
         word = []
         didSpillWord = false
+        clearParticlePreview()
         client.insertText(conversion.english)
         client.setMarkedText("")
+        // 2026-10-20: an RPC can finish a new input session before it returns.
+        // Do not resurrect the old pair or erase a conversion made in the new one.
+        guard isCurrentSession() else { return true }
         applyToggle(toEnglish: true, hangul: conversion.hangul, english: conversion.english, origin: .phonetic)
         return true
     }
@@ -269,6 +298,7 @@ final class KoreanComposer {
             if !hangul.isEmpty { client.insertText(hangul) }
             word = []
             didSpillWord = true
+            clearParticlePreview()
             lastEnglishWord = nil // spill emits Hangul — breaks English context
         }
 
@@ -300,6 +330,7 @@ final class KoreanComposer {
             client.insertText(wordText())
             word = []
             didSpillWord = true
+            clearParticlePreview()
             lastEnglishWord = nil
         }
         refreshMarkedText(client: client)
@@ -338,11 +369,16 @@ final class KoreanComposer {
     /// 흡수하지 않는 경우(false를 돌려 컨트롤러의 기존 경계 처리로 넘긴다):
     ///   - 단어가 비어 있을 때 → 여는 따옴표다 (`'안녕`)
     ///   - 이미 `'`가 하나 있을 때 → 두 번째 `'`는 경계로 본다 (단순화)
+    ///   - 조사 미리보기가 있을 때 → 닫는 따옴표로 현재 조사/원문 선택을 확정한다
     /// - Returns: 키를 소비했으면 true.
     func handleApostrophe(_ character: Character, client: ComposerClient) -> Bool {
         guard Contractions.isApostrophe(character) else { return false }
         guard !word.isEmpty || !buffer.isEmpty else { return false }
         guard apostropheIndex == nil else { return false }
+        // 2026-10-20 빌드90: github로 같은 조사 미리보기 뒤의 따옴표는 활성 경계다.
+        // 축약형으로 흡수하면 미리보기와 조사 판정이 사라져 원문으로 되돌아간다.
+        // 원문 표시로 수동 취소한 경우도 commit의 억제 상태를 그대로 적용한다.
+        guard particlePreview == nil else { return false }
         lastConversion = nil // 새 글자 입력 = 되돌리기 기회 끝 (handleInput과 동일)
         stashBuffer()
         word.append((text: String(character), keys: [character]))
@@ -366,12 +402,25 @@ final class KoreanComposer {
         defer {
             word = []; didSpillWord = false; lastQuantity = nextQuantity
             externalEnglishWord = nil
+            clearParticlePreview()
         }
 
         let hangul = wordText()
         guard !hangul.isEmpty else {
             client.setMarkedText("")
             return ""
+        }
+
+        // 클릭/입력 소스 전환은 마지막으로 보인 조합을 그대로 확정한다.
+        // 미리보기에서 원본으로 되돌린 선택도 현재 단어가 끝날 때까지 유지한다.
+        if !convertEnglish || particlePreviewSuppressed {
+            let displayed = convertEnglish ? hangul : (lastMarkedText ?? hangul)
+            lastEnglishWord = nil
+            lastConversion = displayed != hangul ? (hangul, displayed) : nil
+            lastConversionOrigin = .automatic
+            client.insertText(displayed)
+            client.setMarkedText("")
+            return displayed
         }
 
         let committed: String
@@ -393,6 +442,23 @@ final class KoreanComposer {
             // 2026-09-19 (#34): `'`를 품은 단어는 축약형 경로로 판정한다.
             committed = commitTextWithApostrophe(
                 at: apostrophe, convertible: convertible, hangul: hangul)
+        } else if convertible,
+                  let decision = EnglishParticleSplitter.split(keys: keys, hangul: hangul,
+                                                               personalDictionary: personalDictionary) {
+            // 활성 경계에서 완성된 조사를 재검증한다. 미리보기의 임시 연장만으로 확정하지 않는다.
+            // 혼합 단어는 한국어 문맥으로 끝나지만, 전체 원문 ↔ 혼합 결과 되돌리기는 남긴다.
+            lastEnglishWord = nil
+            switch decision {
+            case .mixed(let text):
+                committed = text
+                lastConversion = (hangul, text)
+            case .preserveHangul:
+                committed = hangul
+                lastConversion = nil
+            }
+            client.insertText(committed)
+            client.setMarkedText("")
+            return committed
         } else if convertible, shouldConvertWord(units: units, keys: keys) {
             committed = String(keys)
         } else {
@@ -766,8 +832,28 @@ final class KoreanComposer {
 
     // MARK: - Output
 
+    private func updateParticlePreview() {
+        // keysToHangul 내부 조합기는 자동 변환 OFF다. 이 관문이 재귀 판정도 막는다.
+        guard autoEnglishEnabled, !didSpillWord, word.allSatisfy({ !$0.keys.isEmpty }) else {
+            particlePreview = nil
+            return
+        }
+        particlePreview = EnglishParticleSplitter.preview(
+            keys: word.flatMap(\.keys) + pendingKeys, hangul: wordText() + buffer.previewString(),
+            personalDictionary: personalDictionary, previousPrefix: particlePreview?.prefix)
+    }
+
     private func refreshMarkedText(client: ComposerClient) {
-        client.setMarkedText(wordText() + buffer.previewString())
+        if !hasPendingComposition {
+            clearParticlePreview()
+            client.setMarkedText("")
+            return
+        }
+        updateParticlePreview()
+        let text = !particlePreviewSuppressed ? particlePreview?.text : nil
+        let displayed = text ?? (wordText() + buffer.previewString())
+        lastMarkedText = displayed
+        client.setMarkedText(displayed)
     }
 }
 

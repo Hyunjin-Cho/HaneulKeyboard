@@ -270,13 +270,13 @@ struct PersonalDictionarySettingsSection: View {
 
     // MARK: - 최근 되돌린 변환
 
-    /// "금지": 그 영어 단어를 변환 금지에 넣고 목록에서 뺀다 — 설정 앱이 recentReverts 키를
+    /// "금지": 선택한 기록의 금지 키를 추가하고 해당 기록을 목록에서 뺀다 — 설정 앱이 recentReverts 키를
     /// 쓰는 유일한 자리(파일 상단 주석의 경쟁 허용 근거 참조).
     private func blockRecent(_ entry: RecentReverts.Entry) {
         guard let word = entry.blockEntry else { return }
         insertBlock(word)
         guard let defaults = Self.imeDefaults else { return }
-        let updated = RecentReverts.load(from: defaults).removing(english: entry.english)
+        let updated = RecentReverts.load(from: defaults).removing(blockedBy: word)
         updated.save(to: defaults)
         recent = updated.entries
     }

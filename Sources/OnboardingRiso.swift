@@ -16,30 +16,14 @@ enum OnboardingRiso {
     static let eaves = bundledImage("DancheongEaves")
     static let walkers = bundledImage("DancheongWalkers")
     static let landscape = bundledImage("DancheongLandscape")
-    // 2026-10-17(사용자 결정): 기각된 리그 조합 대신 여성 두 명은 옛 원본 시트로 복원한다.
-    // 첫 번째 여자는 걷기 앞 5자세, 세 번째 여자는 댄스 앞 5자세이며 6~7페이지는 마지막 자세를 유지한다.
-    // 남자는 승인된 원본 스킵 4자세 + 수정 다리 3자세 그대로 7페이지까지 이어진다.
-    // 페이지 전환 때만 그림이 바뀌고 읽는 동안에는 정지한다.
-    static let personPoses: [[NSImage]] = {
-        func cell(_ name: String, step: Int, columns: Int) -> NSImage? {
-            guard let cg = bundledImage(name).cgImage(forProposedRect: nil, context: nil, hints: nil),
-                  cg.width >= columns, cg.height >= 2 else { return nil }
-            let column = step % columns, row = step / columns
-            let x = cg.width * column / columns, y = cg.height * row / 2
-            let width = cg.width * (column + 1) / columns - x
-            let height = cg.height * (row + 1) / 2 - y
-            guard let frame = cg.cropping(to: CGRect(x: x, y: y, width: width, height: height)) else { return nil }
-            return NSImage(cgImage: frame, size: NSSize(width: width, height: height))
-        }
-        // 마지막은 첫 자세로 돌아가지 않고 점프·인사 자세로 끝난다.
-        let first = (0..<5).compactMap { cell("DancheongPersonWalk", step: $0, columns: 4) }
-        let third = (0..<5).compactMap { cell("DancheongPersonDance", step: $0, columns: 3) }
-        let man = (0..<7).compactMap { step in
-            cell(step < 4 ? "DancheongPersonSkip" : "DancheongPersonSkip7Legs", step: step, columns: 4)
-        }
-        guard first.count == 5, man.count == 7, third.count == 5 else { return [] }
-        return [first, man, third]
-    }()
+    // 2026-10-25: 승인된 일곱 자세를 페이지별로 한 번 읽어 캐시한다.
+    private static let peopleByPage: [[NSImage]] = (0..<OnboardingPeopleArtwork.pageCount).map {
+        OnboardingPeopleArtwork.people(page: $0)
+    }
+
+    static func people(for page: Int) -> [NSImage] {
+        peopleByPage[OnboardingPeopleArtwork.pageIndex(page)]
+    }
     static let appIcon = bundledImage("HaneulBrandIcon")
 
     private static func bundledImage(_ name: String) -> NSImage {
@@ -104,37 +88,25 @@ struct RisoRegistrationMark: View {
     }
 }
 
-/// 한 페이지에 한 장씩 유지하는 하단 그림. 다음/이전/단계 점으로 이동할 때만 자세가 바뀌고,
-/// 읽는 동안에는 정지한다. 프레임 전환은 애니메이션 없이 즉시 교체한다(2026-10-17 사용자 결정).
-struct OnboardingPeopleSequence: View {
-    let step: Int
-    private var page: Int { min(max(step, 0), 6) }
-    private var hasPoses: Bool {
-        OnboardingRiso.personPoses.count == 3
-            && OnboardingRiso.personPoses[0].count == 5
-            && OnboardingRiso.personPoses[1].count == 7
-            && OnboardingRiso.personPoses[2].count == 5
-    }
-    // 여성은 1~5페이지에 자세가 하나씩이고 6~7페이지는 마지막 자세. 남자는 7페이지까지 이어진다.
-    private func frameIndex(_ person: Int) -> Int { person == 1 ? page : min(page, 4) }
+/// 2026-10-25 (#80): 사용자 선택 B안. 인물만48→60pt(+25%)로 확대한다.
+/// 풍경의 크기·색은 유지하고, 상하 여백과 기준 위치로 손·발 잘림을 막는다.
+struct OnboardingPeopleScene: View {
+    let page: Int
+    private var people: [NSImage] { OnboardingRiso.people(for: page) }
 
     var body: some View {
-        Group {
-            if hasPoses {
-                ZStack(alignment: .topLeading) {
-                    Image(nsImage: OnboardingRiso.landscape).resizable().scaledToFit()
-                        .frame(width: 240, height: 80)
-                    ForEach(0..<3) { person in
-                        Image(nsImage: OnboardingRiso.personPoses[person][frameIndex(person)]).resizable().scaledToFit()
-                            .frame(width: 48, height: 48)
-                            .position(x: [48.0, 114.0, 178.0][person] + Double(min(page, 4)) * 4, y: 39)
-                    }
-                }.frame(width: 240, height: 80)
-            } else {
-                Image(nsImage: OnboardingRiso.walkers).resizable().scaledToFit().frame(width: 240, height: 80)
+        ZStack(alignment: .topLeading) {
+            Image(nsImage: OnboardingRiso.landscape).resizable().scaledToFit()
+                .frame(width: 240, height: 80)
+            if people.count == 3 {
+                ForEach(0..<3) { person in
+                    Image(nsImage: people[person]).resizable().scaledToFit()
+                        .frame(width: 60, height: 60)
+                        .position(x: [48.0, 114.0, 178.0][person], y: 33.72)
+                }
             }
-        }
-        .frame(width: 280, height: 50, alignment: .trailing)
+        }.frame(width: 240, height: 80)
+        .frame(width: 280, height: 66, alignment: .trailing)
         .clipped()
         .transaction { $0.animation = nil }
         .allowsHitTesting(false).accessibilityHidden(true)
@@ -168,11 +140,6 @@ struct OnboardingRisoFinish: View {
                 Text("하늘키보드는 영원히 무료입니다.").font(OnboardingRiso.titleFont(size: 22))
                 Text("개발을 응원하고 싶다면, 후원은 자유롭게 선택해 주세요.")
                     .font(.system(size: 14)).multilineTextAlignment(.center)
-                Button(action: onSupport) {
-                    Label("후원으로 응원하기", systemImage: "heart")
-                        .font(.system(size: 16, weight: .semibold)).underline().foregroundStyle(ink)
-                        .padding(.horizontal, 8).padding(.vertical, 6).contentShape(Rectangle())
-                }.buttonStyle(.plain)
             }.frame(maxWidth: .infinity)
 
             if !ready {

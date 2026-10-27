@@ -9,6 +9,9 @@ enum InputSourceSettingsTests {
         let cache = directory.appendingPathComponent(InputSourceSettingsCache.fileName)
         defer { try? fm.removeItem(at: root) }
         do {
+            let systemCache = try InputSourceSettingsCache.systemURL()
+            check(RemovalObservation.pathSafety(systemCache) == .verified,
+                  "입력기 목록: macOS /var 별칭은 실제 경로로 계산해 정상 캐시를 거부하지 않음")
             try fm.createDirectory(at: directory, withIntermediateDirectories: true)
             let personal = root.appendingPathComponent("personalDictionary.json")
             let savedSources = directory.appendingPathComponent("AppleEnabledThirdPartyInputSources.plist")

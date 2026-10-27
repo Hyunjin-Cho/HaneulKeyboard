@@ -25,7 +25,7 @@
 | 바뀐 단어 되돌리기 | **Shift+Space**. 다시 누르면 영어로 돌아갑니다. |
 | 자동으로 바뀌지 않은 단어 직접 전환 | 확정된 커서 앞 단어에서 **Shift+Space** (`ㅡ5` ↔ `m5`, `ㅏ3` ↔ `k3`) |
 | 등록된 발음을 영문으로 | **Shift+Space** (`레스토랑` → `restaurant`). 다시 누르면 원래 한글로 돌아갑니다. |
-| 슬래시 뒤 바로 영어 입력 | 한글 모드에서 **/help** 입력. 일반 Space 뒤 한글로 돌아옵니다. 설정에서 끌 수 있습니다. |
+| 슬래시 뒤 바로 영어 입력 | 한글 모드에서 **/help** 입력. 일반 Space·슬래시 삭제·닫는 괄호 뒤 한글로 돌아옵니다. 설정에서 끌 수 있습니다. |
 | 내 단어 추가·변환 금지 | 설정 → **개인 사전** |
 | 안내 다시 보기 | 메뉴바 → **시작하기 다시 보기...** |
 
@@ -55,7 +55,7 @@
 
 설치했는데 설정창 목록에 보이지 않으면 앱의 **키보드 설정 열기** 또는 **입력 소스 설정 열기**를 누릅니다. 출시 준비 코드(빌드72, [#92](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/92))는 macOS 26/27의 오래된 입력기 목록을 갱신합니다. 이미 열린 설정창의 재개방은 이 버튼을 누를 때만 수행하며 강제 종료하지 않습니다. 갱신을 마치지 못하면 별도 안내를 표시합니다.
 
-안내 화면은 종이 질감, 단청 처마, 색동, 한복 인물로 구성했습니다. 오른쪽 인물은 **페이지마다 한 장씩 바뀌는 정지 자세**입니다. 여성 두 명은 5페이지까지 한 페이지에 한 장이고 이후 마지막 자세를 유지하며, 남자는 마지막 페이지까지 자세가 이어집니다. 프레임 교체는 페이드 없이 즉시이며, 읽는 동안에는 가만히 있습니다. ‘동작 줄이기’ 설정의 영향도 없습니다. 3~6단계의 입력칸에서는 직접 연습할 수 있습니다. 설치·설정이 아직 끝나지 않았다면 마지막 화면에서 설치 단계로 돌아갈 수 있습니다.
+안내 화면은 종이 질감, 단청 처마, 색동, 한복 인물로 구성했습니다. 오른쪽 인물은 **선택한 원본 3장의 정지 그림**입니다. 일곱 페이지에서 같은 크기와 위치를 유지하며, 원본의 신체 비율을 그대로 표시합니다. 3~6단계의 입력칸에서는 직접 연습할 수 있습니다. 설치·설정이 아직 끝나지 않았다면 마지막 화면에서 설치 단계로 돌아갈 수 있습니다.
 
 **제거:** 메뉴바 → 설정 → **앱 관리 → 하늘키보드 전체 제거…**에서 앱·입력기·설정을 정리할 수 있습니다. 입력기 제거가 실패하거나 그 단계의 관리자 요청을 취소하면 개인 사전·설정을 보존합니다. 필수 정리가 실패하거나 확인되지 않으면 재시도용 앱을 남깁니다. Finder 자동 입력기 정리는 개인 사전·설정을 항상 보존합니다(2026-10-11 승인 B안). 앱만 휴지통으로 옮긴 경우의 입력기 정리 동작과 확인 방법은 [수동 검사 안내](docs/manual-test-checklist.md)를 참고하세요.
 
@@ -73,7 +73,7 @@
 - 자동 변환이 틀렸다면 기본 **Shift+Space**로 되돌립니다. 설정에서 Option+Space / Control+Shift+Space / Option+Shift+Space로 바꿀 수 있습니다.
 - ‘자판 변환’를 켜면 사전에 없는 단어도 자판 위치를 기준으로 직접 바꿀 수 있습니다. **직전 변환의 되돌리기가 우선**입니다. 등록 발음은 조합 중에도 바로 바뀌고, 그 밖의 조합 중인 글자는 먼저 확정합니다.
 
-2026-10-17 별도 개발 워크트리에서 **영어+조사 분리**를 개발하고 있습니다. `github에`, `google에서`, `API는`처럼 붙여 친 입력을 Space·문장부호에서 분리해 확정합니다. 입력 중 미리보기와 Vim 자동 감지는 다음 범위이며, 설치된 입력기의 동작 검증은 별도입니다. `work`와 `재가`처럼 실제 한글과 겹치는 접두어는 보호하며, 필요한 영어는 개인 사전으로 지정할 수 있습니다.
+2026-10-17 개발 소스에는 **영어+조사 분리**를 추가했습니다. `github에`, `google에서`, `API는`처럼 붙여 친 입력을 Space·문장부호에서 분리해 확정합니다. 입력 중 미리보기와 Vim 자동 감지는 다음 범위이며, 설치된 입력기의 동작 검증은 별도입니다. `work`와 `재가`처럼 실제 한글과 겹치는 접두어는 보호하며, 필요한 영어는 개인 사전으로 지정할 수 있습니다.
 
 판정 순서·초기 조건의 현재 반영 상태·조사 목록과 범위는 [입력 변환 규칙 모음](docs/input-conversion-rules.md)에 모았습니다. 구현 근거: [EnglishDetector](IMESources/EnglishDetector.swift), [KoreanComposer](IMESources/KoreanComposer.swift), [수동 자판 변환](IMESources/ManualToggle.swift). 영어 사전 구성은 [manifest](dict_work/dict_manifest.tsv)에서 관리하고, 추가 단어는 실제 조합기로 한국어 충돌을 검사합니다.
 
@@ -128,17 +128,19 @@
 
 ## 설정과 업데이트
 
-설정은 **입력 기능 / 개인 사전 / 버전·업데이트 / 앱 관리**의 네 왼쪽 메뉴입니다(#88). 입력 기능은 **자동 변환 / 단축키 변환** 두 페이지로 나눴습니다. 자동 변환에는 영타 자동 변환·다른 입력기의 영어 문맥·등록 단어 조합 인식·앱별 예외, 단축키 변환에는 변환 단축키·자판 변환·등록 단어 변환·되돌리기·슬래시 영어 입력·한영 전환 안내가 있습니다. 개인 사전에는 단어 관리, 버전·업데이트에는 최신 버전과 설치된 버전 순서의 표시 및 업데이트, 앱 관리에는 설치 상태·입력기 설치·제거와 하늘키보드 전체 제거가 있습니다. 앱 관리 아래의 별도 **응원하기** 버튼은 기존 후원 안내창을 엽니다. 800×660 창에 불투명 종이 배경·처마·손글씨 제목·리소그래프 매듭과 단청을 사용하며, 긴 내용은 스크롤해서 읽습니다.
+설정은 **입력 기능 / 개인 사전 / 버전·업데이트 / 앱 관리**의 네 왼쪽 메뉴입니다(#88). 입력 기능은 **자동 변환 / 단축키 변환** 두 페이지로 나눴습니다. 자동 변환에는 영타 자동 변환·다른 입력기의 영어 문맥·등록 단어 조합 인식·앱별 예외, 단축키 변환에는 변환 단축키·자판 변환·등록 단어 변환·되돌리기·슬래시 영어 입력이 있습니다. 개인 사전에는 단어 관리, 버전·업데이트에는 최신 버전과 설치된 버전 순서의 표시 및 업데이트, 앱 관리에는 설치 상태·입력기 설치·제거와 하늘키보드 전체 제거가 있습니다. 앱 관리 아래의 별도 **응원하기** 버튼은 기존 후원 안내창을 엽니다. 800×660 창에 불투명 종이 배경·처마·손글씨 제목·리소그래프 매듭과 단청을 사용하며, 긴 내용은 스크롤해서 읽습니다.
 
-슬래시 영어 입력은 기본 ON이며 **입력 기능 → 단축키 변환**에서 끌 수 있습니다(#87). `/`는 그대로 남고 뒤의 영어가 바로 입력되며 일반 Space로 한글 조합을 재개합니다. 입력 대상·입력 소스가 바뀌거나 앱이 입력 세션을 종료하면 안전하게 초기화합니다. **한영 전환 안내**도 기본 ON입니다. 메인 앱 실행 중 하늘 입력기로 바꾸면 화면 위에 파란 바탕·흰 글자의 ‘하늘’을 약 0.9초 표시하며, 같은 설정 화면에서 끌 수 있습니다. macOS 자체 커서 옆 Caps Lock 표시와는 별도이며, 시스템 표시의 밝기·캐시 반영은 최신 설치본에서 확인합니다(#81).
+슬래시 영어 입력은 기본 ON이며 **입력 기능 → 단축키 변환**에서 끌 수 있습니다(#87). `/`는 그대로 남고 뒤의 영어가 바로 입력되며, 일반 Space·시작 슬래시 삭제·닫는 괄호 `) ] }` 뒤에는 한글 조합을 재개합니다. 입력 대상·입력 소스가 바뀌거나 앱이 입력 세션을 종료하면 안전하게 초기화합니다. 앱 자체의 상단 전환 팝업과 관련 설정은 제거했습니다(2026-10-18). macOS 커서 옆 Caps Lock 표시의 빈 글리프 문제는 아직 조사 중입니다(#81).
 
 **설정 → 버전·업데이트**에서 설치된 버전과 마지막으로 확인한 최신 공개 버전을 따로 볼 수 있습니다. 확인한 번호가 없으면 **확인 전**으로 표시하며, 상태 왼쪽과 **지금 확인** 버튼 오른쪽을 한 줄에 배치합니다. 설치 번호가 공개 번호보다 앞서는 검토 빌드는 그 상태를 따로 알려줍니다.
 
 - **자동 확인**은 기본으로 켜져 있습니다. 앱 실행 약 15초 뒤와 이후 매시간 확인 시점이 되었는지 살피고, 마지막 성공 확인에서 **24시간**이 지났을 때 GitHub에 조회합니다.
 - 새 버전과 설치 파일을 발견하면 **현재 버전 → 새 버전** 안내창을 띄웁니다. 같은 버전은 재실행 후에도 자동으로 반복해서 알리지 않습니다.
-- **지금 확인**은 자동 확인을 꺼도 사용할 수 있고, 이미 알린 새 버전도 다시 보여줍니다.
-- **설치는 사용자가 업데이트를 눌렀을 때만** 시작합니다. 번들 ID, 서명 Team, 코드 서명, Apple 공증, 버전 상승을 검사합니다. 검증에 실패하면 기존 앱을 유지합니다.
-- 자동 업데이트는 `/Applications`에 있는 앱을 대상으로 합니다. 사용자 폴더에 설치한 IME도 함께 갱신하며, 시스템 폴더(`/Library/Input Methods`)에 설치한 경우 별도 갱신 안내가 나타날 수 있습니다.
+- **지금 확인**은 새 버전 알림을 꺼도 사용할 수 있습니다. 결과는 같은 설정 화면에 표시하며 별도 알림창을 띄우지 않습니다.
+- **설치는 사용자가 새 버전 설치를 눌렀을 때만** 시작합니다. 번들 ID, 서명 Team, 코드 서명, Apple 공증, 버전 상승을 검사합니다. 검증에 실패하면 기존 앱을 유지합니다.
+- 사용자가 선택하는 새 버전 설치는 `/Applications`에 있는 앱을 대상으로 합니다. 사용자 폴더에 설치한 IME도 함께 갱신하며, 시스템 폴더(`/Library/Input Methods`)에 설치한 경우 별도 갱신 안내가 나타날 수 있습니다.
+
+2026-10-24: 설정의 「버전·업데이트」에서 **새 버전 알림**을 켜고 끕니다. **지금 확인**의 결과는 같은 화면에 표시하며 별도 알림창을 겹쳐 띄우지 않습니다. 설정에서 확인한 버전은 이후 자동 알림도 반복하지 않습니다. 자동 알림의 **버전·업데이트 열기**와 메뉴바의 새 버전 항목은 같은 설정 화면으로 연결됩니다.
 
 GitHub의 새 버전을 알아내려면 주기적인 조회가 필요합니다. 서버에서 즉시 보내는 푸시 알림 방식은 아니며, 사용자가 주기를 고르는 설정은 없습니다. 구현과 검증 근거는 [Updater](Sources/Updater.swift), [UpdateDecision](Sources/UpdateDecisions.swift), [배포 체크리스트](docs/release-checklist.md)에 있습니다.
 
@@ -193,7 +195,6 @@ xcodebuild -scheme HaneulKeyboard -configuration Debug build
 # 입력기 코어 / 업데이트 / 안내 입력 검사
 bash scripts/run_ime_tests.sh
 bash scripts/run_updater_tests.sh
-bash scripts/run_input_source_indicator_tests.sh
 bash scripts/run_slash_tests.sh
 python3 scripts/test_postinstall_probe.py
 python3 scripts/test_uninstall.py
@@ -212,7 +213,7 @@ python3 -m venv .tools/dmg
 PACKAGE_ONLY=1 bash scripts/build_notarize_install.sh HaneulKeyboard
 ```
 
-결과물은 저장소 루트의 `HaneulKeyboard_<공개 버전>.dmg`(첫 설치), `.zip`(앱 안 자동 업데이트)과 각각의 SHA-256 파일입니다. 앱과 DMG를 각각 서명·공증·검증한 뒤 내놓으며 기존 같은 이름 파일을 덮어쓰지 않습니다. `PACKAGE_ONLY=1`은 설치까지 진행하지 않습니다(`ZIP_ONLY=1`도 같은 동작의 호환 이름). 게시 전 [배포 체크리스트](docs/release-checklist.md)와 [실제 앱 검사 항목](docs/manual-test-checklist.md)을 확인하세요.
+결과물은 저장소 루트의 `HaneulKeyboard_<공개 버전>.dmg`(첫 설치), `.zip`(앱 안에서 사용자가 선택하는 업데이트)과 각각의 SHA-256 파일입니다. 앱과 DMG를 각각 서명·공증·검증한 뒤 내놓으며 기존 같은 이름 파일을 덮어쓰지 않습니다. `PACKAGE_ONLY=1`은 설치까지 진행하지 않습니다(`ZIP_ONLY=1`도 같은 동작의 호환 이름). 게시 전 [배포 체크리스트](docs/release-checklist.md)와 [실제 앱 검사 항목](docs/manual-test-checklist.md)을 확인하세요.
 
 최신 후보와 남은 검증은 [세션 인계](docs/HANDOFF_2026-10-11_session-recovery.md), [남은 작업](docs/remaining-work-2026-10-14.md), [배포 체크리스트](docs/release-checklist.md)에서 확인합니다. **2026-10-14 현재 공증과 실제 설치는 사용자 요청으로 보류 중**입니다. 로컬 검토 ZIP·GIF·화면 검사는 설치용 배포본이나 실제 OS 입력 검증을 뜻하지 않습니다. 과거 [빌드69 피드백 기록](docs/releases/2026.9-build69-feedback.md)과 [DMG 시안·검증](docs/design/dmg-installer-2026-10-10.md)은 당시 근거로 보존합니다.
 
@@ -253,8 +254,8 @@ HaneulKeyboard is a macOS menu bar app and two-set Korean input method, named af
 - **Shift+Space:** revert the last conversion, convert an exact registered Hangul spelling (`레스토랑` → `restaurant`, `갤럭시24` → `Galaxy24`), or fall back to keyboard-layout mapping. The bundled phonetic dictionary has 2,049 entries (2,014 base entries + 35 numeric aliases; 2026-10-14), including 62 independently reviewed ordinary nouns such as `단어` → `word`, `물` → `water`, and `세탁기` → `washing machine`. New ambiguous or person-denoting candidates were excluded. Capacity terms use exact qualified entries, `저장용량` → `storage capacity` and `메모리용량` → `memory capacity`, rather than inferring the meaning of `용량`. Fruits, science terms, `현물` → `spot`, `솔리드` → `solid`, and `글래스` → `glass` remain supported. Curated mappings also include `축구` → `football`, `미식축구` → `american football`, `라이더` → `rider`, and `시각효과` → `VFX`; additional categories cover animation, cinema, brands, and finance. `선물` always maps to `gift`; `선물거래` maps to `futures trading`. Personal names and music-group names are excluded from the Hangul-to-English mapping dictionary. This is not general translation or automatic name romanization. Plain Space never invokes phonetic conversion. Phonetic conversion has its own on/off setting and uses the configured conversion shortcut.
 - **Personal dictionary:** add conversion words, block unwanted conversions, and review the last 50 reverted pairs. Stored locally.
 - **Expanded vocabulary:** registered alphanumeric names (`a7r`, `800T`), units (`12mp`, `100ml`, `35mm`), and reviewed art/design terms (`risograph`, `ransomizer`, `surrealism`). Unit conversion is not a measurement calculator.
-- **Seven-step onboarding:** install, select the input source, practice wrong-layout correction, practice reverting, convert registered Hangul words, try slash English input, and find the menu bar. Paper texture, Korean architectural motifs, and page-specific character frames connect the guide to the new icon. The bottom characters advance one frame per page: the two women show one pose per page through page 5 and hold their final frame afterward, while the man keeps his poses through page 7. Frames swap instantly without a fade and freeze while you read; Reduce Motion is unaffected.
-- **Slash English input:** enabled by default; type `/help` in Korean mode to enter English immediately, keeping the slash. Ordinary Space resumes Korean composition. The setting is independent of automatic conversion and per-app exclusions.
+- **Seven-step onboarding:** install, select the input source, practice wrong-layout correction, practice reverting, convert registered Hangul words, try slash English input, and find the menu bar. Paper texture, Korean architectural motifs, and the three selected original characters connect the guide to the new icon. The figures stay at the same size and position across all seven pages, preserving their original body proportions without limb deformation or page-specific scaling.
+- **Slash English input:** enabled by default; type `/help` in Korean mode to enter English immediately, keeping the slash. Ordinary Space, deleting the starting slash, or a closing delimiter `) ] }` resumes Korean composition. The setting is independent of automatic conversion and per-app exclusions.
 - **Conservative English context:** optionally recognize cursor-adjacent English written with another input source and exact combinations of two dictionary words, each at least four letters long. Both options are enabled by default and can be disabled for the next word. Nearby text is not stored. Unregistered misspellings such as `aplle` are left as typed rather than guessed or converted.
 - **Updates:** optional periodic GitHub checks; a notice shows current/new versions once per new version. Installation requires a click and passes signature, notarization, identity, and version checks.
 

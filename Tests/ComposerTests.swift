@@ -1609,10 +1609,10 @@ struct ComposerTests {
             r = r.recording(hangul: "메ㅔㅣㄷ", english: "Apple")
             expect(r.entries.count, 3, "RR: (한글, 영어) 쌍 단위로 중복 판정")
             // "금지" 뒤 제거 — 대소문자 무시로 그 영어 항목 전부
-            let removed = r.removing(english: "apple")
+            let removed = r.removing(blockedBy: "apple")
             expect(removed.entries.count, 1, "RR.removing: apple/Apple 둘 다 제거")
             expect(removed.entries.first?.english ?? "", "vismo", "RR.removing: 나머지는 유지")
-            expect(r.removing(english: "nothere").entries.count, 3, "RR.removing: 없는 단어는 그대로")
+            expect(r.removing(blockedBy: "nothere").entries.count, 3, "RR.removing: 없는 단어는 그대로")
             // 상한 50 — 60개 넣으면 최신 50개만
             var many = RecentReverts()
             for i in 0..<60 { many = many.recording(hangul: "h\(i)", english: "w\(i)") }
@@ -1643,7 +1643,17 @@ struct ComposerTests {
         do {
             expect(WordSuggestion.Kind.add.displayName, "변환 추가 제안", "WS: add 표시 이름")
             expect(WordSuggestion.Kind.block.displayName, "변환 금지 제안", "WS: block 표시 이름")
-            expect(WordSuggestion.Kind.allCases.count, 2, "WS: 종류는 둘")
+            expect(WordSuggestion.Kind.allCases.count, 3, "WS: 단어 추가·금지와 분야 제안")
+            for url in [WordSuggestion.issueURL(typed: "영상 후반 작업", expected: "", kind: .field),
+                        WordSuggestion.emailURL(typed: "영상 후반 작업", expected: "", kind: .field)] {
+                expect(url != nil, true, "분야 제안: 영어 결과 없이도 작성 가능")
+                let body = url.flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false) }?
+                    .queryItems?.first { $0.name == "body" }?.value ?? ""
+                expect(body.contains("산업군·분야") && body.contains("영상 후반 작업"), true,
+                       "분야 제안: 양쪽 작성창에 분야와 내용 보존")
+            }
+            expect(WordSuggestion.issueURL(typed: " ", expected: "", kind: .field) == nil,
+                   true, "빈 분야 제안은 작성 불가")
 
             // 제목
             expect(
@@ -2431,6 +2441,7 @@ struct ComposerTests {
         expect(typeViaController(longQuantity).committedText, longQuantity, "단위: 긴 숫자 유실 없음")
         expect(typeViaController("123.456.789").committedText, "123.456.789", "단위: 여러 점 숫자 유실 없음")
 
+        runEnglishParticleTests()
         runPhoneticTests()
         print("\(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)

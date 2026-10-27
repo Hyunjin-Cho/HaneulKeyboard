@@ -9,7 +9,7 @@ swiftc -module-cache-path "$TEST_DIR/module-cache" -parse-as-library -o "$TEST_D
   Shared/SlashEnglishSession.swift \
   IMESources/HangulJamo.swift IMESources/KeyboardLayout2Set.swift \
   IMESources/Contractions.swift IMESources/AlphanumericWords.swift IMESources/MeasurementUnits.swift \
-  IMESources/PhoneticDictionary.swift IMESources/KoreanComposer.swift IMESources/ManualToggle.swift \
+  IMESources/PhoneticDictionary.swift IMESources/EnglishParticleSplitter.swift IMESources/KoreanComposer.swift IMESources/ManualToggle.swift \
   IMESources/EnglishDetector.swift IMESources/KoreanDictionary.swift \
   IMESources/PersonalDictionary.swift IMESources/AutoConvertPolicy.swift \
   Tests/SlashEnglishTests.swift

@@ -1,0 +1,152 @@
+{
+  "date": "2026-10-25",
+  "pageCount": 7,
+  "sourceCanvas": [
+    1254,
+    1254
+  ],
+  "display": "One independent approved pose per page; no interpolation or limb deformation.",
+  "pages": [
+    {
+      "page": 1,
+      "figures": [
+        {
+          "person": "Bob",
+          "resourceName": "HaneulPoseBob01",
+          "sha256": "73e027609dd51619ea1c21147523b48c6003771637b3ced54e65ce1b9a564eee"
+        },
+        {
+          "person": "Man",
+          "resourceName": "HaneulPoseMan01",
+          "sha256": "4daeaa14c452119ddab5553b1d72ac61468c18a536f44fca590442f7de3a3736"
+        },
+        {
+          "person": "Braid",
+          "resourceName": "HaneulPoseBraid01",
+          "sha256": "062badd25d5a2ae6be20cfcc48dfc41442b577d8d84242e9dd29427ec19c6915"
+        }
+      ]
+    },
+    {
+      "page": 2,
+      "figures": [
+        {
+          "person": "Bob",
+          "resourceName": "HaneulPoseBob02",
+          "sha256": "f2fa7fd7091608423e271f4c03aa1cc101a07757484cf3b56d897da232557304"
+        },
+        {
+          "person": "Man",
+          "resourceName": "HaneulPoseMan02",
+          "sha256": "4e3ccf892a2dfc5fdb0a605d2cc9a2b7fa7a6bc9365d8ccd1326b24e3e7097d8"
+        },
+        {
+          "person": "Braid",
+          "resourceName": "HaneulPoseBraid02",
+          "sha256": "3ced638606bdd61abff539fdff1473128f30685f84ae158afc943d9cebf290fc"
+        }
+      ]
+    },
+    {
+      "page": 3,
+      "figures": [
+        {
+          "person": "Bob",
+          "resourceName": "HaneulPoseBob03",
+          "sha256": "409a2850d3a64e039608f52aabf7ce6ceb767d84f2499f8354f304fac1a9399c"
+        },
+        {
+          "person": "Man",
+          "resourceName": "HaneulPoseMan03",
+          "sha256": "3a18d2c7f2bcf28e8e7b1b9354ba111cdb142ca3b3ef70fa33fdd95365cca454"
+        },
+        {
+          "person": "Braid",
+          "resourceName": "HaneulPoseBraid03",
+          "sha256": "2aa8e8c2b96b584ed6c164802b06b5ac687f15eeeae1b36bacb4aa99d23c8d17"
+        }
+      ]
+    },
+    {
+      "page": 4,
+      "figures": [
+        {
+          "person": "Bob",
+          "resourceName": "HaneulPoseBob04",
+          "sha256": "c38559ae88d11bd3e79578642f823ee3a2beadfc2f16b0f800e573541c9fde4a"
+        },
+        {
+          "person": "Man",
+          "resourceName": "HaneulPoseMan04",
+          "sha256": "32f94bc87ad1983fb03c912111a703eb8c5d6af60d363ae7c493fb498e0631a9"
+        },
+        {
+          "person": "Braid",
+          "resourceName": "HaneulPoseBraid04",
+          "sha256": "849002c93fc7101f65fb4fb33ec3d7a131c9399036576328c6c8f8fad5fc7f6b"
+        }
+      ]
+    },
+    {
+      "page": 5,
+      "figures": [
+        {
+          "person": "Bob",
+          "resourceName": "HaneulPoseBob05",
+          "sha256": "b995e6834b77d7aa158cfb72b692793eef2208e115208579cbe076958b4932db"
+        },
+        {
+          "person": "Man",
+          "resourceName": "HaneulPoseMan05",
+          "sha256": "37eebe392c900f9d1abe590b89b6791cefb2942148c20f8095b53b838a28f73d"
+        },
+        {
+          "person": "Braid",
+          "resourceName": "HaneulPoseBraid05",
+          "sha256": "7335713e4ee1ced49023a324c95f2c2c9ef71506b530b1e7c1f1c6193da33e71"
+        }
+      ]
+    },
+    {
+      "page": 6,
+      "figures": [
+        {
+          "person": "Bob",
+          "resourceName": "HaneulPoseBob06",
+          "sha256": "9ecf8e4b47ef445e0586a627f56ff09eca284425de77a3da81baa9bdb3c34785"
+        },
+        {
+          "person": "Man",
+          "resourceName": "HaneulPoseMan06",
+          "sha256": "b45ad0ef10925f475e65f0259c7551068f86d970909dfcf506162210a429dfd7"
+        },
+        {
+          "person": "Braid",
+          "resourceName": "HaneulPoseBraid06",
+          "sha256": "a67460ebbe2498f4a6bf4c78db2d769829610a1c1926223c31de77415c56c5c3"
+        }
+      ]
+    },
+    {
+      "page": 7,
+      "figures": [
+        {
+          "person": "Bob",
+          "resourceName": "HaneulPoseBob07",
+          "sha256": "36708f46f071a2c22b1f7c94518fc1ca4d6d598b3c79336b8cc2830acb8c4cca"
+        },
+        {
+          "person": "Man",
+          "resourceName": "HaneulPoseMan07",
+          "sha256": "e033896ed2cc821371c3f7c1c67abe491c43e7b60f1db4338b2b009e3f36faf3"
+        },
+        {
+          "person": "Braid",
+          "resourceName": "HaneulPoseBraid07",
+          "sha256": "f9b31424a9c2c5471b449c8791cd8b7ff2b0fdb33bcef75eefe4d1942090059a"
+        }
+      ]
+    }
+  ],
+  "paletteRevision": "2026-10-25 user approved: Bob bright violet/hot magenta/cyan; Man vivid green/lemon yellow/magenta fluttering waist sash beneath green chest-tie ribbons; Braid unchanged. Build97."
+}

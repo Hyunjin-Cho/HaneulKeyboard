@@ -210,14 +210,48 @@ enum RemovalObservation {
         }
         return observeInputSources()
     }
-    @MainActor static func observeInputSources() -> RemovalState {
-        guard let sources = inputSources() else { return .unknown("입력 소스 목록을 조회하지 못했어요") }
-        let ours = sources.filter(isOurs)
+    struct InputSourceSnapshot {
+        var id: String?
+        var bundleID: String?
+        var type: String?
+        var enabled: Bool?
+        var selected: Bool?
+    }
+
+    /// TextInputSources.h: 자식 모드는 자신과 부모가 모두 enabled일 때만 선택 가능하다.
+    /// 부모를 끈 뒤에도 남는 자식 enabled 플래그를 실제 활성 입력기로 오인하지 않는다.
+    static func inputSourceState(_ sources: [InputSourceSnapshot], currentID: String?) -> RemovalState {
+        guard let currentID else { return .unknown("현재 입력 소스를 확인하지 못했어요") }
+        guard !currentID.hasPrefix(imeID) else {
+            return .needsUserAction("영문이나 다른 입력 소스로 전환한 뒤 다시 시도해 주세요")
+        }
+        let ours = sources.filter { $0.bundleID == imeID || ($0.id?.hasPrefix(imeID) ?? false) }
+        let parents = ours.filter {
+            $0.id == imeID && $0.bundleID == imeID
+                && $0.type == kTISTypeKeyboardInputMethodModeEnabled as String
+        }
         for source in ours {
-            guard let enabled = flag(source, kTISPropertyInputSourceIsEnabled) else { return .unknown("입력 소스 활성 상태를 확인하지 못했어요") }
-            if enabled { return .needsUserAction("시스템 설정 → 키보드 → 입력 소스에서 하늘키보드를 제거한 뒤 다시 시도해 주세요") }
+            guard let enabled = source.enabled else { return .unknown("입력 소스 활성 상태를 확인하지 못했어요") }
+            if !enabled { continue }
+            if source.id == imeID + ".korean", source.bundleID == imeID,
+               source.type == kTISTypeKeyboardInputMode as String,
+               source.selected == false, parents.count == 1, parents[0].enabled == false {
+                continue
+            }
+            return .needsUserAction("시스템 설정 → 키보드 → 입력 소스에서 하늘키보드를 제거한 뒤 다시 시도해 주세요")
         }
         return ours.isEmpty ? .alreadyAbsent : .verified
+    }
+
+    @MainActor static func observeInputSources() -> RemovalState {
+        guard let sources = inputSources() else { return .unknown("입력 소스 목록을 조회하지 못했어요") }
+        let current = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue()
+        let snapshots = sources.map {
+            InputSourceSnapshot(id: property($0, kTISPropertyInputSourceID),
+                bundleID: property($0, kTISPropertyBundleID), type: property($0, kTISPropertyInputSourceType),
+                enabled: flag($0, kTISPropertyInputSourceIsEnabled), selected: flag($0, kTISPropertyInputSourceIsSelected))
+        }
+        return inputSourceState(snapshots, currentID: current.flatMap { property($0, kTISPropertyInputSourceID) })
     }
 
     /// ps의 조회 실패도 드러내고, bundle ID만 같은 다른 실행본은 자동 종료하지 않는다.

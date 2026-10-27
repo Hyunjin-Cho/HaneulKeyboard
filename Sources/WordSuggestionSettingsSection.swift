@@ -40,7 +40,7 @@ struct WordSuggestionSettingsSection: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("단어 제안")
                 .font(SettingsTypography.control)
-            Text("바뀌었으면 하는 단어나, 바뀌면 안 되는 단어를 알려 주시면 다음 버전의 사전에 반영합니다.")
+            Text("모두의 사전에 필요한 단어나 산업군·분야를 알려 주세요. 다음 버전에 반영할 수 있도록 검토하겠습니다. 이 기기에서만 바꾸려면 개인 사전을 사용해 주세요.")
                 .font(SettingsTypography.body)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -54,10 +54,12 @@ struct WordSuggestionSettingsSection: View {
                     }
                 }
 
-                TextField("친 글자", text: $typed, prompt: Text("한글 모드에서 보인 표기 (예: 메ㅔㅣㄷ)"))
+                TextField(kind.typedLabel, text: $typed,
+                          prompt: Text(kind == .field ? "예: 건축, 영상 후반 작업" : "한글 모드에서 보인 표기 (예: 메ㅔㅣㄷ)"))
                     .textFieldStyle(.roundedBorder)
                     .autocorrectionDisabled()
-                TextField(kind.expectedLabel, text: $expected, prompt: Text("영어 단어 (예: apple)"))
+                TextField(kind.expectedLabel, text: $expected,
+                          prompt: Text(kind == .field ? "예시 용어를 아는 만큼 적어 주세요" : "영어 단어 (예: apple)"))
                     .textFieldStyle(.roundedBorder)
                     .autocorrectionDisabled()
                 TextField("메모 (선택)", text: $note, prompt: Text("어떤 상황에서 쓰는 말인지"), axis: .vertical)
@@ -84,8 +86,10 @@ struct WordSuggestionSettingsSection: View {
                 Button("취소") { dismiss() }
                     .keyboardShortcut(.cancelAction)
                 Button("이메일로 제안") { open(emailURL, email: true) }
+                    .buttonStyle(.borderedProminent).tint(.blue).foregroundStyle(.white)
                     .disabled(emailURL == nil)
                 Button("GitHub에서 등록") { open(url, email: false) }
+                    .buttonStyle(.borderedProminent).tint(.blue).foregroundStyle(.white)
                     .keyboardShortcut(.defaultAction)
                     .disabled(url == nil)
             }

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 2026-10-11 (#19, #88): 설치된 버전과 마지막으로 확인한 최신 버전을 따로 표시한다.
+/// 2026-10-24: 새 버전 알림과 직접 확인을 기존 버전·업데이트 화면으로 통합한다.
 /// 간결한 상태 왼쪽 / 확인·업데이트 버튼 오른쪽. 마지막 확인·자동 확인·IME 갱신 안내를 유지한다.
 /// 동작은 `AppCore.updater`(`Updater`)가, 판단은 `UpdateDecisions.swift`가 맡는다.
 struct UpdateSettingsSection: View {
@@ -16,7 +16,7 @@ struct UpdateSettingsSection: View {
     }
 
     var body: some View {
-        HaneulSettingsSection("버전·업데이트") {
+        HaneulSettingsSection(SettingsTab.update.title) {
             versionRow("최신 버전", value: updater.latestVersion ?? "확인 전")
             versionRow("설치된 버전", value: Updater.currentVersion)
 
@@ -26,7 +26,7 @@ struct UpdateSettingsSection: View {
 
                 // 새 버전이 있을 때만 나타나므로 강조가 과하지 않다.
                 if case .available = updater.phase {
-                    Button("업데이트") {
+                    Button("새 버전 설치") {
                         Task { await updater.installAvailableUpdate() }
                     }
                     .buttonStyle(.borderedProminent)
@@ -36,7 +36,7 @@ struct UpdateSettingsSection: View {
                 }
 
                 Button("지금 확인") {
-                    Task { await updater.checkNow(forced: true) }
+                    Task { await updater.checkNow(forced: true, showNotice: false) }
                 }
                 .disabled(isBusy || core.isPreparingIME)
                 .fixedSize()
@@ -53,11 +53,11 @@ struct UpdateSettingsSection: View {
                     .foregroundStyle(.secondary)
             }
 
-            Toggle("업데이트 자동 확인", isOn: Binding(
+            Toggle("새 버전 알림", isOn: Binding(
                 get: { updater.autoCheckEnabled },
                 set: { updater.setAutoCheckEnabled($0) }
             ))
-            Text("새 버전을 발견하면 한 번 알려드려요. 설치는 직접 선택할 수 있어요. 자동 확인을 끄면 ‘지금 확인’을 누를 때만 인터넷에 접속해요.")
+            Text("새 버전을 자동으로 확인해 한 번 알려드려요. 끄면 ‘지금 확인’을 누를 때만 확인해요. 다운로드와 설치는 ‘새 버전 설치’를 눌러야 시작해요.")
                 .font(SettingsTypography.body)
                 .foregroundStyle(.secondary)
 

@@ -1,12 +1,14 @@
 # HaneulKeyboard 릴리스 체크리스트
 
-> **기준일:** 2026-10-14 (#85, 기존 #72) · 정식 버전은 실제 배포 날짜 `YYYY.MM.DD`를 사용한다. 규칙의 근거는 줄번호 대신 **코드 심볼**로 적었다 — 그 심볼이 바뀌면 이 문서도 같이 고친다.
+> **기준일:** 2026-10-25 (#85, 기존 #72) · 정식 버전은 실제 배포 날짜 `YYYY.MM.DD`를 사용한다. 규칙의 근거는 줄번호 대신 **코드 심볼**로 적었다 — 그 심볼이 바뀌면 이 문서도 같이 고친다.
 
 ## 왜 이 문서가 있나
 
 앱은 GitHub의 최신 릴리스 정보를 정해진 규칙으로 읽는다. 잘못된 버전·자산·응답은 오류 또는 설치 불가 상태가 되므로, 게시 전에 아래 규칙과 실제 업데이트 경로를 함께 확인한다. 현재 후보는 [세션 인계](HANDOFF_2026-10-11_session-recovery.md)와 [남은 작업](remaining-work-2026-10-14.md)에서 확인한다. [빌드 68 기록](releases/2026.9-build68-preparation.md)은 당시 검증 근거로 보존한다.
 
-**2026-10-14 승인 상태:** 로컬 구현·격리 검사는 진행 가능하다. Apple 공증 전송·실제 설치는 사용자가 계속 보류했고, Git 커밋·푸시·머지·태그·게시 승인은 없다. 아래 체크박스는 실행 승인이나 현재 통과 표시가 아니다. 공증을 재개하기 전에는 `PACKAGE_ONLY`·`CANDIDATE_ONLY`도 실행하지 않는다. 두 모드 모두 설치는 생략하지만 공증 파이프라인을 실행하기 때문이다.
+**2026-10-18 승인 상태:** 빌드89 피드백의 로컬 코드 수정은 승인됐다. 이전89 후보의 공증 승인은 해당 후보에 적용됐으며, 이번 수정 후보는 공증·설치하지 않았다. 커밋·푸시·머지·태그·게시 승인도 없다. 체크박스는 실행 승인이나 현재 통과 표시가 아니다. 최신 범위와 미결은 [피드백 인계](feedback/2026-10-18-build89/03-handoff-astra.md)를 따른다.
+
+**2026-10-25 현재 상태:** 슬래시·선택 원본3장·업데이트 알림 수정 후보93을 Developer ID Release Universal로 빌드해 메인 앱과 입력기에 설치했다. 새 후보의 공증·정식 설치 파일 제작·공개 배포는 보류다. updater Release447/0·Debug447/0, 설치 프로브12통과/3미통과(Gatekeeper2·staple1). 실제 새 공개 릴리스의 사용자 선택 설치는 미검증이며 #83은 OPEN이다. 아래의 10월18일 후보 기록은 당시 범위다. 현재 근거는 [인계](HANDOFF_2026-10-25_motion-and-remaining-work.md)와 `.tmp/priority-work-2026-10-25/`를 따른다.
 
 ## 1. 반드시 지킬 규칙
 
@@ -44,7 +46,7 @@
 - [ ] `bash scripts/run_ime_tests.sh` 출력이 ` 0 failed`로 끝난다.
 - [ ] `bash scripts/run_input_inference_tests.sh` 통과. 외부 영어 문맥과 정확 복합어의 기본 ON·설정 OFF·한글/개인 사전 보호·미등록 오타 보존을 확인한다(#14/#24/#7).
 - [ ] `python3 Tests/run_vocabulary_extension_tests.py` 통과. 사전 확장 출처·실제 입력 도달·한국어 보호를 확인하고 `audit_wordlist.sh`에서 제품 기본 복합어 ON과 `--compound off` 비교를 구분해 남긴다(#16/#17/#74/#77).
-- [ ] `bash scripts/run_input_source_indicator_tests.sh` 통과. 별도 안내/Palette는 실제 Caps Lock·외부 앱 포커스·전체화면·멀티모니터·설정OFF도 확인한다(#81).
+- [ ] 자체 상단 전환 팝업과 설정이 제거됐고, macOS 커서 옆 Caps Lock 표시는 별도로 실기 확인한다. R15 미해결 상태를 팝업 제거로 완료 처리하지 않는다(#81).
 - [ ] `bash scripts/run_slash_tests.sh` 통과. 기본 ON·설정 OFF·일반 Space 복귀·입력칸 이동은 설치본에서도 확인한다(#87).
 - [ ] `bash scripts/run_updater_tests.sh`, 안내 입력을 변경했다면 `bash scripts/run_onboarding_tests.sh`도 통과한다.
 - [ ] `python3 scripts/test_postinstall_probe.py` 통과 — 실제 TIS 집계 블록의 enabled/disabled/없음/중복을 확인한다(2026-10-11 리뷰 F-2). 이 검사는 실제 설치 상태의 통과를 뜻하지 않는다.
@@ -67,7 +69,7 @@
 ### ④ 설치·실기기 확인
 
 - [ ] 기존 설치본을 앱의 **설정 → 앱 관리 → 하늘키보드 전체 제거…** 로 지운다.
-- [ ] DMG를 더블클릭해 설치 화면에서 메인 앱을 Applications로 드래그한다. 복사 후 응용 프로그램 폴더의 앱을 실행하고 DMG를 꺼낸다. 사용자 소유 앱은 자동 업데이트를 암호 없이 교체하고 root 소유면 관리자 암호 창이 뜬다(`UpdateDecision.replaceStrategy`). `ls -ld /Applications/HaneulKeyboard.app`으로 소유자를 확인한다.
+- [ ] DMG를 더블클릭해 설치 화면에서 메인 앱을 Applications로 드래그한다. 복사 후 응용 프로그램 폴더의 앱을 실행하고 DMG를 꺼낸다. 사용자 소유 앱은 사용자가 선택한 업데이트를 암호 없이 설치하고 root 소유면 관리자 암호 창이 뜬다(`UpdateDecision.replaceStrategy`). `ls -ld /Applications/HaneulKeyboard.app`으로 소유자를 확인한다.
 - [ ] 앱 실행 → **설정 → 앱 관리 → 입력기 설치** → 시스템 설정에서 입력 소스 추가.
 - [ ] `bash scripts/postinstall_probe.sh` 전 항목 ✓, 마지막 집계 ✗ 0, 종료코드 0. 입력 소스 disabled/없음/중복이면 실패로 집계한다.
 - [ ] B안의 설치 → 입력기만 제거 → 재설치 → 전체 제거 → 재설치, 실패 시 재시도·Finder 자동 정리·업데이트 중복 방지 실기 기록을 남긴다. 이 검증 전에는 #90/#86을 닫지 않는다.
@@ -101,7 +103,7 @@ gh release create "$RELEASE_VERSION" "HaneulKeyboard_$RELEASE_VERSION.dmg" "Hane
   ```
 
   태그가 새 버전이고 `HaneulKeyboard_<태그>.dmg`·`.zip`·각 체크섬이 정확히 있어야 한다. 같은 날짜 기본판/핫픽스가 이미 있으면 재게시하지 않는다.
-- [ ] **자동 업데이트 실전 확인** — 직전 버전(업데이터가 들어 있는 빌드)을 설치한 Mac에서 설정 → 버전·업데이트 → `지금 확인` → 새 버전이 뜨는지 → `업데이트` → 재실행 뒤 앱 버전이 바뀌고 IME도 새 빌드로 갱신됐는지(`bash scripts/postinstall_probe.sh` 1번).
+- [ ] **새 버전 알림·사용자 선택 설치 실전 확인 (2026-10-24)** — 직전 버전(업데이터가 들어 있는 빌드)을 설치한 Mac에서 설정 → 버전·업데이트 → `지금 확인` → 새 버전이 뜨는지 → `새 버전 설치` → 재실행 뒤 앱 버전이 바뀌고 IME도 새 빌드로 갱신됐는지(`bash scripts/postinstall_probe.sh` 1번).
 - [ ] 이상하면 **릴리스를 지우지 말고** 원인부터 본다. 지우고 다시 올리면 이미 받은 사람과 번호가 꼬인다.
 
 ### ⑧ 홍보 — 🔴 오너

@@ -1,8 +1,8 @@
 import AppKit
 import Foundation
 
-/// 자동 업데이트 — GitHub 최신 릴리스 확인 → zip 다운로드 → 검증 → `/Applications` 교체 →
-/// 재실행. (2026-09-21, #19 — 오너 결정: Sparkle 대신 직접 구현. 서드파티 바이너리
+/// 새 버전 알림과 사용자 선택 설치 — 자동 확인은 알림만, 설치 버튼은 다운로드 → 검증 → 앱 교체.
+/// (2026-10-24 명칭·설정 화면 통합; 2026-09-21, #19 — 오너 결정: Sparkle 대신 직접 구현. 서드파티 바이너리
 /// 프레임워크를 IME 앱에 싣지 않는다. 흐름은 exelban/stats Updater를 참고했고 코드는 새로 썼다.)
 ///
 /// 보안 경계 — 이 파일은 **인터넷에서 받은 파일로 앱을 갈아끼운다.** 그래서:
@@ -14,8 +14,8 @@ import Foundation
 ///   리터럴 이스케이프로 보호한다(`UpdateReplacementScript`).
 /// - HTTPS만, 리다이렉트는 `UpdateDecision.allowedHosts` 안에서만 따라간다.
 /// - 나가는 데이터는 요청 헤더(`Accept`·`User-Agent: HaneulKeyboard/<버전>`)뿐이다.
-///   키 입력·설정·사전 어떤 것도 보내지 않는다. (PRIVACY.md 「자동 업데이트」 절)
-/// - 자동 확인은 "새 버전 있음"을 **표시만** 한다. 설치는 사용자가 [업데이트]를 눌러야 한다.
+///   키 입력·설정·사전 어떤 것도 보내지 않는다. (PRIVACY.md 「새 버전 알림과 설치」 절)
+/// - 자동 확인은 "새 버전 있음"을 **표시만** 한다. 설치는 사용자가 [새 버전 설치]를 눌러야 한다.
 ///
 /// 판단(버전 비교·자산 선택·throttle·검증 합성·교체 전략)은 `UpdateDecisions.swift`의
 /// 순수 함수에 있고 테스트 하네스가 검증한다. 여기는 그 판단을 실행하는 손발이다.
@@ -153,8 +153,9 @@ final class Updater {
 
     // MARK: - 확인
 
-    /// 최신 릴리스를 조회해 `phase`를 갱신한다. `forced`는 "지금 확인" 버튼(토글 OFF여도 실행).
-    func checkNow(forced: Bool = true) async {
+    /// 최신 릴리스를 조회해 `phase`를 갱신한다. `forced`는 토글 OFF/주기와 무관한 직접 확인.
+    /// 2026-10-24: 설정의 직접 확인은 showNotice=false로 같은 화면에 결과를 표시한다.
+    func checkNow(forced: Bool = true, showNotice: Bool = true) async {
         guard !busy, !removalPaused, operationGate.operation == nil, UpdateDecision.shouldCheckNow(
             autoCheckEnabled: autoCheckEnabled, lastCheck: lastCheck, now: now(),
             forced: forced
@@ -175,8 +176,13 @@ final class Updater {
             if let update = UpdateDecision.availableUpdate(currentVersion: Self.currentVersion, release: release) {
                 phase = .available(update)
                 haneulLog("HaneulKeyboard: update available — \(update.tag) (current \(Self.currentVersion))")
-                // 같은 버전 자동 알림은 재실행 후에도 반복하지 않는다. '지금 확인'은 재표시.
-                if forced || lastNotifiedVersion != update.version, let onUpdateAvailable {
+                // 설정에 결과를 표시한 버전도 알림 이력에 포함해 나중의 중복 팝업을 막는다.
+                if !showNotice {
+                    lastNotifiedVersion = update.version
+                    defaults.set(update.tag, forKey: Self.lastNotifiedVersionKey)
+                // 조회 중 OFF로 바꾼 경우에도 응답 시점의 설정을 지킨다.
+                } else if (forced || autoCheckEnabled),
+                          (forced || lastNotifiedVersion != update.version), let onUpdateAvailable {
                     lastNotifiedVersion = update.version
                     defaults.set(update.tag, forKey: Self.lastNotifiedVersionKey)
                     onUpdateAvailable(update)
@@ -491,7 +497,7 @@ enum UpdateError: LocalizedError {
         case .verificationFailed(let failures):
             return "검증 실패로 설치하지 않았어요: " + failures.joined(separator: ", ")
         case .notInApplications(let path):
-            return "자동 업데이트는 응용 프로그램 폴더(/Applications)에 설치된 앱에서만 할 수 있어요. 지금 실행 위치: \(path)"
+            return "새 버전 설치는 응용 프로그램 폴더(/Applications)에 설치된 앱에서만 할 수 있어요. 지금 실행 위치: \(path)"
         case .replaceFailed(let reason):
             return "앱 교체 실패 — \(reason)"
         case .replaceRecoveryFailed(let reason, let backupPath, let destinationPath):

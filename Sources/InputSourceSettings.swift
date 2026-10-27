@@ -20,7 +20,15 @@ enum InputSourceSettingsCache {
         guard count > 1, count < 16_384 else { throw RefreshError.unsafeCache }
         var buffer = [CChar](repeating: 0, count: count)
         guard confstr(_CS_DARWIN_USER_CACHE_DIR, &buffer, count) == count else { throw RefreshError.unsafeCache }
-        let base = URL(fileURLWithPath: String(cString: buffer), isDirectory: true).resolvingSymlinksInPath()
+        return try cacheURL(systemDirectory: String(cString: buffer))
+    }
+
+    /// 2026-10-18: Foundation은 /private/var를 다시 /var로 줄여 반환한다.
+    /// OS가 준 루트만 POSIX 실제 경로로 바꾸고, 그 아래 연결 경로는 기존 검사로 차단한다.
+    static func cacheURL(systemDirectory: String) throws -> URL {
+        guard let resolved = realpath(systemDirectory, nil) else { throw RefreshError.unsafeCache }
+        defer { free(resolved) }
+        let base = URL(fileURLWithPath: String(cString: resolved), isDirectory: true)
         return base.appendingPathComponent(directoryName, isDirectory: true).appendingPathComponent(fileName)
     }
 

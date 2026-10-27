@@ -2,9 +2,11 @@ import SwiftUI
 import AppKit
 import Carbon
 
-/// 2026-10-12: 한 화면에서 한 기능씩 연습하는 단청 안내 7단계, 720×800pt.
+/// 2026-10-18: 일곱 단계를 본문 스크롤 없이 읽는다. 작은 화면에서는 장식 여백을 줄인다.
 struct OnboardingView: View {
-    static let size = NSSize(width: 720, height: 800)
+    static let size = NSSize(width: 820, height: 900)
+    var windowSize = Self.size
+    private var compact: Bool { windowSize.height < 850 }
     @Bindable var core: AppCore
     var onSettings: (SettingsTab) -> Void = { _ in }
     var onSupport: () -> Void = {}
@@ -33,7 +35,7 @@ struct OnboardingView: View {
         var hint: String {
             switch self {
             case .automatic, .reversal: "여기에 apple을 쳐봐요"
-            case .registeredWord: "여기에 바나나를 쳐봐요"
+            case .registeredWord: "여기에 카메라를 쳐봐요"
             case .slash: "여기에 /help를 쳐봐요"
             }
         }
@@ -67,9 +69,8 @@ struct OnboardingView: View {
             header
             ZStack {
                 hero.id(pageID).transition(.opacity)
-            }.frame(height: 142).clipped()
+            }.frame(height: 142)
             ZStack(alignment: .top) {
-                ScrollView {
                     VStack(alignment: .leading, spacing: 14) {
                         switch step {
                         case 0: installStep
@@ -82,27 +83,27 @@ struct OnboardingView: View {
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 48).padding(.vertical, 8)
-                }
-                .scrollIndicators(.hidden)
+                    .padding(.horizontal, compact ? 32 : 48).padding(.vertical, 8)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("onboarding-page-content")
                 .id(pageID)
                 .transition(pageTransition)
             }
-            .frame(maxHeight: .infinity)
-            .clipped()
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             VStack(spacing: 0) {
                 HStack {
                     Spacer(minLength: 0)
-                    OnboardingPeopleSequence(step: step)
+                    OnboardingPeopleScene(page: step)
                 }.padding(.trailing, 32)
                 Divider().padding(.horizontal, 32)
-                navigation.padding(.horizontal, 32).frame(height: 76)
+                navigation.padding(.horizontal, 32).frame(height: compact ? 62 : 76)
             }
         }
         .font(.system(size: 15))
         .foregroundStyle(.primary)
-        .frame(width: Self.size.width, height: Self.size.height)
+        .frame(width: windowSize.width, height: windowSize.height)
         .background { OnboardingRisoPaper().ignoresSafeArea() }
+        .background { OnboardingPageNavigation { go(to: step + $0) } }
         .tint(OnboardingRiso.ink(for: colorScheme))
         .haneulWindowAppearance()
         .ignoresSafeArea()
@@ -110,7 +111,7 @@ struct OnboardingView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in refresh() }
         .onReceive(DistributedNotificationCenter.default.publisher(
             for: Notification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String))) { _ in
-                selectedHaneul = InputSwitcher.currentSourceID() == InputSwitcher.koreanModeID
+                refreshSelection()
         }
         .onReceive(DistributedNotificationCenter.default.publisher(
             for: Notification.Name(kTISNotifyEnabledKeyboardInputSourcesChanged as String))) { _ in refresh() }
@@ -130,7 +131,7 @@ struct OnboardingView: View {
                 .overlay(Circle().strokeBorder(.primary.opacity(0.08), lineWidth: 0.5))
                 .accessibilityLabel("하늘키보드 앱 아이콘")
                 .padding(.top, 50).padding(.trailing, 24)
-        }.frame(height: 90, alignment: .top)
+        }.frame(height: compact ? 70 : 90, alignment: .top)
     }
 
     private var hero: some View {
@@ -154,25 +155,27 @@ struct OnboardingView: View {
         switch step {
         case 0: "하늘키보드는 한글로 친 영어 단어를 알아보고 바꿔줘요.\n한/영 키를 누르지 않아도 돼요."
         case 1: core.imeInstalled
-            ? "입력 소스에 하늘키보드가 추가됐어요.\n아래 버튼으로 바로 선택해 주세요."
+            ? "입력 소스에 하늘키보드가 추가됐어요.\n메뉴바의 입력 소스에서 하늘키보드를 선택해 주세요."
             : "키보드 설정에 하늘키보드를 추가하고\n입력 소스로 선택해 주세요."
         case 2: "한글 모드에서 apple을 입력해 보세요.\n영어로 바뀌어요. 한글 모드는 그대로예요."
         case 3: "방금 바뀐 영어를 \(shortcut.displayName)로 되돌려요.\n다시 누르면 영어로 돌아와요."
-        case 4: "바나나를 쓰고 \(shortcut.displayName)를 누르면 banana.\n등록된 한글 단어를 영어로 바꿔요."
+        case 4: "카메라를 쓰고 \(shortcut.displayName)를 누르면 camera.\n다시 누르면 내가 쓴 한글로 돌아와요."
         case 5: "한글 모드에서 /help를 입력해 보세요.\n슬래시 뒤에는 바로 영어가 나와요."
         default: "설정을 열거나 이 안내를 다시 보고 싶을 때\n메뉴바의 하늘키보드를 눌러 주세요."
         }
     }
 
     private var installStep: some View {
-        VStack(alignment: .leading, spacing: 22) {
-            OnboardingConversionDemo()
+        VStack(alignment: .leading, spacing: compact ? 14 : 18) {
+            OnboardingConversionDemo(compact: compact)
             HStack(spacing: 14) {
                 Image(systemName: ready ? "checkmark.circle" : "keyboard").font(.system(size: 25))
-                    .foregroundStyle(OnboardingRiso.ink(for: colorScheme))
+                    .foregroundStyle((ready ? FeedbackStatus.success : .pending).color(in: colorScheme))
                 VStack(alignment: .leading, spacing: 5) {
                     Text("하늘키보드 두벌식").font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.primary)
                     Text(installStatus).font(.system(size: 14))
+                        .foregroundStyle((ready ? FeedbackStatus.success : .pending).color(in: colorScheme))
                 }
                 Spacer()
                 if !ready {
@@ -183,11 +186,12 @@ struct OnboardingView: View {
                         }
                     }.disabled(core.isPreparingIME)
                 }
-            }.padding(18).modifier(OnboardingPrintPanel(tint: OnboardingRiso.pink))
-            if let message = installError ?? core.imeActivationError?.localizedDescription {
-                Text(message).font(.system(size: 14)).foregroundStyle(.red).textSelection(.enabled)
+            }.padding(compact ? 0 : 4).feedbackPanel(.information)
+            if let message = installError ?? core.imeActivationError?.localizedDescription ?? core.imeSettingsRefreshWarning {
+                Text(message).font(.system(size: 14))
+                    .foregroundStyle(FeedbackStatus.warning.color(in: colorScheme)).textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true).feedbackPanel(.warning)
             }
-            settingsRefreshWarning
             VStack(alignment: .leading, spacing: 8) {
                 Label("메뉴바 앱과 입력기는 하나의 하늘키보드예요.", systemImage: "link")
                 HStack {
@@ -196,6 +200,7 @@ struct OnboardingView: View {
                     Button("앱 관리 열기") { onSettings(.appManagement) }
                 }
             }.font(.system(size: 14)).padding(.horizontal, 4)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
     private var installStatus: String {
@@ -206,113 +211,132 @@ struct OnboardingView: View {
         return "아직 설치되지 않았어요"
     }
     private var sourceStep: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: compact ? 12 : 20) {
             card {
                 HStack(alignment: .top, spacing: 8) {
                     guideColumn("1", core.imeInstalled ? "설치 완료" : "키보드", symbol: "keyboard",
                                 detail: core.imeInstalled ? "입력 소스에\n추가되어 있어요" : "시스템 설정\n키보드 → 텍스트 입력")
                     Image(systemName: "chevron.right").foregroundStyle(.secondary).padding(.top, 44)
-                    guideColumn("2", core.imeInstalled ? "아래 버튼" : "편집 → ＋",
-                                symbol: core.imeInstalled ? "hand.tap" : "plus.rectangle",
-                                detail: core.imeInstalled ? "하늘키보드 선택\n버튼 누르기" : "입력 소스 편집\n추가 버튼 누르기")
+                    guideColumn("2", core.imeInstalled ? "메뉴바" : "편집 → ＋",
+                                symbol: core.imeInstalled ? "menubar.rectangle" : "plus.rectangle",
+                                detail: core.imeInstalled ? "입력 소스 메뉴에서\n하늘키보드 선택" : "입력 소스 편집\n추가 버튼 누르기")
                     Image(systemName: "chevron.right").foregroundStyle(.secondary).padding(.top, 44)
                     guideColumn("3", "하늘키보드", symbol: "checkmark.circle",
                                 detail: core.imeInstalled ? "한글 입력을\n시작해 보세요" : "한국어\n하늘키보드 (두벌식)")
                 }
                 Divider()
                 VStack(alignment: .leading, spacing: 10) {
-                    Label(core.imeInstalled ? "입력 소스에 추가되어 있어요" : "입력 소스 추가를 확인해 주세요",
-                          systemImage: core.imeInstalled ? "checkmark.circle.fill" : "circle")
-                    Label(selectedHaneul ? "지금 하늘키보드를 선택했어요" : "현재 다른 입력 소스를 사용 중이에요",
-                          systemImage: selectedHaneul ? "checkmark.circle.fill" : "circle")
+                    FeedbackStatusLabel(complete: core.imeInstalled,
+                        completedText: "입력 소스에 추가되어 있어요", pendingText: "입력 소스 추가를 확인해 주세요")
+                    FeedbackStatusLabel(complete: selectedHaneul,
+                        completedText: "지금 하늘키보드를 선택했어요", pendingText: "현재 다른 입력 소스를 사용 중이에요")
                 }.font(.system(size: 15))
             }
             HStack(spacing: 12) {
                 OnboardingButton("키보드 설정 열기") { IMEInstaller.openInputSourcesSettings() }
                     .disabled(core.isPreparingIME)
-                Button("하늘키보드 선택") { selectHaneul() }.disabled(!core.imeInstalled)
-                Button("상태 확인") { refresh() }
             }
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: compact ? 6 : 12) {
                 Label("기존 Apple ‘두벌식’은 빼고, ‘ABC’는 남겨 주세요.", systemImage: "keyboard")
                 Text("Caps Lock을 짧게 누르면 한글과 영어가 바뀌어요.\n키보드 설정의 ‘Caps Lock 키로 ABC 입력 소스 전환’도 확인해 주세요.")
                     .lineSpacing(4)
-            }.font(.system(size: 14))
-            sourceFailure
-            settingsRefreshWarning
+                if let message = sourceError ?? core.imeSettingsRefreshWarning {
+                    Text(message).foregroundStyle(FeedbackStatus.warning.color(in: colorScheme))
+                        .textSelection(.enabled)
+                }
+            }.font(.system(size: 14)).fixedSize(horizontal: false, vertical: true)
+                .feedbackPanel(.warning)
         }
     }
     private var typingStep: some View {
         VStack(alignment: .leading, spacing: 22) {
             practice(.automatic)
-            VStack(alignment: .leading, spacing: 6) {
-                Text("다른 단어도 자유롭게 쳐보세요.").font(.system(size: 16, weight: .medium))
-                HStack(spacing: 9) {
-                    exampleWord("bike", tint: OnboardingRiso.cyan)
-                    exampleWord("camera", tint: OnboardingRiso.pink)
-                    exampleWord("water", tint: OnboardingRiso.yellow)
-                }
-                Text("개인 사전의 변환 추가·변환 금지도 그대로 적용돼요.").font(.system(size: 14))
-            }.frame(maxWidth: .infinity, alignment: .leading)
-                .padding(14).modifier(OnboardingPrintPanel(tint: OnboardingRiso.yellow, strongerYellow: true))
+            if !hasPracticeWarning(.automatic) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("다른 단어도 자유롭게 쳐보세요.").font(.system(size: 16, weight: .medium))
+                    HStack(spacing: 9) {
+                        exampleWord("bike", tint: OnboardingRiso.cyan)
+                        exampleWord("camera", tint: OnboardingRiso.pink)
+                        exampleWord("water", tint: OnboardingRiso.yellow)
+                    }
+                    Text("개인 사전의 변환 추가·변환 금지도 그대로 적용돼요.").font(.system(size: 14))
+                }.frame(maxWidth: .infinity, alignment: .leading)
+                    .feedbackPanel(.advice)
+            }
         }
     }
 
     private var reversalStep: some View {
         VStack(alignment: .leading, spacing: 14) {
             practice(.reversal)
-            VStack(alignment: .leading, spacing: 6) {
-                Text("방금 변환한 단어를 다시 한글로")
-                    .font(.system(size: 16, weight: .semibold))
-                Text("apple을 친 뒤 Space → \(shortcut.displayName)를 눌러보세요.\n같은 단축키를 한 번 더 누르면 영어로 돌아와요.")
-                    .font(.system(size: 14)).lineSpacing(3)
-            }.padding(14).modifier(OnboardingPrintPanel(tint: OnboardingRiso.yellow, strongerYellow: true))
-            terminalShortcutNote
+            if !hasPracticeWarning(.reversal) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("방금 변환한 단어를 다시 한글로")
+                        .font(.system(size: 16, weight: .semibold))
+                    Text("apple을 친 뒤 Space → \(shortcut.displayName)를 눌러보세요.\n같은 단축키를 한 번 더 누르면 영어로 돌아와요.")
+                        .font(.system(size: 14)).lineSpacing(3)
+                }.feedbackPanel(.advice)
+                terminalShortcutNote
+            }
         }
     }
 
     private var registeredWordStep: some View {
         VStack(alignment: .leading, spacing: 14) {
             practice(.registeredWord)
-            VStack(alignment: .leading, spacing: 6) {
-                Text("바나나 → banana · 사과 → apple · 현물 → spot")
-                    .font(.system(size: 15, weight: .medium))
-                Text("등록된 표기만 바꿔요. 일반 Space에서는 한글 그대로예요.")
-                    .font(.system(size: 14))
-                HStack {
-                    Text("나만의 변환 규칙은 설정 → 개인 사전에서")
-                        .font(.system(size: 13))
-                    Spacer(minLength: 4)
-                    Button("개인 사전 열기") { onSettings(.personalDictionary) }
-                        .font(.system(size: 13))
-                }.padding(.top, 4)
-            }.padding(12).modifier(OnboardingPrintPanel(tint: OnboardingRiso.cyan))
-            terminalShortcutNote
+            if !hasPracticeWarning(.registeredWord) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("렌즈 → lens · 옷 → clothes · 세탁기 → washing machine")
+                        .font(.system(size: 15, weight: .medium))
+                    Text("등록된 표기만 바꿔요. 일반 Space에서는 한글 그대로예요.")
+                        .font(.system(size: 14))
+                    HStack {
+                        Text("나만의 변환 규칙은 설정 → 개인 사전에서")
+                            .font(.system(size: 13))
+                        Spacer(minLength: 4)
+                        Button("개인 사전 열기") { onSettings(.personalDictionary) }
+                            .font(.system(size: 13))
+                    }.padding(.top, 4)
+                }.feedbackPanel(.information)
+                terminalShortcutNote
+            }
         }
     }
 
     private var slashStep: some View {
         VStack(alignment: .leading, spacing: 14) {
             practice(.slash)
-            VStack(alignment: .leading, spacing: 7) {
-                Text("/help → Space → 다시 한글 입력")
-                    .font(.system(size: 16, weight: .semibold))
-                Text("/는 그대로 남고, 뒤의 글자는 즉시 영어로 나와요.\n일반 Space를 누르면 공백이 들어가고 한글 모드로 돌아와요.")
-                    .font(.system(size: 14)).lineSpacing(3)
-                HStack {
-                    Text("기본으로 켜져 있어요. 설정에서 끌 수 있어요.")
-                        .font(.system(size: 13))
-                    Spacer(minLength: 4)
-                    Button("입력 기능 설정") { onSettings(.inputFeatures) }
-                        .font(.system(size: 13))
-                }
-            }.padding(12).modifier(OnboardingPrintPanel(tint: OnboardingRiso.yellow, strongerYellow: true))
+            if !hasPracticeWarning(.slash) {
+                VStack(alignment: .leading, spacing: 7) {
+                    Text("/help → Space → 다시 한글 입력")
+                        .font(.system(size: 16, weight: .semibold))
+                    Text("/는 그대로 남고, 뒤에는 즉시 영어가 나와요.\nSpace·슬래시 삭제·닫는 괄호 뒤에는 한글로 돌아와요.")
+                        .font(.system(size: 14)).lineSpacing(3)
+                    HStack {
+                        Text("기본으로 켜져 있어요. 설정에서 끌 수 있어요.")
+                            .font(.system(size: 13))
+                        Spacer(minLength: 4)
+                        Button("입력 기능 설정") { onSettings(.inputFeatures) }
+                            .font(.system(size: 13))
+                    }
+                }.feedbackPanel(.advice)
+            }
         }
     }
 
     private var terminalShortcutNote: some View {
         Label("터미널에서는 \(shortcut.displayName)로 되돌릴 수 없어요.", systemImage: "terminal")
             .font(.system(size: 13)).foregroundStyle(.secondary).padding(.horizontal, 8)
+    }
+
+    private func lessonDisabled(_ lesson: PracticeLesson) -> Bool {
+        (lesson == .automatic || lesson == .reversal) && !autoEnabled
+            || lesson == .reversal && !allWordsEnabled
+            || lesson == .registeredWord && !phoneticEnabled
+            || lesson == .slash && !slashEnabled
+    }
+    private func hasPracticeWarning(_ lesson: PracticeLesson) -> Bool {
+        sourceError != nil || lessonDisabled(lesson)
     }
 
     private func practice(_ lesson: PracticeLesson) -> some View {
@@ -327,7 +351,9 @@ struct OnboardingView: View {
                             if showPracticeKey(lesson) { keycap(practiceKey(lesson)) }
                         }.padding(.top, 4)
                     }
-                }.frame(height: 66, alignment: .top).foregroundStyle(OnboardingRiso.ink(for: colorScheme))
+                }.opacity(compact && hasPracticeWarning(lesson) ? 0 : 1)
+                    .frame(height: compact && hasPracticeWarning(lesson) ? 32 : (compact ? 56 : 66), alignment: .top)
+                    .foregroundStyle(OnboardingRiso.ink(for: colorScheme))
                 Spacer()
                 Button("비우기", systemImage: "arrow.counterclockwise") { resetRequest = UUID() }
                     .buttonStyle(OnboardingRisoButtonStyle(prominent: false)).padding(.top, 8)
@@ -348,12 +374,12 @@ struct OnboardingView: View {
                     .padding(8)
             }
             .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(OnboardingRiso.cyan.opacity(0.60), lineWidth: 1.3))
-            .frame(height: 94)
+            .frame(height: compact ? 84 : 94)
             Text(practiceMessage(lesson)).font(.system(size: 15))
-                .frame(maxWidth: .infinity, minHeight: 40, maxHeight: 40, alignment: .topLeading)
+                .frame(maxWidth: .infinity, minHeight: compact ? 34 : 40, maxHeight: compact ? 34 : 40, alignment: .topLeading)
             HStack {
-                Label(selectedHaneul ? "하늘키보드 선택됨" : "하늘키보드를 선택해 주세요",
-                      systemImage: selectedHaneul ? "checkmark.circle.fill" : "keyboard")
+                FeedbackStatusLabel(complete: selectedHaneul,
+                    completedText: "하늘키보드 선택됨", pendingText: "하늘키보드를 선택해 주세요")
                     .font(.system(size: 14))
                 Spacer()
                 if !selectedHaneul {
@@ -362,10 +388,7 @@ struct OnboardingView: View {
                     }.disabled(!core.imeInstalled)
                 }
             }
-            if (lesson == .automatic || lesson == .reversal) && !autoEnabled
-                || lesson == .reversal && !allWordsEnabled
-                || lesson == .registeredWord && !phoneticEnabled
-                || lesson == .slash && !slashEnabled {
+            if hasPracticeWarning(lesson) {
                 VStack(alignment: .leading, spacing: 6) {
                     if (lesson == .automatic || lesson == .reversal) && !autoEnabled {
                         Text("현재 이 앱의 자동 변환이 꺼져 있어요.")
@@ -374,15 +397,19 @@ struct OnboardingView: View {
                         Text("영어 글자를 한글 자판 글자로 바꾸는 기능이 꺼져 있어요. 직전 자동 변환은 되돌릴 수 있어요.")
                     }
                     if lesson == .registeredWord && !phoneticEnabled {
-                        Text("바나나를 banana로 바꾸는 기능이 꺼져 있어요. 설정에서 ‘등록 단어 변환’를 켜 주세요.")
+                        Text("카메라를 camera로 바꾸는 기능이 꺼져 있어요. 설정에서 ‘등록 단어 변환’을 켜 주세요.")
                     }
                     if lesson == .slash && !slashEnabled {
                         Text("슬래시 영어 입력이 꺼져 있어요. 설정에서 켜고 연습해 주세요.")
                     }
-                    Button("입력 기능 설정 열기") { onSettings(.inputFeatures) }
-                }.font(.system(size: 14))
+                    if let sourceError {
+                        Text(sourceError).foregroundStyle(FeedbackStatus.warning.color(in: colorScheme))
+                    }
+                    if lessonDisabled(lesson) {
+                        Button("입력 기능 설정 열기") { onSettings(.inputFeatures) }
+                    }
+                }.font(.system(size: 14)).feedbackPanel(.warning)
             }
-            sourceFailure
         }.padding(.horizontal, 8)
     }
 
@@ -414,7 +441,7 @@ struct OnboardingView: View {
             case .reverted: return "한글로 바뀌었어요. 한 번 더 누르면 영어로 돌아가요."
             case .converted: return "영어로 바뀌었어요. 다시 눌러 한글로 바꿔보세요."
             default: return lesson == .registeredWord
-                ? "바나나를 입력한 뒤 \(shortcut.displayName)를 눌러보세요."
+                ? "카메라를 입력한 뒤 \(shortcut.displayName)를 눌러보세요."
                 : "apple을 입력하고 Space → \(shortcut.displayName)를 눌러보세요."
             }
         }
@@ -495,32 +522,23 @@ struct OnboardingView: View {
     }
     private func card<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 14, content: content)
-            .padding(20).frame(maxWidth: .infinity, alignment: .leading)
-            .modifier(OnboardingPrintPanel())
+            .feedbackPanel(.information)
     }
     private func guideColumn(_ number: String, _ title: String, symbol: String, detail: String) -> some View {
-        let tint = number == "1" ? OnboardingRiso.yellow : number == "2" ? OnboardingRiso.cyan : OnboardingRiso.pink
-        return VStack(spacing: 10) {
-            Text(number).font(OnboardingRiso.titleFont(size: 18))
-            Image(systemName: symbol).font(.system(size: 30, weight: .medium))
+        let tint = FeedbackTone.information.tint
+        return VStack(spacing: compact ? 6 : 10) {
+            if !compact { Text(number).font(OnboardingRiso.titleFont(size: 18)) }
+            Image(systemName: symbol).font(.system(size: compact ? 24 : 30, weight: .medium))
                 .symbolRenderingMode(.monochrome).foregroundStyle(.primary)
-                .frame(width: 62, height: 54)
+                .frame(width: compact ? 44 : 62, height: compact ? 32 : 54)
                 .background(tint.opacity(colorScheme == .dark ? 0.23 : 0.20), in: RoundedRectangle(cornerRadius: 12))
-            Text(title).font(.system(size: 16, weight: .semibold))
-            Text(detail).font(.system(size: 14)).lineSpacing(4).multilineTextAlignment(.center)
+            Text(title).font(.system(size: compact ? 15 : 16, weight: .semibold))
+            Text(detail).font(.system(size: compact ? 13 : 14)).lineSpacing(compact ? 2 : 4).multilineTextAlignment(.center)
         }.frame(maxWidth: .infinity)
-    }
-    @ViewBuilder private var sourceFailure: some View {
-        if let sourceError { Text(sourceError).font(.system(size: 14)).foregroundStyle(.red) }
-    }
-    @ViewBuilder private var settingsRefreshWarning: some View {
-        if let warning = core.imeSettingsRefreshWarning {
-            Text(warning).font(.system(size: 14)).foregroundStyle(.orange).textSelection(.enabled)
-        }
     }
     private func refresh() {
         core.refreshIMEStatus()
-        selectedHaneul = InputSwitcher.currentSourceID() == InputSwitcher.koreanModeID
+        refreshSelection()
         let defaults = UserDefaults(suiteName: IMEInstaller.imeBundleID)
         shortcut = RevertKey.resolve(rawValue: defaults?.string(forKey: RevertKey.defaultsKey))
         allWordsEnabled = defaults?.object(forKey: RevertKey.manualToggleAllWordsKey) as? Bool
@@ -533,11 +551,15 @@ struct OnboardingView: View {
             disabledIDs: defaults?.stringArray(forKey: AutoConvertPolicy.disabledAppsKey) ?? [],
             clientBundleID: Bundle.main.bundleIdentifier)
     }
+    private func refreshSelection() {
+        selectedHaneul = InputSwitcher.currentSourceID() == InputSwitcher.koreanModeID
+        if selectedHaneul { sourceError = nil }
+    }
     @discardableResult private func selectHaneul() -> Bool {
         let success = InputSwitcher.selectKorean()
-        selectedHaneul = InputSwitcher.currentSourceID() == InputSwitcher.koreanModeID
-        sourceError = success ? nil : "하늘키보드를 선택하지 못했어요. 키보드 설정에서 입력 소스를 추가해 주세요."
-        return success
+        refreshSelection()
+        sourceError = success || selectedHaneul ? nil : "하늘키보드를 선택하지 못했어요. 키보드 설정에서 입력 소스를 추가해 주세요."
+        return success || selectedHaneul
     }
 }
 

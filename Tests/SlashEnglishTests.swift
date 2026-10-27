@@ -18,8 +18,23 @@ private final class SlashTextClient: ComposerClient {
             checks += 1
         }
         func step(_ session: inout SlashEnglishSession, _ text: String?, key: UInt16 = 0,
-                  flags: NSEvent.ModifierFlags = [], enabled: Bool = true) -> SlashEnglishSession.Action {
-            session.process(characters: text, keyCode: key, modifierFlagsRaw: flags.rawValue, enabled: enabled)
+                  flags: NSEvent.ModifierFlags = [], enabled: Bool = true,
+                  context: SlashEnglishSession.Context? = nil) -> SlashEnglishSession.Action {
+            session.process(characters: text, keyCode: key, modifierFlagsRaw: flags.rawValue,
+                            enabled: enabled, context: context)
+        }
+        func context(_ location: Int, length: Int = 0, text: String? = "/",
+                     marked: NSRange = NSRange(location: NSNotFound, length: 0)) -> SlashEnglishSession.Context {
+            SlashEnglishSession.Context(selection: NSRange(location: location, length: length),
+                                        markedRange: marked, triggerText: text)
+        }
+        func start(_ session: inout SlashEnglishSession, at location: Int) {
+            session.reset()
+            check(step(&session, "/", key: 44) == .begin, "삭제 검사 세션 시작")
+            check(session.captureTrigger(in: NSRange(location: location, length: 0),
+                                         markedRange: NSRange(location: NSNotFound, length: 0)),
+                  "확정 뒤 slash 위치 캡처")
+            check(session.triggerRange == NSRange(location: location, length: 1), "UTF16 한 글자만 추적")
         }
 
         let suiteName = "com.hyunjincho.haneulkeyboard.slash-tests.\(UUID().uuidString)"
@@ -103,6 +118,173 @@ private final class SlashTextClient: ComposerClient {
         EnglishDetector.wordlistPaths = ["/usr/share/dict/words"] + EnglishDetector.bundledWordlistNames.map { "Resources/IM/\($0).txt" }
         EnglishDetector.curatedPaths = Set(EnglishDetector.curatedWordlistNames.map { "Resources/IM/\($0).txt" })
         KoreanDictionary.wordlistPath = "Resources/IM/korean_words.txt"
+
+        // 2026-10-20 빌드90: 시작 `/`를 실제로 지우는 이벤트만 종료한다.
+        // 입력/삭제 자체는 호스트가 처리하고 다음 한글은 실제 조합기로 확인한다.
+        for prefix in ["", "앞🙂 ", "이미 확정한 문장 "] {
+            for suffix in ["", "abc"] {
+                var run = SlashEnglishSession()
+                let client = SlashTextClient()
+                let composer = KoreanComposer()
+                client.committed = prefix
+                let anchor = (prefix as NSString).length
+                start(&run, at: anchor)
+                client.insertText("/")
+                for key in suffix {
+                    check(step(&run, String(key), context: context((client.visible as NSString).length)) == .passThrough,
+                          "slash 뒤 영문은 직접 입력")
+                    client.insertText(String(key))
+                }
+                for remaining in stride(from: suffix.count, through: 0, by: -1) {
+                    let action = step(&run, "\u{7f}", key: 51,
+                                      context: context((client.visible as NSString).length))
+                    check(action == (remaining == 0 ? .end : .passThrough), "시작 slash를 지우는 순간만 종료")
+                    client.committed.removeLast()
+                }
+                check(client.visible == prefix, "slash와 뒷글자 삭제가 앞 문장을 보존")
+                check(!run.isActive && run.triggerRange == nil, "삭제 뒤 세션과 시작 위치 초기화")
+                check(step(&run, "g") == .composeKorean, "slash 전체 삭제 뒤 다음 키는 한글")
+                _ = composer.handleInput("g", client: client)
+                check(client.visible == prefix + "ㅎ", "삭제 후 실제 한글 조합")
+            }
+        }
+
+        // 앞의 한글 조합이 영어로 확정되면 길이가 바뀐다. 캡처는 확정된 커서 기준이다.
+        do {
+            var run = SlashEnglishSession()
+            let client = SlashTextClient(); let composer = KoreanComposer()
+            for key in "banana" { _ = composer.handleInput(String(key), client: client) }
+            check(step(&run, "/") == .begin, "앞 조합이 있는 slash 시작")
+            _ = composer.commit(to: client, convertEnglish: true)
+            composer.completeBoundary("/")
+            check(client.visible == "banana", "앞 조합의 활성 경계 확정")
+            check(run.captureTrigger(in: NSRange(location: (client.visible as NSString).length, length: 0),
+                                     markedRange: NSRange(location: NSNotFound, length: 0)),
+                  "길이 변경 뒤 시작 위치 캡처")
+            client.insertText("/")
+            check(step(&run, "\u{7f}", key: 51, context: context(7)) == .end,
+                  "확정 길이가 바뀌어도 slash 삭제 감지")
+        }
+
+        for flags: NSEvent.ModifierFlags in [[], .shift, .capsLock] {
+            start(&session, at: 3)
+            check(step(&session, "\u{7f}", key: 51, flags: flags, context: context(4)) == .end,
+                  "문자 삭제 방향을 바꾸지 않는 수정자는 종료 허용")
+        }
+        start(&session, at: 3)
+        check(step(&session, nil, key: 117, flags: [.function, .numericPad], context: context(3)) == .end,
+              "forwardDelete로 시작 slash 삭제")
+
+        for flags: NSEvent.ModifierFlags in [[], .command, .option] {
+            start(&session, at: 3)
+            check(step(&session, "a", key: 0, flags: .command, context: context(7)) == .passThrough,
+                  "Cmd+A 자체는 앱에 전달")
+            check(step(&session, "\u{7f}", key: 51, flags: flags, context: context(0, length: 7)) == .end,
+                  "선택 범위에 slash가 있으면 선택 삭제 종료")
+            check(step(&session, "g") == .composeKorean, "선택 삭제 뒤 한글 복귀")
+        }
+        start(&session, at: 3)
+        check(step(&session, "\u{7f}", key: 51, context: context(4, length: 3)) == .passThrough,
+              "slash 다음 글자만 선택 삭제하면 유지")
+        for location in [7, 6, 4, 3, 2, 3, 4] {
+            check(step(&session, nil, key: 123, flags: [.function, .numericPad],
+                       context: context(location)) == .passThrough && session.isActive,
+                  "좌우 이동 자체는 임시 영어를 종료하지 않음")
+        }
+        for flags: NSEvent.ModifierFlags in [.command, .option, .control, .function] {
+            start(&session, at: 0)
+            check(step(&session, "\u{7f}", key: 51, flags: flags, context: context(1)) == .passThrough,
+                  "선택 없는 단어·줄·방향 변경 삭제 범위는 추측하지 않음")
+            check(step(&session, "g", context: context(0, text: "")) == .composeKorean,
+                  "수정자 삭제 뒤 기호가 없다고 확인되면 현재 키부터 복귀")
+        }
+
+        // The first plain Backspace directly after '/' does not need substring
+        // support. Later edits still require the original verified geometry.
+        for capture in [true, false] {
+            var run = SlashEnglishSession()
+            check(step(&run, "/", key: 44) == .begin,"immediate fallback start")
+            if capture {
+                check(run.captureTrigger(in: NSRange(location: 0, length: 0),
+                                         markedRange: NSRange(location: NSNotFound, length: 0)),
+                      "immediate fallback captured caret")
+            }
+            check(step(&run, "\u{7f}", key: 51,
+                       context: capture ? context(1,text:nil) : nil) == .end,
+                  "immediate slash deletion without host readback")
+            check(!run.isActive && run.triggerRange == nil,"immediate fallback clears state")
+            check(step(&run, "g") == .composeKorean,"immediate fallback resumes Korean")
+        }
+        for key: UInt16 in [0,123] {
+            var run = SlashEnglishSession(); start(&run,at:0)
+            _ = step(&run,key == 0 ? "a" : nil,key:key)
+            check(step(&run,"\u{7f}",key:51,context:context(1,text:nil)) == .passThrough,
+                  "intervening text or navigation invalidates immediate fallback")
+        }
+        for flags: NSEvent.ModifierFlags in [.command,.option,.control,.function] {
+            var run = SlashEnglishSession(); _ = step(&run,"/")
+            check(step(&run,"\u{7f}",key:51,flags:flags) == .passThrough,
+                  "unknown host does not guess modified deletion")
+        }
+        start(&session,at:0)
+        check(step(&session,"\u{7f}",key:51,context:context(7,text:nil)) == .passThrough,
+              "readable caret away from slash blocks immediate fallback")
+        for (delimiter,key,flags): (String,UInt16,NSEvent.ModifierFlags) in [
+            (")",29,.shift),("]",30,[]),("}",30,.shift)
+        ] {
+            for text: String? in [delimiter,nil] {
+                var run = SlashEnglishSession(); _ = step(&run,"/")
+                check(step(&run,text,key:key,flags:flags) == .end,"closing delimiter ends slash")
+                check(step(&run,"g") == .composeKorean,"closing delimiter resumes Korean")
+            }
+        }
+        var actualCharacters = SlashEnglishSession(); _ = step(&actualCharacters,"/")
+        check(step(&actualCharacters,"0",key:29,flags:.shift) == .passThrough,
+              "actual characters override physical closing-parenthesis fallback")
+        for flags: NSEvent.ModifierFlags in [.command,.option,.control] {
+            var run = SlashEnglishSession(); _ = step(&run,"/")
+            check(step(&run,")",key:29,flags:flags) == .passThrough,"modified parenthesis stays a host shortcut")
+        }
+
+        let unavailable = [
+            context(NSNotFound, text: ""),
+            context(-1, text: ""),
+            context(Int.max - 1, length: 2, text: ""),
+            context(1, length: -1, text: ""),
+            context(1, text: "", marked: NSRange(location: 0, length: 1)),
+            context(1, text: "", marked: NSRange(location: -1, length: 0)),
+        ]
+        for snapshot in unavailable {
+            start(&session, at: 0)
+            check(step(&session, "\u{7f}", key: 51, context: snapshot) == .passThrough && session.isActive,
+                  "조회 불가·불완전 범위는 삭제를 확정하지 않음")
+            check(step(&session, " ", key: 49, context: snapshot) == .end && session.triggerRange == nil,
+                  "조회 불가여도 기존 일반 Space 종료 유지")
+        }
+        for text in ["", "x"] {
+            start(&session, at: 0)
+            check(step(&session, "g", context: context(0, text: text)) == .composeKorean,
+                  "시작 기호 소실을 확인하면 현재 입력부터 한글")
+            check(!session.isActive && session.triggerRange == nil, "기호 소실은 추적 상태도 삭제")
+        }
+        start(&session, at: 0)
+        check(step(&session, "/", context: context(0, text: "")) == .begin && session.triggerRange == nil,
+              "옛 slash 삭제 뒤 새 slash는 새 세션으로 시작")
+        session.reset()
+        check(!session.captureTrigger(in: NSRange(location: 0, length: 0),
+                                      markedRange: NSRange(location: NSNotFound, length: 0)),
+              "RPC 도중 reset된 세션은 늦은 캡처로 되살리지 않음")
+        check(!session.isActive && session.triggerRange == nil, "캡처는 시작 동작이 아님")
+        for snapshot in [context(NSNotFound), context(1, marked: NSRange(location: 0, length: 1))] {
+            _ = step(&session, "/")
+            check(!session.captureTrigger(in: snapshot.selection, markedRange: snapshot.markedRange)
+                    && session.isActive && session.triggerRange == nil,
+                  "캡처 불가 호스트는 기존 정책으로 유지")
+            session.reset()
+        }
+        start(&session, at: 0)
+        check(step(&session, "g", enabled: false, context: context(1)) == .composeKorean
+                && session.triggerRange == nil, "설정 OFF도 시작 위치를 초기화")
 
         // 실제 KoreanComposer를 사용해 slash 앞 기존 구두점 정책과 영문 뒤 한글 복귀를 검증.
         // 앱의 일반 입력은 insertText로 모사하며 IMK 서버를 대신했다고 주장하지 않는다.

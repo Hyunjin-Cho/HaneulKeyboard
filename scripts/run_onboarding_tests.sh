@@ -8,9 +8,11 @@ swiftc -parse-as-library -o "$TEST_DIR/onboarding-tests" \
   Shared/InputInferencePolicy.swift \
   Sources/OnboardingPracticeField.swift \
   Sources/OnboardingPracticeProgress.swift \
+  Sources/OnboardingPageNavigation.swift \
+  Sources/OnboardingPeopleArtwork.swift \
   IMESources/HangulJamo.swift IMESources/KeyboardLayout2Set.swift \
   IMESources/Contractions.swift IMESources/AlphanumericWords.swift IMESources/MeasurementUnits.swift \
-  IMESources/PhoneticDictionary.swift IMESources/KoreanComposer.swift IMESources/ManualToggle.swift \
+  IMESources/PhoneticDictionary.swift IMESources/EnglishParticleSplitter.swift IMESources/KoreanComposer.swift IMESources/ManualToggle.swift \
   IMESources/EnglishDetector.swift IMESources/KoreanDictionary.swift \
   IMESources/PersonalDictionary.swift Tests/OnboardingPracticeTests.swift
 "$TEST_DIR/onboarding-tests"

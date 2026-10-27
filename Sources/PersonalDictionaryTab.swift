@@ -19,7 +19,10 @@ struct PersonalDictionaryTab: View {
             PersonalDictionarySettingsSection(isSelected: isSelected)
 
             HaneulSettingsSection("단어 제안") {
-                Text("모두의 사전에 반영할 단어를 알려 주세요. 이 기기에서만 고치려면 위의 개인 사전을 쓰세요.")
+                Text("모두의 사전에 반영할 단어나 필요한 분야를 알려 주세요. 다음 버전에 반영할 수 있도록 검토하겠습니다. 단어 하나가 아니어도 괜찮아요. 산업군이나 자주 쓰는 용어 분야를 알려 주셔도 도움이 됩니다.")
+                    .font(SettingsTypography.body)
+                    .foregroundStyle(.secondary)
+                Text("이 기기에서만 바꾸려면 위의 개인 사전을 사용해 주세요.")
                     .font(SettingsTypography.body)
                     .foregroundStyle(.secondary)
 

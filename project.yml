@@ -8,7 +8,7 @@ options:
 settings:
   base:
     MARKETING_VERSION: "2026.9"
-    CURRENT_PROJECT_VERSION: "88"
+    CURRENT_PROJECT_VERSION: "97"
     HANEUL_RELEASE_SUFFIX: ""
   configs:
     Debug:
@@ -43,6 +43,7 @@ targets:
       - path: IMESources/HangulJamo.swift
       - path: IMESources/KeyboardLayout2Set.swift
       - path: IMESources/ManualToggle.swift
+      - path: IMESources/EnglishParticleSplitter.swift
       - path: IMESources/KoreanComposer.swift
       - path: IMESources/Contractions.swift
       - path: IMESources/AlphanumericWords.swift
@@ -150,6 +151,9 @@ targets:
             com.hyunjincho.inputmethod.haneul.korean:
               TISInputSourceID: com.hyunjincho.inputmethod.haneul.korean
               TISIntendedLanguage: ko
+              # #81 · 2026-10-18: modes with an alternate icon do not inherit the root
+              # template flag. Declare it here so the system can tint the HUD image.
+              TISIconIsTemplate: true
               TISIconLabels:
                 Primary: 하늘
               KeyboardLayout: com.apple.inputmethod.Korean.2SetKorean
