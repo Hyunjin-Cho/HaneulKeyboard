@@ -1,0 +1,114 @@
+# 기준일 2026-10-14. de12669 + 미커밋 원본 스냅샷 81개, 현재 코어로 #16후속2개와 #74본문후속8개 검역.
+# 91반영/19제외·보류/1기지원. 기존201표본·45보강과 초기81·#16후속2개 보존. 외부 정의/사진/전체 사전 복제 없음.
+word	official_spelling	category	role	status	hangul_form	classification	tier	checked_date	source_title	source_url	review
+eland	eland	animal	curated	accepted	디뭉	clean	A	2026-10-14	San Diego Zoo: Spiral-horned Antelope	https://animals.sandiegozoo.org/animals/spiral-horned-antelope	정상 음절이지만 전체 표제어/통상 한국어와 충돌 없음; 개별 검토; 한국어 veto·반복키·자모 가드 변경 없음; stem 디는 등재지만 디뭉은 표제어/통상 조사형 아님
+guanaco	guanaco	animal	curated	accepted	혀뭄채	clean	A	2026-10-14	San Diego Zoo: Guanaco	https://animals.sandiegozoo.org/animals/guanaco	정상 음절이지만 전체 표제어/통상 한국어와 충돌 없음; 개별 검토; 한국어 veto·반복키·자모 가드 변경 없음
+oryx	oryx	animal	broad	accepted	ㅐ굩	broken	C	2026-10-14	San Diego Zoo: Oryx	https://animals.sandiegozoo.org/animals/oryx	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+quokka	quokka	animal	broad	accepted	벼ㅐㅏㅏㅁ	broken	C	2026-10-14	Australian Museum: Quokka	https://australian.museum/learn/animals/mammals/quokka/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+quoll	quoll	animal	broad	accepted	벼ㅐㅣㅣ	broken	C	2026-10-14	Australian Museum: Spotted-tailed Quoll	https://australian.museum/learn/animals/mammals/spotted-tailed-quoll/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+sengi	sengi	animal	broad	accepted	ㄴ두햐	broken	C	2026-10-14	Smithsonian National Zoo: Black and rufous elephant shrew	https://nationalzoo.si.edu/index.php/animals/black-and-rufous-elephant-shrew	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+angelfish	angelfish	aquatic	curated	accepted	뭏디랴노	clean	A	2026-10-14	Smithsonian Ocean: Coral Reef Scene	https://ocean.si.edu/ocean-life/fish/coral-reef-scene	정상 음절이지만 전체 표제어/통상 한국어와 충돌 없음; 개별 검토; 한국어 veto·반복키·자모 가드 변경 없음
+clownfish	clownfish	aquatic	broad	accepted	치ㅐ주랴노	broken	C	2026-10-14	Smithsonian Ocean: Clark’s Anemonefish	https://ocean.si.edu/ocean-life/fish/clarks-anemonefish	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+coral	coral	aquatic	curated	accepted	책미	clean	A	2026-10-14	Smithsonian Ocean: Coral Reef Scene	https://ocean.si.edu/ocean-life/fish/coral-reef-scene	정상 음절이지만 전체 표제어/통상 한국어와 충돌 없음; 개별 검토; 한국어 veto·반복키·자모 가드 변경 없음; stem 책은 등재지만 책미는 표제어/통상 조사형 아님. 책/책이 보호 회귀로 확인
+cockatiel	cockatiel	bird	curated	accepted	채참샤디	clean	A	2026-10-14	Australian Museum: The food of birds from south-western New South Wales	https://journals.australian.museum/media/Uploads/Journals/17233/692_complete.pdf	정상 음절이지만 전체 표제어/통상 한국어와 충돌 없음; 개별 검토; 한국어 veto·반복키·자모 가드 변경 없음
+audioengine	Audioengine	brand	broad	accepted	며야ㅐ두햐ㅜㄷ	broken	C	2026-10-14	Audioengine official	https://audioengine.com/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+dynaudio	Dynaudio	brand	broad	accepted	요ㅜ며야ㅐ	broken	C	2026-10-14	Dynaudio official	https://dynaudio.com/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+klipsch	Klipsch	brand	broad	accepted	ㅏㅣㅑㅔㄴ초	broken	C	2026-10-14	Klipsch official	https://www.klipsch.com/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+otterbox	OtterBox	brand	broad	accepted	ㅐㅅㅅㄷ규ㅐㅌ	broken	C	2026-10-14	OtterBox official	https://www.otterbox.com/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+spigen	Spigen	brand	broad	accepted	네ㅑㅎ두	broken	C	2026-10-14	Spigen official	https://www.spigen.com/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+angelbird	Angelbird	camera	broad	accepted	뭏디ㅠㅑㄱㅇ	broken	C	2026-10-14	Angelbird official	https://www.angelbird.com/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+angenieux	Angenieux	camera	broad	accepted	뭏두ㅑ뎥	broken	C	2026-10-14	Angenieux official	https://www.angenieux.com/our-story/the-zoom-innovations-at-angenieux/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음; 공식 역사 문서에 ASCII Angenieux도 표기; accent 제거 별칭을 추정한 것이 아님
+atomos	Atomos	camera	broad	accepted	ㅁ새ㅡㅐㄴ	broken	C	2026-10-14	Atomos official	https://www.atomos.com/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+broncolor	broncolor	camera	broad	accepted	ㅠ개ㅜ채ㅣㅐㄱ	broken	C	2026-10-14	broncolor official	https://broncolor.swiss/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+fujinon	FUJINON	camera	broad	accepted	려ㅓㅑㅜㅐㅜ	broken	C	2026-10-14	FUJINON official	https://www.fujifilm.com/us/en/business/cine-and-broadcast/cine-lens	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+hollyland	Hollyland	camera	broad	accepted	ㅙㅣㅣㅛㅣ뭉	broken	C	2026-10-14	Hollyland official	https://www.hollyland.com/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+laowa	Laowa	camera	broad	accepted	ㅣ맺ㅁ	broken	C	2026-10-14	Laowa official	https://www.venuslens.net/shop/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+meike	Meike	camera	broad	accepted	ㅡ댜ㅏㄷ	broken	C	2026-10-14	Meike official	https://meikeglobal.com/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+novoflex	NOVOFLEX	camera	broad	accepted	ㅜㅐ패릳ㅌ	broken	C	2026-10-14	NOVOFLEX official	https://www.novoflex.de/en/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+portkeys	Portkeys	camera	broad	accepted	ㅔㅐㄱ사됸	broken	C	2026-10-14	Portkeys official	https://www.portkeys.com/products/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+sachtler	Sachtler	camera	broad	accepted	ㄴㅁ초싣ㄱ	broken	C	2026-10-14	Sachtler official	https://www.sachtler.com/en/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+tascam	TASCAM	camera	broad	accepted	ㅅㅁㄴㅊ므	broken	C	2026-10-14	TASCAM official	https://tascam.com/us/magazines/detail/2139	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+teradek	Teradek	camera	broad	accepted	ㅅㄷㄱㅁㅇ다	broken	C	2026-10-14	Teradek official	https://teradek.com/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+tilta	Tilta	camera	broad	accepted	샤ㅣㅅㅁ	broken	C	2026-10-14	Tilta official	https://tilta.com/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+ttartisan	TTArtisan	camera	broad	accepted	ㅅㅅㅁㄱ샨무	broken	C	2026-10-14	TTArtisan official	https://www.ttartisan.com/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+viltrox	Viltrox	camera	broad	accepted	퍄ㅣㅅ갵	broken	C	2026-10-14	Viltrox official	https://viltrox.com/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+baryonyx	baryonyx	dinosaur	broad	accepted	ㅠㅁ교ㅐㅜㅛㅌ	broken	C	2026-10-14	Natural History Museum: Dino Directory Name A-Z	https://www.nhm.ac.uk/discover/dino-directory/name/name-az-all/gallery.html	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+carnotaurus	carnotaurus	dinosaur	broad	accepted	ㅊㅁ구ㅐㅅ며견	broken	C	2026-10-14	Natural History Museum: Dino Directory Name A-Z	https://www.nhm.ac.uk/discover/dino-directory/name/name-az-all/gallery.html	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+ceratosaurus	ceratosaurus	dinosaur	broad	accepted	ㅊㄷㄱㅁ샌며견	broken	C	2026-10-14	Natural History Museum: Dino Directory Name A-Z	https://www.nhm.ac.uk/discover/dino-directory/name/name-az-all/gallery.html	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+coelophysis	coelophysis	dinosaur	broad	accepted	채디ㅐㅔㅗㅛ냔	broken	C	2026-10-14	Natural History Museum: Dino Directory Name A-Z	https://www.nhm.ac.uk/discover/dino-directory/name/name-az-all/gallery.html	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+compsognathus	compsognathus	dinosaur	broad	accepted	채ㅡㅔ내훔소ㅕㄴ	broken	C	2026-10-14	Natural History Museum: Dino Directory Name A-Z	https://www.nhm.ac.uk/discover/dino-directory/name/name-az-all/gallery.html	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+deinonychus	deinonychus	dinosaur	broad	accepted	ㅇ댜ㅜㅐㅜㅛ초ㅕㄴ	broken	C	2026-10-14	Natural History Museum: Dino Directory Name A-Z	https://www.nhm.ac.uk/discover/dino-directory/name/name-az-all/gallery.html	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+dilophosaurus	dilophosaurus	dinosaur	broad	accepted	야ㅣㅐㅔㅙㄴ며견	broken	C	2026-10-14	Natural History Museum: Dino Directory Name A-Z	https://www.nhm.ac.uk/discover/dino-directory/name/name-az-all/gallery.html	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+edmontosaurus	edmontosaurus	dinosaur	broad	accepted	ㄷ으ㅐㅜ샌며견	broken	C	2026-10-14	Natural History Museum: Dino Directory Name A-Z	https://www.nhm.ac.uk/discover/dino-directory/name/name-az-all/gallery.html	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+gallimimus	gallimimus	dinosaur	broad	accepted	ㅎ미ㅣㅑㅡㅑㅡㅕㄴ	broken	C	2026-10-14	Natural History Museum: Dino Directory Name A-Z	https://www.nhm.ac.uk/discover/dino-directory/name/name-az-all/gallery.html	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+giganotosaurus	giganotosaurus	dinosaur	broad	accepted	햫무ㅐ샌며견	broken	C	2026-10-14	Natural History Museum: Dino Directory Name A-Z	https://www.nhm.ac.uk/discover/dino-directory/name/name-az-all/gallery.html	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+iguanodon	iguanodon	dinosaur	broad	accepted	ㅑ혀무ㅐ애ㅜ	broken	C	2026-10-14	Natural History Museum: Dino Directory Name A-Z	https://www.nhm.ac.uk/discover/dino-directory/name/name-az-all/gallery.html	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+maiasaura	maiasaura	dinosaur	broad	accepted	ㅡ먐ㄴ멱ㅁ	broken	C	2026-10-14	Natural History Museum: Dino Directory Name A-Z	https://www.nhm.ac.uk/discover/dino-directory/name/name-az-all/gallery.html	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+microraptor	microraptor	dinosaur	broad	accepted	ㅡㅑㅊ객메색	broken	C	2026-10-14	Natural History Museum: Dino Directory Name A-Z	https://www.nhm.ac.uk/discover/dino-directory/name/name-az-all/gallery.html	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+pachycephalosaurus	pachycephalosaurus	dinosaur	broad	accepted	ㅔㅁ초ㅛㅊ데ㅗ미ㅐㄴ며견	broken	C	2026-10-14	Natural History Museum: Dino Directory Name A-Z	https://www.nhm.ac.uk/discover/dino-directory/name/name-az-all/gallery.html	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+parasaurolophus	parasaurolophus	dinosaur	broad	accepted	ㅔㅁㄱㅁㄴ며개ㅣㅐㅔㅗㅕㄴ	broken	C	2026-10-14	Natural History Museum: Dino Directory Name A-Z	https://www.nhm.ac.uk/discover/dino-directory/name/name-az-all/gallery.html	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+troodon	troodon	dinosaur	broad	accepted	ㅅ개ㅐ애ㅜ	broken	C	2026-10-14	Natural History Museum: Dino Directory Name A-Z	https://www.nhm.ac.uk/discover/dino-directory/name/name-az-all/gallery.html	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음; 박물관 기록의 철자만 확인; 최신 분류의 유효명이라고 주장하지 않음
+utahraptor	utahraptor	dinosaur	broad	accepted	ㅕㅅ목메색	broken	C	2026-10-14	Natural History Museum: Dino Directory Name A-Z	https://www.nhm.ac.uk/discover/dino-directory/name/name-az-all/gallery.html	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+mosasaurus	mosasaurus	extinct-reptile	broad	accepted	ㅡㅐㄴㅁㄴ며견	broken	C	2026-10-14	Smithsonian: Mosasaurus maximus	https://www.si.edu/object/nmnhpaleobiology_3429189	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+plesiosaurus	plesiosaurus	extinct-reptile	broad	accepted	ㅔㅣㄷ냐ㅐㄴ며견	broken	C	2026-10-14	Natural History Museum: Mary Anning fossils	https://www.nhm.ac.uk/discover/mary-anning-fossils.html	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+quetzalcoatlus	quetzalcoatlus	extinct-reptile	broad	accepted	볃ㅅㅋ미챔시ㅕㄴ	broken	C	2026-10-14	American Museum of Natural History: Quetzalcoatlus northropi	https://www.amnh.org/explore/ology/ology-cards/360-quetzalcoatlus-northropi	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+adox	ADOX	film	broad	accepted	ㅁ앹	broken	C	2026-10-14	ADOX official	https://www.adox.de/en/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+aerocolor	AEROCOLOR	film	broad	accepted	ㅁㄷ개채ㅣㅐㄱ	broken	C	2026-10-14	AEROCOLOR official	https://www.kodak.com/en/advanced-materials/product/aerial-imaging/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+dubblefilm	dubblefilm	film	broad	accepted	여ㅠㅠㅣㄷ랴ㅣㅡ	broken	C	2026-10-14	dubblefilm official	https://dubblefilm.com/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+ferrania	Ferrania	film	broad	accepted	ㄹㄷㄱㄱ무ㅑㅁ	broken	C	2026-10-14	Ferrania official	https://www.filmferrania.com/about	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+foma	Foma	film	broad	accepted	래ㅡㅁ	broken	C	2026-10-14	Foma official	https://www.foma.cz/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+kentmere	Kentmere	film	broad	accepted	ㅏ두슫ㄱㄷ	broken	C	2026-10-14	Kentmere official	https://www.ilfordphoto.com/catalogsearch/result/?q=35mm	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+revolog	revolog	film	broad	accepted	ㄱㄷ패ㅣㅐㅎ	broken	C	2026-10-14	revolog official	https://www.revolog.net/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+ultramax	ULTRAMAX	film	broad	accepted	ㅕㅣㅅㄱ믐ㅌ	broken	C	2026-10-14	ULTRAMAX official	https://www.kodak.com/en/still-film/products/consumer/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+feijoa	feijoa	fruit	broad	accepted	ㄹ댜ㅓㅐㅁ	broken	C	2026-10-14	Kew: Feijoa sellowiana	https://powo.science.kew.org/taxon/urn%3Alsid%3Aipni.org%3Anames%3A596467-1/general-information	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+salak	salak	fruit	broad	accepted	ㄴ미마	broken	C	2026-10-14	NParks: Salacca zalacca	https://www.nparks.gov.sg/florafaunaweb/flora/3/2/3289	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+antlion	antlion	insect	broad	accepted	무시ㅑㅐㅜ	broken	C	2026-10-14	Australian Museum: Lacewings and Antlions	https://australian.museum/learn/animals/insects/lacewings-and-antlions-order-neuroptera/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+banksia	banksia	plant	broad	accepted	ㅠ무ㅏ냠	broken	C	2026-10-14	Australian National Botanic Gardens: Banksia	https://www.anbg.gov.au/banksia/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+bougainvillea	bougainvillea	plant	broad	accepted	ㅠㅐㅕㅎ먀ㅜ퍄ㅣㅣㄷㅁ	broken	C	2026-10-14	RHS: bougainvillea	https://www.rhs.org.uk/plants/bougainvillea	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+dracaena	dracaena	plant	broad	accepted	ㅇㄱㅁㅊㅁ둠	broken	C	2026-10-14	RHS: dracaena	https://www.rhs.org.uk/plants/dracaena	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+drosera	drosera	plant	broad	accepted	ㅇ갠ㄷㄱㅁ	broken	C	2026-10-14	RHS: Drosera	https://www.rhs.org.uk/plants/24922/drosera/details	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+echeveria	echeveria	plant	broad	accepted	ㄷ촏ㅍㄷ걈	broken	C	2026-10-14	RHS: echeveria	https://www.rhs.org.uk/plants/echeveria	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+echinacea	echinacea	plant	broad	accepted	ㄷ초ㅑㅜㅁㅊㄷㅁ	broken	C	2026-10-14	RHS: echinacea	https://www.rhs.org.uk/plants/echinacea	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+haworthia	haworthia	plant	broad	accepted	ㅗㅁ잭소ㅑㅁ	broken	C	2026-10-14	RHS: haworthia	https://www.rhs.org.uk/plants/haworthia	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+helleborus	helleborus	plant	broad	accepted	ㅗ디ㅣ듀ㅐ견	broken	C	2026-10-14	RHS: How to grow hellebores	https://www.rhs.org.uk/plants/hellebore/growing-guide	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+ixora	ixora	plant	broad	accepted	ㅑ택ㅁ	broken	C	2026-10-14	NParks: Ixora cultivars	https://biodiversitysg.nparks.gov.sg/our-biodiversity/flowering-plants/shrubs-herbaceous-plants/ixora-cultivars/	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+lithops	lithops	plant	broad	accepted	ㅣㅑ쇄ㅔㄴ	broken	C	2026-10-14	RHS: Award of Garden Merit ornamental plants	https://www.rhs.org.uk/plants/pdfs/agm-lists/agm-ornamentals.pdf	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+nepeta	nepeta	plant	broad	accepted	ㅜ덷ㅅㅁ	broken	C	2026-10-14	RHS: nepeta	https://www.rhs.org.uk/plants/nepeta	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+ranunculus	ranunculus	plant	broad	accepted	ㄱ무ㅕㅜ쳐ㅣㅕㄴ	broken	C	2026-10-14	RHS: ranunculus	https://www.rhs.org.uk/plants/ranunculus	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+rudbeckia	rudbeckia	plant	broad	accepted	겨윧차ㅑㅁ	broken	C	2026-10-14	RHS: rudbeckia	https://www.rhs.org.uk/plants/rudbeckia	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+sansevieria	sansevieria	plant	broad	accepted	ㄴ문ㄷ퍋걈	broken	C	2026-10-14	RHS: sansevieria	https://www.rhs.org.uk/plants/sansevieria	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+strelitzia	strelitzia	plant	broad	accepted	ㄴㅅㄱ디ㅑㅅ캼	broken	C	2026-10-14	RHS: strelitzia	https://www.rhs.org.uk/plants/strelitzia	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+tillandsia	tillandsia	plant	broad	accepted	샤ㅣㅣ뭉냠	broken	C	2026-10-14	RHS: Air plants	https://www.rhs.org.uk/plants/types/houseplants/air-plants	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+zamioculcas	zamioculcas	plant	broad	accepted	ㅋ므ㅑㅐ쳐ㅣㅊㅁㄴ	broken	C	2026-10-14	RHS: Award of Garden Merit ornamental plants	https://www.rhs.org.uk/plants/pdfs/agm-lists/agm-ornamentals.pdf	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+zinnia	zinnia	plant	broad	accepted	캬ㅜㅜㅑㅁ	broken	C	2026-10-14	RHS: zinnia	https://www.rhs.org.uk/plants/zinnia	깨진 한글형; broad만 등록; 한국어 veto·반복키·자모 가드 변경 없음
+turtle	turtle	reptile	curated	accepted	셕싣	clean	A	2026-10-14	San Diego Zoo: Turtle and Tortoise	https://animals.sandiegozoo.org/animals/turtle-and-tortoise	정상 음절이지만 전체 표제어/통상 한국어와 충돌 없음; 개별 검토; 한국어 veto·반복키·자모 가드 변경 없음
+agfachrome		excluded	none	deferred	ㅁㅎㄹㅁ초개ㅡㄷ	broken	not-added	2026-10-14	후보 검토/로더 범위		공식 원문 확인 보류; 이번 지원 보완 완료 주장에 포함하지 않음
+bergger	BERGGER	excluded	none	excluded	ㅠㄷㄱㅎㅎㄷㄱ	all_jamo	not-added	2026-10-14	후보 검토/로더 범위		전부 자모 ㅠㄷㄱㅎㅎㄷㄱ; 신규 broad 기본 제외 정책 유지
+colorplus		excluded	none	deferred	채ㅣㅐ게ㅣㅕㄴ	broken	not-added	2026-10-14	후보 검토/로더 범위		공식 원문 확인 보류; 이번 지원 보완 완료 주장에 포함하지 않음
+dedolight		excluded	none	deferred	ㅇㄷ애ㅣㅑ홋	broken	not-added	2026-10-14	후보 검토/로더 범위		공식 원문 확인 보류; 이번 지원 보완 완료 주장에 포함하지 않음
+dikdik	dik-dik	excluded	none	excluded	야ㅏ야ㅏ	broken	not-added	2026-10-14	후보 검토/로더 범위		공식 공백/하이픈/숫자를 지우거나 바꾼 임의 철자 등록 안 함
+doublex	DOUBLE-X	excluded	none	excluded	애ㅕㅠㅣㄷㅌ	broken	not-added	2026-10-14	후보 검토/로더 범위		공식 공백/하이픈/숫자를 지우거나 바꾼 임의 철자 등록 안 함
+flicfilm	Flic Film	excluded	none	excluded	리ㅑㅊ랴ㅣㅡ	broken	not-added	2026-10-14	후보 검토/로더 범위		공식 공백/하이픈/숫자를 지우거나 바꾼 임의 철자 등록 안 함
+fp4	FP4	excluded	none	excluded		unmappable	not-added	2026-10-14	후보 검토/로더 범위		비알파벳 철자는 TXT 로더 범위 밖; 기존 별도 숫자 이름 기능 임의 확대하지 않음
+hp5	HP5	excluded	none	excluded		unmappable	not-added	2026-10-14	후보 검토/로더 범위		비알파벳 철자는 TXT 로더 범위 밖; 기존 별도 숫자 이름 기능 임의 확대하지 않음
+jabuticaba		excluded	none	deferred	ㅓ뮤ㅕ샻뮴	broken	not-added	2026-10-14	후보 검토/로더 범위		이번 확인 원문의 철자는 jaboticaba이며 이미 지원; u 별칭은 확인 보류
+panf	PAN F	excluded	none	excluded	ㅔ물	broken	not-added	2026-10-14	후보 검토/로더 범위		공식 공백/하이픈/숫자를 지우거나 바꾼 임의 철자 등록 안 함
+redpanda	Red panda	excluded	none	excluded	ㄱㄷ에뭉ㅁ	broken	not-added	2026-10-14	후보 검토/로더 범위		공식 공백/하이픈/숫자를 지우거나 바꾼 임의 철자 등록 안 함
+sevenartisans	7artisans	excluded	none	excluded	ㄴㄷㅍ둠ㄱ샨문	broken	not-added	2026-10-14	후보 검토/로더 범위		공식 공백/하이픈/숫자를 지우거나 바꾼 임의 철자 등록 안 함
+silberra		excluded	none	deferred	냐ㅣㅠㄷㄱㄱㅁ	broken	not-added	2026-10-14	후보 검토/로더 범위		공식 원문 확인 보류; 이번 지원 보완 완료 주장에 포함하지 않음
+slrmagic	SLR Magic	excluded	none	excluded	니금햧	broken	not-added	2026-10-14	후보 검토/로더 범위		공식 공백/하이픈/숫자를 지우거나 바꾼 임의 철자 등록 안 함
+tmax	T-MAX	excluded	none	excluded	슴ㅌ	broken	not-added	2026-10-14	후보 검토/로더 범위		공식 공백/하이픈/숫자를 지우거나 바꾼 임의 철자 등록 안 함
+tri-x	TRI-X	excluded	none	excluded		unmappable	not-added	2026-10-14	후보 검토/로더 범위		비알파벳 철자는 TXT 로더 범위 밖; 기존 별도 숫자 이름 기능 임의 확대하지 않음
+trix	TRI-X	excluded	none	excluded	ㅅ걑	broken	not-added	2026-10-14	후보 검토/로더 범위		공식 공백/하이픈/숫자를 지우거나 바꾼 임의 철자 등록 안 함
+xp2	XP2	excluded	none	excluded		unmappable	not-added	2026-10-14	후보 검토/로더 범위		비알파벳 철자는 TXT 로더 범위 밖; 기존 별도 숫자 이름 기능 임의 확대하지 않음
+jaboticaba	jaboticaba	fruit	broad	already-supported	ㅓ뮤ㅐ샻뮴	broken	C	2026-10-14	University of Florida IFAS: Frutos Tropicales y Subtropicales para el Jardin	https://edis.ifas.ufl.edu/publication/HS136/pdf	변경 전 코어+사전으로 이미 변환. 중복 추가 안 함
+lsp	LSP	developer	broad	accepted	ㅣ네	broken	C	2026-10-14	Microsoft: Language Server Protocol	https://microsoft.github.io/language-server-protocol/	#16 후속 요구. 현재 코어 검역: 미등재→무맥락 변환, 한국어 표제어 충돌 없음. broad만 등록; www 반복키 보호 유지
+fork	fork	developer	curated	accepted	래가	clean	A	2026-10-14	GitHub Docs: Forks	https://docs.github.com/en/pull-requests/reference/forks	#16 후속 요구. 현재 코어 검역: broad-only→curated 무맥락 변환. 래 어근 표제어 경고를 보존, 래가 전체 표제어는 미등재. 노래가/오래가 원문과 www 보호 회귀 확인. 한국어 veto 우회 없음
+contax	Contax	camera	broad	accepted	채ㅜㅅㅁㅌ	broken	C	2026-10-14	ZEISS: History of camera and cine lenses	https://www.zeiss.com/corporate/en/about-zeiss/past/history/technological-milestones/camera-and-cine-lenses.html	#74 본문 후속8개. 제조사 역사 문서의 Contax 표기; 현재 판매 여부 추정 안 함; 깨진 한글형/veto 미등재; broad만 등록, Tier C. 한국어·Shift·반복키·개인 금지 관문 변경 없음
+summicron	Summicron	camera	broad	accepted	녀ㅡㅡㅑㅊ개ㅜ	broken	C	2026-10-14	Leica: Understanding Leica Lenses	https://leica-camera.com/en-US/photography/understanding-leica-lenses	#74 본문 후속8개. 제조사의 렌즈 계열 이름 Summicron 확인; 숫자/하이픈 모델 전체 지원으로 확대 안 함; 깨진 한글형/veto 미등재; broad만 등록, Tier C. 한국어·Shift·반복키·개인 금지 관문 변경 없음
+remjet	remjet	film	broad	accepted	ㄱ드ㅓㄷㅅ	broken	C	2026-10-14	Kodak: Glossary of Motion Picture Terms	https://www.kodak.com/en/motion/page/glossary-of-motion-picture-terms/	#74 본문 후속8개. 공식 Remjet Backing 용어에서 remjet 철자 확인; 필름 세대별 탑재 여부 주장을 하지 않음; 깨진 한글형/veto 미등재; broad만 등록, Tier C. 한국어·Shift·반복키·개인 금지 관문 변경 없음
+microcontrast	microcontrast	camera	broad	accepted	ㅡㅑㅊ개채ㅜㅅㄱㅁㄴㅅ	broken	C	2026-10-14	ZEISS: Otus ML Lenses for Videography	https://www.zeiss.com/photonics-and-optics/us/photography/products/lenses-for-videography/otus-ml-lenses.html	#74 본문 후속8개. 공식 렌즈 설명의 microcontrast 철자 확인; 정의/홍보 문장 복제 없음; 깨진 한글형/veto 미등재; broad만 등록, Tier C. 한국어·Shift·반복키·개인 금지 관문 변경 없음
+filmomat	Filmomat	film	broad	accepted	랴ㅣㅡㅐㅡㅁㅅ	broken	C	2026-10-14	Filmomat official: FILMOMAT NEO	https://www.filmomat.eu/	#74 본문 후속8개. 제조사 현상기 이름 Filmomat 확인; 자동 구매/현재 재고 주장 없음; 깨진 한글형/veto 미등재; broad만 등록, Tier C. 한국어·Shift·반복키·개인 금지 관문 변경 없음
+zwilling	ZWILLING	brand	broad	accepted	ㅋ쟈ㅣㅣㅑㅜㅎ	broken	C	2026-10-14	ZWILLING official: Knives	https://www.zwilling.com/us/knives/	#74 본문 후속8개. 제조사 브랜드 ZWILLING 확인; 깨진 한글형/veto 미등재; broad만 등록, Tier C. 한국어·Shift·반복키·개인 금지 관문 변경 없음
+lecreuset	LeCreuset / Le Creuset	brand	broad	accepted	ㅣㄷㅊㄱ뎐ㄷㅅ	broken	C	2026-10-14	Le Creuset official: Stores | LeCreuset	https://www.lecreuset.com/stores	#74 본문 후속8개. 사용자 #74 지정 lecreuset를 공식 페이지 제목 LeCreuset 및 공식 도메인에서 확인; 본문 브랜드 표기는 Le Creuset. 이 항목 정확 일치만 등록하며 공백 제거/임의 합성 규칙을 추가하지 않음; 깨진 한글형/veto 미등재; broad만 등록, Tier C. 한국어·Shift·반복키·개인 금지 관문 변경 없음
+locknlock	LocknLock	brand	broad	accepted	ㅣㅐ차ㅟㅐ차	broken	C	2026-10-14	LocknLock official	https://www.locknlock.com/eng	#74 본문 후속8개. 제조사 공식 브랜드 LocknLock 확인; 깨진 한글형/veto 미등재; broad만 등록, Tier C. 한국어·Shift·반복키·개인 금지 관문 변경 없음

@@ -1,0 +1,63 @@
+hangul	english	category	subcategory	reviewedOn	method	referenceURLs
+단어	word	everyday	general	2026-10-14	primary_reference_plus_independent_curated_mapping	https://krdict.korean.go.kr/eng/dicSearch/SearchView?ParaWordNo=57287
+낱말	word	everyday	general	2026-10-14	primary_reference_plus_independent_curated_mapping	https://krdict.korean.go.kr/eng/dicSearch/SearchView?ParaWordNo=57287
+어휘	vocabulary	everyday	general	2026-10-14	independently_curated_common_knowledge	
+문법	grammar	everyday	general	2026-10-14	primary_reference_plus_independent_curated_mapping	https://krdict.korean.go.kr/eng/dicSearch/SearchView?ParaWordNo=15708
+자음	consonant	everyday	general	2026-10-14	primary_reference_plus_independent_curated_mapping	https://krdict.korean.go.kr/eng/dicSearch/SearchView?ParaWordNo=73144
+문장부호	punctuation	everyday	general	2026-10-14	independently_curated_common_knowledge	
+물	water	everyday	drink-cafe	2026-10-14	primary_reference_plus_independent_curated_mapping	https://krdict.korean.go.kr/eng/dicMarinerSearch/search?mainSearchWord=%EB%AC%BC&nation=eng
+빗물	rainwater	everyday	nature	2026-10-14	independently_curated_common_knowledge	
+빗방울	raindrop	everyday	nature	2026-10-14	primary_reference_plus_independent_curated_mapping	https://dictionary.cambridge.org/dictionary/english-korean/raindrop
+바닷물	seawater	everyday	nature	2026-10-14	independently_curated_common_knowledge	
+수돗물	tap water	everyday	drink-cafe	2026-10-14	independently_curated_common_knowledge	
+눈송이	snowflake	everyday	nature	2026-10-14	independently_curated_common_knowledge	
+우산	umbrella	everyday	lifestyle-work	2026-10-14	primary_reference_plus_independent_curated_mapping	https://krdict.korean.go.kr/eng/dicSearch/SearchView?ParaWordNo=71103
+의자	chair	everyday	lifestyle-work	2026-10-14	primary_reference_plus_independent_curated_mapping	https://dictionary.cambridge.org/us/dictionary/english-korean/chair
+책상	desk	everyday	lifestyle-work	2026-10-14	primary_reference_plus_independent_curated_mapping	https://dictionary.cambridge.org/dictionary/english-korean/desk
+공책	notebook	everyday	lifestyle-work	2026-10-14	independently_curated_common_knowledge	
+연필	pencil	everyday	lifestyle-work	2026-10-14	independently_curated_common_knowledge	
+지우개	eraser	everyday	lifestyle-work	2026-10-14	independently_curated_common_knowledge	
+색연필	colored pencil	everyday	lifestyle-work	2026-10-14	independently_curated_common_knowledge	
+치약	toothpaste	everyday	lifestyle-work	2026-10-14	independently_curated_common_knowledge	
+칫솔	toothbrush	everyday	lifestyle-work	2026-10-14	independently_curated_common_knowledge	
+비누	soap	everyday	lifestyle-work	2026-10-14	independently_curated_common_knowledge	
+수건	towel	everyday	lifestyle-work	2026-10-14	independently_curated_common_knowledge	
+베개	pillow	everyday	lifestyle-work	2026-10-14	independently_curated_common_knowledge	
+담요	blanket	everyday	lifestyle-work	2026-10-14	independently_curated_common_knowledge	
+옷걸이	clothes hanger	everyday	lifestyle-work	2026-10-14	independently_curated_common_knowledge	
+냉장고	refrigerator	everyday	lifestyle-work	2026-10-14	independently_curated_common_knowledge	
+세탁기	washing machine	everyday	lifestyle-work	2026-10-14	independently_curated_common_knowledge	
+청소기	vacuum cleaner	everyday	lifestyle-work	2026-10-14	independently_curated_common_knowledge	
+전자레인지	microwave	everyday	lifestyle-work	2026-10-14	independently_curated_common_knowledge	
+선풍기	electric fan	everyday	lifestyle-work	2026-10-14	related_primary_plus_independent_qualifier	https://dictionary.cambridge.org/us/dictionary/english-korean/fan
+전기주전자	electric kettle	everyday	lifestyle-work	2026-10-14	primary_manufacturer_context_plus_independent_compound	https://www.philips.co.kr/c-dam/b2c/suj/master/supporthome/documents/KR_SecondSupport_3.pdf | https://www.documents.philips.com/assets/20220922/b8b7a8b2e0a24683ae54af18004fd7c8.pdf
+벽시계	wall clock	everyday	lifestyle-work	2026-10-14	exact_primary_gloss	https://krdict.korean.go.kr/eng/dicMarinerSearch/search?mainSearchWord=%EC%8B%9C%EA%B3%84
+손목시계	wristwatch	everyday	lifestyle-work	2026-10-14	exact_primary_gloss	https://krdict.korean.go.kr/eng/dicSearch/SearchView?ParaWordNo=63967
+옷장	wardrobe	everyday	lifestyle-work	2026-10-14	exact_primary_gloss	https://krdict.korean.go.kr/eng/dicMarinerSearch/search?mainSearchWord=%EC%98%B7&nation=eng
+수영장	swimming pool	everyday	travel	2026-10-14	exact_primary_gloss	https://dictionary.cambridge.org/us/dictionary/english-korean/swimming-pool
+도서관	library	everyday	travel	2026-10-14	exact_primary_gloss	https://krdict.korean.go.kr/eng/dicMarinerSearch/search?mainSearchWord=%EB%8F%84%EC%84%9C%EA%B4%80&nation=eng
+박물관	museum	everyday	travel	2026-10-14	exact_primary_gloss	https://krdict.korean.go.kr/eng/dicMarinerSearch/search?mainSearchWord=%EB%B0%95%EB%AC%BC%EA%B4%80&nation=eng
+미술관	art museum	everyday	travel	2026-10-14	independently_curated_common_knowledge	
+병원	hospital	everyday	travel	2026-10-14	exact_primary_gloss	https://krdict.korean.go.kr/eng/dicSearch/SearchView?ParaWordNo=62271
+약국	pharmacy	everyday	travel	2026-10-14	exact_primary_gloss	https://dictionary.cambridge.org/dictionary/english-korean/pharmacy
+공항	airport	everyday	travel	2026-10-14	exact_primary_gloss	https://krdict.korean.go.kr/eng/dicSearch/SearchView?ParaWordNo=25620&nation=eng&nationCode=6
+기차역	train station	everyday	travel	2026-10-14	exact_primary_gloss	https://krdict.korean.go.kr/eng/dicSearch/SearchView?ParaWordNo=38193
+횡단보도	crosswalk	everyday	travel	2026-10-14	primary_equivalent_synonym	https://dictionary.cambridge.org/us/dictionary/english-korean/pedestrian-crossing
+우체국	post office	everyday	travel	2026-10-14	exact_primary_gloss	https://dictionary.cambridge.org/us/dictionary/english-korean/post-office
+소방서	fire station	everyday	travel	2026-10-14	exact_primary_gloss	https://dictionary.cambridge.org/dictionary/english-korean/fire-station
+주차장	parking lot	everyday	travel	2026-10-14	exact_primary_gloss	https://dictionary.cambridge.org/dictionary/english-korean/parking-lot
+산맥	mountain range	everyday	nature	2026-10-14	exact_primary_gloss	https://krdict.korean.go.kr/m/eng/searchResult?ParaWordNo=62196&currentPage=5&exaType=&font_size=12&mainSearchWord=%EC%82%B0&nation=eng&nationCode=6&proverbType=&searchType=W&sort=W&viewType=A&wordMatchFlag=N
+폭포	waterfall	everyday	nature	2026-10-14	exact_primary_gloss	https://dictionary.cambridge.org/ko/%EC%82%AC%EC%A0%84/%EC%98%81%EC%96%B4-%ED%95%9C%EA%B5%AD%EC%96%B4/waterfall
+해변	beach	everyday	nature	2026-10-14	exact_primary_gloss	https://dictionary.cambridge.org/us/dictionary/english-korean/beach
+숲	forest	everyday	nature	2026-10-14	exact_primary_gloss	https://dictionary.cambridge.org/ko/%EC%82%AC%EC%A0%84/%EC%98%81%EC%96%B4-%ED%95%9C%EA%B5%AD%EC%96%B4/forest
+구름	cloud	everyday	nature	2026-10-14	exact_primary_gloss	https://dictionary.cambridge.org/us/dictionary/english-korean/cloud
+무지개	rainbow	everyday	nature	2026-10-14	exact_primary_gloss	https://dictionary.cambridge.org/dictionary/english-korean/rainbow
+나뭇잎	leaf	everyday	nature	2026-10-14	exact_primary_gloss	https://krdict.korean.go.kr/m/eng/searchResultView?ParaWordNo=38858&currentPage=3&exaType=&font_size=12&mainSearchWord=%EB%82%98&nation=eng&nationCode=6&proverbType=&searchType=W&sort=W&viewType=A&wordMatchFlag=N
+나뭇가지	tree branch	everyday	nature	2026-10-14	primary_gloss_plus_independent_qualifier	https://krdict.korean.go.kr/m/eng/searchResult?ParaWordNo=39351&currentPage=5&exaType=&font_size=12&mainSearchWord=%EB%82%98&nation=eng&nationCode=6&proverbType=&searchType=W&sort=W&viewType=A&wordMatchFlag=N
+고양이	cat	everyday	nature	2026-10-14	exact_primary_gloss	https://krdict.korean.go.kr/eng/dicSearch/SearchView?ParaWordNo=18779
+코끼리	elephant	everyday	nature	2026-10-14	exact_primary_gloss	https://dictionary.cambridge.org/dictionary/english-korean/elephant
+얼룩말	zebra	everyday	nature	2026-10-14	exact_primary_gloss	https://dictionary.cambridge.org/ko/%EC%82%AC%EC%A0%84/%EC%98%81%EC%96%B4-%ED%95%9C%EA%B5%AD%EC%96%B4/zebra
+돌고래	dolphin	everyday	nature	2026-10-14	exact_primary_gloss	https://dictionary.cambridge.org/dictionary/english-korean/dolphin
+사진	photograph	everyday	general	2026-10-14	exact_primary_gloss	https://dictionary.cambridge.org/dictionary/english-korean/photograph
+저장용량	storage capacity	computing	hardware-network	2026-10-14	primary_parallel_manufacturer_phrase	https://support.apple.com/ko-kr/102119 | https://support.apple.com/en-us/102119
+메모리용량	memory capacity	computing	hardware-network	2026-10-14	primary_manufacturer_context_plus_independent_compound	https://support.apple.com/ko-kr/108317 | https://support.apple.com/en-us/108317
