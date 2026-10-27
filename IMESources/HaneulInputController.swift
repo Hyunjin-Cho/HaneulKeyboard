@@ -4,7 +4,7 @@ import InputMethodKit
 import os.log
 
 /// Bridges the Foundation-only KoreanComposer to the IMK client.
-private struct IMKComposerClient: ComposerClient {
+private struct IMKComposerClient: ComposerClient, ExternalEnglishContextClient {
     let client: IMKTextInput
 
     func insertText(_ text: String) {
@@ -21,6 +21,12 @@ private struct IMKComposerClient: ComposerClient {
             replacementRange: NSRange(location: NSNotFound, length: 0)
         )
     }
+
+    func contextSelection() -> NSRange { client.selectedRange() }
+    func contextMarkedRange() -> NSRange { client.markedRange() }
+    func contextSubstring(in range: NSRange) -> String? {
+        client.attributedSubstring(from: range)?.string
+    }
 }
 
 @objc(HaneulInputController)
@@ -28,6 +34,9 @@ final class HaneulInputController: IMKInputController {
     private let log = Logger(subsystem: "com.hyunjincho.haneulkeyboard", category: "ime")
     private let composer = KoreanComposer()
     private var didOverrideKeyboard = false
+    private var slashEnglish = SlashEnglishSession()
+    private weak var slashClient: AnyObject?
+    private var externalContextPending = true
 
     // Listen ONLY for .keyDown. macOS routes CapsLock-based Korean<->ABC
     // switching automatically via TICapsLockLanguageSwitchCapable in plist,
@@ -41,6 +50,9 @@ final class HaneulInputController: IMKInputController {
 
     override func activateServer(_ sender: Any!) {
         log.log("activateServer")
+        slashEnglish.reset()
+        externalContextPending = true
+        slashClient = sender as AnyObject?
         // NOTE: never query the client (markedRange/attributes/...) in here —
         // it deadlocks Chromium-based apps. Defaults reads only.
         // 2026-09-19 (#32): 메인 앱이 지워졌는지 확인 — 즉시 반환하고 백그라운드에서
@@ -59,6 +71,9 @@ final class HaneulInputController: IMKInputController {
 
     override func deactivateServer(_ sender: Any!) {
         log.log("deactivateServer")
+        slashEnglish.reset()
+        externalContextPending = false
+        slashClient = nil
         if let client = sender as? IMKTextInput {
             composer.commit(to: IMKComposerClient(client: client))
         }
@@ -66,6 +81,14 @@ final class HaneulInputController: IMKInputController {
     }
 
     override func commitComposition(_ sender: Any!) {
+        // #87: 이 콜백에는 확정 원인/키 이벤트 ID가 없다. 같은 프록시도 다른 입력칸을
+        // 나타낼 수 있으므로 세션 종료 요청은 항상 초기화한다. 직전 Enter/Tab/Esc만
+        // 보고 다음 commit을 무시하면 다음 마우스·포커스 이동을 삼킬 수 있다.
+        // 키 자체로는 종료하지 않지만, 호스트가 명시적으로 세션 종료를 요청하면 종료한다.
+        // Apple IMKServerInput.commitComposition: 종료 시 per-session variables를 정리.
+        slashEnglish.reset()
+        externalContextPending = true
+        slashClient = sender as AnyObject?
         guard let client = sender as? IMKTextInput else { return }
         composer.commit(to: IMKComposerClient(client: client))
         composer.resetEnglishContext() // 클릭/포커스 이동 = 문맥 단절
@@ -92,17 +115,49 @@ final class HaneulInputController: IMKInputController {
 
         let composerClient = IMKComposerClient(client: client)
 
+        // 클라이언트 교체 시 이전 대상의 임시 영어 상태를 넘기지 않는다.
+        // 객체 식별만 비교하며 입력 내용·커서·앱 정보를 추가 조회하지 않는다.
+        if slashClient !== (sender as AnyObject?) {
+            slashEnglish.reset()
+            slashClient = sender as AnyObject?
+            composer.resetEnglishContext()
+            externalContextPending = true
+        }
+
         // (secure-input) 정상적인 secure 필드는 macOS가 서드파티 IME를 아예
         // 우회하지만(PRIVACY.md #4), 그 우회가 안 걸리는 예외 상황에 대비한
         // 방어선이다 — 조합 중이던 자모를 흘리지 않고 커밋한 뒤, 이번 키는
         // 조합하지 않고 그대로 통과시킨다(review0706 P3-4).
         if IsSecureEventInputEnabled() {
+            slashEnglish.reset()
+            externalContextPending = false
             composer.commit(to: composerClient)
             composer.resetEnglishContext()
             return false
         }
 
+        // #87: Backspace·Shift+Space·단축키보다 먼저 분기한다. 영어 상태에서는
+        // 키를 소비하거나 재삽입하지 않아 앱의 삭제·단축키·Option 입력이 그대로 동작한다.
+        // OFF도 다음 키부터 반영한다. 입력 내용은 이 상태에 저장되지 않는다.
+        let slashAction = slashEnglish.process(
+            characters: event.characters, keyCode: event.keyCode,
+            modifierFlagsRaw: mods.rawValue,
+            enabled: SlashEnglishSession.isEnabled(in: .standard))
+        if slashAction == .begin {
+            externalContextPending = false
+            // Fn 등 passive modifier 분기로 빠지지 않게 slash 시작 경계를 먼저 처리.
+            // 문자열 누락의 물리 키 fallback도 확정 경계는 실제 '/'와 동일하다.
+            commitActiveBoundary("/", client: client)
+            return false
+        }
+        if slashAction == .passThrough || slashAction == .end {
+            externalContextPending = false
+            composer.resetEnglishContext()
+            return false
+        }
+
         if event.keyCode == 51 {
+            externalContextPending = false
             // (H-08) Cmd/Opt/Ctrl+Backspace(단어·줄 삭제)는 composer가 먹지
             // 않고 클라이언트가 처리하게 한다 — 조합 중에도 일상 단축키가 한
             // 자모 삭제로 둔갑하지 않도록. 무수정 Backspace만 자모를 떼어낸다.
@@ -188,6 +243,7 @@ final class HaneulInputController: IMKInputController {
                     // 단어가 옛 문맥으로 잘못 변환됨.)
                     composer.applyToggle(toEnglish: r.text == conv.english,
                                          hangul: conv.hangul, english: conv.english)
+                    externalContextPending = false
                     // 2026-09-21 (#53): 영어→한글로 되돌린 순간만 기록한다(한글→영어 재토글은
                     // 기록 대상이 아님 — "오변환이었다"는 신호는 되돌림 쪽뿐).
                     if r.text != conv.english, composer.shouldRecordAutomaticRevert {
@@ -211,10 +267,14 @@ final class HaneulInputController: IMKInputController {
             let keyboardEnabled = UserDefaults.standard.object(forKey: RevertKey.manualToggleAllWordsKey) as? Bool
                 ?? RevertKey.manualToggleAllWordsDefault
             if composer.hasPendingComposition {
-                if phoneticEnabled, handlePendingPhonetic(client: client) { return true }
+                if phoneticEnabled, handlePendingPhonetic(client: client) {
+                    externalContextPending = false
+                    return true
+                }
             } else if (phoneticEnabled || keyboardEnabled),
                       handleManualToggle(client: client, phoneticEnabled: phoneticEnabled,
                                          keyboardEnabled: keyboardEnabled) {
+                externalContextPending = false
                 return true
             }
         }
@@ -227,6 +287,7 @@ final class HaneulInputController: IMKInputController {
            || mods.contains(.option) || mods.contains(.function) {
             composer.commit(to: composerClient) // passive: 변환 안 함
             composer.resetEnglishContext()      // 커서 이동/단축키 = 문맥 단절
+            externalContextPending = true       // 다음 조합에서 현재 커서 앞을 다시 검증
             return false
         }
 
@@ -238,6 +299,14 @@ final class HaneulInputController: IMKInputController {
             keyCode: Int(event.keyCode),
             shifted: shifted
         ) {
+            prepareExternalEnglishContext(client: client)
+            // 문맥 읽기 왕복 중 secure 상태가 바뀌면 이번 키도 IME에서 처리하지 않는다.
+            if IsSecureEventInputEnabled() {
+                composer.commit(to: composerClient)
+                composer.resetEnglishContext()
+                externalContextPending = false
+                return false
+            }
             return composer.handleInput(String(inputChar), client: composerClient)
         }
 
@@ -248,6 +317,7 @@ final class HaneulInputController: IMKInputController {
         // (L-02와 같은 이유로 실제 출력 문자 기준 — Shift+'는 `"`라 안 걸린다.)
         if let typed = event.characters?.first, Contractions.isApostrophe(typed),
            composer.handleApostrophe(typed, client: composerClient) {
+            externalContextPending = false
             return true
         }
 
@@ -255,7 +325,10 @@ final class HaneulInputController: IMKInputController {
         // 개인 사전에 방금 추가한 이름도 첫 숫자부터 인식하도록 새 값을 읽는다.
         if let typed = event.characters?.first, AlphanumericWords.isDigit(typed) {
             composer.personalDictionary = PersonalDictionary.load(from: .standard)
-            if composer.handleDigit(typed, client: composerClient) { return true }
+            if composer.handleDigit(typed, client: composerClient) {
+                externalContextPending = false
+                return true
+            }
         }
 
         if event.characters == ".", composer.handleQuantityPoint(client: composerClient) { return true }
@@ -263,7 +336,36 @@ final class HaneulInputController: IMKInputController {
         // Active boundary: the user typed a non-jamo key (space, punctuation,
         // digit, Enter...) — the only path where English auto-conversion may
         // fire. Re-read the toggle so Settings changes apply immediately.
-        // secure input은 이 함수 진입부에서 이미 걸러지므로 여기서는 항상 false.
+        commitActiveBoundary(event.characters?.first, client: client)
+        return false
+    }
+
+    /// #87 · 2026-10-12: 일반 활성 경계와 slash 시작이 같은 설정·사전 정책을 사용한다.
+    private func commitActiveBoundary(_ character: Character?, client: IMKTextInput) {
+        if composer.hasPendingComposition { externalContextPending = false }
+        refreshAutomaticSettings(client: client)
+        composer.commit(to: IMKComposerClient(client: client), convertEnglish: true)
+        // 영어 문맥은 Space/쉼표만 이어간다. 실제 출력 문자 기준이다.
+        composer.completeBoundary(character)
+    }
+
+    /// #14: 활성화 콜백/일반 타이핑마다 읽지 않고 새 조합의 첫 문자 직전에 한 번만 읽는다.
+    private func prepareExternalEnglishContext(client: IMKTextInput) {
+        guard externalContextPending, !composer.hasPendingComposition else { return }
+        externalContextPending = false
+        refreshAutomaticSettings(client: client)
+        guard composer.autoEnglishEnabled, composer.lastEnglishWord == nil,
+              composer.lastConversion == nil else { return }
+        let previous = ExternalEnglishContext.capture(
+            from: IMKComposerClient(client: client),
+            enabled: InputInferencePolicy.externalEnglishContextEnabled(in: .standard),
+            secureInput: { IsSecureEventInputEnabled() },
+            isKnownEnglishWord: EnglishDetector.isExplicitEnglishContextWord)
+        composer.beginExternalEnglishContext(previous)
+    }
+
+    private func refreshAutomaticSettings(client: IMKTextInput) {
+        // secure input은 호출하는 handle 진입부에서 이미 걸러지므로 여기서는 항상 false.
         // 2026-09-21 (#54): 앱별 끄기 — 목록(haneul.disabledAppBundleIDs)에 이 클라이언트의
         // bundle ID가 있으면 이번 경계에선 변환하지 않는다. 판정은 순수함수
         // AutoConvertPolicy.allowed(테스트 있음). 클라이언트 왕복(bundleIdentifier)은
@@ -279,13 +381,10 @@ final class HaneulInputController: IMKInputController {
         // 아니라 변환이 실제로 일어날 수 있는 활성 경계에서만. 설정 앱이 쓴 값이 재시작 없이
         // 다음 단어부터 반영된다. 목록은 작아서(수십~수백) 비용은 무시할 수준.
         composer.personalDictionary = PersonalDictionary.load(from: .standard)
-        composer.commit(to: composerClient, convertEnglish: true)
-        // 영어 문맥("I want to...")은 스페이스/쉼표로만 이어진다 — 마침표·
-        // 엔터·기타 문자는 문장 단절로 보고 리셋 ("Nice. 새로운" 보호).
-        // (L-02) 실제 출력 문자 기준 — Shift+,는 '<'(문장 단절 경계)이지 ','가
-        // 아니다. charactersIgnoringModifiers는 '<'를 ','로 잘못 보고했다.
-        composer.completeBoundary(event.characters?.first)
-        return false
+        composer.dictionaryCompoundEnabled = InputInferencePolicy.dictionaryCompoundEnabled(in: defaults)
+        if !InputInferencePolicy.externalEnglishContextEnabled(in: defaults) {
+            composer.clearExternalEnglishContext()
+        }
     }
 
     /// 조합 중 등록 단어는 확정된 문서를 재작성하지 않고 marked text로 한 번에 바꾼다.

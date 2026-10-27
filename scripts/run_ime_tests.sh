@@ -21,6 +21,8 @@ swiftc -o "$BIN" \
   IMESources/RevertKey.swift \
   IMESources/AutoConvertPolicy.swift \
   IMESources/PersonalDictionary.swift \
+  Shared/RemovalPolicy.swift \
+  Shared/InputInferencePolicy.swift \
   Sources/InstallDecisions.swift \
   Sources/WordSuggestion.swift \
   Sources/UpdateDecisions.swift \

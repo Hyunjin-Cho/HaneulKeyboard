@@ -38,6 +38,18 @@ jobs:
           .build/DerivedData-${{ matrix.configuration }}/Build/Products/${{ matrix.configuration }}/HaneulKeyboard.app
           .build/DerivedData-${{ matrix.configuration }}/Build/Products/${{ matrix.configuration }}/HaneulKeyboardIM.app
 
+      - name: Verify drag installer DMG (Release candidate only)
+        if: matrix.configuration == 'Release'
+        run: |
+          python3 -m venv .tools/dmg
+          .tools/dmg/bin/python -m pip install -r scripts/requirements-dmg.txt
+          HANEUL_DMG_PREVIEW=1 bash scripts/package_dmg.sh \
+            .build/DerivedData-Release/Build/Products/Release/HaneulKeyboard.app \
+            .build/installer-preview/HaneulKeyboard-preview-ci.dmg
+          .tools/dmg/bin/python scripts/verify_dmg.py \
+            .build/installer-preview/HaneulKeyboard-preview-ci.dmg \
+            .build/DerivedData-Release/Build/Products/Release/HaneulKeyboard.app
+
   core-tests:
     name: Core tests
     runs-on: macos-latest
@@ -47,10 +59,22 @@ jobs:
         run: swiftc --version
       - name: Run IME core tests
         run: bash scripts/run_ime_tests.sh
+      - name: Run bounded external context and exact compound tests
+        run: bash scripts/run_input_inference_tests.sh
+      - name: Verify reviewed vocabulary and typo protection
+        run: python3 Tests/run_vocabulary_extension_tests.py
+      - name: Run slash English session and composition tests
+        run: bash scripts/run_slash_tests.sh
+      - name: Run input source indicator policy and offscreen panel tests
+        run: bash scripts/run_input_source_indicator_tests.sh
       - name: Audit registered Hangul dictionary
         run: python3 scripts/audit_phonetic_dictionary.py
       - name: Run update transport and trust tests (Debug and Release)
         run: bash scripts/run_updater_tests.sh
+      - name: Check postinstall probe counters with fixtures
+        run: python3 scripts/test_postinstall_probe.py
+      - name: Check uninstall wrapper failure propagation
+        run: python3 scripts/test_uninstall.py
       - name: Run native onboarding input tests
         run: bash scripts/run_onboarding_tests.sh
 

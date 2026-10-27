@@ -47,65 +47,20 @@ enum AppMoveDecision {
 
 // MARK: - 전체 제거
 
-enum UninstallDecision {
-    /// 메인 앱(/Applications)을 지워도 되는가.
-    ///
-    /// IME 번들 삭제가 성공했을 때만 true. 실패했는데도 메인 앱을 지우면
-    /// 사용자가 같은 화면에서 "전체 제거"를 다시 누를 수단이 사라진다
-    /// (재다운로드 전엔 복구 불가). LaunchServices 등록 해제나 설정 정리
-    /// 실패는 앱 없이도 복구되므로 차단 사유가 아니다. (review-0712 P2-2)
-    static func shouldRemoveMainApp(removedIMEBundle: Bool) -> Bool {
-        removedIMEBundle
-    }
-}
-
-/// 전체 제거 결과 스냅샷.
+/// 전체 제거 결과. 필수 단계가 모두 확인돼야 종료한다.
 struct UninstallOutcome {
-    let killedProcess: Bool
-    /// IME 번들(시스템/사용자 도메인) 삭제 성공 여부.
-    let removedIMEBundle: Bool
-    /// 메인 앱(/Applications) 삭제 성공 여부.
-    let removedMainApp: Bool
-    /// IME 삭제가 실패해 메인 앱을 **일부러 남겼는가**.
-    let keptMainAppForRetry: Bool
-    let unregisteredLS: Bool
-    let clearedUserDefaults: Bool
-    /// 사용자가 System Settings에서 입력 소스를 아직 켜둔 상태인가.
-    /// 번들을 지운 뒤에도 감지할 수 있다.
-    let stillEnabledInPicker: Bool
-
-    /// "완료"라고 말해도 되는가 — 모든 필수 단계가 성공했을 때만.
-    /// 예전엔 `stillEnabledInPicker` 하나만 보고, 삭제가 실패해도
-    /// "모두 삭제됐습니다"라고 안내했다.
-    var fullyRemoved: Bool {
-        removedIMEBundle && removedMainApp && unregisteredLS
-            && clearedUserDefaults && !stillEnabledInPicker
+    let report: RemovalReport
+    var killedProcess: Bool { report.succeeded("process") }
+    var removedIMEBundle: Bool { report.succeeded("ime") }
+    var removedMainApp: Bool { report.succeeded("main") }
+    var keptMainAppForRetry: Bool { !removedMainApp }
+    var unregisteredLS: Bool { report.succeeded("registration") }
+    var clearedUserDefaults: Bool { report.succeeded("settings") }
+    var stillEnabledInPicker: Bool {
+        report.steps.contains { if case .needsUserAction = $0.state { return $0.id == "input" || $0.id == "sources" }; return false }
     }
-
-    /// 사용자에게 보여줄 결과 문구. 단계별 성패를 그대로 적고, 마지막 줄에
-    /// 지금 무엇을 해야 하는지를 상황별로 안내한다.
+    var fullyRemoved: Bool { report.mode == .wholeProduct && report.complete && removedMainApp }
     var statusText: String {
-        let tail: String
-        if keptMainAppForRetry {
-            tail = "IME 번들을 지우지 못해 메인 앱은 남겨뒀어요(암호 창을 취소했거나 권한이 부족했을 수 있어요). 이 앱에서 \"전체 제거\"를 다시 실행해 주세요."
-        } else if stillEnabledInPicker {
-            tail = "마지막 단계 — 시스템 설정 → 키보드 → 입력 소스에서 \"하늘키보드 (두벌식)\"을 \"-\" 로 제거한 뒤 재부팅하세요."
-        } else if fullyRemoved {
-            tail = "완료. 메인 앱·IME·설정이 모두 삭제됐습니다. 입력 소스 목록을 완전히 비우려면 재부팅하세요."
-        } else {
-            tail = "일부 단계가 실패했어요. 위 목록에서 \"실패\" 항목을 확인한 뒤, 남은 파일은 scripts/uninstall.sh로 정리할 수 있어요."
-        }
-        let mainAppLine = keptMainAppForRetry
-            ? "건너뜀(재시도용 보존)"
-            : (removedMainApp ? "OK" : "실패")
-        return """
-        IME 프로세스 종료: \(killedProcess ? "OK" : "—")
-        IME 번들 삭제: \(removedIMEBundle ? "OK" : "실패")
-        메인 앱 삭제: \(mainAppLine)
-        LaunchServices 등록 해제: \(unregisteredLS ? "OK" : "실패")
-        사용자 설정 초기화: \(clearedUserDefaults ? "OK" : "실패")
-
-        \(tail)
-        """
+        report.statusText + (fullyRemoved ? "\n\n필수 정리를 모두 확인했어요. 확인을 누르면 실행 중인 앱도 종료해요." : "\n\n완료되지 않은 항목을 확인한 뒤 이 앱에서 다시 시도해 주세요.")
     }
 }

@@ -33,12 +33,7 @@ struct OnboardingSketchNote: View {
 
 private struct SketchArrow: Shape {
     func path(in rect: CGRect) -> Path {
-        var p = Path()
-        func at(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: rect.minX + x * rect.width, y: rect.minY + y * rect.height) }
-        p.move(to: at(0.05, 0.04))
-        p.addCurve(to: at(0.93, 0.85), control1: at(-0.08, 0.5), control2: at(0.42, 0.66))
-        p.move(to: at(0.70, 0.94)); p.addLine(to: at(0.93, 0.85)); p.addLine(to: at(0.80, 0.54))
-        return p
+        Path(HaneulSketchPath.arrow(in: rect))
     }
 }
 

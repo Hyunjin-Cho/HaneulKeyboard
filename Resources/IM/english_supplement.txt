@@ -5399,3 +5399,19 @@ watercolour
 # 2026-10-09 (#84): American is capitalized in web2 and excluded by the loader.
 # Explicit lowercase entry; Korean form 믇걏무, no Urimalsaem collision (Tier C).
 american
+
+# 2026-10-14 (#74): six existing broad nature words individually reviewed.
+# All six Korean forms are absent from Urimalsaem; no veto override added.
+# coral (책미) / eland (디뭉) stem warnings were reviewed, not suppressed.
+# Sources and decisions: dict_work/2026-10-14-nature-camera-extension.tsv.
+angelfish
+cockatiel
+coral
+eland
+guanaco
+turtle
+
+# 2026-10-14 (#16): fork; official GitHub developer term, curated quarantine Tier A.
+# 래가 is absent from Urimalsaem; the stem warning for 래 is retained in the audit.
+# No shortened-word, Korean-veto or repeated-key override (www stays protected).
+fork

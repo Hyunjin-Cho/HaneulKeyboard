@@ -17,6 +17,8 @@ import CoreFoundation
 //   1) scan(베이스 사전)   → passA.tsv : 후보가 없을 때의 변환 여부
 //   2) scan(베이스+후보)   → passB.tsv : 후보를 넣었을 때의 변환 여부
 //   3) merge passA passB  → audit.csv : diff + Tier(A/B/C) + 휴리스틱 note
+// 범위: 후보 전체 단어와 지정 reach 목록만 검사한다. curated 구성 단어 추가가
+// 만드는 다른 붙여쓴 단어의 변화는 그 조합을 별도 reach 목록에 넣어 비교한다.
 //
 // 서브커맨드 (직접 호출 시):
 //   WordlistAudit scan  --candidates F --wordlists p1,p2 --curated p1 \
@@ -31,7 +33,7 @@ import CoreFoundation
 //   trigger    — 화이트리스트 트리거 문맥 (previousEnglishWord: "want")
 //
 // Tier (merge 출력):
-//   A — clean + 우리말샘 미등재 + 무맥락 변환이 "신규"(R5 노출, 6키+)
+//   A — clean + 우리말샘 미등재 + 무맥락 변환이 "신규"(R5: 2음절+ curated, Shift 보호)
 //       → 전수 리뷰 대상 (한국어처럼 생긴 단어가 문맥 없이 영어로 바뀜)
 //   B — clean + 미등재 + 문맥 변환만 신규 → note의 휴리스틱(조사결합/활용형
 //       의심)을 우선 리뷰
@@ -44,19 +46,23 @@ import CoreFoundation
 
 /// 출력 무시 클라이언트 — 타이핑 시뮬레이션용.
 final class NullClient: ComposerClient {
-    func insertText(_ text: String) {}
+    private(set) var insertedDuringInput = false
+    func insertText(_ text: String) { insertedDuringInput = true }
     func setMarkedText(_ text: String) {}
 }
 
 /// 단어 하나를 실제 KoreanComposer로 두벌식 타이핑해 한글형을 얻는다.
 /// commit(convertEnglish: false)는 화면에 보이던 한글 그대로를 반환한다.
 func hangulForm(of word: String) -> String? {
-    guard word.count <= 24 else { return nil } // maxWordUnits(40) spill 방지
+    guard word.count <= 48 else { return nil } // 정확 복합어의 최대 키 길이
     for ch in word where KeyboardLayout2Set.jamo(for: ch) == nil { return nil }
     let client = NullClient()
     let composer = KoreanComposer()
     composer.autoEnglishEnabled = false
     for ch in word { _ = composer.handleInput(String(ch), client: client) }
+    // 키 수와 조합 단위 수는 다르다. 실제 composer가 40단위 상한을 넘겨
+    // 앞부분을 확정했다면 잘린 나머지를 전체 단어처럼 판정하지 않는다.
+    guard !client.insertedDuringInput else { return nil }
     let hangul = composer.commit(to: client) // passive commit = 표시된 한글
     return hangul.isEmpty ? nil : hangul
 }
@@ -69,6 +75,18 @@ struct Eval {
     let standalone: Bool
     let context: Bool
     let trigger: Bool
+}
+
+// 2026-10-14: 제품 기본값과 같은 복합어 정책. OFF 비교도 명시적으로 가능하다.
+private var dictionaryCompoundEnabled = InputInferencePolicy.dictionaryCompoundDefault
+
+func configureCompound(_ opts: Options) {
+    guard let value = opts.values["compound"] else { return }
+    switch value {
+    case "on": dictionaryCompoundEnabled = true
+    case "off": dictionaryCompoundEnabled = false
+    default: fail("--compound는 on 또는 off만 가능")
+    }
 }
 
 /// 후보 단어 1개 평가 — 변환 판정은 전부 실코드 shouldConvert().
@@ -87,11 +105,14 @@ func evaluate(_ raw: String) -> Eval {
         hangul: hangul,
         cls: classify(hangul),
         inUrimalsaem: KoreanDictionary.contains(hangul),
-        standalone: EnglishDetector.shouldConvert(units: units, keys: keys),
+        standalone: EnglishDetector.shouldConvert(units: units, keys: keys,
+                                                  dictionaryCompoundsEnabled: dictionaryCompoundEnabled),
         context: EnglishDetector.shouldConvert(units: units, keys: keys,
-                                               previousEnglishWord: "the"),
+                                               previousEnglishWord: "the",
+                                               dictionaryCompoundsEnabled: dictionaryCompoundEnabled),
         trigger: EnglishDetector.shouldConvert(units: units, keys: keys,
-                                               previousEnglishWord: "want")
+                                               previousEnglishWord: "want",
+                                               dictionaryCompoundsEnabled: dictionaryCompoundEnabled)
     )
 }
 
@@ -213,6 +234,8 @@ func parseArgs(_ args: [String]) -> Options {
     while i < args.count {
         let a = args[i]
         if a.hasPrefix("--") {
+            let known: Set<String> = ["--candidates", "--words", "--wordlists", "--curated", "--korean-dict", "--compound"]
+            guard known.contains(a) else { fail("알 수 없는 옵션: \(a)") }
             guard i + 1 < args.count else { fail("\(a) 값 누락") }
             opts.values[String(a.dropFirst(2))] = args[i + 1]
             i += 2
@@ -233,11 +256,13 @@ func requirePaths(_ opts: Options, _ key: String) -> [String] {
 
 func runScan(_ args: [String]) {
     let opts = parseArgs(args)
+    configureCompound(opts)
     guard let candidates = opts.values["candidates"] else { fail("--candidates 필요") }
     let wordlists = requirePaths(opts, "wordlists")
     let curated = opts.values["curated"].map { $0.split(separator: ",").map(String.init) } ?? []
     guard let koreanDict = opts.values["korean-dict"] else { fail("--korean-dict 필요") }
     configureDetector(wordlists: wordlists, curated: curated, koreanDict: koreanDict)
+    note("검역 범위: 후보 전체 단어만. 구성 단어 추가로 생기는 다른 조합은 별도 reach 목록으로 비교하세요.")
 
     // TSV: word, hangul, class, in_urimalsaem, standalone, context, trigger
     for word in readWords(candidates) {
@@ -378,6 +403,7 @@ func csvRow(_ a: ScanRow, _ b: ScanRow, tier: String, note: String) -> String {
 
 func runReach(_ args: [String]) {
     let opts = parseArgs(args)
+    configureCompound(opts)
     guard let wordsFile = opts.values["words"] else { fail("--words 필요") }
     let wordlists = requirePaths(opts, "wordlists")
     let curatedList = opts.values["curated"].map { $0.split(separator: ",").map(String.init) } ?? []
@@ -392,6 +418,7 @@ func runReach(_ args: [String]) {
     var gaps = 0
     var unsupported = 0
     note("검사 범위: 소문자 기본 사전/문맥 3종. 개인 사전·축약형·영숫자 이름·Shift·실제 앱 이벤트는 core/GUI 검사 대상입니다.")
+    note("정확 복합어 정책: \(dictionaryCompoundEnabled ? "ON" : "OFF") (제품 기본 ON, --compound off로 비교)")
     for word in readWords(wordsFile) {
         let e = evaluate(word)
         let reached = e.standalone || e.context || e.trigger
@@ -408,6 +435,12 @@ func runReach(_ args: [String]) {
 
 func diagnose(_ e: Eval, broad: Set<String>, curated: Set<String>) -> String {
     if e.cls == "unmappable" { return "검사 범위 밖(비알파벳 또는 길이 상한)" }
+    if e.standalone, dictionaryCompoundEnabled, !broad.contains(e.word),
+       !EnglishDetector.shouldConvert(units: e.hangul.map(String.init), keys: Array(e.word),
+                                      dictionaryCompoundsEnabled: false),
+       let parts = EnglishDetector.dictionaryCompoundParts(e.word) {
+        return "도달:정확 복합어(\(parts.0)+\(parts.1))"
+    }
     if e.standalone { return "도달:무맥락(\(standaloneRuleGuess(e)))" }
     if e.context { return "도달:영어문맥(R2/override/화이트리스트)" }
     if e.trigger { return "도달:트리거전용(새→to류 화이트리스트)" }
@@ -416,7 +449,11 @@ func diagnose(_ e: Eval, broad: Set<String>, curated: Set<String>) -> String {
     if EnglishDetector.protectedSlang.contains(e.hangul) { return "미도달:보호 슬랭" }
     let keys = Array(e.word)
     if keys.count >= 2, Set(keys).count == 1 { return "미도달:동일키 가드" }
-    if !broad.contains(e.word) { return "미도달:영어 사전 미등재(exact 기준)" }
+    if !broad.contains(e.word) {
+        return dictionaryCompoundEnabled
+            ? "미도달:exact 사전/허용된 정확 복합어 불일치"
+            : "미도달:영어 사전 미등재(exact 기준), 복합어 OFF"
+    }
     if e.cls == "clean" {
         if e.hangul.count == 1 {
             return "★미도달:and-class(clean 1음절 — shortWords 채널만 가능, 불변식 주석 확인)"
@@ -457,9 +494,9 @@ struct WordlistAudit {
     static func usage() -> Never {
         note("""
         WordlistAudit — 영어 사전 후보 검역 (scripts/audit_wordlist.sh 경유 권장)
-          scan  --candidates F --wordlists p1,p2 --curated p1 --korean-dict K
+          scan  --candidates F --wordlists p1,p2 --curated p1 --korean-dict K [--compound on|off]
           merge passA.tsv passB.tsv --korean-dict K
-          reach --words F --wordlists p1,p2 --curated p1 --korean-dict K
+          reach --words F --wordlists p1,p2 --curated p1 --korean-dict K [--compound on|off]
         """)
         exit(2)
     }

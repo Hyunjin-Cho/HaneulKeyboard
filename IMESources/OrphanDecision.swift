@@ -91,10 +91,10 @@ enum OrphanDecision {
     /// 자기 번들을 **삭제**해도 되는가 — 사용자 도메인(`~/Library/Input Methods/`) 설치본만.
     /// 시스템 도메인(`/Library`, root 소유)이나 개발 빌드 경로면 감시 자체를 하지 않는다
     /// (리뷰 M-4: 지우지도 못하면서 입력 소스만 끄고 종료하는 어정쩡한 상태를 만들지 않기 위해).
-    /// 접두어 함정(`…/Input Methods2/`)을 피하려고 디렉터리 구분자까지 붙여 비교한다.
+    /// 2026-10-11 B안: 정확한 설치 경로만 허용한다. 하위 폴더·백업·다른 앱은 제외한다.
     static func mayDeleteBundle(bundlePath: String, userInputMethodsDir: String) -> Bool {
         let bundle = URL(fileURLWithPath: bundlePath).standardizedFileURL.path
         let dir = URL(fileURLWithPath: userInputMethodsDir).standardizedFileURL.path
-        return bundle.hasPrefix(dir + "/")
+        return bundle == dir + "/HaneulKeyboardIM.app"
     }
 }

@@ -55,3 +55,99 @@ zidane
 kia
 lenovo
 xeon
+
+# 2026-10-14 (#74/#16/#17): source-checked nature, camera/film and brand names.
+# Broad only: all 75 have broken Korean forms; Tier A/B=0, C=75.
+# Sources and exclusions: dict_work/2026-10-14-nature-camera-extension.tsv.
+# No synthesized spellings, all-jamo entries, Korean veto or guard overrides.
+adox
+aerocolor
+angelbird
+angenieux
+antlion
+atomos
+audioengine
+banksia
+baryonyx
+bougainvillea
+broncolor
+carnotaurus
+ceratosaurus
+clownfish
+coelophysis
+compsognathus
+deinonychus
+dilophosaurus
+dracaena
+drosera
+dubblefilm
+dynaudio
+echeveria
+echinacea
+edmontosaurus
+feijoa
+ferrania
+foma
+fujinon
+gallimimus
+giganotosaurus
+haworthia
+helleborus
+hollyland
+iguanodon
+ixora
+kentmere
+klipsch
+laowa
+lithops
+maiasaura
+meike
+microraptor
+mosasaurus
+nepeta
+novoflex
+oryx
+otterbox
+pachycephalosaurus
+parasaurolophus
+plesiosaurus
+portkeys
+quetzalcoatlus
+quokka
+quoll
+ranunculus
+revolog
+rudbeckia
+sachtler
+salak
+sansevieria
+sengi
+spigen
+strelitzia
+tascam
+teradek
+tillandsia
+tilta
+troodon
+ttartisan
+ultramax
+utahraptor
+viltrox
+zamioculcas
+zinnia
+
+# 2026-10-14 (#16): Language Server Protocol; official Microsoft specification.
+# lsp -> ㅣ네, broken Korean form; broad quarantine Tier C, no Korean veto hit.
+lsp
+
+# 2026-10-14 (#74): original named examples verified with manufacturers.
+# Broad only: eight broken Korean forms, Tier A/B=0, C=8; no guard changes.
+# Source titles/spellings: dict_work/2026-10-14-nature-camera-extension.tsv.
+contax
+filmomat
+lecreuset
+locknlock
+microcontrast
+remjet
+summicron
+zwilling

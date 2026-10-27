@@ -34,7 +34,7 @@ struct PhoneticDictionary {
         let document = try JSONDecoder().decode(Document.self, from: data)
         guard document.schemaVersion == 1 else { throw LoadError.invalidSchema }
         var index: [String: String] = [:]
-        let categories: Set<String> = ["everyday", "computing", "creative", "brand", "product", "sports", "mobility", "gaming", "finance", "phone-confirmed", "phone-reserved"]
+        let categories: Set<String> = ["everyday", "computing", "creative", "brand", "product", "sports", "mobility", "gaming", "finance", "science", "phone-confirmed", "phone-reserved"]
         for entry in document.entries {
             let key = entry.hangul.precomposedStringWithCanonicalMapping
             guard key == entry.hangul, !key.isEmpty, key.utf16.count <= 40,

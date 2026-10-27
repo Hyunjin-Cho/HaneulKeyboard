@@ -1,6 +1,6 @@
 # 감사의 글 (Acknowledgements)
 
-> 기준일: 2026-10-10
+> 기준일: 2026-10-17
 
 하늘키보드는 혼자 만든 것이 아닙니다. 앞서 길을 닦아준 수많은 오픈소스와 도구, 그리고 그것을 가능케 한 사람들의 어깨 위에 서 있습니다.
 
@@ -13,6 +13,7 @@
 - 적용 근거: `project.yml` 두 타겟의 resources, `scripts/verify_license_resources.py`. 메인 앱과 설치되는 입력기에 LICENSE·NOTICE·감사의 글·과거 MIT 고지를 동봉합니다.
 
 ## 직접적으로 도움받은 프로젝트
+
 
 ### 고운바탕 (Gowun Batang)
 - 출처: https://github.com/google/fonts/tree/main/ofl/gowunbatang / https://github.com/yangheeryu/Gowun-Batang

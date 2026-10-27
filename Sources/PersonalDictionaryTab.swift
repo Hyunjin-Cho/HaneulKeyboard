@@ -9,16 +9,18 @@ import SwiftUI
 ///      긴 폼이 탭 높이를 혼자 잡아먹어 **시트**로 뺐다(버튼 문구의 `...`이 "창이 하나 더 뜬다"는
 ///      macOS 신호다).
 struct PersonalDictionaryTab: View {
+    /// 유지된 본문에서 메뉴로 돌아올 때 외부 앱의 최신 되돌림 기록을 다시 읽는다.
+    var isSelected: Bool = true
     @State private var showingSuggestionSheet = false
 
     var body: some View {
         Form {
             // 2026-09-21 (#53): 개인 사전 — 본문은 PersonalDictionarySettingsSection.swift.
-            PersonalDictionarySettingsSection()
+            PersonalDictionarySettingsSection(isSelected: isSelected)
 
-            Section("단어 제안") {
+            HaneulSettingsSection("단어 제안") {
                 Text("모두의 사전에 반영할 단어를 알려 주세요. 이 기기에서만 고치려면 위의 개인 사전을 쓰세요.")
-                    .font(.caption)
+                    .font(SettingsTypography.body)
                     .foregroundStyle(.secondary)
 
                 HStack {

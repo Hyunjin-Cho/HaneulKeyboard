@@ -1,0 +1,14 @@
+{
+  "reviewedOn": "2026-10-10",
+  "canvasSize": [768, 512],
+  "windowSize": [768, 544],
+  "iconSize": 144,
+  "textSize": 14,
+  "appCenter": [226, 262],
+  "applicationsCenter": [543, 262],
+  "backgroundArtwork": "SaekdongArtwork.png",
+  "subtitle": {"text": "응용 프로그램 폴더로 옮겨 주세요", "top": 140, "fontSize": 22},
+  "instruction": {"text": "옮긴 뒤, 응용 프로그램 폴더에서 실행해 주세요.", "top": 391, "fontSize": 15},
+  "defaultVariant": "saekdong",
+  "variants": ["saekdong"]
+}

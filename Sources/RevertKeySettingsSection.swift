@@ -1,14 +1,9 @@
 import AppKit
 import SwiftUI
 
-/// 설정 → 「되돌리기」 + 「앱별 자동 변환 끄기」 두 절. (#54, 2026-09-21)
+/// 2026-10-11 (#88): 단축키 변환 화면의 단축키·수동 변환·되돌리기. 저장 규약은 유지한다.
 ///
-/// 2026-09-21 (#60): 설정 창 탭 재편으로 붙는 자리가 바뀌었다 — 종전에는 `SettingsView`의
-/// `Section("입력")` 뒤였고, 지금은 `EnglishConversionSettingsTab`의 `Form` 안이다.
-/// 같은 개정에서 **`ManualToggleSettingsSection.swift`(#15, "모든 단어 되돌리기" 절)를
-/// 이 파일의 「되돌리기」 절 안으로 흡수하고 그 파일은 삭제했다** — 되돌리기 키를 고르는
-/// 자리 바로 아래가 "그 키가 어디까지 듣나"의 자리이기 때문이다. 저장 키·기본값은
-/// 그대로(`RevertKey.manualToggleAllWordsKey`).
+/// 기존 단축키와 자판 변환·등록 단어 변환의 독립 설정을 보존한다.
 ///
 /// 저장 키·후보 목록·판정은 IME와 공유하는 `IMESources/RevertKey.swift`·
 /// `IMESources/AutoConvertPolicy.swift`(양쪽 타겟에 포함)가 단일 진실이고, 여기는 화면과
@@ -28,15 +23,9 @@ struct RevertKeySettingsSection: View {
     @State private var phoneticEnabled: Bool =
         RevertKeySettingsSection.imeDefaults?.object(forKey: RevertKey.phoneticKey) as? Bool
             ?? RevertKey.phoneticDefault
-    @State private var disabledIDs: [String] =
-        RevertKeySettingsSection.imeDefaults?.stringArray(forKey: AutoConvertPolicy.disabledAppsKey) ?? []
-    @State private var showingAppPicker = false
-    /// "실행 중인 앱에서 추가..."를 누른 순간의 스냅샷 — 시트가 열려 있는 동안 목록이 흔들리지 않게.
-    @State private var runningApps: [RunningApp] = []
-
     var body: some View {
-        Section("되돌리기") {
-            Picker("되돌리기 키", selection: $revertKey) {
+        HaneulSettingsSection("단축키와 수동 변환") {
+            Picker("변환 단축키", selection: $revertKey) {
                 ForEach(RevertKey.allCases, id: \.self) { key in
                     Text(key.displayName).tag(key)
                 }
@@ -48,30 +37,53 @@ struct RevertKeySettingsSection: View {
             // 순간이 아니라 고른 뒤에야 필요한 정보인데, 이 탭에서 가장 긴 캡션이었다.
             .help("고른 조합이 다른 앱의 단축키와 겹치면 다른 조합을 고르세요.")
 
-            Text("바뀐 직후 이 키를 누르면 한글로 되돌리고, 다시 누르면 영어로 돌아옵니다. Terminal·Ghostty 같은 터미널 앱에서는 되돌리기가 동작하지 않습니다(자동 변환 자체는 정상입니다).")
-                .font(.caption)
+            Text("자판 변환·등록 단어 변환·변환 되돌리기에 같은 단축키를 사용합니다.")
+                .font(SettingsTypography.body)
                 .foregroundStyle(.secondary)
 
-            Toggle("바뀌지 않은 단어도 되돌리기", isOn: $manualToggleAllWords)
+            Toggle("자판 변환", isOn: $manualToggleAllWords)
                 .onChange(of: manualToggleAllWords) { _, newValue in
                     Self.imeDefaults?.set(newValue, forKey: RevertKey.manualToggleAllWordsKey)
                 }
-            Text("자동으로 바뀌지 않은 단어까지 이 키로 한↔영을 바꿉니다. 예) 재가 ↔ work")
-                .font(.caption)
+            Text("변환 단축키로 입력한 글자를 반대쪽 한/영 자판 글자로 바꿉니다. 예: 재가 ↔ work")
+                .font(SettingsTypography.body)
                 .foregroundStyle(.secondary)
 
-            Toggle("등록된 한글 표기를 영어로 바꾸기", isOn: $phoneticEnabled)
+            Toggle("등록 단어 변환", isOn: $phoneticEnabled)
                 .onChange(of: phoneticEnabled) { _, newValue in
                     Self.imeDefaults?.set(newValue, forKey: RevertKey.phoneticKey)
                 }
-            Text("위 단축키로 레스토랑 → restaurant, 축구 → football처럼 바꿉니다. 다시 누르면 입력한 한글로 돌아옵니다. 일반 Space에서는 바뀌지 않으며, 등록된 표기만 지원합니다.")
-                .font(.caption)
+            Text("변환 단축키로 바나나 → banana, 축구 → football처럼 바꿉니다. 다시 누르면 입력한 한글로 돌아옵니다. 일반 Space에서는 바뀌지 않으며, 기본 사전에 등록된 표기만 지원합니다.")
+                .font(SettingsTypography.body)
                 .foregroundStyle(.secondary)
         }
 
-        Section("앱별 자동 변환 끄기") {
+        HaneulSettingsSection("변환 되돌리기") {
+            Text("방금 변환한 글자를 변환 단축키로 원래대로 되돌립니다. 다시 누르면 재변환합니다.")
+                .font(SettingsTypography.body)
+                .foregroundStyle(.secondary)
+            Text("Terminal·Ghostty 같은 터미널 앱에서는 되돌리기가 동작하지 않습니다. 영타 자동 변환은 그대로 사용할 수 있습니다.")
+                .font(SettingsTypography.body)
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+/// 2026-10-11 (#88): 자동 변환 화면에 앱별 예외를 모은다. 저장 키와 추가/제거 동작은 유지한다.
+struct AppAutoConversionSettingsSection: View {
+    /// IME 도메인 — 이유는 `EnglishConversionSettingsTab.imeDefaults` 주석 참조.
+    private static let imeDefaults = UserDefaults(suiteName: "com.hyunjincho.inputmethod.haneul")
+
+    @State private var disabledIDs: [String] =
+        AppAutoConversionSettingsSection.imeDefaults?.stringArray(forKey: AutoConvertPolicy.disabledAppsKey) ?? []
+    /// 2026-10-11: 열림 상태와 목록을 한 값으로 전달한다. 별도의 Bool과 배열을 쓰면
+    /// 시트가 이전 빈 배열을 캡처할 수 있다. 열린 동안에는 버튼 시점의 목록을 유지한다.
+    @State private var appPickerSnapshot: RunningAppPickerSnapshot?
+
+    var body: some View {
+        HaneulSettingsSection("앱별 자동 변환 끄기") {
             Text("아래 앱에서는 한글 모드로 영어를 쳐도 바꾸지 않습니다. 위 \"영타 자동 변환\"이 꺼져 있으면 목록과 상관없이 모든 앱에서 바꾸지 않습니다.")
-                .font(.caption)
+                .font(SettingsTypography.body)
                 .foregroundStyle(.secondary)
 
             // 2026-09-21 (#60): 빈 상태 문구도 **목록 테두리 안**에 넣는다 — 목록이 비었다고
@@ -88,7 +100,7 @@ struct RevertKeySettingsSection: View {
                                 Text(name ?? bundleID)
                                 if name != nil {
                                     Text(bundleID)
-                                        .font(.caption)
+                                        .font(SettingsTypography.body)
                                         .foregroundStyle(.secondary)
                                 }
                             }
@@ -105,15 +117,15 @@ struct RevertKeySettingsSection: View {
                 }
             }
             .listStyle(.bordered(alternatesRowBackgrounds: true))
+            .font(SettingsTypography.body)
             .frame(height: 132)
 
             HStack {
                 Button("실행 중인 앱에서 추가...") {
-                    runningApps = RunningApp.snapshot()
-                    showingAppPicker = true
+                    appPickerSnapshot = RunningAppPickerSnapshot(apps: RunningApp.snapshot())
                 }
-                .sheet(isPresented: $showingAppPicker) {
-                    RunningAppPickerSheet(apps: runningApps, disabledIDs: $disabledIDs) { bundleID in
+                .sheet(item: $appPickerSnapshot) { snapshot in
+                    RunningAppPickerSheet(apps: snapshot.apps, disabledIDs: $disabledIDs) { bundleID in
                         update(AutoConvertPolicy.adding(bundleID, to: disabledIDs))
                     }
                 }
@@ -162,6 +174,12 @@ struct RunningApp: Identifiable, Hashable {
     }
 }
 
+/// 시트가 열릴 때 사용할 목록과 해당 열기의 식별자를 함께 보관한다.
+private struct RunningAppPickerSnapshot: Identifiable {
+    let id = UUID()
+    let apps: [RunningApp]
+}
+
 /// "실행 중인 앱에서 추가..." 시트. 목록은 부모가 넘긴 스냅샷이고, 이미 추가된 앱은 버튼 대신
 /// "추가됨"으로 보인다(부모 상태를 Binding으로 보므로 추가 즉시 갱신).
 private struct RunningAppPickerSheet: View {
@@ -173,24 +191,25 @@ private struct RunningAppPickerSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("실행 중인 앱")
-                .font(.headline)
+                .font(SettingsTypography.control)
             Text("Dock에 보이는 앱만 나옵니다. 끄고 싶은 앱을 먼저 실행해 두세요.")
-                .font(.caption)
+                .font(SettingsTypography.body)
                 .foregroundStyle(.secondary)
 
-            // 2026-09-21 (#60): 목록 규격을 탭 본문과 통일 — 테두리 + 교대 행 배경.
-            // 빈 상태도 테두리 안에 둔다.
+            // 2026-10-11: 목록의 불투명 흰색/교대 행을 걷어 공통 종이 배경을 보여준다.
+            // 테두리와 빈 상태의 목록 위치는 유지한다.
             List {
                 if apps.isEmpty {
                     Text("실행 중인 앱이 없습니다.")
                         .foregroundStyle(.secondary)
+                        .listRowBackground(Color.clear)
                 } else {
                     ForEach(apps) { app in
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(app.name)
                                 Text(app.bundleID)
-                                    .font(.caption)
+                                    .font(SettingsTypography.body)
                                     .foregroundStyle(.secondary)
                             }
                             Spacer()
@@ -202,10 +221,13 @@ private struct RunningAppPickerSheet: View {
                                     .accessibilityLabel("\(app.name) 자동 변환 끄기 목록에 추가")
                             }
                         }
+                        .listRowBackground(Color.clear)
                     }
                 }
             }
-            .listStyle(.bordered(alternatesRowBackgrounds: true))
+            .listStyle(.bordered(alternatesRowBackgrounds: false))
+            .scrollContentBackground(.hidden)
+            .font(SettingsTypography.body)
 
             HStack {
                 Spacer()
@@ -213,8 +235,11 @@ private struct RunningAppPickerSheet: View {
                     .keyboardShortcut(.cancelAction)
             }
         }
+        .font(SettingsTypography.control)
+        .controlSize(.large)
         .padding()
         .frame(width: 440, height: 380)
+        .haneulWindowAppearance()
     }
 
     private func isDisabled(_ bundleID: String) -> Bool {

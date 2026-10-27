@@ -72,8 +72,10 @@ final class OrphanWatcher {
             }
             return
         }
-        let presence = OrphanDecision.classify(candidatePaths: candidatePaths()) {
-            FileManager.default.fileExists(atPath: $0)
+        guard let presence = observePresence() else {
+            previousAbsentAt = nil
+            log.log("orphan: observation unavailable — self-removal deferred; settings preserved")
+            return
         }
         if presence == .present {
             previousAbsentAt = nil
@@ -99,7 +101,7 @@ final class OrphanWatcher {
     }
 
     /// 앱이 있을 법한 경로 전부. 싼 것부터 보고, 살아 있는 복사본이 하나라도 있으면 스캔은 생략.
-    private func candidatePaths() -> [String] {
+    private func candidatePaths() -> [String]? {
         var paths: [String] = []
         let fm = FileManager.default
         let defaults = UserDefaults.standard
@@ -123,7 +125,11 @@ final class OrphanWatcher {
         // 2) LaunchServices가 아는 모든 복사본 (파일명이 바뀌어도 bundle ID로 찾는다).
         //    2026-09-20 (#47, 리뷰 F-1): 이 중 휴지통 안 경로는 1단계와 같은 bundle ID + inode 검사를
         //    통과해야 후보가 된다 — 옛 버전 사본이 `.trashed`(2분 유예)로 잘못 요약되지 않게.
-        let known = NSWorkspace.shared.urlsForApplications(withBundleIdentifier: Self.mainAppBundleID).map(\.path)
+        let known: [String]
+        switch RemovalObservation.registrations(for: Self.mainAppBundleID) {
+        case .paths(let urls): known = urls.map(\.path)
+        case .unknown: return nil
+        }
         paths += OrphanDecision.filterTrashedCandidates(known) { path in
             let url = URL(fileURLWithPath: path)
             return OrphanDecision.acceptsTrashedCopy(
@@ -141,14 +147,21 @@ final class OrphanWatcher {
         let home = fm.homeDirectoryForCurrentUser
         let twoLevel = ["/Applications", home.appendingPathComponent("Applications").path]
         let oneLevel = ["Desktop", "Downloads", "Documents"].map { home.appendingPathComponent($0).path }
-        for dir in twoLevel { paths += Self.scanForMainApp(in: dir, depth: 2) }
-        for dir in oneLevel { paths += Self.scanForMainApp(in: dir, depth: 1) }
+        for (dirs, depth) in [(twoLevel, 2), (oneLevel, 1)] {
+            for dir in dirs {
+                guard let found = Self.scanForMainApp(in: dir, depth: depth) else { return nil }
+                paths += found
+            }
+        }
         return paths
     }
 
     /// `dir` 아래에서 우리 bundle ID의 .app을 찾는다(깊이 제한). `.app` 안으로는 들어가지 않는다.
-    private static func scanForMainApp(in dir: String, depth: Int) -> [String] {
-        guard depth > 0, let entries = try? FileManager.default.contentsOfDirectory(atPath: dir) else { return [] }
+    private static func scanForMainApp(in dir: String, depth: Int) -> [String]? {
+        guard depth > 0 else { return [] }
+        let entries: [String]
+        do { entries = try FileManager.default.contentsOfDirectory(atPath: dir) }
+        catch { return RemovalObservation.isMissing(error) ? [] : nil }
         var found: [String] = []
         for entry in entries where !entry.hasPrefix(".") {
             let url = URL(fileURLWithPath: dir).appendingPathComponent(entry)
@@ -157,7 +170,8 @@ final class OrphanWatcher {
             } else if depth > 1 {
                 var isDir: ObjCBool = false
                 if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue {
-                    found += scanForMainApp(in: url.path, depth: depth - 1)
+                    guard let nested = scanForMainApp(in: url.path, depth: depth - 1) else { return nil }
+                    found += nested
                 }
             }
         }
@@ -175,103 +189,58 @@ final class OrphanWatcher {
         (try? FileManager.default.attributesOfItem(atPath: url.path))?[.systemFileNumber] as? Int
     }
 
+    /// 존재 조회 오류는 missing으로 바꾸지 않는다. 링크/불명확한 대상은 보수적으로 보존한다.
+    private func observePresence() -> OrphanDecision.AppPresence? {
+        guard let paths = candidatePaths() else { return nil }
+        var existing = Set<String>()
+        for path in paths {
+            switch RemovalObservation.absence(at: URL(fileURLWithPath: path)) {
+            case .alreadyAbsent: break
+            case .failed: existing.insert(path)
+            default: return nil
+            }
+        }
+        return OrphanDecision.classify(candidatePaths: paths) { existing.contains($0) }
+    }
+
     // MARK: - 실행
 
-    /// 순서: ① ABC로 전환(우리가 사라져도 입력이 멈추지 않게 — **실패하면 여기서 중단**, 리뷰 H-4)
-    /// ② 입력 소스 비활성화 시도 ③ 자기 번들 삭제 + LaunchServices 등록 해제 ④ 설정 정리 ⑤ 종료.
-    /// ②가 실패해도 ③으로 다음 로그인 때 목록에서 사라진다(전체 제거와 같은 한계).
+    /// 2026-10-11 B안: 개인 사전·설정은 항상 보존. 파일 제거 실패 시 종료하지 않고 재시도한다.
     private func selfRemove() {
-        let bundleURL = self.bundleURL
+        let ownURL = bundleURL
+        guard RemovalObservation.absence(at: RemovalObservation.systemIME) == .alreadyAbsent,
+              let presence = observePresence(), presence != .present else {
+            removalStarted = false; previousAbsentAt = nil; return
+        }
+        let (target, identity) = RemovalObservation.capture(ownURL, identifier: Self.imeBundleID)
+        guard identity.reachedGoal, let target else {
+            log.log("orphan: identity check failed; bundle and settings preserved")
+            removalStarted = false; return
+        }
         DispatchQueue.main.async { [self] in
-            // TIS는 메인 스레드에서.
-            let switched = Self.selectASCIICapableSource()
-            guard switched else {
-                // ABC를 입력 소스에서 빼 둔 사용자 등 — 우리가 선택된 채 사라지면 다음 키가 갈
-                // 곳이 없다. 아무것도 지우지 않고 다음 기회(60초 뒤)에 다시 시도한다.
-                log.log("orphan: could not switch to an ASCII-capable source — self-removal deferred")
+            let input = RemovalObservation.secureInput()
+            guard input.reachedGoal else {
+                log.log("orphan: safe input unavailable; bundle and settings preserved")
                 queue.async { self.removalStarted = false }
                 return
             }
-            let disabled = Self.disableOwnInputSources()
-            log.log("orphan: switched to ABC; TISDisableInputSource=\(disabled, privacy: .public)")
-
             queue.async { [self] in
-                do {
-                    try FileManager.default.removeItem(at: bundleURL)
-                    log.log("orphan: removed own bundle at \(bundleURL.path, privacy: .private)")
-                } catch {
-                    log.log("orphan: bundle removal failed — \(error.localizedDescription, privacy: .public)")
-                }
-                Self.unregisterFromLaunchServices(bundleURL)
-                Self.clearLeftovers()
-                // 현재 활성화 처리와 로그 flush가 끝날 시간을 준 뒤 종료. 번들이 없으므로 다시 뜨지 않는다.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    exit(0)
-                }
+                let report = OrphanRemovalSequence.run(operations: .init(
+                    recheck: {
+                        guard RemovalObservation.absence(at: RemovalObservation.systemIME) == .alreadyAbsent,
+                              let presence = self.observePresence(), presence != .present else {
+                            return .preserved("메인 앱 부재를 다시 확인하지 못했어요")
+                        }
+                        return .verified
+                    },
+                    remove: { RemovalObservation.remove(target) },
+                    unregister: { RemovalObservation.unregister([ownURL], identifier: Self.imeBundleID) }
+                ))
+                self.log.log("orphan: \(report.statusText, privacy: .private)")
+                guard report.succeeded("ime") else { self.removalStarted = false; return }
+                // 실제 파일 부재가 확인된 경우만 종료. 등록 오류가 있으면 로그에 남긴다.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { exit(0) }
             }
-        }
-    }
-
-    /// 우리 bundle ID의 모든 입력 소스(모드 포함)에 `TISDisableInputSource`. 하나라도 성공하면 true.
-    /// 2026-09-19 (#32): 프로그램 비활성화가 GUI 전용이라는 종전 기록은 CLI 컨텍스트 실험이었다 —
-    /// IME 프로세스 컨텍스트에서의 결과는 로그(`orphan`)로 실기기에서 확인한다.
-    private static func disableOwnInputSources() -> Bool {
-        guard let all = TISCreateInputSourceList(nil, true)?.takeRetainedValue() as? [TISInputSource] else {
-            return false
-        }
-        var anyDisabled = false
-        for source in all {
-            guard let ptr = TISGetInputSourceProperty(source, kTISPropertyBundleID) else { continue }
-            let bundleID = Unmanaged<CFString>.fromOpaque(ptr).takeUnretainedValue() as String
-            guard bundleID == imeBundleID else { continue }
-            if TISDisableInputSource(source) == noErr { anyDisabled = true }
-        }
-        return anyDisabled
-    }
-
-    /// ABC(없으면 현재 ASCII 가능 자판)로 전환. 우리 IME가 선택된 채 사라지면 다음 키가
-    /// 갈 곳이 없으므로 먼저 옮겨 둔다.
-    private static func selectASCIICapableSource() -> Bool {
-        let filter = [kTISPropertyInputSourceID as String: "com.apple.keylayout.ABC"] as CFDictionary
-        if let list = TISCreateInputSourceList(filter, false)?.takeRetainedValue() as? [TISInputSource],
-           let abc = list.first {
-            return TISSelectInputSource(abc) == noErr
-        }
-        if let fallback = TISCopyCurrentASCIICapableKeyboardInputSource()?.takeRetainedValue() {
-            return TISSelectInputSource(fallback) == noErr
-        }
-        return false
-    }
-
-    private static func unregisterFromLaunchServices(_ url: URL) {
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath:
-            "/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister")
-        task.arguments = ["-u", url.path]
-        task.standardOutput = Pipe()
-        task.standardError = Pipe()
-        try? task.run()
-        task.waitUntilExit()
-    }
-
-    /// 남기는 흔적을 정리한다. 범위: IME 도메인·메인 앱 도메인의 `haneul.*` 키와
-    /// `~/Library/Application Support/HaneulKeyboard`(구 예측입력 잔재). 전체 제거
-    /// (`Uninstaller.clearUserDefaults`)는 메인 앱 도메인의 **모든** 키까지 지우는데, 여기는
-    /// 앱이 이미 없는 상황이라 우리 접두어 키만 지운다(리뷰 M-2 — 범위 차이를 명시).
-    private static func clearLeftovers() {
-        let ime = UserDefaults.standard
-        for key in ime.dictionaryRepresentation().keys where key.hasPrefix("haneul.") {
-            ime.removeObject(forKey: key)
-        }
-        if let app = UserDefaults(suiteName: mainAppBundleID) {
-            for key in app.dictionaryRepresentation().keys where key.hasPrefix("haneul.") {
-                app.removeObject(forKey: key)
-            }
-        }
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("HaneulKeyboard")
-        if FileManager.default.fileExists(atPath: appSupport.path) {
-            try? FileManager.default.removeItem(at: appSupport)
         }
     }
 }

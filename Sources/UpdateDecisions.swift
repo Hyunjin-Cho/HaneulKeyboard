@@ -14,22 +14,27 @@ import Foundation
 
 // MARK: - CalVer
 
-/// 정식 배포는 `YYYY.MM.DD`(2026-10-09 합의). 이전 `YYYY.RR[.HH]` 설치본과의 비교를
-/// 위해 2~3칸 숫자 파싱을 유지한다. 각 칸은 독립된 정수다. 이 타입은 달력 유효성
-/// 검사기가 아니므로 실제 배포 날짜는 릴리스 체크리스트에서 확인한다.
+/// 정식 배포는 `YYYY.MM.DD`, 핫픽스는 `YYYY.MM.DD_hotfix`(2026-10-10 합의). 이전 설치본과의 비교를
+/// 위해 2~3칸 숫자 파싱을 유지한다. 접미어가 있는 새 날짜는 달력 유효성도 검사하며,
+/// 과거 숫자 버전은 독립된 정수로 비교한다. 실제 배포 날짜는 릴리스 체크리스트에서 확인한다.
 struct CalVer: Equatable, Comparable, Sendable, CustomStringConvertible {
     let year: Int
     let release: Int
     /// 세 번째 칸: 정식 배포의 일(day), 이전 번호의 핫픽스. 없으면 0.
     let hotfix: Int
+    let isHotfix: Bool
     /// 표시용 원문(`2026.08`). 비교에는 쓰지 않는다.
     let text: String
 
-    /// 허용: 숫자와 점만, 2칸 또는 3칸, 각 칸 1~6자리. `v2026.08`·`2026`·`2026.08.1.2`·
+    /// 허용: 숫자/점 2~3칸, 각 칸 1~6자리와 날짜 3칸에 붙는 `_hotfix`. `v2026.08`·`2026`·`2026.08.1.2`·
     /// `2026..08`·`2026.-1`은 전부 nil.
     init?(_ text: String) {
-        let parts = text.split(separator: ".", omittingEmptySubsequences: false)
+        let isHotfix = text.hasSuffix("_hotfix")
+        let numeric = isHotfix ? String(text.dropLast("_hotfix".count)) : text
+        let parts = numeric.split(separator: ".", omittingEmptySubsequences: false)
         guard parts.count == 2 || parts.count == 3 else { return nil }
+        // 새 접미어는 날짜 3칸에만 쓴다. 과거 두 칸 번호는 그대로 유지한다.
+        if isHotfix, parts.count != 3 { return nil }
         var numbers: [Int] = []
         for part in parts {
             guard !part.isEmpty, part.count <= 6,
@@ -37,18 +42,28 @@ struct CalVer: Equatable, Comparable, Sendable, CustomStringConvertible {
                   let n = Int(part) else { return nil }
             numbers.append(n)
         }
+        if isHotfix {
+            guard parts[0].count == 4, parts[1].count == 2, parts[2].count == 2,
+                  numbers[0] > 0, (1...12).contains(numbers[1]), (1...31).contains(numbers[2]) else { return nil }
+            var calendar = Calendar(identifier: .gregorian)
+            calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+            guard let date = calendar.date(from: DateComponents(year: numbers[0], month: numbers[1], day: numbers[2])) else { return nil }
+            let resolved = calendar.dateComponents([.year, .month, .day], from: date)
+            guard resolved.year == numbers[0], resolved.month == numbers[1], resolved.day == numbers[2] else { return nil }
+        }
         year = numbers[0]
         release = numbers[1]
         hotfix = numbers.count == 3 ? numbers[2] : 0
+        self.isHotfix = isHotfix
         self.text = text
     }
 
     static func == (a: CalVer, b: CalVer) -> Bool {
-        a.year == b.year && a.release == b.release && a.hotfix == b.hotfix
+        a.year == b.year && a.release == b.release && a.hotfix == b.hotfix && a.isHotfix == b.isHotfix
     }
 
     static func < (a: CalVer, b: CalVer) -> Bool {
-        (a.year, a.release, a.hotfix) < (b.year, b.release, b.hotfix)
+        (a.year, a.release, a.hotfix, a.isHotfix ? 1 : 0) < (b.year, b.release, b.hotfix, b.isHotfix ? 1 : 0)
     }
 
     var description: String { text }
@@ -64,7 +79,7 @@ struct ReleaseAsset: Equatable, Sendable {
 }
 
 struct ReleaseInfo: Equatable, Sendable {
-    /// `tag_name` — 정식 릴리스는 tag = `MARKETING_VERSION`(예: `2026.10.10`).
+    /// `tag_name` — 날짜 + `HANEUL_RELEASE_SUFFIX`로 만든 공개 버전(예: `2026.10.15_hotfix`).
     let tag: String
     let assets: [ReleaseAsset]
     /// 릴리스 페이지(`html_url`). 표시용 — 설정의 "릴리스 노트 보기" 링크.
@@ -113,6 +128,20 @@ struct UpdateVerification: Equatable, Sendable {
 // MARK: - 결정
 
 enum UpdateDecision {
+    /// Apple 표준 버전은 숫자로 유지하고, 서명된 추가 항목으로 공개 `_hotfix` 표기를 만든다.
+    /// 알 수 없는 접미어는 업데이트 검증에서 거부한다. 과거 번들에는 이 키가 없다.
+    static func releaseVersion(info: [String: Any]?) -> String? {
+        guard let version = info?["CFBundleShortVersionString"] as? String else { return nil }
+        let suffix: String
+        if let raw = info?["HaneulReleaseSuffix"] {
+            guard let value = raw as? String, value.isEmpty || value == "_hotfix" else { return nil }
+            suffix = value
+        } else {
+            suffix = ""
+        }
+        return CalVer(version + suffix)?.text
+    }
+
     /// 릴리스를 조회할 GitHub 저장소(`owner/name`). Debug 빌드는 `Updater`가 defaults 키
     /// `haneul.updateAllowUnofficialRepo` 허용 후 `haneul.updateRepoOverride`로 시험할 수 있다(Release에는 그 코드가 없다).
     static let defaultRepository = "Hyunjin-Cho/HaneulKeyboard"

@@ -5,6 +5,7 @@ cd "$(dirname "$0")/.."
 TEST_DIR=$(mktemp -d)
 trap 'rm -rf "$TEST_DIR"' EXIT
 swiftc -parse-as-library -o "$TEST_DIR/onboarding-tests" \
+  Shared/InputInferencePolicy.swift \
   Sources/OnboardingPracticeField.swift \
   Sources/OnboardingPracticeProgress.swift \
   IMESources/HangulJamo.swift IMESources/KeyboardLayout2Set.swift \

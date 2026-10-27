@@ -181,7 +181,32 @@ final class UpdateReleaseStub: URLProtocol {
         while !UpdateReleaseStub.hasPendingResponse { await Task.yield() }
         UpdateReleaseStub.releaseResponse()
         await first.value
+        // 제거 직전에 보낸 HTTP 응답을 나중에 받아도 정리된 설정을 다시 쓰지 않는다.
+        let raceGate = ProductOperationGate()
+        let raceUpdater = Updater(defaults: defaults, session: session, now: { clock }, operationGate: raceGate)
+        let beforeRace = UpdateReleaseStub.requestCount
+        UpdateReleaseStub.respond(tag: "2099.9"); UpdateReleaseStub.holdNextResponse()
+        let pending = Task { await raceUpdater.checkNow() }
+        while !UpdateReleaseStub.hasPendingResponse { await Task.yield() }
+        let removal = raceGate.begin(.removingProduct)!
+        check(raceUpdater.pauseForRemoval(), "제거: 진행 중 조회를 무효화하고 쓰기 정지")
+        for key in [Updater.lastCheckKey, Updater.latestVersionKey, Updater.lastNotifiedVersionKey] { defaults.removeObject(forKey: key) }
+        UpdateReleaseStub.releaseResponse(); await pending.value
+        check(defaults.object(forKey: Updater.lastCheckKey) == nil && defaults.object(forKey: Updater.latestVersionKey) == nil, "제거: 늦은 HTTP 응답이 삭제된 설정을 다시 쓰지 않음")
+        raceUpdater.setAutoCheckEnabled(false)
+        check(raceUpdater.autoCheckEnabled, "제거: 설정 버튼 쓰기도 일시 정지")
+        await raceUpdater.checkNow()
+        check(UpdateReleaseStub.requestCount == beforeRace + 1, "제거: 새로운 HTTP 조회 시작 차단")
+        raceGate.finish(removal); raceUpdater.resumeAfterRemoval(); await raceUpdater.checkNow()
+        check(defaults.string(forKey: Updater.latestVersionKey) == "2099.9", "제거 실패: updater 재개 가능")
+        let inputRemoval = raceGate.begin(.removingInputMethod)!
+        await raceUpdater.installAvailableUpdate()
+        check(raceGate.operation == .removingInputMethod, "업데이트: IME 제거 작업권을 뺏지 않음")
+        raceGate.finish(inputRemoval)
         await UpdateSecurityTests.run { check($0, $1) }
+        UpdateReplacementTests.run { check($0, $1) }
+        UninstallTests.run { check($0, $1) }
+        InputSourceSettingsTests.run { check($0, $1) }
         print("Updater: \(passed) passed, \(failed) failed")
         exit(failed == 0 ? 0 : 1)
     }

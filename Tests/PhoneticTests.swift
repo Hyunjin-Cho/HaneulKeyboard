@@ -7,8 +7,8 @@ func runPhoneticTests() {
         expect(false, true, "발음 사전 로드")
         return
     }
-    expect(dictionary.entries.count, 1903, "발음 사전 입력 표기 수")
-    expect(Set(dictionary.entries.map(\.english)).count, 1880, "발음 사전 영문 출력 수")
+    expect(dictionary.entries.count, 2049, "발음 사전 입력 표기 수")
+    expect(Set(dictionary.entries.map(\.english)).count, 2019, "발음 사전 영문 출력 수")
     expect(dictionary.entries.filter { $0.category == "phone-confirmed" }.count, 29, "확인한 번호 별칭")
     expect(dictionary.entries.filter { $0.category == "phone-reserved" }.count, 6, "다음 3개 번호 별칭")
     for (hangul, english) in ["레스토랑": "restaurant", "라이트": "light", "워크": "work",
@@ -26,7 +26,10 @@ func runPhoneticTests() {
                                "애니메이션": "animation", "스톱모션": "stop-motion", "영화": "movie",
                                "디스코드": "Discord",
                                "선물": "gift", "선물거래": "futures trading", "선물계약": "futures contract",
-                               "지수": "index", "메시": "mesh", "줌": "zoom"] {
+                               "지수": "index", "메시": "mesh", "줌": "zoom",
+                               "사과": "apple", "딸기": "strawberry", "포도": "grape", "수박": "watermelon",
+                               "알파": "alpha", "베타": "beta", "감마": "gamma", "원자": "atom",
+                               "현물": "spot", "솔리드": "solid", "글래스": "glass", "글라스": "glass"] {
         expect(dictionary.english(for: hangul) ?? "", english, "오너 예시: \(hangul)")
     }
     for word in ["겔럭시", "에플", "레스토런트", "레스토랑에서", "애플은", "맥 스튜디오", "갤럭시024",
@@ -52,6 +55,14 @@ func runPhoneticTests() {
             expect(false, true, "두벌식 도달 불가: \(entry.hangul)")
             continue
         }
+        // 2026-10-14: 대표 표본뿐 아니라 등록 전체의 일반 Space 보존과
+        // 확정된 한글의 명시 변환도 검사한다. 사전 등록이 자동 번역을 켜지 않는다.
+        expect(typeViaController(keys + " ").committedText, entry.hangul + " ",
+               "등록 전체 일반 Space 원문 보존: \(entry.hangul)")
+        let explicit = ManualToggle.resolve(word: entry.hangul, phoneticEnabled: true,
+                                            keyboardEnabled: false, dictionary: dictionary)
+        expect(explicit?.text ?? "", entry.english, "등록 전체 확정 명시 변환: \(entry.hangul)")
+        expect(explicit?.origin == .phonetic, true, "등록 전체 명시 변환 출처: \(entry.hangul)")
         let client = FakeClient(), composer = KoreanComposer()
         for key in keys { typeKeyViaController(key, composer: composer, client: client) }
         if entry.hangul.contains(where: { $0.isNumber }) {
@@ -85,6 +96,59 @@ func runPhoneticTests() {
         expect(dictionary.english(for: nfd) ?? "", entry.english, "붙여넣은 NFD 표기: \(entry.hangul)")
     }
 
+    // 2026-10-14: 새 일반 명사는 영어 문맥·설정·개인 금지와 섞어 검사한다.
+    // 사전 확장이 문장 추측이나 조사 제거로 번지지 않는지 확인한다.
+    if let nounFixture = try? String(contentsOfFile: "dict_work/2026-10-14-phonetic-common-nouns.tsv", encoding: .utf8) {
+        for line in nounFixture.split(separator: "\n").dropFirst() {
+            let columns = line.split(separator: "\t", omittingEmptySubsequences: false).map(String.init)
+            guard columns.count >= 2 else { expect(false, true, "명사 표본 열 누락"); continue }
+            let original = columns[0], english = columns[1]
+            let keys = ManualToggle.hangulToKeys(original)!
+            expect(dictionary.english(for: original) ?? "", english, "새 명사 지정 의미: \(original)")
+            for previous in ["the", "want"] {
+                expect(typeWordsViaController([previous, keys]).last ?? "", original,
+                       "영어 뒤 새 명사 Space 유지: \(previous) \(original)")
+            }
+            expect(ManualToggle.resolve(word: original, phoneticEnabled: false,
+                keyboardEnabled: false, dictionary: dictionary) == nil, true, "새 명사 두 설정 OFF: \(original)")
+            expect(ManualToggle.resolve(word: original, phoneticEnabled: false,
+                keyboardEnabled: true, dictionary: dictionary)?.text ?? "", keys, "새 명사 발음 OFF는 자판 토글: \(original)")
+            for suffix in ["는", "를", "의", "에서"] {
+                let extended = original + suffix
+                expect(dictionary.english(for: extended) == nil, true, "새 명사 조사 추측 없음: \(extended)")
+                expect(ManualToggle.resolve(word: extended, phoneticEnabled: true,
+                    keyboardEnabled: false, dictionary: dictionary) == nil, true, "새 명사 조사 일부만 번역하지 않음: \(extended)")
+            }
+            for (followingKeys, followingHangul) in [("so", "내"), ("to", "새")] {
+                let composer = KoreanComposer(), client = FakeClient()
+                composer.autoEnglishEnabled = false
+                composer.personalDictionary = PersonalDictionary(forceList: [keys], blockList: [keys, original])
+                let personalBefore = composer.personalDictionary
+                composer.beginExternalEnglishContext("the")
+                for key in keys { typeKeyViaController(key, composer: composer, client: client) }
+                expect(composer.commitPhonetic(to: client, dictionary: dictionary), true,
+                       "새 명사 자동 OFF·금지에서도 명시 변환: \(original)")
+                expect(client.committedText, english, "새 명사 명시 변환 결과: \(original)")
+                expect(composer.lastConversion?.hangul ?? "", original, "새 명사 원문 쌍 보존: \(original)")
+                expect(composer.lastEnglishWord == nil, true, "새 명사 변환 뒤 영어 문맥 없음: \(original)")
+                expect(composer.shouldRecordAutomaticRevert, false, "새 명사 변환은 자동 오류 기록 아님: \(original)")
+                expect(composer.personalDictionary == personalBefore, true, "새 명사 명시 변환이 개인 사전을 수정하지 않음: \(original)")
+                composer.autoEnglishEnabled = true
+                typeKeyViaController(" ", composer: composer, client: client)
+                for key in followingKeys { typeKeyViaController(key, composer: composer, client: client) }
+                composer.commit(to: client, convertEnglish: true)
+                expect(client.committedText, english + " " + followingHangul,
+                       "새 명사 변환이 뒤 한국어를 영어로 만들지 않음: \(original) \(followingHangul)")
+            }
+        }
+    } else {
+        expect(false, true, "새 명사 독립 표본 목록 로드")
+    }
+    for ambiguous in ["용량", "눈", "밤", "말", "차", "가위", "화장지", "강아지", "호랑이"] {
+        expect(dictionary.english(for: ambiguous) == nil, true, "새 명사 애매한 뜻·사람 지칭 제외: \(ambiguous)")
+    }
+    expect(dictionary.english(for: "배") ?? "", "pear", "기존 지정 과일 뜻은 명사 확장으로 삭제하지 않음")
+
     // 자동 변환/수동 키 배열 변환과 다른 원문을 기억해야 한다.
     expect(ManualToggle.resolve(word: "재가", phoneticEnabled: true, keyboardEnabled: true, dictionary: dictionary)?.text ?? "", "work", "기존 재가→work")
     expect(ManualToggle.resolve(word: "work", phoneticEnabled: true, keyboardEnabled: true, dictionary: dictionary)?.text ?? "", "재가", "새 영어 입력은 기존 자판 역변환")
@@ -96,7 +160,8 @@ func runPhoneticTests() {
     for hangul in ["레스토랑", "워크", "라이트", "애플", "아이폰", "맥스튜디오", "엔비디아", "삼성", "갤럭시24",
                    "축구", "미식축구", "야구", "라이더", "스포츠",
                    "시각효과", "브이에프엑스", "컬러그레이딩", "파인튜닝", "기내수하물", "로그라이크",
-                   "선물", "선물거래", "디스코드"] {
+                   "선물", "선물거래", "디스코드", "사과", "딸기", "포도", "수박",
+                   "알파", "베타", "감마", "원자", "현물", "솔리드", "글래스", "글라스"] {
         let keys = ManualToggle.hangulToKeys(hangul)!
         expect(typeViaController(keys + " ").committedText, hangul + " ", "일반 Space는 발음 변환 없음: \(hangul)")
         let client = FakeClient(), composer = KoreanComposer()

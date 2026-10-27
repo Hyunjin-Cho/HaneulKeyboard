@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 import Carbon
 
-/// 2026-10-09 (#80): 단청·리소그래프 안내 5단계, 720×800pt. 연습과 버튼은 실제 앱 경로다.
+/// 2026-10-12: 한 화면에서 한 기능씩 연습하는 단청 안내 7단계, 720×800pt.
 struct OnboardingView: View {
     static let size = NSSize(width: 720, height: 800)
     @Bindable var core: AppCore
@@ -21,15 +21,46 @@ struct OnboardingView: View {
     @State private var focusRequest = UUID()
     @State private var resetRequest = UUID()
     @State private var practiceStage: OnboardingPracticeStage = .empty
-    @State private var dictionaryTab = 0
     @State private var shortcut = RevertKey.default
     @State private var autoEnabled = true
     @State private var allWordsEnabled = true
+    @State private var phoneticEnabled = RevertKey.phoneticDefault
+    @State private var slashEnabled = SlashEnglishSession.defaultEnabled
+
+    private enum PracticeLesson: Equatable {
+        case automatic, reversal, registeredWord, slash
+        var manual: Bool { self == .reversal || self == .registeredWord }
+        var hint: String {
+            switch self {
+            case .automatic, .reversal: "여기에 apple을 쳐봐요"
+            case .registeredWord: "여기에 바나나를 쳐봐요"
+            case .slash: "여기에 /help를 쳐봐요"
+            }
+        }
+        var accessibilityName: String {
+            switch self {
+            case .automatic: "영타 자동 변환 연습"
+            case .reversal: "한영 되돌리기 연습"
+            case .registeredWord: "등록 한글 단어 변환 연습"
+            case .slash: "슬래시 영어 입력 연습"
+            }
+        }
+    }
 
     private let titles = ["한글 모드 그대로 영어까지", "Mac에서 하늘키보드를 선택", "이번엔 직접 쳐봐요",
-                          "단축키로 한영 바꾸기", "메뉴바에서 만나요"]
-    private let sections = ["만나보기와 설치", "입력 소스", "영타 자동 변환", "되돌리기와 개인 사전", "메뉴바와 후원"]
+                          "단축키로 되돌려요", "한글 단어도 영어로", "슬래시 뒤에는 바로 영어", "메뉴바에서 만나요"]
+    private let sections = ["만나보기와 설치", "입력 소스", "영타 자동 변환", "한영 되돌리기", "등록 단어 변환", "슬래시 영어 입력", "메뉴바와 후원"]
     private var ready: Bool { core.imeInstalled && !core.imeRefreshNeeded && !core.isPreparingIME }
+
+    init(core: AppCore, initialStep: Int = 0,
+         onSettings: @escaping (SettingsTab) -> Void = { _ in },
+         onSupport: @escaping () -> Void = {}, onComplete: @escaping () -> Void = {}) {
+        self.core = core
+        self.onSettings = onSettings
+        self.onSupport = onSupport
+        self.onComplete = onComplete
+        _step = State(initialValue: min(max(initialStep, 0), 6))
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -39,17 +70,19 @@ struct OnboardingView: View {
             }.frame(height: 142).clipped()
             ZStack(alignment: .top) {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 14) {
                         switch step {
                         case 0: installStep
                         case 1: sourceStep
                         case 2: typingStep
-                        case 3: dictionaryStep
+                        case 3: reversalStep
+                        case 4: registeredWordStep
+                        case 5: slashStep
                         default: finishStep
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 48).padding(.vertical, 12)
+                    .padding(.horizontal, 48).padding(.vertical, 8)
                 }
                 .scrollIndicators(.hidden)
                 .id(pageID)
@@ -120,9 +153,13 @@ struct OnboardingView: View {
     private var subtitle: String {
         switch step {
         case 0: "하늘키보드는 한글로 친 영어 단어를 알아보고 바꿔줘요.\n한/영 키를 누르지 않아도 돼요."
-        case 1: "키보드 설정에 하늘키보드를 추가하고\n입력 소스로 선택해 주세요."
+        case 1: core.imeInstalled
+            ? "입력 소스에 하늘키보드가 추가됐어요.\n아래 버튼으로 바로 선택해 주세요."
+            : "키보드 설정에 하늘키보드를 추가하고\n입력 소스로 선택해 주세요."
         case 2: "한글 모드에서 apple을 입력해 보세요.\n영어로 바뀌어요. 한글 모드는 그대로예요."
-        case 3: "사전에 없는 단어도 원하는 대로 바꿀 수 있어요."
+        case 3: "방금 바뀐 영어를 \(shortcut.displayName)로 되돌려요.\n다시 누르면 영어로 돌아와요."
+        case 4: "바나나를 쓰고 \(shortcut.displayName)를 누르면 banana.\n등록된 한글 단어를 영어로 바꿔요."
+        case 5: "한글 모드에서 /help를 입력해 보세요.\n슬래시 뒤에는 바로 영어가 나와요."
         default: "설정을 열거나 이 안내를 다시 보고 싶을 때\n메뉴바의 하늘키보드를 눌러 주세요."
         }
     }
@@ -150,12 +187,13 @@ struct OnboardingView: View {
             if let message = installError ?? core.imeActivationError?.localizedDescription {
                 Text(message).font(.system(size: 14)).foregroundStyle(.red).textSelection(.enabled)
             }
+            settingsRefreshWarning
             VStack(alignment: .leading, spacing: 8) {
                 Label("메뉴바 앱과 입력기는 하나의 하늘키보드예요.", systemImage: "link")
                 HStack {
-                    Text("함께 지울 때는 설정 → 고급 → 전체 제거")
+                    Text("함께 지울 때는 설정 → 앱 관리 → 하늘키보드 전체 제거")
                     Spacer()
-                    Button("설정 열기") { onSettings(.general) }
+                    Button("앱 관리 열기") { onSettings(.appManagement) }
                 }
             }.font(.system(size: 14)).padding(.horizontal, 4)
         }
@@ -171,11 +209,15 @@ struct OnboardingView: View {
         VStack(alignment: .leading, spacing: 20) {
             card {
                 HStack(alignment: .top, spacing: 8) {
-                    guideColumn("1", "키보드", symbol: "keyboard", detail: "시스템 설정\n키보드 → 텍스트 입력")
+                    guideColumn("1", core.imeInstalled ? "설치 완료" : "키보드", symbol: "keyboard",
+                                detail: core.imeInstalled ? "입력 소스에\n추가되어 있어요" : "시스템 설정\n키보드 → 텍스트 입력")
                     Image(systemName: "chevron.right").foregroundStyle(.secondary).padding(.top, 44)
-                    guideColumn("2", "편집 → ＋", symbol: "plus.rectangle", detail: "입력 소스 편집\n추가 버튼 누르기")
+                    guideColumn("2", core.imeInstalled ? "아래 버튼" : "편집 → ＋",
+                                symbol: core.imeInstalled ? "hand.tap" : "plus.rectangle",
+                                detail: core.imeInstalled ? "하늘키보드 선택\n버튼 누르기" : "입력 소스 편집\n추가 버튼 누르기")
                     Image(systemName: "chevron.right").foregroundStyle(.secondary).padding(.top, 44)
-                    guideColumn("3", "하늘키보드", symbol: "checkmark.circle", detail: "한국어\n하늘키보드 (두벌식)")
+                    guideColumn("3", "하늘키보드", symbol: "checkmark.circle",
+                                detail: core.imeInstalled ? "한글 입력을\n시작해 보세요" : "한국어\n하늘키보드 (두벌식)")
                 }
                 Divider()
                 VStack(alignment: .leading, spacing: 10) {
@@ -187,6 +229,7 @@ struct OnboardingView: View {
             }
             HStack(spacing: 12) {
                 OnboardingButton("키보드 설정 열기") { IMEInstaller.openInputSourcesSettings() }
+                    .disabled(core.isPreparingIME)
                 Button("하늘키보드 선택") { selectHaneul() }.disabled(!core.imeInstalled)
                 Button("상태 확인") { refresh() }
             }
@@ -196,11 +239,12 @@ struct OnboardingView: View {
                     .lineSpacing(4)
             }.font(.system(size: 14))
             sourceFailure
+            settingsRefreshWarning
         }
     }
     private var typingStep: some View {
         VStack(alignment: .leading, spacing: 22) {
-            practice(manual: false)
+            practice(.automatic)
             VStack(alignment: .leading, spacing: 6) {
                 Text("다른 단어도 자유롭게 쳐보세요.").font(.system(size: 16, weight: .medium))
                 HStack(spacing: 9) {
@@ -214,44 +258,76 @@ struct OnboardingView: View {
         }
     }
 
-    private var dictionaryStep: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            practice(manual: true)
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("설정 → 개인 사전").font(.system(size: 16, weight: .semibold))
-                    Spacer()
-                    Button("개인 사전 열기") { onSettings(.personalDictionary) }
-                }
-                Picker("개인 사전 기능", selection: $dictionaryTab) {
-                    Text("변환 추가").tag(0)
-                    Text("변환 금지").tag(1)
-                    Text("되돌린 단어").tag(2)
-                }.pickerStyle(.segmented)
-                Text(["기본 사전에 없는 이름도 영어로 바꿔요.\n예: 스페인어 인사말 hola를 변환 추가에 등록해 보세요.",
-                      "자동으로 바꾸지 않을 단어를 등록해요.\n변환 추가에도 있는 단어라면 변환 금지가 우선해요.",
-                      "영어에서 한글로 직접 되돌린 단어를 모아 보여줘요.\n‘금지’를 누르면 다음부터 자동으로 바꾸지 않아요."][dictionaryTab])
+    private var reversalStep: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            practice(.reversal)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("방금 변환한 단어를 다시 한글로")
+                    .font(.system(size: 16, weight: .semibold))
+                Text("apple을 친 뒤 Space → \(shortcut.displayName)를 눌러보세요.\n같은 단축키를 한 번 더 누르면 영어로 돌아와요.")
                     .font(.system(size: 14)).lineSpacing(3)
-                    .frame(maxWidth: .infinity, minHeight: 40, maxHeight: 40, alignment: .topLeading)
-            }.padding(10).modifier(OnboardingPrintPanel(tint: OnboardingRiso.pink))
-            Label("터미널은 \(shortcut.displayName) 단축키가 작동하지 않아요.", systemImage: "terminal")
-                .font(.system(size: 14, weight: .bold)).padding(.horizontal, 4)
+            }.padding(14).modifier(OnboardingPrintPanel(tint: OnboardingRiso.yellow, strongerYellow: true))
+            terminalShortcutNote
         }
     }
 
-    private func practice(manual: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+    private var registeredWordStep: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            practice(.registeredWord)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("바나나 → banana · 사과 → apple · 현물 → spot")
+                    .font(.system(size: 15, weight: .medium))
+                Text("등록된 표기만 바꿔요. 일반 Space에서는 한글 그대로예요.")
+                    .font(.system(size: 14))
+                HStack {
+                    Text("나만의 변환 규칙은 설정 → 개인 사전에서")
+                        .font(.system(size: 13))
+                    Spacer(minLength: 4)
+                    Button("개인 사전 열기") { onSettings(.personalDictionary) }
+                        .font(.system(size: 13))
+                }.padding(.top, 4)
+            }.padding(12).modifier(OnboardingPrintPanel(tint: OnboardingRiso.cyan))
+            terminalShortcutNote
+        }
+    }
+
+    private var slashStep: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            practice(.slash)
+            VStack(alignment: .leading, spacing: 7) {
+                Text("/help → Space → 다시 한글 입력")
+                    .font(.system(size: 16, weight: .semibold))
+                Text("/는 그대로 남고, 뒤의 글자는 즉시 영어로 나와요.\n일반 Space를 누르면 공백이 들어가고 한글 모드로 돌아와요.")
+                    .font(.system(size: 14)).lineSpacing(3)
+                HStack {
+                    Text("기본으로 켜져 있어요. 설정에서 끌 수 있어요.")
+                        .font(.system(size: 13))
+                    Spacer(minLength: 4)
+                    Button("입력 기능 설정") { onSettings(.inputFeatures) }
+                        .font(.system(size: 13))
+                }
+            }.padding(12).modifier(OnboardingPrintPanel(tint: OnboardingRiso.yellow, strongerYellow: true))
+        }
+    }
+
+    private var terminalShortcutNote: some View {
+        Label("터미널에서는 \(shortcut.displayName)로 되돌릴 수 없어요.", systemImage: "terminal")
+            .font(.system(size: 13)).foregroundStyle(.secondary).padding(.horizontal, 8)
+    }
+
+    private func practice(_ lesson: PracticeLesson) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
                 ZStack(alignment: .topLeading) {
-                    OnboardingSketchNote(text: "여기에 apple을 쳐봐요", compact: true)
-                        .opacity(practiceStage == .empty ? 1 : 0)
-                    if practiceStage != .empty {
+                    OnboardingSketchNote(text: lesson.hint, compact: true)
+                        .opacity(practiceStage == .empty || lesson == .slash ? 1 : 0)
+                    if practiceStage != .empty && lesson != .slash {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(cueTitle(manual: manual)).font(OnboardingHandwriting.font())
-                            if showPracticeKey(manual: manual) { keycap(manual ? shortcut.displayName : "Space") }
+                            Text(cueTitle(lesson)).font(OnboardingHandwriting.font())
+                            if showPracticeKey(lesson) { keycap(practiceKey(lesson)) }
                         }.padding(.top, 4)
                     }
-                }.frame(height: 70, alignment: .top).foregroundStyle(OnboardingRiso.ink(for: colorScheme))
+                }.frame(height: 66, alignment: .top).foregroundStyle(OnboardingRiso.ink(for: colorScheme))
                 Spacer()
                 Button("비우기", systemImage: "arrow.counterclockwise") { resetRequest = UUID() }
                     .buttonStyle(OnboardingRisoButtonStyle(prominent: false)).padding(.top, 8)
@@ -262,7 +338,7 @@ struct OnboardingView: View {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(colorScheme == .dark ? Color(white: 0.14) : Color(red: 1, green: 0.99, blue: 0.96))
                 OnboardingPracticeField(focusRequest: focusRequest, resetRequest: resetRequest,
-                                        accessibilityName: manual ? "한영 되돌리기 연습" : "영타 자동 변환 연습",
+                                        accessibilityName: lesson.accessibilityName,
                                         placeholder: "", onProgressChange: { [observedPage = pageID] stage in
                                             // 전환 중 퇴장하는 입력칸의 늦은 알림이 새 화면을 바꾸지 않게 한다.
                                             guard pageID == observedPage else { return }
@@ -273,7 +349,7 @@ struct OnboardingView: View {
             }
             .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(OnboardingRiso.cyan.opacity(0.60), lineWidth: 1.3))
             .frame(height: 94)
-            Text(practiceMessage(manual: manual)).font(.system(size: 16))
+            Text(practiceMessage(lesson)).font(.system(size: 15))
                 .frame(maxWidth: .infinity, minHeight: 40, maxHeight: 40, alignment: .topLeading)
             HStack {
                 Label(selectedHaneul ? "하늘키보드 선택됨" : "하늘키보드를 선택해 주세요",
@@ -286,39 +362,65 @@ struct OnboardingView: View {
                     }.disabled(!core.imeInstalled)
                 }
             }
-            if !autoEnabled || (manual && !allWordsEnabled) {
+            if (lesson == .automatic || lesson == .reversal) && !autoEnabled
+                || lesson == .reversal && !allWordsEnabled
+                || lesson == .registeredWord && !phoneticEnabled
+                || lesson == .slash && !slashEnabled {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(!autoEnabled ? "현재 이 앱의 자동 변환이 꺼져 있어요." : "‘모든 단어로 확대’가 꺼져 있어 직전 자동 변환만 되돌릴 수 있어요.")
-                        .font(.system(size: 14))
-                    Button("영타 변환 설정 열기") { onSettings(.englishConversion) }
-                }
+                    if (lesson == .automatic || lesson == .reversal) && !autoEnabled {
+                        Text("현재 이 앱의 자동 변환이 꺼져 있어요.")
+                    }
+                    if lesson == .reversal && !allWordsEnabled {
+                        Text("영어 글자를 한글 자판 글자로 바꾸는 기능이 꺼져 있어요. 직전 자동 변환은 되돌릴 수 있어요.")
+                    }
+                    if lesson == .registeredWord && !phoneticEnabled {
+                        Text("바나나를 banana로 바꾸는 기능이 꺼져 있어요. 설정에서 ‘등록 단어 변환’를 켜 주세요.")
+                    }
+                    if lesson == .slash && !slashEnabled {
+                        Text("슬래시 영어 입력이 꺼져 있어요. 설정에서 켜고 연습해 주세요.")
+                    }
+                    Button("입력 기능 설정 열기") { onSettings(.inputFeatures) }
+                }.font(.system(size: 14))
             }
             sourceFailure
         }.padding(.horizontal, 8)
     }
 
-    private func showPracticeKey(manual: Bool) -> Bool {
-        manual || [.composing, .readyToCommit, .other].contains(practiceStage)
+    private func showPracticeKey(_ lesson: PracticeLesson) -> Bool {
+        lesson.manual || [.composing, .readyToCommit, .other].contains(practiceStage)
     }
-    private func cueTitle(manual: Bool) -> String {
-        if manual { return practiceStage == .reverted ? "한 번 더 눌러봐요" : "이제 이 키를 눌러봐요" }
+    private func practiceKey(_ lesson: PracticeLesson) -> String {
+        if lesson == .registeredWord { return shortcut.displayName }
+        if lesson == .reversal && [.converted, .reverted, .english].contains(practiceStage) {
+            return shortcut.displayName
+        }
+        return "Space"
+    }
+    private func cueTitle(_ lesson: PracticeLesson) -> String {
+        if lesson == .registeredWord { return practiceStage == .reverted ? "한 번 더 눌러봐요" : "이제 이 키를 눌러봐요" }
+        if lesson == .reversal && [.converted, .reverted, .english].contains(practiceStage) {
+            return practiceStage == .reverted ? "한 번 더 누르면 영어로" : "이 키로 한글을 되찾아요"
+        }
         switch practiceStage {
         case .converted: return "됐어요! 한글 모드는 그대로"
         case .english: return "이번엔 한글 모드로 쳐봐요"
         default: return "다 썼으면 Space 한 번"
         }
     }
-    private func practiceMessage(manual: Bool) -> String {
-        if manual {
+    private func practiceMessage(_ lesson: PracticeLesson) -> String {
+        if lesson == .slash { return "/help를 쓰고 Space를 누른 뒤, 한글도 이어서 쳐보세요." }
+        if lesson.manual {
             switch practiceStage {
             case .reverted: return "한글로 바뀌었어요. 한 번 더 누르면 영어로 돌아가요."
             case .converted: return "영어로 바뀌었어요. 다시 눌러 한글로 바꿔보세요."
-            default: return "apple을 입력한 뒤 \(shortcut.displayName)를 눌러보세요."
+            default: return lesson == .registeredWord
+                ? "바나나를 입력한 뒤 \(shortcut.displayName)를 눌러보세요."
+                : "apple을 입력하고 Space → \(shortcut.displayName)를 눌러보세요."
             }
         }
         switch practiceStage {
-        case .converted: return "메ㅔㅣㄷ가 apple로 바뀌었어요. 계속 한글로 입력할 수 있어요."
-        case .english: return "apple이 입력됐어요. 한글 모드에서 입력하면 자동 변환을 체험해요."
+        case .converted: return "영어로 바뀌었어요. 계속 한글로 입력할 수 있어요."
+        case .english: return "영어가 입력됐어요. 한글 모드에서 입력하면 자동 변환을 체험해요."
         case .readyToCommit: return "이제 Space를 누르면 영어 단어를 확인해요."
         case .other: return "자유롭게 입력해도 좋아요. 단어를 쓴 뒤 Space를 눌러보세요."
         default: return "apple을 입력하고 Space를 눌러보세요."
@@ -338,7 +440,7 @@ struct OnboardingView: View {
     }
     private var finishStep: some View {
         OnboardingRisoFinish(ready: ready,
-            onSettings: { onSettings(.general) },
+            onSettings: { onSettings(.inputFeatures) },
             onReplay: { go(to: 0) },
             onSupport: onSupport,
             onInstall: { go(to: 0) })
@@ -349,7 +451,7 @@ struct OnboardingView: View {
                 .frame(width: 180, alignment: .leading)
             Spacer()
             HStack(spacing: 12) {
-                ForEach(0..<5) { index in
+                ForEach(titles.indices, id: \.self) { index in
                     Button { go(to: index) } label: {
                         Capsule().fill(index == step ? OnboardingRiso.cyan : Color.secondary.opacity(0.3))
                             .frame(width: index == step ? 23 : 7, height: 7).padding(.vertical, 8)
@@ -359,7 +461,7 @@ struct OnboardingView: View {
             }
             Spacer()
             Group {
-                if step == 4 {
+                if step == titles.count - 1 {
                     OnboardingButton("하늘키보드 시작하기", navigation: true) {
                         if ready {
                             hasCompleted = true
@@ -411,6 +513,11 @@ struct OnboardingView: View {
     @ViewBuilder private var sourceFailure: some View {
         if let sourceError { Text(sourceError).font(.system(size: 14)).foregroundStyle(.red) }
     }
+    @ViewBuilder private var settingsRefreshWarning: some View {
+        if let warning = core.imeSettingsRefreshWarning {
+            Text(warning).font(.system(size: 14)).foregroundStyle(.orange).textSelection(.enabled)
+        }
+    }
     private func refresh() {
         core.refreshIMEStatus()
         selectedHaneul = InputSwitcher.currentSourceID() == InputSwitcher.koreanModeID
@@ -418,6 +525,9 @@ struct OnboardingView: View {
         shortcut = RevertKey.resolve(rawValue: defaults?.string(forKey: RevertKey.defaultsKey))
         allWordsEnabled = defaults?.object(forKey: RevertKey.manualToggleAllWordsKey) as? Bool
             ?? RevertKey.manualToggleAllWordsDefault
+        phoneticEnabled = defaults?.object(forKey: RevertKey.phoneticKey) as? Bool ?? RevertKey.phoneticDefault
+        slashEnabled = defaults?.object(forKey: SlashEnglishSession.defaultsKey) as? Bool
+            ?? SlashEnglishSession.defaultEnabled
         autoEnabled = AutoConvertPolicy.allowed(
             globalEnabled: defaults?.object(forKey: "haneul.autoEnglishEnabled") as? Bool ?? true,
             disabledIDs: defaults?.stringArray(forKey: AutoConvertPolicy.disabledAppsKey) ?? [],
