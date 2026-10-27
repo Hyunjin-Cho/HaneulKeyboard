@@ -1,13 +1,8 @@
 import SwiftUI
 
-/// 설정 → 「업데이트」 절. (2026-09-21, #19)
-/// 자동 확인 토글(기본 ON) · 지금 확인 · 상태 문구 · 마지막 확인 시각 · IME 갱신 안내(폴백).
+/// 2026-10-11 (#19, #88): 설치된 버전과 마지막으로 확인한 최신 버전을 따로 표시한다.
+/// 간결한 상태 왼쪽 / 확인·업데이트 버튼 오른쪽. 마지막 확인·자동 확인·IME 갱신 안내를 유지한다.
 /// 동작은 `AppCore.updater`(`Updater`)가, 판단은 `UpdateDecisions.swift`가 맡는다.
-///
-/// 2026-09-21 (#60): 탭 재편에서 이 절 하나가 「업데이트」 탭 전체가 됐다(컨테이너는
-/// `SettingsView`). 같은 개정에서 **상태줄을 버튼 행 위로 올렸다** — macOS 소프트웨어
-/// 업데이트와 같은 "무슨 일이 있는지 읽고 → 누른다" 순서다. 색은 `.blue` 하드코딩을 `.tint`로
-/// 바꿔 시스템 강조 색을 따라가게 했다.
 struct UpdateSettingsSection: View {
     @Bindable var core: AppCore
 
@@ -21,31 +16,13 @@ struct UpdateSettingsSection: View {
     }
 
     var body: some View {
-        Section("업데이트") {
-            LabeledContent("현재 버전") {
-                Text("\(Updater.currentVersion) (\(Updater.currentBuild.map(String.init) ?? "?"))")
-                    .foregroundStyle(.secondary)
-            }
-
-            LabeledContent("최근 확인한 최신 버전") {
-                Text(updater.latestVersion ?? "아직 확인하지 않았어요")
-                    .foregroundStyle(.secondary)
-            }
-            Toggle("업데이트 자동 확인", isOn: Binding(
-                get: { updater.autoCheckEnabled },
-                set: { updater.setAutoCheckEnabled($0) }
-            ))
-            Text("새 버전을 발견하면 한 번 알려드려요. 설치는 직접 선택할 수 있어요. 자동 확인을 끄면 ‘지금 확인’을 누를 때만 인터넷에 접속해요.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-
-            statusLine
+        HaneulSettingsSection("버전·업데이트") {
+            versionRow("최신 버전", value: updater.latestVersion ?? "확인 전")
+            versionRow("설치된 버전", value: Updater.currentVersion)
 
             HStack(spacing: 12) {
-                Button("지금 확인") {
-                    Task { await updater.checkNow(forced: true) }
-                }
-                .disabled(isBusy)
+                statusLine
+                Spacer(minLength: 12)
 
                 // 새 버전이 있을 때만 나타나므로 강조가 과하지 않다.
                 if case .available = updater.phase {
@@ -54,17 +31,35 @@ struct UpdateSettingsSection: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
-                    .disabled(isBusy)
+                    .disabled(isBusy || core.isPreparingIME)
+                    .fixedSize()
                 }
 
-                Spacer()
+                Button("지금 확인") {
+                    Task { await updater.checkNow(forced: true) }
+                }
+                .disabled(isBusy || core.isPreparingIME)
+                .fixedSize()
+            }
+
+            if case .available(let update) = updater.phase, let page = update.pageURL {
+                Link("릴리스 노트 보기", destination: page)
+                    .font(SettingsTypography.body)
             }
 
             if let lastCheck = updater.lastCheck {
                 Text("마지막 확인: \(lastCheck.formatted(date: .abbreviated, time: .shortened))")
-                    .font(.caption)
+                    .font(SettingsTypography.body)
                     .foregroundStyle(.secondary)
             }
+
+            Toggle("업데이트 자동 확인", isOn: Binding(
+                get: { updater.autoCheckEnabled },
+                set: { updater.setAutoCheckEnabled($0) }
+            ))
+            Text("새 버전을 발견하면 한 번 알려드려요. 설치는 직접 선택할 수 있어요. 자동 확인을 끄면 ‘지금 확인’을 누를 때만 인터넷에 접속해요.")
+                .font(SettingsTypography.body)
+                .foregroundStyle(.secondary)
 
             if core.imeRefreshNeeded {
                 VStack(alignment: .leading, spacing: 4) {
@@ -72,8 +67,8 @@ struct UpdateSettingsSection: View {
                         .foregroundStyle(.orange)
                     // 2026-09-21 (#60): 설정 창을 보는 사람은 빌드 스크립트를 돌리는 사람이
                     // 아니다 — 시스템 도메인 설치 안내는 README/체크리스트가 맡는다.
-                    Text("앱은 새 버전이지만 설치된 입력기는 이전 빌드입니다. 「일반」 탭에서 입력기를 제거한 뒤 다시 설치하세요.")
-                        .font(.caption)
+                    Text("앱은 새 버전이지만 설치된 입력기는 이전 빌드입니다. 「앱 관리」에서 입력기를 제거한 뒤 다시 설치하세요.")
+                        .font(SettingsTypography.body)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -84,46 +79,77 @@ struct UpdateSettingsSection: View {
     private var statusLine: some View {
         switch updater.phase {
         case .idle:
-            Text(updater.lastCheck == nil ? "아직 확인하지 않았습니다." : "‘지금 확인’을 누르면 최신 상태를 다시 확인할 수 있어요.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            // 재실행 뒤에는 실제로 저장된 최신 번호만 비교한다. 조회 전에는 최신이라고 추정하지 않는다.
+            if let latest = updater.latestVersion.flatMap(CalVer.init),
+               let current = CalVer(Updater.currentVersion) {
+                if current < latest {
+                    newVersionStatus
+                } else {
+                    upToDateStatus
+                }
+            } else {
+                Text("아직 확인하지 않았습니다.")
+                    .font(SettingsTypography.body)
+                    .foregroundStyle(.secondary)
+            }
         case .checking:
             Label("확인 중…", systemImage: "arrow.triangle.2.circlepath")
-                .font(.caption)
+                .font(SettingsTypography.body)
                 .foregroundStyle(.secondary)
         case .upToDate:
-            Label("최신 버전입니다.", systemImage: "checkmark.circle.fill")
-                .font(.caption)
-                .foregroundStyle(.green)
-        case .available(let update):
-            VStack(alignment: .leading, spacing: 4) {
-                Label("새 버전 \(update.tag)이(가) 있습니다.", systemImage: "arrow.down.circle.fill")
-                    .foregroundStyle(.tint)
-                Text("내려받아 서명·노타리를 검증한 뒤 응용 프로그램 폴더의 앱을 바꾸고 다시 엽니다. 검증에 실패하면 지금 앱을 그대로 둡니다.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                if let page = update.pageURL {
-                    Link("릴리스 노트 보기", destination: page)
-                        .font(.caption)
-                }
-            }
+            upToDateStatus
+        case .available:
+            newVersionStatus
         case .downloading:
             Label("내려받는 중…", systemImage: "arrow.down.circle")
-                .font(.caption)
+                .font(SettingsTypography.body)
                 .foregroundStyle(.secondary)
         case .verifying:
             Label("서명·노타리 검증 중…", systemImage: "checkmark.shield")
-                .font(.caption)
+                .font(SettingsTypography.body)
                 .foregroundStyle(.secondary)
         case .installing:
             Label("설치 중… 잠시 뒤 앱이 다시 열립니다.", systemImage: "gearshape")
-                .font(.caption)
+                .font(SettingsTypography.body)
                 .foregroundStyle(.secondary)
         case .failed(let reason):
-            Text("업데이트하지 못했습니다: \(reason)")
-                .font(.caption)
+            Text("업데이트 오류: \(reason)")
+                .font(SettingsTypography.body)
                 .foregroundStyle(.red)
                 .textSelection(.enabled)
         }
+    }
+
+    private func versionRow(_ title: String, value: String) -> some View {
+        LabeledContent(title) {
+            Text(value)
+                .font(SettingsTypography.version)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(title)
+        .accessibilityValue(value)
+    }
+
+    @ViewBuilder
+    private var upToDateStatus: some View {
+        // 공개 전 검토 빌드처럼 설치 번호가 서버의 최신 공개 번호보다 앞서는 경우도 구분한다.
+        if let latest = updater.latestVersion.flatMap(CalVer.init),
+           let current = CalVer(Updater.currentVersion), current > latest {
+            Label("설치된 버전이 더 새롭습니다.", systemImage: "info.circle")
+                .font(SettingsTypography.body)
+                .foregroundStyle(.secondary)
+        } else {
+            Label("최신 버전입니다.", systemImage: "checkmark.circle.fill")
+                .font(SettingsTypography.body)
+                .foregroundStyle(.green)
+        }
+    }
+
+    private var newVersionStatus: some View {
+        Label("새 버전이 있습니다.", systemImage: "arrow.down.circle.fill")
+            .font(SettingsTypography.body)
+            .foregroundStyle(.tint)
     }
 }

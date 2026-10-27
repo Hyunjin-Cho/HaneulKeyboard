@@ -28,6 +28,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var updateNoticeWindow: NSWindow?
     // deinit(nonisolated)에서 해제하므로 actor 격리에서 제외.
     nonisolated(unsafe) private var sourceObserver: NSObjectProtocol?
+    nonisolated(unsafe) private var indicatorPreferencesObserver: NSObjectProtocol?
+    private var inputSourceIndicator: InputSourceTransitionIndicator?
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         // 응용 프로그램 폴더 밖이면 옮긴다(App Translocation 방지) — 메뉴바 생성보다 먼저.
@@ -58,7 +60,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // 토글 OFF면 네트워크에 나가지 않는다. 결과는 표시만 — 설치는 사용자 클릭.
         core.updater.startAutomaticChecks()
 
-        // 입력 소스 변경 알림 → 메뉴바 도움말·접근성 설명 + core 상태 갱신.
+        // 현재 상태를 기준으로 시작한다. 이미 하늘을 쓰는 중 앱을 실행해도 전환 안내는 띄우지 않는다.
+        inputSourceIndicator = InputSourceTransitionIndicator(currentSourceID: InputSwitcher.currentSourceID())
+        indicatorPreferencesObserver = NotificationCenter.default.addObserver(
+            forName: .haneulInputSourceIndicatorPreferencesChanged, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.inputSourceIndicator?.preferencesDidChange() }
+        }
+        // 입력 소스 변경 알림 → 메뉴바 도움말·접근성 설명 + core 상태 + 짧은 전환 안내.
         sourceObserver = DistributedNotificationCenter.default.addObserver(
             forName: NSNotification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String),
             object: nil, queue: .main
@@ -67,6 +76,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             MainActor.assumeIsolated {
                 self?.core.refreshLanguage()
                 self?.updateButtonDescription()
+                if let self {
+                    self.inputSourceIndicator?.sourceDidChange(to: InputSwitcher.currentSourceID(),
+                                                               isPreparingIME: self.core.isPreparingIME)
+                }
             }
         }
     }
@@ -89,6 +102,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if let sourceObserver {
             DistributedNotificationCenter.default.removeObserver(sourceObserver)
         }
+        if let indicatorPreferencesObserver {
+            NotificationCenter.default.removeObserver(indicatorPreferencesObserver)
+        }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        inputSourceIndicator?.dismiss()
     }
 
     private func updateButtonDescription() {
@@ -104,7 +124,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         core.refreshLanguage()
         core.refreshIMEStatus()
         let hasCompleted = UserDefaults.standard.bool(forKey: "haneul.hasCompletedOnboarding")
-        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+        let version = Updater.currentVersion
 
         addDisabled(menu, "HaneulKeyboard \(version)")
         addDisabled(menu, core.isKoreanActive ? "현재: 한국어" : "현재: 영어")
@@ -220,7 +240,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
             return
         }
-        let hosting = NSHostingController(rootView: SettingsView(core: core, initialTab: tab ?? .general))
+        let hosting = NSHostingController(rootView: SettingsView(core: core, initialTab: tab ?? .inputFeatures))
         let win = NSWindow(contentViewController: hosting)
         // 2026-09-21 (#60): 제목 문구는 `SettingsView.windowTitle` 한 곳에서 정한다.
         win.title = SettingsView.windowTitle

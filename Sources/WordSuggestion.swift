@@ -1,12 +1,10 @@
 import Foundation
 
-/// 2026-09-21 (#55): 단어 제안 창구 — "이 단어도 변환됐으면 / 이건 변환되면 안 돼"를 GitHub
-/// 이슈로 제안할 수 있게 **미리 채운 이슈 작성 페이지의 URL**을 만드는 순수 함수.
+/// 2026-10-10 (#55): 단어 제안 창구. 메일 작성창과 GitHub 양식의 URL을 만드는 순수 함수.
 ///
 /// 원칙 세 가지:
-///   1. **서버 0 · 전송 0.** 앱이 하는 일은 이 URL을 기본 브라우저로 여는 것뿐이다
-///      (`WordSuggestionSettingsSection.openIssue` → `NSWorkspace.open`). 아무것도 보내지 않고,
-///      내용 확인과 등록은 사용자가 GitHub에서 직접 한다(GitHub 계정 필요).
+///   1. 앱은 자체 서버·자동 제출 기능이 없다. 선택한 메일 앱/브라우저로 내용을 넘겨
+///      작성창을 열고, 발송/등록은 사용자가 직접 한다(`NSWorkspace.open`).
 ///   2. **URL에 들어가는 것은 사용자가 직접 적은 값, "최근 되돌린 변환"의 (한글 표기, 영어) 쌍,
 ///      앱·macOS 버전뿐.** 키스트로크·앞뒤 문맥·앱 이름은 넣지 않는다(PRIVACY.md 8번).
 ///   3. Foundation 전용 — `scripts/run_ime_tests.sh`가 그대로 컴파일해 인코딩·길이 상한을 검증한다.
@@ -46,6 +44,8 @@ enum WordSuggestion {
     static let newIssueURL = "https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/new"
     static let label = "enhancement"
     static let titlePrefix = "[단어 제안]"
+    /// 2026-10-10 사용자 승인: 앱에 공개할 단어 제안용 연락처.
+    static let contactEmail = "lifeismotive@gmail.com"
 
     /// URL 전체 길이 상한. GitHub이 긴 URL을 거부하는 지점(8 KB 부근)보다 아래로 잡는다.
     static let maxURLLength = 8000
@@ -74,19 +74,40 @@ enum WordSuggestion {
                 note: note, appVersion: appVersion, osVersion: osVersion)
             return url(title: title, body: body)
         }
+        return boundedURL(note: noteText, build: build)
+    }
+
+    /// 메일 앱의 작성창만 연다. 앱은 메일을 전송하지 않으며 수신자는 고정한다.
+    static func emailURL(
+        typed: String, expected: String, kind: Kind,
+        note: String = "", appVersion: String = "", osVersion: String = ""
+    ) -> URL? {
+        guard let typedLine = singleLine(typed), let expectedLine = singleLine(expected) else { return nil }
+        let title = issueTitle(typed: typedLine, expected: expectedLine, kind: kind)
+        return boundedURL(note: note.trimmingCharacters(in: .whitespacesAndNewlines)) { note in
+            let body = issueBody(typed: typedLine, expected: expectedLine, kind: kind,
+                note: note, appVersion: appVersion, osVersion: osVersion,
+                footer: "하늘키보드의 단어 제안 양식입니다. 내용을 확인한 뒤 메일 앱에서 직접 보내 주세요.")
+            guard var components = URLComponents(string: "mailto:\(contactEmail)") else { return nil }
+            components.percentEncodedQuery = "subject=\(percentEncoded(title))&body=\(percentEncoded(body))"
+            return components.url
+        }
+    }
+
+    private static func boundedURL(note noteText: String, build: (String) -> URL?) -> URL? {
         func fits(_ url: URL?) -> Bool {
             guard let url else { return false }
             return url.absoluteString.count <= maxURLLength
         }
 
-        if let full = build(note: noteText), fits(full) { return full }
+        if let full = build(noteText), fits(full) { return full }
 
         // 넘친다 — 메모를 앞에서부터 남기고 뒤를 잘라 표시(`truncationMarker`)를 붙인다.
         // 접두 길이가 길수록 URL도 길어지므로(단조) 맞는 최대 접두 길이를 이분 탐색한다.
         let chars = Array(noteText)
         func clipped(_ n: Int) -> URL? {
             let head = String(chars.prefix(n))
-            return build(note: head.isEmpty ? truncationMarker : head + "\n" + truncationMarker)
+            return build(head.isEmpty ? truncationMarker : head + "\n" + truncationMarker)
         }
         guard fits(clipped(0)) else {
             // 메모를 다 잘라도 넘친다 — `maxFieldLength` 캡 때문에 생길 수 없는 경우
@@ -114,7 +135,8 @@ enum WordSuggestion {
     /// 본문(마크다운). 값은 표 대신 목록에 넣는다 — 사용자 메모에 `|`가 있어도 깨지지 않게.
     static func issueBody(
         typed: String, expected: String, kind: Kind,
-        note: String, appVersion: String, osVersion: String
+        note: String, appVersion: String, osVersion: String,
+        footer: String = "하늘키보드 설정 → 단어 제안에서 미리 채운 양식입니다. 앱은 직접 등록하지 않으며, 등록은 GitHub에서 사용자가 직접 합니다."
     ) -> String {
         let noteBlock = note.isEmpty ? "(없음)" : note
         return """
@@ -134,7 +156,7 @@ enum WordSuggestion {
         - [ ] 이 기기에서는 설정 → 개인 사전(변환 추가 / 변환 금지)으로 먼저 해결했습니다.
         - [ ] 위 내용에 비밀번호나 개인정보가 들어 있지 않습니다.
 
-        _하늘키보드 설정 → "단어 제안"에서 미리 채운 양식입니다. 앱은 아무것도 전송하지 않으며, 등록은 GitHub에서 사용자가 직접 합니다._
+        _\(footer)_
         """
     }
 

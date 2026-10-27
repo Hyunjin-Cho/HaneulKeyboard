@@ -45,6 +45,17 @@ import AppKit
         RunLoop.current.run(until: Date().addingTimeInterval(0.02))
         check(observedStages.last == .converted, "실제 조합→영문 치환 성공 안내: \(observedStages)")
         check(editor.string == "apple ", "안내 갱신이 실제 텍스트를 건드리지 않음")
+        for value in ["bike", "camera", "water"] {
+            editor.string = ""; editor.setSelectedRange(NSRange(location: 0, length: 0)); editor.resetProgress()
+            let c = KoreanComposer()
+            for key in value { _ = c.handleInput(String(key), client: client) }
+            c.commit(to: client, convertEnglish: true)
+            client.insertText(" ")
+            RunLoop.current.run(until: Date().addingTimeInterval(0.02))
+            check(editor.string == value + " ", "추가 예시 실제 자동 변환: \(value)")
+            check(observedStages.last == .converted, "apple 이외 단어도 성공 안내: \(value)")
+        }
+        editor.string = "apple "; editor.setSelectedRange(NSRange(location: 6, length: 0))
         for target in ["메ㅔㅣㄷ", "apple", "메ㅔㅣㄷ", "apple"] {
             let currentLength = (editor.string as NSString).length - 1
             editor.insertText(target, replacementRange: NSRange(location: 0, length: currentLength))
@@ -89,6 +100,7 @@ import AppKit
 
         var progress = OnboardingPracticeProgress()
         check(progress.observe(text: "apple", hasMarkedText: false) == .english, "붙여넣기를 자동 변환 성공으로 오인하지 않음")
+        check(progress.observe(text: "apple ", hasMarkedText: false) == .english, "직접 영어 뒤 Space도 자동 변환 성공으로 오인하지 않음")
         check(progress.observe(text: "메ㅔㅣㄷ", hasMarkedText: false) == .reverted, "실제 영어→한글 치환 안내")
         progress.reset()
         check(progress.stage == .empty, "명시적 초기화")
@@ -112,10 +124,19 @@ import AppKit
         // #84: 실제 NSTextView marked text를 발음 변환으로 확정하고 전체 범위로 왕복한다.
         let phonetic = try! PhoneticDictionary.load(data: Data(contentsOf:
             URL(fileURLWithPath: "Resources/IM/phonetic_dictionary.json")))
+        var phoneticProgress = OnboardingPracticeProgress(dictionary: phonetic)
+        _ = phoneticProgress.observe(text: "바나나", hasMarkedText: true)
+        check(phoneticProgress.observe(text: "banana", hasMarkedText: false) == .converted, "등록 한글→영어 연습 안내")
+        check(phoneticProgress.observe(text: "바나나", hasMarkedText: false) == .reverted, "등록 한글 원문으로 되돌린 안내")
+        var sentenceProgress = OnboardingPracticeProgress(dictionary: phonetic)
+        _ = sentenceProgress.observe(text: "한글 ㅠㅑㅏㄷ", hasMarkedText: true, markedRange: NSRange(location: 3, length: 4))
+        check(sentenceProgress.observe(text: "한글 bike ", hasMarkedText: false) == .converted, "앞의 한글 문장과 새 단어의 조합 범위 구분")
         for (hangul, english) in ["레스토랑": "restaurant", "맥스튜디오": "Mac Studio", "엔비디아": "NVIDIA",
                                    "축구": "football", "미식축구": "american football", "라이더": "rider",
                                    "시각효과": "VFX", "컬러그레이딩": "color grading", "파인튜닝": "fine-tuning",
-                                   "선물": "gift", "선물거래": "futures trading"] {
+                                   "선물": "gift", "선물거래": "futures trading",
+                                   "단어": "word", "물": "water", "의자": "chair",
+                                   "빗방울": "raindrop", "세탁기": "washing machine", "고양이": "cat"] {
             editor.string = "앞 "; editor.setSelectedRange(NSRange(location: 2, length: 0))
             let phoneticComposer = KoreanComposer()
             for key in ManualToggle.hangulToKeys(hangul)! {
@@ -137,6 +158,31 @@ import AppKit
                 check(editor.string == "앞 " + expected + " ", "발음 왕복과 인접 공백 보존")
                 check(!phoneticComposer.shouldRecordAutomaticRevert, "발음 왕복은 오변환 목록 제외")
             }
+        }
+        // 새 명사와 공백 포함 출력을 실제 NSTextView의 NFD 원문 범위로 왕복한다.
+        for original in ["단어", "물", "세탁기", "옷걸이"] {
+            let rawOriginal = original.decomposedStringWithCanonicalMapping
+            let initial = "앞 " + rawOriginal + " "
+            editor.string = initial
+            editor.setSelectedRange(NSRange(location: (initial as NSString).length, length: 0))
+            let target = KoreanComposer.wordBeforeCursor(before: initial, atDocStart: true)!
+            check(target.word.utf16.elementsEqual(rawOriginal.utf16), "NFD 단어의 실제 원문 유지")
+            let result = ManualToggle.resolve(word: target.word, phoneticEnabled: true,
+                                             keyboardEnabled: false, dictionary: phonetic)!
+            let before = initial as NSString
+            editor.insertText(result.text, replacementRange: NSRange(
+                location: before.length - target.trailing - (target.word as NSString).length,
+                length: (target.word as NSString).length))
+            check(editor.string == "앞 " + result.text + " ", "NFD 명사 영문 교체와 이웃 보존")
+            let conversion = KoreanComposer()
+            conversion.applyToggle(toEnglish: true, hangul: target.word, english: result.text, origin: .phonetic)
+            let undo = KoreanComposer.resolveToggle(before: editor.string, english: result.text,
+                                                     hangul: target.word, atDocStart: true)!
+            editor.insertText(undo.text, replacementRange: NSRange(
+                location: (editor.string as NSString).length - undo.offsetFromEnd, length: undo.replaceLen))
+            check(editor.string.utf16.elementsEqual(initial.utf16), "NFD 명사 Undo는 UTF16 원문 그대로 복원")
+            check(!conversion.shouldRecordAutomaticRevert && conversion.lastEnglishWord == nil,
+                  "NFD 명사 수동 변환은 자동 기록·영어 문맥 없음")
         }
         print("OnboardingPractice: \(checks) passed, 0 failed")
     }

@@ -10,6 +10,7 @@
 # 항목: 1 버전 일치  2 서명·Gatekeeper·staple  3 입력 소스 등록·enabled·중복
 #       4 LaunchServices 등록 경로(메인 앱은 /Applications 하나뿐이어야 — 리뷰 F-4 전제)
 #       5 최근 30분 로그 error  6 #32 연동 기록(haneul.mainAppPath / FileID)
+#       7 키보드 설정의 오래된 입력기 목록 캐시(2026-10-12)
 # 출력: 항목별 ✓/✗ 한 줄, 마지막에 집계. 하나라도 ✗면 종료코드 1.
 set -uo pipefail
 cd "$(dirname "$0")/.."
@@ -20,6 +21,8 @@ ng() { echo "  ✗ $1"; fail=$((fail + 1)); }
 
 MV=$(grep -E '^[[:space:]]*MARKETING_VERSION:' project.yml | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
 BV=$(grep -E '^[[:space:]]*CURRENT_PROJECT_VERSION:' project.yml | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+RS=$(sed -nE 's/^[[:space:]]*HANEUL_RELEASE_SUFFIX: "([^"]*)".*/\1/p' project.yml | head -1)
+MV="${MV}${RS}"
 APP="/Applications/HaneulKeyboard.app"
 IME="/Library/Input Methods/HaneulKeyboardIM.app"
 [ -d "$IME" ] || IME="$HOME/Library/Input Methods/HaneulKeyboardIM.app"
@@ -30,6 +33,8 @@ echo "■ 1. 버전 — project.yml = $MV / $BV"
 for b in "$APP" "$IME"; do
   if [ -d "$b" ]; then
     v=$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$b/Contents/Info.plist" 2>/dev/null)
+    suffix=$(/usr/libexec/PlistBuddy -c 'Print HaneulReleaseSuffix' "$b/Contents/Info.plist" 2>/dev/null || true)
+    v="${v}${suffix}"
     n=$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$b/Contents/Info.plist" 2>/dev/null)
     if [ "$v" = "$MV" ] && [ "$n" = "$BV" ]; then ok "$b = $v/$n"
     else ng "$b = ${v:-없음}/${n:-없음} (기대 $MV/$BV) — 새 빌드가 아직 설치되지 않았거나 옛 사본"; fi
@@ -54,6 +59,7 @@ PROBE="$(mktemp -d)/probe.swift"
 cat > "$PROBE" <<'SWIFT'
 import AppKit
 import Carbon
+import Darwin
 let mainID = CommandLine.arguments[1], imeID = CommandLine.arguments[2]
 // 3. 입력 소스
 if let list = TISCreateInputSourceList(nil, true)?.takeRetainedValue() as? [TISInputSource] {
@@ -71,6 +77,24 @@ if let list = TISCreateInputSourceList(nil, true)?.takeRetainedValue() as? [TISI
 for id in [mainID, imeID] {
     for u in NSWorkspace.shared.urlsForApplications(withBundleIdentifier: id) { print("LS\t\(id)\t\(u.path)") }
 }
+// 7. macOS 26/27: TIS 활성 상태와 설정창 목록은 다를 수 있다. 읽기 전용 검사만 한다.
+if #available(macOS 26.0, *) {
+    let count = confstr(_CS_DARWIN_USER_CACHE_DIR, nil, 0)
+    if count > 1 && count < 16_384 {
+        var buffer = [CChar](repeating: 0, count: count)
+        if confstr(_CS_DARWIN_USER_CACHE_DIR, &buffer, count) == count {
+            let cache = URL(fileURLWithPath: String(cString: buffer)).appendingPathComponent("com.apple.Keyboard-Settings.extension/com.apple.IntlDataCache.le.kbdx")
+            do {
+                let data = try Data(contentsOf: cache)
+                let contains = data.range(of: Data(imeID.utf8)) != nil || imeID.data(using: .utf16LittleEndian).map { data.range(of: $0) != nil } == true
+                print("CACHE\t\(contains ? "current" : "stale")")
+            } catch {
+                let e = error as NSError
+                print("CACHE\t\(e.domain == NSCocoaErrorDomain && [NSFileReadNoSuchFileError, NSFileNoSuchFileError].contains(e.code) ? "absent" : "unknown")")
+            }
+        } else { print("CACHE\tunknown") }
+    } else { print("CACHE\tunknown") }
+} else { print("CACHE\tnot-applicable") }
 SWIFT
 OUT=$(swift "$PROBE" "$MAIN_ID" "$IME_ID" 2>/dev/null)
 rm -rf "$(dirname "$PROBE")"
@@ -79,9 +103,10 @@ echo "■ 3. 입력 소스(TIS)"
 tis_lines=$(printf '%s\n' "$OUT" | grep -c '^TIS' || true)
 if [ "$tis_lines" -eq 0 ]; then ng "우리 입력 소스가 TIS 목록에 없음"
 else
-  printf '%s\n' "$OUT" | grep '^TIS' | while IFS=$'\t' read -r _ sid en sel; do
+  # 리뷰 F-2 · 2026-10-11: 현재 셸에서 집계해야 disabled의 fail도 최종 결과에 남는다.
+  while IFS=$'\t' read -r _ sid en sel; do
     if [ "$en" = "enabled" ]; then ok "$sid $en $sel"; else ng "$sid $en (설정에서 켜야 함)"; fi
-  done
+  done < <(printf '%s\n' "$OUT" | grep '^TIS')
   dup=$(printf '%s\n' "$OUT" | grep '^TIS' | cut -f2 | sort | uniq -d | wc -l | tr -d ' ')
   [ "$dup" -eq 0 ] && ok "입력 소스 중복 행 없음" || ng "입력 소스 중복 행 $dup (Tahoe 캐시 중복 — 재부팅 필요)"
 fi
@@ -106,6 +131,16 @@ real_id=$(stat -f %i "$APP" 2>/dev/null || true)
 if [ "$rec_path" = "$APP" ] && [ -n "$rec_id" ] && [ "$rec_id" = "$real_id" ]; then ok "haneul.mainAppPath=$rec_path, FileID 일치($rec_id)"
 elif [ -z "$rec_path" ]; then ng "기록 없음 — 새 앱을 한 번 실행해야 기록됨(#32는 실행 시 기록)"
 else ng "기록 불일치: path=$rec_path fileID=${rec_id:-없음} (실제 $real_id) — 앱을 다시 실행하면 갱신"; fi
+
+echo "■ 7. 키보드 설정 목록"
+cache_state=$(printf '%s\n' "$OUT" | awk -F'\t' '$1=="CACHE" {print $2}')
+case "$cache_state" in
+  current) ok "설정 목록 캐시에 하늘키보드 있음" ;;
+  absent) ok "설정 목록 캐시 없음 — 다음 설정 개방 때 새로 생성" ;;
+  not-applicable) ok "이 macOS에서는 목록 캐시 보강 대상 아님" ;;
+  stale) ng "설정 목록 캐시가 설치 전 상태 — 앱의 입력 소스 설정 열기로 갱신 필요" ;;
+  *) ng "설정 목록 캐시 조회 실패 — 표시 여부를 확인하지 못함" ;;
+esac
 
 echo "── 집계: ✓ $pass / ✗ $fail"
 [ "$fail" -eq 0 ]

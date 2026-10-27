@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "reviewedOn": "2026-10-09",
+  "reviewedOn": "2026-10-14",
   "scope": "Curated exact Korean spellings and explicitly registered meanings. Explicit shortcut only; no fuzzy match or general translation.",
   "entries": [
     {
@@ -11420,6 +11420,882 @@
       "english": "Nuendo",
       "category": "product",
       "subcategory": "creative-tools"
+    },
+    {
+      "hangul": "사과",
+      "english": "apple",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "딸기",
+      "english": "strawberry",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "포도",
+      "english": "grape",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "복숭아",
+      "english": "peach",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "배",
+      "english": "pear",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "수박",
+      "english": "watermelon",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "귤",
+      "english": "tangerine",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "자두",
+      "english": "plum",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "살구",
+      "english": "apricot",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "감",
+      "english": "persimmon",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "석류",
+      "english": "pomegranate",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "무화과",
+      "english": "fig",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "블랙베리",
+      "english": "blackberry",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "두리안",
+      "english": "durian",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "구아바",
+      "english": "guava",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "용과",
+      "english": "dragon fruit",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "알파",
+      "english": "alpha",
+      "category": "science",
+      "subcategory": "greek-letters"
+    },
+    {
+      "hangul": "델타",
+      "english": "delta",
+      "category": "science",
+      "subcategory": "greek-letters"
+    },
+    {
+      "hangul": "엡실론",
+      "english": "epsilon",
+      "category": "science",
+      "subcategory": "greek-letters"
+    },
+    {
+      "hangul": "제타",
+      "english": "zeta",
+      "category": "science",
+      "subcategory": "greek-letters"
+    },
+    {
+      "hangul": "에타",
+      "english": "eta",
+      "category": "science",
+      "subcategory": "greek-letters"
+    },
+    {
+      "hangul": "세타",
+      "english": "theta",
+      "category": "science",
+      "subcategory": "greek-letters"
+    },
+    {
+      "hangul": "이오타",
+      "english": "iota",
+      "category": "science",
+      "subcategory": "greek-letters"
+    },
+    {
+      "hangul": "카파",
+      "english": "kappa",
+      "category": "science",
+      "subcategory": "greek-letters"
+    },
+    {
+      "hangul": "뮤",
+      "english": "mu",
+      "category": "science",
+      "subcategory": "greek-letters"
+    },
+    {
+      "hangul": "누",
+      "english": "nu",
+      "category": "science",
+      "subcategory": "greek-letters"
+    },
+    {
+      "hangul": "크시",
+      "english": "xi",
+      "category": "science",
+      "subcategory": "greek-letters"
+    },
+    {
+      "hangul": "오미크론",
+      "english": "omicron",
+      "category": "science",
+      "subcategory": "greek-letters"
+    },
+    {
+      "hangul": "파이상수",
+      "english": "pi",
+      "category": "science",
+      "subcategory": "greek-letters"
+    },
+    {
+      "hangul": "로",
+      "english": "rho",
+      "category": "science",
+      "subcategory": "greek-letters"
+    },
+    {
+      "hangul": "시그마기호",
+      "english": "sigma",
+      "category": "science",
+      "subcategory": "greek-letters"
+    },
+    {
+      "hangul": "타우",
+      "english": "tau",
+      "category": "science",
+      "subcategory": "greek-letters"
+    },
+    {
+      "hangul": "업실론",
+      "english": "upsilon",
+      "category": "science",
+      "subcategory": "greek-letters"
+    },
+    {
+      "hangul": "피",
+      "english": "phi",
+      "category": "science",
+      "subcategory": "greek-letters"
+    },
+    {
+      "hangul": "카이",
+      "english": "chi",
+      "category": "science",
+      "subcategory": "greek-letters"
+    },
+    {
+      "hangul": "프사이",
+      "english": "psi",
+      "category": "science",
+      "subcategory": "greek-letters"
+    },
+    {
+      "hangul": "프시",
+      "english": "psi",
+      "category": "science",
+      "subcategory": "greek-letters"
+    },
+    {
+      "hangul": "오메가",
+      "english": "omega",
+      "category": "science",
+      "subcategory": "greek-letters"
+    },
+    {
+      "hangul": "원자",
+      "english": "atom",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "분자",
+      "english": "molecule",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "이온",
+      "english": "ion",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "전자",
+      "english": "electron",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "양성자",
+      "english": "proton",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "중성자",
+      "english": "neutron",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "광자",
+      "english": "photon",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "중력",
+      "english": "gravity",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "질량",
+      "english": "mass",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "에너지",
+      "english": "energy",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "속도",
+      "english": "velocity",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "가속도",
+      "english": "acceleration",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "압력",
+      "english": "pressure",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "온도",
+      "english": "temperature",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "주파수",
+      "english": "frequency",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "파장",
+      "english": "wavelength",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "진폭",
+      "english": "amplitude",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "전압",
+      "english": "voltage",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "전류",
+      "english": "current",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "저항",
+      "english": "resistance",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "자기장",
+      "english": "magnetic field",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "산소",
+      "english": "oxygen",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "수소",
+      "english": "hydrogen",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "탄소",
+      "english": "carbon",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "질소",
+      "english": "nitrogen",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "헬륨",
+      "english": "helium",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "나트륨",
+      "english": "sodium",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "칼슘",
+      "english": "calcium",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "철",
+      "english": "iron",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "구리",
+      "english": "copper",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "아연",
+      "english": "zinc",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "뉴런",
+      "english": "neuron",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "세포",
+      "english": "cell",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "유전자",
+      "english": "gene",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "염색체",
+      "english": "chromosome",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "단백질",
+      "english": "protein",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "효소",
+      "english": "enzyme",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "확률",
+      "english": "probability",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "통계",
+      "english": "statistics",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "미분",
+      "english": "differentiation",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "적분",
+      "english": "integration",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "행렬",
+      "english": "matrix",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "현물",
+      "english": "spot",
+      "category": "finance",
+      "subcategory": "investing"
+    },
+    {
+      "hangul": "솔리드",
+      "english": "solid",
+      "category": "creative",
+      "subcategory": "design-work"
+    },
+    {
+      "hangul": "글래스",
+      "english": "glass",
+      "category": "creative",
+      "subcategory": "design-work"
+    },
+    {
+      "hangul": "글라스",
+      "english": "glass",
+      "category": "creative",
+      "subcategory": "design-work"
+    },
+    {
+      "hangul": "단어",
+      "english": "word",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "낱말",
+      "english": "word",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "어휘",
+      "english": "vocabulary",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "문법",
+      "english": "grammar",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "자음",
+      "english": "consonant",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "문장부호",
+      "english": "punctuation",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "물",
+      "english": "water",
+      "category": "everyday",
+      "subcategory": "drink-cafe"
+    },
+    {
+      "hangul": "빗물",
+      "english": "rainwater",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "빗방울",
+      "english": "raindrop",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "바닷물",
+      "english": "seawater",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "수돗물",
+      "english": "tap water",
+      "category": "everyday",
+      "subcategory": "drink-cafe"
+    },
+    {
+      "hangul": "눈송이",
+      "english": "snowflake",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "우산",
+      "english": "umbrella",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "의자",
+      "english": "chair",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "책상",
+      "english": "desk",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "공책",
+      "english": "notebook",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "연필",
+      "english": "pencil",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "지우개",
+      "english": "eraser",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "색연필",
+      "english": "colored pencil",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "치약",
+      "english": "toothpaste",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "칫솔",
+      "english": "toothbrush",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "비누",
+      "english": "soap",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "수건",
+      "english": "towel",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "베개",
+      "english": "pillow",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "담요",
+      "english": "blanket",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "옷걸이",
+      "english": "clothes hanger",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "냉장고",
+      "english": "refrigerator",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "세탁기",
+      "english": "washing machine",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "청소기",
+      "english": "vacuum cleaner",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "전자레인지",
+      "english": "microwave",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "선풍기",
+      "english": "electric fan",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "전기주전자",
+      "english": "electric kettle",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "벽시계",
+      "english": "wall clock",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "손목시계",
+      "english": "wristwatch",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "옷장",
+      "english": "wardrobe",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "수영장",
+      "english": "swimming pool",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "도서관",
+      "english": "library",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "박물관",
+      "english": "museum",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "미술관",
+      "english": "art museum",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "병원",
+      "english": "hospital",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "약국",
+      "english": "pharmacy",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "공항",
+      "english": "airport",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "기차역",
+      "english": "train station",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "횡단보도",
+      "english": "crosswalk",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "우체국",
+      "english": "post office",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "소방서",
+      "english": "fire station",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "주차장",
+      "english": "parking lot",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "산맥",
+      "english": "mountain range",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "폭포",
+      "english": "waterfall",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "해변",
+      "english": "beach",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "숲",
+      "english": "forest",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "구름",
+      "english": "cloud",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "무지개",
+      "english": "rainbow",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "나뭇잎",
+      "english": "leaf",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "나뭇가지",
+      "english": "tree branch",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "고양이",
+      "english": "cat",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "코끼리",
+      "english": "elephant",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "얼룩말",
+      "english": "zebra",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "돌고래",
+      "english": "dolphin",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "사진",
+      "english": "photograph",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "저장용량",
+      "english": "storage capacity",
+      "category": "computing",
+      "subcategory": "hardware-network"
+    },
+    {
+      "hangul": "메모리용량",
+      "english": "memory capacity",
+      "category": "computing",
+      "subcategory": "hardware-network"
     }
   ],
   "phonePolicy": {
@@ -11505,7 +12381,8 @@
         "food": "음식·식재료",
         "drink-cafe": "음료·카페",
         "travel": "여행·숙박",
-        "lifestyle-work": "의류·생활·업무"
+        "lifestyle-work": "의류·생활·업무",
+        "nature": "자연·동물·식물"
       }
     },
     {
@@ -11607,6 +12484,45 @@
         "economy-accounting": "경제·회계·세금",
         "digital-assets": "디지털 자산"
       }
+    },
+    {
+      "id": "science",
+      "label": "과학·수학",
+      "subcategories": {
+        "greek-letters": "그리스 문자",
+        "physics-chemistry": "물리·화학",
+        "math-biology": "수학·생물"
+      }
     }
-  ]
+  ],
+  "nounPolicy": {
+    "reviewedOn": "2026-10-14",
+    "scope": "Finite explicitly registered literal noun meanings, not a general translator. Existing owner-designated meanings are preserved.",
+    "addedEntries": 62,
+    "people": "No new person names, music groups or person-denoting noun meanings.",
+    "ambiguity": "Exclude newly considered spellings with distinct ordinary meanings or person-denoting alternatives; equivalent synonyms alone are not different meanings.",
+    "excludedThisBatch": [
+      "가위",
+      "강아지",
+      "호랑이",
+      "화장지"
+    ],
+    "deferredAmbiguousExamples": [
+      "용량",
+      "눈",
+      "밤",
+      "말",
+      "차"
+    ],
+    "qualifiedExamples": {
+      "저장용량": "storage capacity",
+      "메모리용량": "memory capacity"
+    },
+    "explicitExamples": {
+      "단어": "word",
+      "물": "water"
+    },
+    "authoring": "Pairs authored directly and independently reviewed; accessible primary dictionary/manufacturer references checked where available. No definitions, examples or corpus copied.",
+    "record": "dict_work/2026-10-14-phonetic-common-nouns.tsv"
+  }
 }

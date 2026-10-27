@@ -24,6 +24,9 @@ final class KoreanComposer {
     /// buffering itself is always on.
     var autoEnglishEnabled = true
 
+    /// #24: 정확 curated 단어 두 개를 붙여 쓴 경우만 보수적으로 판정한다.
+    var dictionaryCompoundEnabled = InputInferencePolicy.dictionaryCompoundDefault
+
     /// 2026-09-21 (#53): 개인 사전(변환 추가·변환 금지). 컨트롤러가 활성 경계마다
     /// defaults에서 읽어 넘긴다(`autoEnglishEnabled`와 같은 시점). 판정 합성은
     /// `shouldConvertWord` 한 곳에서만 한다.
@@ -35,6 +38,18 @@ final class KoreanComposer {
     /// "want"+새→to fires, "github"+새 stays Korean). The controller resets
     /// it on boundaries that end the English run.
     private(set) var lastEnglishWord: String?
+    /// #14: 전환/커서 이동 뒤 첫 단어 한 번만 소비한다. 내부 체이닝과 별개다.
+    private var externalEnglishWord: String?
+
+    func beginExternalEnglishContext(_ word: String?) {
+        guard !hasPendingComposition, lastEnglishWord == nil else { return }
+        externalEnglishWord = word.flatMap {
+            let normalized = Contractions.normalizedKey(Array($0))
+            return EnglishDetector.isExplicitEnglishContextWord(normalized) ? normalized : nil
+        }
+    }
+
+    func clearExternalEnglishContext() { externalEnglishWord = nil }
 
     /// 직전에 영어로 변환된 단어 — (변환 전 한글, 변환 후 영어). shift+space로
     /// 영어↔한글을 토글할 때 쓴다(㉠ 직후만). 다음 입력(자모/백스페이스)이
@@ -64,6 +79,7 @@ final class KoreanComposer {
         lastQuantity = nil
         alphanumericStartAllowed = true
         lastEnglishWord = nil
+        externalEnglishWord = nil
         // (H1) 커서 이동이 동반되는 경계(클릭·포커스이동·단축키·화살표·마침표·
         // 엔터)에서 이 메서드가 호출된다 — 그때 lastConversion도 함께 비워
         // stale 상태로 엉뚱한 위치를 교체하는 사고를 막는다. 스페이스·쉼표
@@ -87,6 +103,7 @@ final class KoreanComposer {
     /// - toEnglish: 토글 결과가 영어면 true(영어 문맥 복원), 한글이면 false(끊김).
     func applyToggle(toEnglish: Bool, hangul: String, english: String,
                      origin: ConversionOrigin? = nil) {
+        externalEnglishWord = nil
         lastQuantity = nil
         let samePair = lastConversion?.hangul == hangul && lastConversion?.english == english
         let conversionOrigin = origin ?? (samePair ? lastConversionOrigin : .keyboard)
@@ -94,7 +111,7 @@ final class KoreanComposer {
             && samePair
         // 발음 변환은 한국어 문장 안에서 의도적으로 바꾼 한 단어다.
         // 이를 근거로 뒤의 정상 한글까지 자동 영타 변환하지 않는다.
-        lastEnglishWord = toEnglish && conversionOrigin != .phonetic && !quantityToggle && !english.contains(where: AlphanumericWords.isDigit)
+        lastEnglishWord = toEnglish && conversionOrigin != .phonetic && !quantityToggle && Self.isEnglishText(english)
             ? english.lowercased() : nil
         lastConversion = (hangul: hangul, english: english)
         lastConversionUsedQuantity = quantityToggle
@@ -346,7 +363,10 @@ final class KoreanComposer {
     func commit(to client: ComposerClient, convertEnglish: Bool = false) -> String {
         stashBuffer()
         var nextQuantity: String?
-        defer { word = []; didSpillWord = false; lastQuantity = nextQuantity }
+        defer {
+            word = []; didSpillWord = false; lastQuantity = nextQuantity
+            externalEnglishWord = nil
+        }
 
         let hangul = wordText()
         guard !hangul.isEmpty else {
@@ -387,10 +407,7 @@ final class KoreanComposer {
         // 아포스트로피를 허용하지 않으면 lastEnglishWord/lastConversion이
         // nil이 되어 뒤 단어의 문맥 변환도, shift+space 되돌리기도 끊긴다.
         // 글자가 하나도 없는 `'` 단독은 영어로 치지 않는다.
-        let isAscii = committed.contains { $0.isASCII && $0.isLetter }
-            && committed.allSatisfy {
-                ($0.isASCII && $0.isLetter) || Contractions.isApostrophe($0)
-            }
+        let isAscii = Self.isEnglishText(committed)
         if isAscii, lastQuantity != nil, MeasurementUnits.contains(String(keys)) {
             // 숫자 다음 단위가 뒤의 정상 한글을 영어 문맥으로 만들지 않는다.
             lastEnglishWord = nil
@@ -425,6 +442,12 @@ final class KoreanComposer {
         client.insertText(committed)
         client.setMarkedText("")
         return committed
+    }
+
+    /// 조사까지 포함한 혼합 결과는 재토글해도 다음 단어의 영어 문맥을 만들지 않는다.
+    private static func isEnglishText(_ text: String) -> Bool {
+        text.contains { $0.isASCII && $0.isLetter }
+            && text.allSatisfy { ($0.isASCII && $0.isLetter) || Contractions.isApostrophe($0) }
     }
 
     /// 숫자 후보는 명시 목록/개인 사전 전체 일치만 영어로 확정한다.
@@ -570,7 +593,10 @@ final class KoreanComposer {
                 return true
             }
             return EnglishDetector.shouldConvert(
-                units: units, keys: keys, previousEnglishWord: lastEnglishWord)
+                units: units, keys: keys,
+                previousEnglishWord: lastEnglishWord ?? externalEnglishWord,
+                dictionaryCompoundsEnabled: dictionaryCompoundEnabled,
+                blockedCompoundWords: personalDictionary.block)
         }
     }
 

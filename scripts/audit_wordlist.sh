@@ -5,7 +5,7 @@
 # 사용법:
 #   scripts/audit_wordlist.sh --candidates 후보.txt --role broad|curated \
 #       [--out audit.csv] [--base p1,p2] [--curated-base p1] [--korean-dict 경로]
-#   scripts/audit_wordlist.sh --reachability 단어목록.txt [--out reach.csv]
+#   scripts/audit_wordlist.sh --reachability 단어목록.txt [--out reach.csv] [--compound on|off]
 #   scripts/audit_wordlist.sh --smoke
 #
 # 예시:
@@ -32,6 +32,7 @@ SMOKE=0
 KOREAN_DICT="Resources/IM/korean_words.txt"
 BASE=""
 CURATED_BASE=""
+COMPOUND="on" # InputInferencePolicy.dictionaryCompoundDefault와 같은 제품 기본값
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -43,9 +44,11 @@ while [[ $# -gt 0 ]]; do
     --korean-dict)  KOREAN_DICT="$2"; shift 2 ;;
     --base)         BASE="$2"; shift 2 ;;
     --curated-base) CURATED_BASE="$2"; shift 2 ;;
+    --compound)     COMPOUND="$2"; shift 2 ;;
     *) echo "알 수 없는 인자: $1" >&2; exit 2 ;;
   esac
 done
+[[ "$COMPOUND" == "on" || "$COMPOUND" == "off" ]] || { echo "--compound는 on 또는 off만 가능" >&2; exit 2; }
 
 # ── 기본 베이스 구성 ──
 # (review-0712 P3-5) 목록을 여기 직접 적지 않고 dict_work/dict_manifest.tsv를
@@ -73,8 +76,11 @@ fi
 #   이 목록만 안 고쳐서 검역이 컴파일 단계에서 죽고 있었다("cannot find 'PersonalDictionary'").
 #   KoreanComposer가 새 파일의 타입을 쓰게 되면 run_ime_tests.sh 목록과 함께 여기도 고칠 것.
 WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
 BIN="$WORK/wordlist_audit"
-swiftc -O -o "$BIN" \
+swiftc -O -module-cache-path "$WORK/module-cache" -o "$BIN" \
+  Shared/InputInferencePolicy.swift \
+  IMESources/ManualToggle.swift \
   IMESources/HangulJamo.swift \
   IMESources/KeyboardLayout2Set.swift \
   IMESources/Contractions.swift \
@@ -98,9 +104,9 @@ if [[ "$SMOKE" == 1 ]]; then
   SMOKE_BASE="/usr/share/dict/words"
   SMOKE_CURATED="Resources/IM/english_supplement.txt"
   "$BIN" scan --candidates "$SMOKE_CAND" --wordlists "$SMOKE_BASE,$SMOKE_CURATED" \
-      --curated "$SMOKE_CURATED" --korean-dict "$KOREAN_DICT" > "$WORK/smoke_a.tsv"
+      --curated "$SMOKE_CURATED" --korean-dict "$KOREAN_DICT" --compound "$COMPOUND" > "$WORK/smoke_a.tsv"
   "$BIN" scan --candidates "$SMOKE_CAND" --wordlists "$SMOKE_BASE,$SMOKE_CURATED,$SMOKE_CAND" \
-      --curated "$SMOKE_CURATED,$SMOKE_CAND" --korean-dict "$KOREAN_DICT" > "$WORK/smoke_b.tsv"
+      --curated "$SMOKE_CURATED,$SMOKE_CAND" --korean-dict "$KOREAN_DICT" --compound "$COMPOUND" > "$WORK/smoke_b.tsv"
   "$BIN" merge "$WORK/smoke_a.tsv" "$WORK/smoke_b.tsv" --korean-dict "$KOREAN_DICT" > "$WORK/smoke.csv"
 
   fail=0
@@ -114,8 +120,31 @@ if [[ "$SMOKE" == 1 ]]; then
       --curated "$SMOKE_CURATED" --korean-dict "$KOREAN_DICT" > "$WORK/reach.csv" 2> "$WORK/reach.log"
   grep -q '미도달 0건 · 검사 불가 2건' "$WORK/reach.log" || { echo "SMOKE FAIL: 검사 범위 밖 입력을 미도달에 합산함"; fail=1; }
   grep -q '^800t,,unmappable,.*검사 범위 밖' "$WORK/reach.csv" || { echo "SMOKE FAIL: 숫자 이름 범위 안내 없음"; fail=1; }
+  # 전체 단어가 미등재여도 정확히 등록된 두 단어 조합이면 제품 기본 ON에서만 도달한다.
+  printf "silver\nfast\ninternational\ncommunication\n" > "$WORK/compound_parts.txt"
+  printf "silverfast\ninternationalcommunication\naplle\n" > "$WORK/compound_words.txt"
+  printf '%042d\n' 0 | tr '0' 's' >> "$WORK/compound_words.txt"
+  for compound_policy in on off; do
+    "$BIN" reach --words "$WORK/compound_words.txt" --wordlists "$WORK/compound_parts.txt" \
+      --curated "$WORK/compound_parts.txt" --korean-dict "$KOREAN_DICT" --compound "$compound_policy" \
+      > "$WORK/compound_$compound_policy.csv" 2> "$WORK/compound_$compound_policy.log"
+  done
+  grep -q '^silverfast,.*,[1],[1],[1],[1],' "$WORK/compound_on.csv" || { echo "SMOKE FAIL: 복합어 ON 실제 경로 미도달"; fail=1; }
+  grep -q '^silverfast,.*,[0],[0],[0],[0],' "$WORK/compound_off.csv" || { echo "SMOKE FAIL: 복합어 OFF 비교 실패"; fail=1; }
+  grep -q '^internationalcommunication,.*,[1],[1],[1],[1],' "$WORK/compound_on.csv" || { echo "SMOKE FAIL: 26키 정상 복합어 검사 누락"; fail=1; }
+  grep -q '^internationalcommunication,.*,[0],[0],[0],[0],' "$WORK/compound_off.csv" || { echo "SMOKE FAIL: 26키 복합어 OFF 비교 실패"; fail=1; }
+  grep -q '^s\{42\},,unmappable,' "$WORK/compound_on.csv" || { echo "SMOKE FAIL: 실제 조합 상한 spill 보호 실패"; fail=1; }
+  grep -q '^aplle,.*,[0],[0],[0],[0],' "$WORK/compound_on.csv" || { echo "SMOKE FAIL: 미등록 오타 보존 실패"; fail=1; }
+  # 복수형 fallback으로 이미 도달하는 단어에 복합어 진단을 잘못 붙이지 않는다.
+  printf "hello\nworlds\n" > "$WORK/shadow_parts.txt"
+  printf "helloworld\n" > "$WORK/shadow_base.txt"
+  printf "helloworlds\n" > "$WORK/shadow_words.txt"
+  "$BIN" reach --words "$WORK/shadow_words.txt" --wordlists "$WORK/shadow_parts.txt,$WORK/shadow_base.txt" \
+    --curated "$WORK/shadow_parts.txt" --korean-dict "$KOREAN_DICT" --compound on \
+    > "$WORK/shadow.csv" 2> "$WORK/shadow.log"
+  grep -q '^helloworlds,.*도달:무맥락' "$WORK/shadow.csv" || { echo "SMOKE FAIL: 기존 복수형 경로 진단 오인"; fail=1; }
   if [[ "$fail" == 0 ]]; then
-    echo "SMOKE PASS: Tier A(goawor, city)/C-veto(gown)/자모 플래그(nmn)/검사 범위 분리 전부 정상"
+    echo "SMOKE PASS: Tier/C-veto/자모/검사 범위/복합어 ON·OFF/미등록 오타 보존 정상"
     exit 0
   fi
   echo "── smoke.csv ──"; cat "$WORK/smoke.csv"
@@ -126,7 +155,7 @@ fi
 if [[ -n "$REACH_FILE" ]]; then
   OUT="${OUT:-/tmp/haneul_reachability.csv}"
   "$BIN" reach --words "$REACH_FILE" --wordlists "$BASE" \
-      --curated "$CURATED_BASE" --korean-dict "$KOREAN_DICT" > "$OUT"
+    --curated "$CURATED_BASE" --korean-dict "$KOREAN_DICT" --compound "$COMPOUND" > "$OUT"
   echo "도달성 표: $OUT"
   exit 0
 fi
@@ -148,14 +177,14 @@ echo "후보 정규화: $TOTAL_IN → $TOTAL_NORM 단어 (소문자/알파벳만
 
 # pass A: 후보 제외 (현재 베이스 그대로)
 "$BIN" scan --candidates "$NORM" --wordlists "$BASE" \
-    --curated "$CURATED_BASE" --korean-dict "$KOREAN_DICT" > "$WORK/pass_a.tsv"
+    --curated "$CURATED_BASE" --korean-dict "$KOREAN_DICT" --compound "$COMPOUND" > "$WORK/pass_a.tsv"
 
 # pass B: 후보 포함 (역할에 따라 broad만 또는 broad+curated)
 B_WORDLISTS="$BASE,$NORM"
 B_CURATED="$CURATED_BASE"
 [[ "$ROLE" == "curated" ]] && B_CURATED="$CURATED_BASE,$NORM"
 "$BIN" scan --candidates "$NORM" --wordlists "$B_WORDLISTS" \
-    --curated "$B_CURATED" --korean-dict "$KOREAN_DICT" > "$WORK/pass_b.tsv"
+    --curated "$B_CURATED" --korean-dict "$KOREAN_DICT" --compound "$COMPOUND" > "$WORK/pass_b.tsv"
 
 # merge: diff + Tier + 휴리스틱 note → CSV
 "$BIN" merge "$WORK/pass_a.tsv" "$WORK/pass_b.tsv" --korean-dict "$KOREAN_DICT" > "$OUT"

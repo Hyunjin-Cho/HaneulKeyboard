@@ -31,6 +31,7 @@ import CoreFoundation
 ///
 /// No data is stored or learned; wordlists are read-only reference data.
 enum EnglishDetector {
+    // 전체 입력 규칙과 초기 조건의 현재 반영 상태: docs/input-conversion-rules.md.
     /// Wordlist sources, merged in order. Overridable for tests — must be
     /// set before the first lookup (the sets load lazily once).
     /// ALL paths together form the BROAD set (broken-as-Korean rules only);
@@ -42,7 +43,7 @@ enum EnglishDetector {
     ///   english_common      : curated + broad (NGSL 고빈도 일상어)
     ///   english_modern      : broad 전용 (SCOWL 70/US — web2에 없는 현대어)
     ///   english_names       : broad 전용 (Census/SSA 인명)
-    ///   english_names_extra : broad 전용 (수작업 유명인)
+    ///   english_names_extra : broad 전용 (수작업 이름·생명체·제품·기술 보충어)
     ///   english_sports_geo  : broad 전용 (북미·유럽 지명 + 9리그 축구 클럽·
     ///                         선수 + 약어. GeoNames CC-BY + Wikidata CC0.
     ///                         검역 Tier A/B=0 → clean 충돌 없음, broad 전용)
@@ -280,7 +281,9 @@ enum EnglishDetector {
     static func shouldConvert(
         units: [String],
         keys: [Character],
-        previousEnglishWord: String? = nil
+        previousEnglishWord: String? = nil,
+        dictionaryCompoundsEnabled: Bool = false,
+        blockedCompoundWords: Set<String> = []
     ) -> Bool {
         guard !keys.isEmpty else { return false }
         // (H-10) 한국어 veto 사전이 로드 안 됐으면 자동변환을 끈다(fail-closed)
@@ -307,12 +310,15 @@ enum EnglishDetector {
         let brokenAsKorean = units.contains(where: containsStandaloneJamo)
             || startsWithStandaloneVowel(units)
             || units.contains(where: containsImplausibleSyllable)
+        // 두벌식에서 다른 자모를 내는 Shift만 한국어 입력 의도로 센다.
+        // R2도 이 가드를 공유해야 sO(냬)를 소문자 so(내)와 혼동하지 않는다.
+        let hasShiftKey = keys.contains { $0.isUppercase && "QWERTOP".contains($0) }
 
         // R2-화이트리스트 (조건 2·5): 직전 단어가 영어면 shortWords를 변환.
         // (2026-06-19) 트리거 게이트 제거 — 새/무/내/ㅁ/랙도 "앞 영어면 무조건".
         // 한국어 용법(내 책/새 기능)은 앞이 한글이라 prevEnglish=false로 보호.
-        // protectedSlang(초성체)만 제외하고, veto보다 먼저 평가한다.
-        if prevEnglish, isContextShortWord, !protectedSlang.contains(hangul) {
+        // 초성체·의미 있는 Shift는 보호하고, veto보다 먼저 평가한다.
+        if prevEnglish, isContextShortWord, !hasShiftKey, !protectedSlang.contains(hangul) {
             return true
         }
         // ── veto 우회 정책 등급 S/C/T (#33, 2026-09-19) — 셋 다 veto보다 위 ──
@@ -327,7 +333,6 @@ enum EnglishDetector {
         // Shift가 no-op이라(KeyboardLayout2Set 주석 참조) 화면의 한글이 소문자와 완전히 같다 —
         // 그런데 초판 가드가 모든 대문자를 막아 "i Go"·"to Do"·"go dowN"이 종전과 달리
         // 보호되는 회귀가 났다. 자모가 바뀌는 7키의 대문자만 Shift 증거로 센다.
-        let hasShiftKey = keys.contains { $0.isUppercase && "QWERTOP".contains($0) }
         // S(단독): 한글형이 사실상 안 쓰이는 희귀어 → 문맥 무관 변환.
         // 비슬랭 + 2음절↑ 또는 키 3개↑ (선언부 가드 설명 참조).
         if !hasShiftKey, standaloneOverrideEnglish.contains(word),
@@ -370,6 +375,14 @@ enum EnglishDetector {
         // 초성체 슬랭도 동급 보호 (사전엔 완성 한글만 있어서 별도 목록).
         if protectedSlang.contains(hangul) {
             return false
+        }
+
+        // #24 · 2026-10-14: 의미를 추측하거나 철자를 고치지 않는다. 전체 기존 사전
+        // 판정은 그대로 우선한다. 새 경로는 깨진 한글 + 정확 curated 단어 두 개뿐이다.
+        // clean 한글/의미 있는 Shift/짧은 조각/복수 분해는 포기하고, veto를 우회하지 않는다.
+        if dictionaryCompoundsEnabled, !isDictWord, brokenAsKorean, !hasShiftKey,
+           dictionaryCompoundParts(word, blockedWords: blockedCompoundWords) != nil {
+            return true
         }
 
         // #82: 명시된 단위만 추가한다. 반복/얼굴 자모·한국어 veto·슬랭은 위에서
@@ -491,6 +504,45 @@ enum EnglishDetector {
             _ = words
             _ = commonWords
         }
+    }
+
+    /// #14: 외부 원문은 명시 사전 전체 일치/닫힌 축약형만 문맥의 근거가 된다.
+    /// inflection fallback이나 복합어 추론, 오타 유사도는 여기에 사용하지 않는다.
+    static func isExplicitEnglishContextWord(_ word: String) -> Bool {
+        shortWords.contains(word) || words.contains(word) || Contractions.words.contains(word)
+    }
+
+    /// #24: 두 조각은 각각 4~24글자, 전체 8~48글자이며 curated에 정확히 등재돼야 한다.
+    /// broad 전용 이름/형태 변형은 제외한다. curated에 있는 브랜드 이름은 정확 일치 시 허용한다.
+    /// 둘 이상으로 쪼갤 수 있으면 모호하므로 포기한다.
+    static func dictionaryCompoundParts(
+        _ word: String, blockedWords: Set<String> = []
+    ) -> (first: String, second: String)? {
+        let bytes = Array(word.utf8)
+        guard (8...48).contains(bytes.count),
+              bytes.allSatisfy({ (0x61...0x7A).contains($0) }) else { return nil }
+        var found: (first: String, second: String)?
+        let firstSplit = max(4, bytes.count - 24)
+        let lastSplit = min(24, bytes.count - 4)
+        guard firstSplit <= lastSplit else { return nil }
+        for split in firstSplit...lastSplit {
+            let first = String(decoding: bytes[..<split], as: UTF8.self)
+            let second = String(decoding: bytes[split...], as: UTF8.self)
+            guard commonWords.contains(first), commonWords.contains(second) else { continue }
+            if found != nil { return nil }
+            found = (first, second)
+        }
+        guard let found, !blockedWords.contains(word),
+              !blockedWords.contains(found.first), !blockedWords.contains(found.second) else { return nil }
+        // 개인 금지는 영어뿐 아니라 자판 한글형도 받는다. 구성 단어 금지를 합성해 지킨다.
+        if !blockedWords.isEmpty {
+            for part in [found.first, found.second] {
+                if let hangul = ManualToggle.keysToHangul(part), blockedWords.contains(hangul) {
+                    return nil
+                }
+            }
+        }
+        return found
     }
 
     private static func mapsToVowel(_ key: Character) -> Bool {

@@ -19,8 +19,6 @@ struct OnboardingNavigationButtonStyle: ButtonStyle {
     @Environment(\.appearsActive) private var appearsActive
     @Environment(\.controlSize) private var controlSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @AppStorage(WindowAppearance.defaultsKey) private var appearance = WindowAppearance.glass
     private var showsColor: Bool { appearsActive && isEnabled }
 
     func makeBody(configuration: Configuration) -> some View {
@@ -42,8 +40,6 @@ struct OnboardingNavigationButtonStyle: ButtonStyle {
     @ViewBuilder private var surface: some View {
         if !showsColor {
             Capsule().fill(.primary.opacity(0.18))
-        } else if #available(macOS 26.0, *), appearance == .glass && !reduceTransparency {
-            Capsule().fill(OnboardingBrand.navigationFill).glassEffect(.clear, in: Capsule())
         } else {
             Capsule().fill(OnboardingBrand.navigationFill)
         }

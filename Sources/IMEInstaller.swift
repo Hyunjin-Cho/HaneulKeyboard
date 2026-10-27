@@ -41,6 +41,11 @@ enum IMEInstaller {
 
     struct ActivationResult: Sendable {
         let url: URL
+        let settingsRefreshWarning: String?
+        init(url: URL, settingsRefreshWarning: String? = nil) {
+            self.url = url
+            self.settingsRefreshWarning = settingsRefreshWarning
+        }
     }
 
     /// A bundle on disk is only a candidate. Call `isInstalled()` when
@@ -101,64 +106,29 @@ enum IMEInstaller {
         return (buildNumber(at: installed), bundledIMEURL.flatMap(buildNumber(at:)), installed)
     }
 
-    /// (review-0712 P2-2) system 도메인이 canonical일 때 남아있는 user 도메인
-    /// 잔재를 정리한다. 예전엔 `try?`로 삭제 실패를 통째로 버려서, 입력 소스
-    /// 중복이 남은 채로 설치가 "성공"으로 보고됐다. 이제 실패를 로그로 남기고,
-    /// 파일이 남더라도 LaunchServices 등록은 반드시 빼서 picker 중복 노출만은
-    /// 막는다. (system 번들이 정상인 한 설치 자체는 계속 진행하는 게 맞다 —
-    /// 잔재는 부가 정리 대상이지 설치 실패 사유가 아니다.)
-    /// 호출 계약: `stopIMEProcess()`를 쓰므로 메인 스레드에서 부르면 안 된다.
-    private static func removeUserDomainLeftover() {
-        stopIMEProcess()
-        do {
-            try FileManager.default.removeItem(at: installURL)
-        } catch {
-            haneulLog("HaneulKeyboard: user 도메인 IME 잔재 삭제 실패 — \(error.localizedDescription)")
+    /// 시스템 도메인이 기준일 때도 사용자 잔재 삭제 실패를 성공으로 처리하지 않는다.
+    private static func removeUserDomainLeftover() throws {
+        try stopIMEProcess()
+        let (target, state) = RemovalObservation.capture(installURL, identifier: imeBundleID)
+        guard state.reachedGoal else { throw IMEInstallError.uninstallFailed(state.text) }
+        if let target {
+            let result = RemovalObservation.remove(target)
+            guard result.reachedGoal else { throw IMEInstallError.uninstallFailed(result.text) }
         }
-        if FileManager.default.fileExists(atPath: installURL.path) {
-            haneulLog("HaneulKeyboard: user 도메인 IME 잔재가 남음 — 등록 해제만 수행 (\(installURL.path))")
-        }
-        unregisterFromLaunchServices(at: installURL)
+        let registration = RemovalObservation.unregister([installURL], identifier: imeBundleID)
+        guard registration.reachedGoal else { throw IMEInstallError.uninstallFailed(registration.text) }
     }
 
-    /// (H-03) 실행 중인 IME 프로세스를 확실히 종료한다 — 업그레이드 교체 전 호출.
-    /// killall은 반환돼도 실제 종료를 보장하지 않고 이름 매칭이 부정확하므로,
-    /// bundle ID로 정확히 찾아 terminate한 뒤 종료를 확인한다(최대 ~1.5초 폴링,
-    /// 안 죽으면 forceTerminate). IMK가 다음 입력 때 새 번들로 재기동한다.
-    /// 호출 계약: 종료 폴링과 `onMainThread`의 동기 hop 때문에 메인 스레드에서
-    /// 동기 호출하면 안 된다. 호출자는 반드시 백그라운드 작업에서 실행한다.
-    static func stopIMEProcess() {
-        assert(!Thread.isMainThread, "stopIMEProcess() must run off the main thread")
-        let imeBundleID = "com.hyunjincho.inputmethod.haneul"
-        let running: [NSRunningApplication] = onMainThread {
-            NSRunningApplication.runningApplications(withBundleIdentifier: imeBundleID)
-        }
-        guard !running.isEmpty else { return }
-        onMainThread { for app in running { app.terminate() } }
-        let processIDs = running.map(\.processIdentifier)
-        let deadline = Date(timeIntervalSinceNow: 1.5)
-        while Date() < deadline {
-            if processIDs.allSatisfy({ kill($0, 0) != 0 }) {
-                return
-            }
-            Thread.sleep(forTimeInterval: 0.05)
-        }
-        onMainThread {
-            for app in NSRunningApplication.runningApplications(withBundleIdentifier: imeBundleID) {
-                app.forceTerminate()
-            }
-        }
-    }
-
-    private static func onMainThread<T>(_ body: @escaping () -> T) -> T {
-        if Thread.isMainThread { return body() }
-        return DispatchQueue.main.sync(execute: body)
+    /// 설치 교체도 실제 프로세스 종료를 재확인한다. 조회 실패·다른 실행본은 교체를 중단한다.
+    static func stopIMEProcess() throws {
+        let state = RemovalObservation.stopIMEProcesses()
+        guard state.reachedGoal else { throw IMEInstallError.uninstallFailed(state.text) }
     }
 
     /// 실행 중인 IME를 멈춘 뒤 trusted source를 staging에 복사하고 원자 교체한다.
     /// staging 준비나 교체가 실패하면 기존 설치본은 그대로 남는다.
     private static func atomicallyReplaceIMEBundle(at destination: URL, with source: URL) throws {
-        stopIMEProcess()
+        try stopIMEProcess()
         let staging = destination.deletingLastPathComponent().appendingPathComponent(
             ".\(destination.lastPathComponent).staging-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: staging) }
@@ -190,7 +160,7 @@ enum IMEInstaller {
                 // canonical이므로 정지 후 잔재를 제거하고, 아래 system 번들
                 // 재등록/활성화에서 IMK가 새로 기동한다. (leftover가 있을 때만
                 // 정지하므로 평상시 실행 경로엔 영향 없음.)
-                removeUserDomainLeftover()
+                try removeUserDomainLeftover()
             }
             try registerWithLaunchServices(at: systemInstallURL)
             return systemInstallURL
@@ -257,7 +227,7 @@ enum IMEInstaller {
                 throw IMEInstallError.installedBundleUntrusted(systemInstallURL.path)
             }
             if FileManager.default.fileExists(atPath: installURL.path) {
-                removeUserDomainLeftover()
+                try removeUserDomainLeftover()
             }
             try registerWithLaunchServices(at: systemInstallURL)
             return systemInstallURL
@@ -277,73 +247,43 @@ enum IMEInstaller {
     }
 
     @MainActor
-    static func uninstall() async throws {
-        _ = InputSwitcher.selectEnglish()
-
-        let hasSystemInstall = FileManager.default.fileExists(atPath: systemInstallURL.path)
-        let hasUserInstall = FileManager.default.fileExists(atPath: installURL.path)
-        guard hasSystemInstall || hasUserInstall else {
-            throw IMEInstallError.nothingToRemove
-        }
-
-        // 2026-09-20 (#46, 리뷰 F-2): 전체 제거(Uninstaller.run)·IME 자기 정리(#32)와 같은
-        // 순서로 삭제 전에 입력 소스 비활성화를 시도한다. 종전엔 이 경로만 빠져 번들은
-        // 사라지는데 TIS 목록에 "하늘키보드"가 켜진 채 남고, 메뉴는 번들 부재라 "다시 켜기"로도
-        // 정리할 수 없었다. 실패해도 종전 흐름 그대로(재로그인 후 목록에서 사라진다).
-        let disabled = disableAllModes(forBundleID: imeBundleID)
-        haneulLog("HaneulKeyboard: IME 제거 — TISDisableInputSource=\(disabled)")
-
-        await Task.detached(priority: .userInitiated) {
-            stopIMEProcess()
-        }.value
-
-        // System-domain install is root-owned — ask for admin rights via the
-        // standard macOS password prompt. (The old code only handled the
-        // user-domain path and silently did NOTHING for system installs.)
-        // NSAppleScript의 관리자 인증 UI는 메인 액터에서 띄운다.
-        if hasSystemInstall {
-            try removeWithAdminPrivileges(path: systemInstallURL.path)
-        }
-
-        try await Task.detached(priority: .userInitiated) {
-            if hasSystemInstall {
-                unregisterFromLaunchServices(at: systemInstallURL)
-            }
-            if hasUserInstall {
-                try FileManager.default.removeItem(at: installURL)
-                unregisterFromLaunchServices(at: installURL)
-            }
-        }.value
+    static func uninstall() async -> RemovalReport {
+        Uninstaller.removeInputMethod()
     }
 
     /// `do shell script ... with administrator privileges` — shows the
     /// standard macOS admin password dialog. Throws if the user cancels.
     /// (internal: Uninstaller's 전체 제거 reuses this for the system bundle.)
-    static func removeWithAdminPrivileges(path: String) throws {
-        // (보안) path를 admin 셸 명령에 안전하게 넣는다. 예전 코드는 셸 작은따옴표만
-        // 이스케이프하고, 이를 감싸는 AppleScript 문자열 리터럴의 큰따옴표(")·역슬래시(\)는
-        // 처리하지 않아, 따옴표가 든 경로명(/Applications에서 bundle ID로 찾은 동적 경로 등)으로
-        // admin 명령이 주입될 수 있었다. 이제 두 계층을 분리한다:
-        //   1) AppleScript 문자열 리터럴용 이스케이프(역슬래시 먼저, 그다음 큰따옴표)
-        //   2) 셸 인용은 AppleScript `quoted form of`에 위임
-        let asLiteral = path
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
-        let source = "do shell script \"/bin/rm -rf \" & quoted form of \"\(asLiteral)\" with administrator privileges"
+    static func removeWithAdminPrivileges(target: RemovalTarget) throws {
+        guard let team = BundleTrust.teamIdentifier(at: Bundle.main.bundleURL) else {
+            throw IMEInstallError.uninstallFailed("제품 Team을 확인하지 못해 관리자 삭제를 중단했어요")
+        }
+        let command = RemovalAdminScript(target: target, team: team)
         var errorInfo: NSDictionary?
-        guard let script = NSAppleScript(source: source) else {
+        guard let script = NSAppleScript(source: command.appleScriptSource) else {
             throw IMEInstallError.uninstallFailed("관리자 권한 요청 스크립트 생성 실패")
         }
         script.executeAndReturnError(&errorInfo)
         if let errorInfo {
-            let message = errorInfo[NSAppleScript.errorMessage] as? String ?? "알 수 없는 오류"
-            throw IMEInstallError.uninstallFailed(message)
+            if (errorInfo[NSAppleScript.errorNumber] as? NSNumber)?.intValue == -128 { throw RemovalCancelled() }
+            throw IMEInstallError.uninstallFailed("관리자 삭제 실패 또는 대상 변경: \(errorInfo[NSAppleScript.errorMessage] as? String ?? "알 수 없는 오류")")
         }
     }
 
-    static func openInputSourcesSettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.keyboard?Text") {
-            NSWorkspace.shared.open(url)
+    @MainActor static func openInputSourcesSettings() {
+        Task {
+            let trustedBundleExists = await Task.detached(priority: .utility) {
+                installedBundleURL().map { isTrustedIMEBundle(at: $0) } ?? false
+            }.value
+            do { try await InputSourceSettings.open(refreshInputMethodList: trustedBundleExists) }
+            catch {
+                let alert = NSAlert()
+                alert.messageText = "키보드 설정을 확인해 주세요"
+                alert.informativeText = error.localizedDescription
+                alert.addButton(withTitle: "확인")
+                NSApp.activate(ignoringOtherApps: true)
+                alert.runModal()
+            }
         }
     }
 
@@ -364,7 +304,8 @@ enum IMEInstaller {
     @MainActor
     private static func activateBundle(at url: URL) async throws -> ActivationResult {
         try await registerWithTIS(at: url)
-        return ActivationResult(url: url)
+        let warning = await InputSourceSettings.refreshAfterRegistration()
+        return ActivationResult(url: url, settingsRefreshWarning: warning)
     }
 
     private static let lsregisterPath = "/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister"
@@ -450,7 +391,10 @@ enum IMEInstaller {
             let sourceBundleID = Unmanaged<CFString>.fromOpaque(bundleIDPtr).takeUnretainedValue() as String
             guard sourceBundleID == bundleID else { continue }
             known = true
-            guard TISGetInputSourceProperty(source, kTISPropertyInputModeID) != nil,
+            guard let modePtr = TISGetInputSourceProperty(source, kTISPropertyInputModeID),
+                  Unmanaged<CFString>.fromOpaque(modePtr).takeUnretainedValue() as String == InputSwitcher.koreanModeID,
+                  let capablePtr = TISGetInputSourceProperty(source, kTISPropertyInputSourceIsSelectCapable),
+                  CFBooleanGetValue(Unmanaged<CFBoolean>.fromOpaque(capablePtr).takeUnretainedValue()),
                   let enabledPtr = TISGetInputSourceProperty(source, kTISPropertyInputSourceIsEnabled) else { continue }
             let value = Unmanaged<CFBoolean>.fromOpaque(enabledPtr).takeUnretainedValue()
             enabled = enabled || CFBooleanGetValue(value)

@@ -14,8 +14,7 @@ enum UpdateNoticeWindow {
                 window?.close()
                 onShowUpdate()
             }))
-        // Glass가 창 배경을 clear로 만들므로 제목 막대도 콘텐츠로 덮는다.
-        // 기본 제목 막대만 남기면 닫기 버튼 뒤로 바탕화면이 그대로 비친다.
+        // 제목 막대까지 불투명 종이 배경으로 덮어 닫기 버튼 뒤의 면을 유지한다.
         hosting.safeAreaRegions = []
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
