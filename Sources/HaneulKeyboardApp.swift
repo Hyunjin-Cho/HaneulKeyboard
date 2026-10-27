@@ -81,6 +81,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             updateButtonDescription()
         }
         let menu = NSMenu()
+        // Keep explicit busy-state disabling when AppKit updates the menu.
+        menu.autoenablesItems = false
         menu.delegate = self          // 열 때마다 menuNeedsUpdate로 동적 재구성
         statusItem.menu = menu        // 기본 앱과 동일한 자동 팝업 — 아이콘 바로 아래에 정확히
     }
@@ -131,6 +133,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         menu.addItem(.separator())
         add(menu, "설정...", #selector(openSettings))
+        let updateCheck = add(menu, "새 버전 확인…", #selector(checkForUpdates))
+        switch core.updater.phase {
+        case .checking, .downloading, .verifying, .installing:
+            updateCheck.isEnabled = false
+        default:
+            updateCheck.isEnabled = !core.isPreparingIME
+        }
         add(menu, SupportView.title + "…", #selector(openSupport))
         if hasCompleted {
             add(menu, "시작하기 다시 보기...", #selector(showOnboarding))
@@ -138,10 +147,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         add(menu, "HaneulKeyboard 종료", #selector(quit), key: "q")
     }
 
-    private func add(_ menu: NSMenu, _ title: String, _ action: Selector, key: String = "") {
+    @discardableResult
+    private func add(_ menu: NSMenu, _ title: String, _ action: Selector, key: String = "") -> NSMenuItem {
         let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
         item.target = self
         menu.addItem(item)
+        return item
     }
 
     private func addDisabled(_ menu: NSMenu, _ title: String) {
@@ -196,6 +207,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func openUpdateSettings() {
         showSettings(tab: .update)
+    }
+
+    @objc private func checkForUpdates() {
+        showSettings(tab: .update)
+        // Direct checks use the existing screen, including when automatic
+        // notices are off. Only the install button starts a download.
+        Task { await core.updater.checkNow(forced: true, showNotice: false) }
     }
 
     private func showUpdateNotice(_ update: AvailableUpdate) {

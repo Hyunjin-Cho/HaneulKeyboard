@@ -215,12 +215,26 @@ private final class SlashTextClient: ComposerClient {
             check(!run.isActive && run.triggerRange == nil,"immediate fallback clears state")
             check(step(&run, "g") == .composeKorean,"immediate fallback resumes Korean")
         }
+        for triggerText: String? in ["/", nil, ""] {
+            var run = SlashEnglishSession(); start(&run,at:0)
+            check(step(&run,"\u{7f}",key:51,
+                       context:context(NSNotFound,text:triggerText)) == .end,
+                  "selection support lost after slash still permits immediate plain deletion")
+            check(!run.isActive && step(&run,"g") == .composeKorean,
+                  "lost selection deletion returns to Korean without retaining a trigger")
+        }
         for key: UInt16 in [0,123] {
             var run = SlashEnglishSession(); start(&run,at:0)
             _ = step(&run,key == 0 ? "a" : nil,key:key)
             check(step(&run,"\u{7f}",key:51,context:context(1,text:nil)) == .passThrough,
                   "intervening text or navigation invalidates immediate fallback")
+            check(step(&run,"\u{7f}",key:51,context:context(NSNotFound,text:nil)) == .passThrough,
+                  "unavailable geometry cannot revive an expired immediate fallback")
         }
+        start(&session,at:0)
+        check(step(&session,"\u{7f}",key:51,
+                   context:context(NSNotFound,text:nil,marked:NSRange(location:0,length:1))) == .passThrough,
+              "an active marked range blocks lost-selection fallback")
         for flags: NSEvent.ModifierFlags in [.command,.option,.control,.function] {
             var run = SlashEnglishSession(); _ = step(&run,"/")
             check(step(&run,"\u{7f}",key:51,flags:flags) == .passThrough,
@@ -247,7 +261,6 @@ private final class SlashTextClient: ComposerClient {
         }
 
         let unavailable = [
-            context(NSNotFound, text: ""),
             context(-1, text: ""),
             context(Int.max - 1, length: 2, text: ""),
             context(1, length: -1, text: ""),

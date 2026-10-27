@@ -11,7 +11,7 @@
 
 > ⚠️ **베타버전이 끝났습니다. 이제 곧 정식버전이 출시됩니다. 조금만 기다려주세요.**
 >
-> 기준일: **2026-10-14**. 아래는 정식 출시를 준비 중인 현재 작업 트리의 기능 안내입니다. 기존 `2026.01`~`2026.07`은 베타 이력이며, 앱 설치 ZIP의 배포는 종료했습니다. GitHub의 **Source code** 파일은 설치 앱이 아닙니다. 정식 설치 파일은 준비가 끝나면 [배포 페이지](https://github.com/Hyunjin-Cho/HaneulKeyboard/releases)에 게시합니다.
+> 기준일: **2026-10-28**. 아래는 정식 출시를 준비 중인 현재 작업 트리의 기능 안내입니다. 기존 `2026.01`~`2026.07`은 베타 이력이며, 앱 설치 ZIP의 배포는 종료했습니다. GitHub의 **Source code** 파일은 설치 앱이 아닙니다. 정식 설치 파일은 준비가 끝나면 [배포 페이지](https://github.com/Hyunjin-Cho/HaneulKeyboard/releases)에 게시합니다.
 
 ## 어떤 앱인가요?
 
@@ -215,7 +215,15 @@ PACKAGE_ONLY=1 bash scripts/build_notarize_install.sh HaneulKeyboard
 
 결과물은 저장소 루트의 `HaneulKeyboard_<공개 버전>.dmg`(첫 설치), `.zip`(앱 안에서 사용자가 선택하는 업데이트)과 각각의 SHA-256 파일입니다. 앱과 DMG를 각각 서명·공증·검증한 뒤 내놓으며 기존 같은 이름 파일을 덮어쓰지 않습니다. `PACKAGE_ONLY=1`은 설치까지 진행하지 않습니다(`ZIP_ONLY=1`도 같은 동작의 호환 이름). 게시 전 [배포 체크리스트](docs/release-checklist.md)와 [실제 앱 검사 항목](docs/manual-test-checklist.md)을 확인하세요.
 
-최신 후보와 남은 검증은 [세션 인계](docs/HANDOFF_2026-10-11_session-recovery.md), [남은 작업](docs/remaining-work-2026-10-14.md), [배포 체크리스트](docs/release-checklist.md)에서 확인합니다. **2026-10-14 현재 공증과 실제 설치는 사용자 요청으로 보류 중**입니다. 로컬 검토 ZIP·GIF·화면 검사는 설치용 배포본이나 실제 OS 입력 검증을 뜻하지 않습니다. 과거 [빌드69 피드백 기록](docs/releases/2026.9-build69-feedback.md)과 [DMG 시안·검증](docs/design/dmg-installer-2026-10-10.md)은 당시 근거로 보존합니다.
+2026-10-28: 공증을 진행하지 않는 로컬 검증은 같은 공식 스크립트의 다음 옵션을 사용합니다. Developer ID Release Universal 앱과 내장 입력기를 빌드하고 서명·고지 포함을 확인합니다. 공증 프로필 조회·업로드·DMG/ZIP 생성·설치는 실행하지 않으며 다른 패키징 옵션과 함께 쓸 수 없습니다. 결과는 `.build/DerivedData-Local/Build/Products/Release/HaneulKeyboard.app`입니다.
+
+```bash
+LOCAL_BUILD_ONLY=1 bash scripts/build_notarize_install.sh HaneulKeyboard
+```
+
+새 버전 안내창은 기존 버전·업데이트 설정으로 연결됩니다. 메뉴바의 **새 버전 확인…**은 알림 OFF 상태에서도 직접 조회하고 같은 설정 화면에 결과를 표시합니다. 다운로드와 설치는 **새 버전 설치**를 눌러야 시작합니다.
+
+최신 후보와 남은 검증은 [통합 검증 #86](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/86), [실제 앱 검사 항목](docs/manual-test-checklist.md), [배포 체크리스트](docs/release-checklist.md)에서 확인합니다. **2026-10-28 현재 공증·공개 배포는 보류 중이며, 로컬 Developer ID 검증본과 정식 공증 설치 파일을 구분합니다.** 로컬 검토 ZIP·GIF·화면 검사는 설치용 배포본이나 실제 OS 입력 검증을 뜻하지 않습니다. 과거 [빌드69 피드백 기록](docs/releases/2026.9-build69-feedback.md)과 [DMG 시안·검증](docs/design/dmg-installer-2026-10-10.md)은 당시 근거로 보존합니다.
 
 작업은 [GitHub Issues](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues)에서 기능·완성된 작업 묶음 단위로 관리합니다. 코드·테스트 후보가 준비되어도 실제 제품 적용과 필요한 설치본 검증이 남았다면 티켓은 열어 둡니다.
 
@@ -245,7 +253,7 @@ PACKAGE_ONLY=1 bash scripts/build_notarize_install.sh HaneulKeyboard
 
 HaneulKeyboard is a macOS menu bar app and two-set Korean input method, named after my daughter Haneul — “sky” in Korean.
 
-**Beta distribution has ended; the first stable version is being prepared.** Updated 2026-10-14. This README describes the current development tree, including features awaiting installed-app verification. Old releases `2026.01`–`2026.07` are beta history; their app ZIPs are no longer offered. GitHub’s “Source code” archives are not installable apps.
+**Beta distribution has ended; the first stable version is being prepared.** Updated 2026-10-28. This README describes the current development tree, including features awaiting installed-app verification. Old releases `2026.01`–`2026.07` are beta history; their app ZIPs are no longer offered. GitHub’s “Source code” archives are not installable apps.
 
 ## Features and installation
 
@@ -263,7 +271,7 @@ After the stable package is published, download `HaneulKeyboard_<version>.dmg` f
 
 Settings has four sidebar sections: Input Features, Personal Dictionary, Version & Updates, and App Management. Input Features contains Automatic Conversion and Shortcut Conversion pages. Automatic Conversion includes English context, exact dictionary compounds, and per-app exclusions. Shortcut Conversion includes the conversion key, layout/registered-word conversion, reverting, slash input, and input-source guidance. The optional blue guidance panel shows white “하늘” text for about 0.9 seconds when switching to Haneul while the main app is running; it is separate from the macOS caret HUD. A separate Support button below App Management opens the donation information. Version & Updates shows the running installed app version and the last checked public release separately. The window is 800×660 with the existing opaque paper design and original risograph ornaments. Removal is under **앱 관리 → 하늘키보드 전체 제거…**. Failed or cancelled input-method removal preserves personal settings and the dictionary; Finder-triggered cleanup always preserves them. Donations are optional; the donation destination is still being prepared.
 
-As of 2026-10-14, notarization and installed-app checks remain paused at the owner's request. Local review archives and offscreen captures do not replace notarized installers or real IMK/host-app validation.
+As of 2026-10-28, notarization and public distribution remain paused at the owner's request. Local Developer ID test builds are separate from notarized release installers. Local review archives and offscreen captures do not replace notarized installers or real IMK/host-app validation.
 
 The build targets macOS 14+ with Universal Apple Silicon/Intel binaries. Host-app support varies; reverting/replacing committed text does not work in Terminal/Ghostty. Phonetic conversion is integrated into the development build; installed IMK/host-app verification remains tracked in [#84](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/84). It accepts curated exact spellings, not guessed misspellings. Numeric aliases include six explicitly reserved future numbers; these do not announce product releases. See the [specification](docs/phonetic-conversion.md).
 
