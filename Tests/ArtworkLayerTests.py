@@ -13,12 +13,14 @@ import zipfile
 from PIL import Image, ImageDraw
 
 REPO = Path(__file__).resolve().parents[1]
+PRIVATE_ARTWORK = REPO / 'Review/2026-10-25-three-person-recovery'
 sys.path.insert(0, str(REPO / 'Tools'))
 from artwork_layers import audit_ora, repair_ora, ordered_parts, ordered_attachments
 from artwork_workbench import import_edited_parts, compose_bind
 
 
 class ArtworkLayerTests(unittest.TestCase):
+    @unittest.skipUnless((PRIVATE_ARTWORK / 'build_recovery.py').is_file(), 'optional private artwork archive is absent')
     def test_full_reextract_is_blocked_by_default(self):
         folder = REPO / 'Review/2026-10-25-three-person-recovery'
         before = {p: hashlib.sha256(p.read_bytes()).hexdigest() for p in folder.glob('*_부품.ora')}
@@ -28,6 +30,7 @@ class ArtworkLayerTests(unittest.TestCase):
         self.assertIn('import-parts', process.stderr)
         self.assertEqual(before, {p: hashlib.sha256(p.read_bytes()).hexdigest() for p in before})
 
+    @unittest.skipUnless((PRIVATE_ARTWORK / 'build_recovery.py').is_file(), 'optional private artwork archive is absent')
     def test_renderer_ignores_wrong_attachment_construction_order(self):
         path = REPO / 'Review/2026-10-25-three-person-recovery/build_recovery.py'
         spec = importlib.util.spec_from_file_location('checked_recovery_renderer', path)
@@ -75,6 +78,7 @@ class ArtworkLayerTests(unittest.TestCase):
         for names in [['head', 'head'], ['head', 'new_unclassified_sleeve']]:
             with self.assertRaises(ValueError): ordered_parts(names)
 
+    @unittest.skipUnless((PRIVATE_ARTWORK / 'motion.json').is_file(), 'optional private artwork archive is absent')
     def test_geometry_survives_all_existing_poses(self):
         path = REPO / 'Review/2026-10-25-three-person-recovery/motion.json'
         count = 0
@@ -86,6 +90,7 @@ class ArtworkLayerTests(unittest.TestCase):
                 count += 1
         self.assertEqual(count, 21)
 
+    @unittest.skipUnless(len(list(PRIVATE_ARTWORK.glob('*_부품.ora'))) == 3, 'optional private artwork archive is absent')
     def test_editable_character_files_match_depth_and_preview(self):
         files = sorted((REPO / 'Review/2026-10-25-three-person-recovery').glob('*_부품.ora'))
         self.assertEqual(len(files), 3)
@@ -95,6 +100,7 @@ class ArtworkLayerTests(unittest.TestCase):
                 self.assertTrue(report['leftBehindEveryBodyPart'])
                 self.assertTrue(report['cachedPreviewMatchesLayers'])
 
+    @unittest.skipUnless(len(list(PRIVATE_ARTWORK.glob('*_부품.ora'))) == 3, 'optional private artwork archive is absent')
     def test_editor_import_roundtrip_is_exact_and_preserves_versions(self):
         files = sorted((REPO / 'Review/2026-10-25-three-person-recovery').glob('*_부품.ora'))
         with tempfile.TemporaryDirectory() as directory:
