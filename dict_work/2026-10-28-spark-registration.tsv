@@ -1,0 +1,2 @@
+word	hangulForm	role	decision	reviewedOn	reference	note
+spark	넴가	curated	owner_requested_exact_word	2026-10-28	https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/104	Owner requested spark. Existing system English dictionary has exact spark; bundled Korean headwords do not contain 넴가. Audit Tier A: standalone/context/trigger 0 to 1. Stem warning 넴 is retained; absence of 넴가 is not proof about all Korean usage. No general veto bypass, spelling correction, semantic dictionary mapping or candidate UI. Existing compound and inflection rules remain unchanged.

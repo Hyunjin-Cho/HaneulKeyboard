@@ -5415,3 +5415,8 @@ turtle
 # 래가 is absent from Urimalsaem; the stem warning for 래 is retained in the audit.
 # No shortened-word, Korean-veto or repeated-key override (www stays protected).
 fork
+
+# 2026-10-28 (#104): owner-requested spark; clean 넴가 is absent from Urimalsaem.
+# Curated exact entry reaches existing R5, without a Korean-veto override.
+# Tier A and the 넴 stem warning are retained in dict_work/2026-10-28-spark-audit.csv.
+spark

@@ -27158,6 +27158,24 @@
       "english": "label",
       "category": "everyday",
       "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "선반",
+      "english": "shelf",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "세제",
+      "english": "detergent",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "장갑",
+      "english": "gloves",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
     }
   ],
   "phonePolicy": {
@@ -27360,9 +27378,9 @@
   "nounPolicy": {
     "reviewedOn": "2026-10-28",
     "scope": "Finite explicitly registered basic noun meanings and transparent compound labels. Exact explicit shortcut only; no contextual translation.",
-    "addedEntries": 832,
+    "addedEntries": 835,
     "people": "Common family, relationship and occupation nouns are included. Proper person names and music groups remain excluded. Historical person-denoting restrictions below describe earlier batches only.",
-    "ambiguity": "Use directly reviewed everyday literal meanings. An obsolete homonym, place/person name, figurative use, or several source definitions sharing one English meaning is not an automatic veto. Hold spellings with different ordinary meanings requiring incompatible English results. Preserve every previous spelling and owner-designated mapping.",
+    "ambiguity": "Use directly reviewed everyday literal meanings. Owner-confirmed representative mappings override the targeted ambiguity holds for 선반=shelf, 세제=detergent and 장갑=gloves. Existing 배=pear, 사과=apple and 선물=gift are confirmed unchanged. The other 25 confirmed ambiguous spellings remain held. Rare homonyms or several source definitions sharing one English meaning are not automatically removed. This targeted decision does not claim a complete dictionary-wide ambiguity audit.",
     "authoring": "English pairs authored and reviewed directly; Korean headword/POS/sense records from the existing NIKL Urimalsaem 2026-06-03 snapshot were checked separately. Original Korean definitions were read for targeted ambiguity and scope checks, not every definition for every row. English translations were not externally corroborated for every row. Per-row source status distinguishes noun evidence, compound expressions and directly authored labels. No source definitions, examples, corpus or media are shipped.",
     "record": "dict_work/2026-10-28-phonetic-basic-nouns.tsv",
     "exclusionRecord": "dict_work/2026-10-28-phonetic-basic-nouns-held.tsv",
@@ -27387,11 +27405,8 @@
       "독수리",
       "차단기",
       "화장실",
-      "선반",
       "건조기",
-      "세제",
       "금고",
-      "장갑",
       "과도",
       "대두",
       "수수",
@@ -27422,7 +27437,10 @@
       "주방": "kitchen",
       "견적서": "quotation",
       "친구": "friend",
-      "형제자매": "siblings"
+      "형제자매": "siblings",
+      "선반": "shelf",
+      "세제": "detergent",
+      "장갑": "gloves"
     },
     "sourceSnapshot": "2026-06-03",
     "sourceLicenseNotes": "NIKL Urimalsaem metadata: CC BY-SA 2.0 KR, already attributed by the project. NIKL Korean learner vocabulary membership: KOGL Type 1. English pairs are directly authored; no dictionary definitions/examples are copied.",
@@ -27477,14 +27495,11 @@
     ],
     "ambiguityReview": {
       "reviewedOn": "2026-10-28",
-      "removedEntries": 28,
+      "removedEntries": 25,
       "removedSpellings": [
         "화장실",
-        "선반",
         "건조기",
-        "세제",
         "금고",
-        "장갑",
         "과도",
         "대두",
         "수수",
@@ -27508,8 +27523,29 @@
         "유리",
         "직선"
       ],
-      "criterion": "Confirmed noun meanings requiring distinct English outputs are excluded from the new batch. This is a targeted removal, not a complete dictionary-wide sense audit. Existing owner-designated meanings remain unchanged pending explicit scope confirmation.",
-      "record": "dict_work/2026-10-28-phonetic-basic-nouns-held.tsv"
+      "criterion": "Of the 28 targeted removals, the owner confirmed everyday representative meanings for 선반=shelf, 세제=detergent and 장갑=gloves. Those three are restored; the other 25 remain excluded. Existing owner-designated 배=pear, 사과=apple and 선물=gift stay unchanged. This is not a complete dictionary-wide sense audit.",
+      "record": "dict_work/2026-10-28-phonetic-basic-nouns-held.tsv",
+      "initialRemovedEntries": 28,
+      "restoredEntries": 3,
+      "restoredMappings": {
+        "선반": "shelf",
+        "세제": "detergent",
+        "장갑": "gloves"
+      }
+    },
+    "ownerRepresentativeMeaningDecision": {
+      "confirmedOn": "2026-10-28",
+      "restoredMappings": {
+        "선반": "shelf",
+        "세제": "detergent",
+        "장갑": "gloves"
+      },
+      "retainedMappings": {
+        "배": "pear",
+        "사과": "apple",
+        "선물": "gift"
+      },
+      "scope": "Exact owner-confirmed representative meanings only. Other meaning candidates will be prepared by the owner. No new candidate-selection UI, contextual translation or extra semantic mappings are implemented."
     }
   }
 }

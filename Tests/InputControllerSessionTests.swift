@@ -163,6 +163,41 @@ final class ProbeClient: NSObject, IMKTextInput {
         EnglishDetector.curatedPaths = Set(EnglishDetector.curatedWordlistNames.map { "Resources/IM/\($0).txt" })
         KoreanDictionary.wordlistPath = "Resources/IM/korean_words.txt"
         check(PhoneticDictionary.bundled.english(for: "사과") == "apple", "bundled_dictionary_available")
+        // #104: actual controller dispatch must use the registered spark word,
+        // preserve surrounding text and keep the existing saved-pair undo.
+        for extras: NSEvent.ModifierFlags in [[], .capsLock] {
+            for keys in ["spark", "Spark"] {
+                for prefix in ["", "앞말 😀 "] {
+                    let (c,h) = fresh()
+                    h.setField(0, text: prefix)
+                    typeKeys(keys,c,h,extras:extras)
+                    check(h.text == prefix + "넴가", "spark_composition_before_boundary")
+                    press(c,h," ",code:49,flags:extras)
+                    check(h.text == prefix + keys + " ", "spark_space_converts")
+                    check(c.probeComposer.lastConversion?.hangul == "넴가", "spark_original_pair")
+                    check(c.probeComposer.lastConversion?.english == keys, "spark_english_pair")
+                    shortcut(c,h,extras:extras)
+                    check(h.text == prefix + "넴가 ", "spark_undo_preserves_surroundings")
+                    shortcut(c,h,extras:extras)
+                    check(h.text == prefix + keys + " ", "spark_redo_preserves_surroundings")
+                    result("spark_saved_pair_\(keys)_\(extras.rawValue)_\(prefix.count)",c,h)
+                }
+            }
+        }
+        for policy in ["global_off", "app_off", "block_english", "block_hangul"] {
+            let (c,h) = fresh()
+            switch policy {
+            case "global_off": probeDefaults.values["haneul.autoEnglishEnabled"] = false
+            case "app_off": probeDefaults.values[AutoConvertPolicy.disabledAppsKey] = ["local.haneul.controller-session-tests"]
+            case "block_english": probeDefaults.values[PersonalDictionary.Keys.block] = ["spark"]
+            default: probeDefaults.values[PersonalDictionary.Keys.block] = ["넴가"]
+            }
+            typeKeys("spark",c,h)
+            press(c,h," ",code:49)
+            check(h.text == "넴가 ", "spark_policy_keeps_original_\(policy)")
+            check(c.probeComposer.lastConversion == nil, "spark_policy_has_no_conversion_\(policy)")
+            result("spark_\(policy)",c,h)
+        }
         // #93: real controller modifier paths must leave settled selections untouched.
         for flags: NSEvent.ModifierFlags in [.command, .control, .option, .function] {
             let (c,h) = fresh()

@@ -1,6 +1,6 @@
 # 하늘키보드 입력 변환 규칙 모음
 
-기준일: **2026-10-28**, Asia/Seoul. 기반 커밋 `d2c451bbbe750533c176a2e515db3e4d60f13983` 이후 #100/#101 작업 트리 기준. 현재 코드의 설명과 초창기 아이디어를 함께 모으되, 적용 여부를 구분한다. 실제 동작은 아래 심볼과 테스트를 함께 확인한다.
+기준일: **2026-10-28**, Asia/Seoul. 기반 커밋 `813f304831b6dd7de7750950f739d7c1820cfd12` 이후 #104 작업 트리 기준. 현재 코드의 설명과 초창기 아이디어를 함께 모으되, 적용 여부를 구분한다. 실제 동작은 아래 심볼과 테스트를 함께 확인한다.
 
 하늘키보드는 사용자가 친 키를 보관하며 한글을 조합한다. 영어+조사는 입력 중에도 같은 판정으로 미리 표시하고, Space 같은 확정 시점에 사전·한글 구조·앞 단어를 확인해 최종 결과를 정한다. **개별 조건문과 그 순서, 예외, 사전을 묶은 전체가 판정 알고리즘**이다. 조건 하나만으로 언어를 확정하지 않는다.
 
@@ -91,6 +91,8 @@
 | 12 | R3 KS X 1001 밖 음절 + 영어 근거 | 희귀 음절은 의심 신호이며 한국어가 아니라는 증명은 아님 |
 | 13 | R5 한글 두 음절 이상 + curated 정확 일치 | 의미 있는 내부 Shift 제한. 무작위 인명·옛 영어 broad 목록은 쓰지 않음 |
 | 14 | R2 추가 문맥 판정 | 직전 영어 + 대문자/단음절/사전 등급 제한 |
+
+2026-10-28 보완(#104): 사용자 지정 `spark`를 `Resources/IM/english_supplement.txt`에 추가했다. `넴가`는 완성 한글 두 음절로 조합되지만 번들 한국어 표제어에 없고, 기존 broad 영어 사전에는 `spark`가 있었다. 검토 목록에 정확한 영어 한 단어를 추가해 기존 R5를 통과시키며, 한국어 보호나 Shift 판정은 바꾸지 않는다. 후보 검역의 Tier A·`넴` 표제어 경고는 [검역 결과](../dict_work/2026-10-28-spark-audit.csv)와 [등록 근거](../dict_work/2026-10-28-spark-registration.tsv)에 남긴다. 일반 Space 확정 시 `넴가 → spark`, 자동 변환 OFF·개인 금지 시 원문 보존, 변환 단축키로 저장 원문 왕복을 검사한다.
 
 실행 목록: `shortWords`, `contextOnlyShortWords`, `standaloneShortWords`, `consonantPairShortWords`, `standaloneOverrideEnglish`, `contextOverrideEnglish`, `triggerOverrideEnglish`, `protectedSlang`. 숫자나 사전 전체를 이 문서에 복사하지 않는다. 사전 원본 목록은 [`dict_manifest.tsv`](../dict_work/dict_manifest.tsv)를 확인한다.
 
