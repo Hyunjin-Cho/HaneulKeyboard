@@ -119,13 +119,20 @@ import CryptoKit
         // 혼합 문자열도 실제 NSTextView에서 조합 종료·UTF-16 범위 왕복을 보존한다.
         for (typed, expected) in [("githubdp", "github에"), ("APIsms", "API는"),
                                   ("APISMS", "API는"), ("APIDMF", "API을"),
-                                  ("githubdptjqnxj", "github에서부터")] {
+                                  ("githubdptjqnxj", "github에서부터"),
+                                  ("githubqkRdp", "github밖에"), ("githubQns", "github뿐"),
+                                  ("githubfkeh", "github라도"), ("githubRkwlfkeh", "github까지라도"),
+                                  ("T800dp", "T800에"), ("800Tsms", "800T는"),
+                                  ("a24dptj", "a24에서"), ("a16zaks", "a16z만"), ("a7Rfh", "a7R로")] {
             let prefix = "앞말 😀 "
             let original = ManualToggle.keysToHangul(typed)!
             editor.string = prefix
             editor.setSelectedRange(NSRange(location: (prefix as NSString).length, length: 0))
             let mixed = KoreanComposer()
-            for key in typed { _ = mixed.handleInput(String(key), client: client) }
+            for key in typed {
+                if AlphanumericWords.isDigit(key), mixed.handleDigit(key, client: client) { continue }
+                _ = mixed.handleInput(String(key), client: client)
+            }
             check(editor.string == prefix + expected, "혼합 입력 Space 전 미리보기")
             check(editor.hasMarkedText(), "혼합 입력 조합 상태")
             check(editor.markedRange() == NSRange(location: (prefix as NSString).length,
@@ -212,7 +219,8 @@ import CryptoKit
                                    "시각효과": "VFX", "컬러그레이딩": "color grading", "파인튜닝": "fine-tuning",
                                    "선물": "gift", "선물거래": "futures trading",
                                    "단어": "word", "물": "water", "의자": "chair",
-                                   "빗방울": "raindrop", "세탁기": "washing machine", "고양이": "cat"] {
+                                   "빗방울": "raindrop", "세탁기": "washing machine", "고양이": "cat",
+                                   "학교": "school", "식당": "restaurant", "주방": "kitchen", "장갑": "gloves"] {
             editor.string = "앞 "; editor.setSelectedRange(NSRange(location: 2, length: 0))
             let phoneticComposer = KoreanComposer()
             for key in ManualToggle.hangulToKeys(hangul)! {
@@ -236,7 +244,7 @@ import CryptoKit
             }
         }
         // 새 명사와 공백 포함 출력을 실제 NSTextView의 NFD 원문 범위로 왕복한다.
-        for original in ["단어", "물", "세탁기", "옷걸이"] {
+        for original in ["단어", "물", "세탁기", "옷걸이", "학교", "식당", "주방", "장갑"] {
             let rawOriginal = original.decomposedStringWithCanonicalMapping
             let initial = "앞 " + rawOriginal + " "
             editor.string = initial

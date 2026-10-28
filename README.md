@@ -73,13 +73,13 @@
 - 자동 변환이 틀렸다면 기본 **Shift+Space**로 되돌립니다. 설정에서 Option+Space / Control+Shift+Space / Option+Shift+Space로 바꿀 수 있습니다.
 - ‘자판 변환’를 켜면 사전에 없는 단어도 자판 위치를 기준으로 직접 바꿀 수 있습니다. **직전 변환의 되돌리기가 우선**입니다. 등록 발음은 조합 중에도 바로 바뀌고, 그 밖의 조합 중인 글자는 먼저 확정합니다.
 
-2026-10-17 개발 소스에는 **영어+조사 분리**를 추가했습니다. `github에`, `google에서`, `API는`처럼 붙여 친 입력을 Space·문장부호에서 분리해 확정합니다. 입력 중 미리보기와 Vim 자동 감지는 다음 범위이며, 설치된 입력기의 동작 검증은 별도입니다. `work`와 `재가`처럼 실제 한글과 겹치는 접두어는 보호하며, 필요한 영어는 개인 사전으로 지정할 수 있습니다.
+2026-10-28 개발 소스는 **영어+조사 분리**를 입력 중에도 미리 표시합니다. `github에`, `github밖에`, `github뿐`, `github라도`, `API는`과 등록 제품명 `T800에`, `a24에서`처럼 붙여 친 입력을 지원하며 Space·문장부호에서 확정합니다. 입력한 조사는 그대로 남기고 자동 교정하지 않습니다. `work`와 `재가`처럼 실제 한글과 겹치는 접두어는 보호하며, 필요한 영어는 개인 사전으로 지정할 수 있습니다. 앱별 입력 검증은 [#101](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/101)에서 추적합니다.
 
 판정 순서·초기 조건의 현재 반영 상태·조사 목록과 범위는 [입력 변환 규칙 모음](docs/input-conversion-rules.md)에 모았습니다. 구현 근거: [EnglishDetector](IMESources/EnglishDetector.swift), [KoreanComposer](IMESources/KoreanComposer.swift), [수동 자판 변환](IMESources/ManualToggle.swift). 영어 사전 구성은 [manifest](dict_work/dict_manifest.tsv)에서 관리하고, 추가 단어는 실제 조합기로 한국어 충돌을 검사합니다.
 
 ### 등록 단어 변환
 
-출시 준비 코드에 **검토한 표기 2,049개**를 등록했습니다(2026-10-14 사전 기준: 기본 2,014개 + 숫자 이름 35개). 과일·과학용어와 `현물 → spot`, `솔리드 → solid`, `글래스 → glass`를 포함하며, 뜻을 검토한 일반 명사62개를 추가했습니다. 새로 검토한 애매한 단어·사람 지칭은 제외하고 `용량` 대신 `저장용량 → storage capacity`처럼 긴 표기를 정확히 등록합니다. **Shift+Space** 또는 설정한 변환 단축키를 누를 때만 동작합니다.
+출시 준비 코드에 **검토한 한글 표기 4,554개 / 고유 영문 결과 4,339개**를 등록했습니다(2026-10-28 사전 기준: 기본 4,519개 + 숫자 별칭 35개). 이번에는 생활·가정·학교·업무·여행 등의 기본 명사 860개를 추가했습니다. `학교 → school`, `식당 → restaurant`, `주방 → kitchen`, `가게 → store`, `장갑 → gloves`, `견적서 → quotation`, `친구 → friend`처럼 정확히 등록한 표기를 **Shift+Space** 또는 설정한 변환 단축키로 바꿉니다. 기존 대응은 보존하고, 서로 다른 일상 뜻이 충돌하는 새 표기와 실제 인명·음악 그룹은 추가하지 않았습니다.
 
 | 입력 | 단축키를 누른 결과 |
 |---|---|
@@ -94,6 +94,8 @@
 | 애니메이션 / 스톱모션 / 영화 / 디스코드 | animation / stop-motion / movie / Discord |
 | 선물 / 선물거래 / 주식 | gift / futures trading / stock |
 | 단어 / 물 / 책상 / 세탁기 | word / water / desk / washing machine |
+| 학교 / 식당 / 주방 / 가게 | school / restaurant / kitchen / store |
+| 장갑 / 견적서 / 친구 / 가족 | gloves / quotation / friend / family |
 | 저장용량 / 메모리용량 | storage capacity / memory capacity |
 
 발음 표기뿐 아니라 `축구 → football` 같은 지정 대응도 정확히 등록한 단어만 지원합니다. 일반 번역이나 문맥 추론은 하지 않습니다. 아트·영상·사운드, 생활·음식·여행, 컴퓨터·AI·게임, 스포츠·브랜드·금융 등의 [범주와 수량](docs/vocabulary-categories.md)를 별도로 관리합니다.
@@ -259,9 +261,9 @@ HaneulKeyboard is a macOS menu bar app and two-set Korean input method, named af
 
 - **Caps Lock:** short press to switch Korean/English, long press for uppercase mode, using macOS input-source switching.
 - **Wrong-layout correction:** type English while in Korean mode, then press Space or punctuation: `메ㅔㅣㄷ` → `apple`. Korean words and jamo expressions are protected, with reviewed context-dependent exceptions.
-- **Shift+Space:** revert the last conversion, convert an exact registered Hangul spelling (`레스토랑` → `restaurant`, `갤럭시24` → `Galaxy24`), or fall back to keyboard-layout mapping. The bundled phonetic dictionary has 2,049 entries (2,014 base entries + 35 numeric aliases; 2026-10-14), including 62 independently reviewed ordinary nouns such as `단어` → `word`, `물` → `water`, and `세탁기` → `washing machine`. New ambiguous or person-denoting candidates were excluded. Capacity terms use exact qualified entries, `저장용량` → `storage capacity` and `메모리용량` → `memory capacity`, rather than inferring the meaning of `용량`. Fruits, science terms, `현물` → `spot`, `솔리드` → `solid`, and `글래스` → `glass` remain supported. Curated mappings also include `축구` → `football`, `미식축구` → `american football`, `라이더` → `rider`, and `시각효과` → `VFX`; additional categories cover animation, cinema, brands, and finance. `선물` always maps to `gift`; `선물거래` maps to `futures trading`. Personal names and music-group names are excluded from the Hangul-to-English mapping dictionary. This is not general translation or automatic name romanization. Plain Space never invokes phonetic conversion. Phonetic conversion has its own on/off setting and uses the configured conversion shortcut.
+- **Shift+Space:** exact registered Hangul spellings map to English with the configured shortcut (Shift+Space by default), and a second press restores the original text. The 2026-10-28 dictionary contains 4,554 Hangul spellings and 4,339 distinct English outputs, including 860 new basic nouns. Examples: `학교` → `school`, `식당` → `restaurant`, `주방` → `kitchen`, `장갑` → `gloves`. Existing mappings and owner-designated meanings are preserved. Common relationship and occupation nouns are included; proper person names and music groups remain excluded. Newly considered ambiguous everyday meanings are deferred. Plain Space does not perform semantic conversion.
 - **Personal dictionary:** add conversion words, block unwanted conversions, and review the last 50 reverted pairs. Stored locally.
-- **Expanded vocabulary:** registered alphanumeric names (`a7r`, `800T`), units (`12mp`, `100ml`, `35mm`), and reviewed art/design terms (`risograph`, `ransomizer`, `surrealism`). Unit conversion is not a measurement calculator.
+- **Expanded vocabulary:** registered alphanumeric names (`a7r`, `800T`), units (`12mp`, `100ml`, `35mm`), and reviewed art/design terms (`risograph`, `ransomizer`, `surrealism`). Unit conversion is not a measurement calculator. English with an attached Korean particle is previewed while composing, including `github밖에`, `github뿐`, `github라도`, and registered alphanumeric names such as `T800에` and `a24에서`. The typed particle and original-text round trip are preserved; particles are not automatically corrected.
 - **Seven-step onboarding:** install, select the input source, practice wrong-layout correction, practice reverting, convert registered Hangul words, try slash English input, and find the menu bar. Paper texture, Korean architectural motifs, and the three selected original characters connect the guide to the new icon. The figures stay at the same size and position across all seven pages, preserving their original body proportions without limb deformation or page-specific scaling.
 - **Slash English input:** enabled by default; type `/help` in Korean mode to enter English immediately, keeping the slash. Ordinary Space, deleting the starting slash, or a closing delimiter `) ] }` resumes Korean composition. The setting is independent of automatic conversion and per-app exclusions.
 - **Conservative English context:** optionally recognize cursor-adjacent English written with another input source and exact combinations of two dictionary words, each at least four letters long. Both options are enabled by default and can be disabled for the next word. Nearby text is not stored. Unregistered misspellings such as `aplle` are left as typed rather than guessed or converted.

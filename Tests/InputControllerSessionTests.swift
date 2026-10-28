@@ -117,6 +117,23 @@ final class ProbeClient: NSObject, IMKTextInput {
         let flags = NSEvent.ModifierFlags(rawValue: key.requiredModifiers.rawValue).union(extras)
         press(c, h, " ", code: 49, flags: flags)
     }
+    // #101: real key codes and Shift information exercise the controller's digit,
+    // two-set jamo, boundary and modifier dispatch rather than a direct composer call.
+    static func typeKeys(_ keys: String, _ c: HaneulInputController, _ h: ProbeClient,
+                         extras: NSEvent.ModifierFlags = []) {
+        let codes: [Character: UInt16] = [
+            "a":0,"s":1,"d":2,"f":3,"h":4,"g":5,"z":6,"x":7,"c":8,"v":9,"b":11,
+            "q":12,"w":13,"e":14,"r":15,"y":16,"t":17,"1":18,"2":19,"3":20,"4":21,
+            "6":22,"5":23,"9":25,"7":26,"8":28,"0":29,"o":31,"u":32,"i":34,"p":35,
+            "l":37,"j":38,"k":40,"n":45,"m":46,
+        ]
+        for key in keys {
+            let lower = Character(String(key).lowercased())
+            guard let code = codes[lower] else { preconditionFailure("unsupported synthetic test key") }
+            let flags = key.isUppercase ? extras.union(.shift) : extras
+            press(c,h,String(key),code:code,flags:flags)
+        }
+    }
     static func typeOriginal(_ c: HaneulInputController, _ h: ProbeClient) {
         for (text, code): (String, UInt16) in [("t",17),("k",40),("r",15),("h",4),("k",40)] { press(c,h,text,code:code) }
     }
@@ -493,6 +510,53 @@ final class ProbeClient: NSObject, IMKTextInput {
             press(c,h,"h",code:4)
             check(h.text.hasPrefix("ㅗ"),"slash_selected_or_forward_delete_korean")
             result("slash_delete_selection_forward_\(forward)",c,h)
+        }
+        // #101: composing and finalized surfaces must share the same original
+        // pair, including UTF-16 offsets after an emoji and persistent CapsLock.
+        let attached: [(String,String)] = [
+            ("github","밖에"),("github","뿐"),("github","라도"),("github","까지라도"),
+            ("T800","에"),("800T","는"),("a24","에서"),("a16z","만"),("a7R","로"),
+        ]
+        for (name,particle) in attached {
+            let keys = name + ManualToggle.hangulToKeys(particle)!
+            let original = ManualToggle.keysToHangul(keys)!
+            for prefix in ["", "앞🙂 "] {
+                for committed in [false,true] {
+                    let (c,h) = fresh(); h.setField(0,text:prefix)
+                    typeKeys(keys,c,h,extras:.capsLock)
+                    check(h.text == prefix + name + particle,"attached_particle_preview_\(name)_\(particle)")
+                    check(h.marked.location != NSNotFound,"attached_particle_still_composing")
+                    if committed { press(c,h," ",code:49,flags:.capsLock) }
+                    let trailing = committed ? " " : ""
+                    check(h.text == prefix + name + particle + trailing,"attached_particle_boundary_surface")
+                    for expected in [original,name + particle,original,name + particle] {
+                        shortcut(c,h,extras:.capsLock)
+                        check(h.text == prefix + expected + trailing,"attached_particle_original_roundtrip_\(name)_\(particle)")
+                    }
+                    check(c.probeComposer.lastEnglishWord == nil,"attached_particle_does_not_start_english_context")
+                    press(c,h," ",code:49,flags:.capsLock)
+                    typeKeys("so",c,h,extras:.capsLock)
+                    press(c,h," ",code:49,flags:.capsLock)
+                    check(h.text.trimmingCharacters(in:.whitespacesAndNewlines).hasSuffix(" 내"),"attached_particle_next_korean_protected_\(name)_\(particle)_\(prefix.isEmpty)_\(committed)")
+                    check(c.probeComposer.lastEnglishWord == nil,"attached_particle_korean_context_after_next_word")
+                    result("attached_particle_\(name)_\(particle)_\(prefix.isEmpty)_\(committed)",c,h)
+                }
+            }
+            for protection in ["global_off","host_off","prefix_block","whole_block"] {
+                let (c,h) = fresh()
+                if protection == "global_off" { probeDefaults.set(false,forKey:"haneul.autoEnglishEnabled") }
+                if protection == "host_off" {
+                    probeDefaults.set(["local.haneul.controller-session-tests"],forKey:AutoConvertPolicy.disabledAppsKey)
+                }
+                if protection == "prefix_block" || protection == "whole_block" {
+                    let blocked = protection == "prefix_block" ? name.lowercased() : keys.lowercased()
+                    probeDefaults.set([blocked],forKey:PersonalDictionary.Keys.block)
+                }
+                typeKeys(keys,c,h)
+                press(c,h," ",code:49)
+                check(h.text == original + " ","attached_particle_protection_\(protection)_\(name)_\(particle)")
+                result("attached_particle_protection_\(protection)_\(name)_\(particle)",c,h)
+            }
         }
         for quote in ["'", "’"] {
             let (c,h) = fresh(); press(c,h,quote,code:39)

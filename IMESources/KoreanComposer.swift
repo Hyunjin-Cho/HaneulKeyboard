@@ -524,6 +524,25 @@ final class KoreanComposer {
         let raw = String(keys)
         let decision = personalDictionary.decision(word: raw, hangul: hangul)
         let mayConvert = convertible && KoreanDictionary.isLoaded
+        // 2026-10-28 (#101): 숫자 등록 이름에도 공통 조사 판정을 사용한다.
+        // 전체 개인 지정·등록 이름은 split에서 보호하고 접두어/단위 금지도 같은 판정에 포함한다.
+        if mayConvert,
+           let particle = EnglishParticleSplitter.split(keys: keys, hangul: hangul,
+                                                        personalDictionary: personalDictionary) {
+            let text: String
+            lastEnglishWord = nil
+            switch particle {
+            case .mixed(let mixed):
+                text = mixed
+                lastConversion = (hangul, mixed)
+            case .preserveHangul:
+                text = hangul
+                lastConversion = nil
+            }
+            client.insertText(text)
+            client.setMarkedText("")
+            return text
+        }
         let quantity = MeasurementUnits.splitQuantity(raw)
         let unitHangul = quantity.map { String(hangul.dropFirst($0.amount.count)) } ?? ""
         // `ml` 또는 `ㅢ` 금지도 `100ml`에 적용한다. 전체 항목과 단위 금지 모두 우선.
