@@ -186,6 +186,42 @@ func runDictionaryProbe(_ wordlistPath: String, _ label: String) -> Bool {
     return output == "true"
 }
 
+// #104 · 2026-10-28: spark is clean Hangul (넴가) but not a Korean headword.
+// Register the exact English word without widening Korean veto or Shift rules.
+func runSparkRegistrationTests() {
+    expect(ManualToggle.keysToHangul("spark") ?? "", "넴가", "spark original two-set composition")
+    expect(KoreanDictionary.contains("넴가"), false, "spark original is not a Korean headword")
+    for keys in ["spark", "Spark", "SPARK", "spArk"] {
+        expect(type(keys).committedText, keys, "spark exact English casing: \(keys)")
+        expect(typeViaController(keys + " ").committedText, keys + " ", "spark active Space: \(keys)")
+    }
+    expect(type("spark", autoEnglish: false).committedText, "넴가", "spark global OFF")
+    expect(typePassive("spark").committedText, "넴가", "spark passive boundary preserves marked text")
+    for blocked in ["spark", "넴가"] {
+        let result = typeWithPersonalDictionary("spark", PersonalDictionary(force: ["spark"], block: [blocked]))
+        expect(result.client.committedText, "넴가", "spark personal block wins: \(blocked)")
+        expect(result.composer.lastConversion == nil, true, "spark blocked conversion has no pair")
+    }
+    // sPark already converts through the existing implausible-syllable path.
+    expect(type("sPark").committedText, "sPark", "spark preserves existing sPark handling")
+    for shifted in ["spaRk"] {
+        expect(type(shifted).committedText, ManualToggle.keysToHangul(shifted)!, "spark meaningful internal Shift protects Korean")
+    }
+    for word in ["학교", "사과", "선반", "세제", "장갑", "넥타이"] {
+        expect(type(ManualToggle.hangulToKeys(word)!).committedText, word, "spark registration preserves Korean: \(word)")
+    }
+    expect(typeWords([ManualToggle.hangulToKeys("오늘")!, "spark"]).last ?? "", "spark", "spark also converts after Korean")
+    expect(type("zqsparkzq").committedText, ManualToggle.keysToHangul("zqsparkzq")!, "spark does not register arbitrary containing strings")
+    for particle in ["에", "밖에"] {
+        expect(type("spark" + ManualToggle.hangulToKeys(particle)!).committedText, "spark" + particle, "spark with supported particle")
+    }
+    let result = typeWithPersonalDictionary("spark", .empty)
+    expect(result.composer.lastConversion?.hangul ?? "", "넴가", "spark stores original Hangul")
+    expect(result.composer.lastConversion?.english ?? "", "spark", "spark stores converted English")
+    expect(KoreanComposer.resolveToggle(before: "spark ", english: "spark", hangul: "넴가", atDocStart: true)?.text ?? "", "넴가", "spark restores original Hangul")
+    expect(KoreanComposer.resolveToggle(before: "넴가 ", english: "spark", hangul: "넴가", atDocStart: true)?.text ?? "", "spark", "spark reapplies saved conversion")
+}
+
 // MARK: - 사전 manifest (review-0712 P3-5)
 
 /// `dict_work/dict_manifest.tsv` 한 줄 — 번들 영어 사전 하나의 계약.
@@ -311,6 +347,8 @@ struct ComposerTests {
             true,
             "kdict: production wordlist"
         )
+
+        runSparkRegistrationTests()
 
         // Hangul composition (regression — must match pre-word-buffer behavior)
         expect(type("dkssud").committedText, "안녕", "basic 안녕")

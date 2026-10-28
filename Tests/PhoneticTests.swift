@@ -7,8 +7,8 @@ func runPhoneticTests() {
         expect(false, true, "발음 사전 로드")
         return
     }
-    expect(dictionary.entries.count, 4526, "발음 사전 입력 표기 수")
-    expect(Set(dictionary.entries.map(\.english)).count, 4314, "발음 사전 영문 출력 수")
+    expect(dictionary.entries.count, 4529, "발음 사전 입력 표기 수")
+    expect(Set(dictionary.entries.map(\.english)).count, 4317, "발음 사전 영문 출력 수")
     expect(dictionary.entries.filter { $0.category == "phone-confirmed" }.count, 29, "확인한 번호 별칭")
     expect(dictionary.entries.filter { $0.category == "phone-reserved" }.count, 6, "다음 3개 번호 별칭")
     for (hangul, english) in ["레스토랑": "restaurant", "라이트": "light", "워크": "work",
@@ -46,14 +46,22 @@ func runPhoneticTests() {
                       "사거리", "문진", "음차", "차단기", "독수리", "교구", "조카"] {
         expect(dictionary.english(for: ambiguous) == nil, true, "새 기본 명사의 다의어 보류: \(ambiguous)")
     }
-    // #100 · 2026-10-28: explicit semantic lookup must not choose one
-    // interpretation of these newly excluded homonyms.
-    for word in ["화장실", "선반", "건조기", "세제", "금고", "장갑", "과도", "대두", "수수", "간장", "전복", "밥", "사탕", "유부", "개미", "서리", "군청", "카페", "상점", "사찰", "리무진", "열기구", "로켓", "차도", "선로", "코", "유리", "직선"] {
+    // #104 · 2026-10-28: 오너가 확정한 일상 대표 뜻만 복원한다.
+    // 일반 Space·조합·NFD·원문 왕복은 아래 사전 전체/신규 배치 검사에도 세 단어를 포함한다.
+    for (word, english) in ["선반": "shelf", "세제": "detergent", "장갑": "gloves"] {
+        expect(dictionary.english(for: word) ?? "", english, "확정한 대표 뜻 복원: \(word)")
+        let selected = ManualToggle.resolve(word: word, phoneticEnabled: true, keyboardEnabled: true,
+                                            dictionary: dictionary)
+        expect(selected?.text ?? "", english, "대표 뜻은 자판 역변환보다 우선: \(word)")
+        expect(selected?.origin == .phonetic, true, "대표 뜻은 등록 단어 변환 출처: \(word)")
+    }
+    // 기존 28개 중 오너가 확정한 세 단어 외의 25개는 보류를 유지한다.
+    for word in ["화장실", "건조기", "금고", "과도", "대두", "수수", "간장", "전복", "밥", "사탕", "유부", "개미", "서리", "군청", "카페", "상점", "사찰", "리무진", "열기구", "로켓", "차도", "선로", "코", "유리", "직선"] {
         expect(dictionary.english(for: word) == nil, true, "새 다의어 의미 조회 제외: \(word)")
         expect(ManualToggle.resolve(word: word, phoneticEnabled: true, keyboardEnabled: false,
                                    dictionary: dictionary) == nil, true, "다의어 뜻 변환 후보 없음: \(word)")
     }
-    for word in ["눈", "장갑", "세제", "선반"] {
+    for word in ["눈"] {
         let keyboard = ManualToggle.resolve(word: word, phoneticEnabled: true, keyboardEnabled: true,
                                             dictionary: dictionary)
         expect(keyboard?.origin == .keyboard, true, "사전 제외와 기존 자판 변환은 별개: \(word)")

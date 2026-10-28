@@ -79,7 +79,7 @@
 
 ### 등록 단어 변환
 
-출시 준비 코드의 뜻 변환 사전에는 **한글 표기 4,526개 / 고유 영문 결과 4,314개**가 있습니다(2026-10-28 빌드101 소스 기준). 빌드100에서 추가한 기본 명사860개 중 서로 다른 영문 뜻이 확인된28개를 제외해 이번 추가분은 832개입니다. `학교 → school`, `식당 → restaurant`, `주방 → kitchen`, `가게 → store`, `견적서 → quotation`, `친구 → friend` 등 정확한 등록 표기만 변환 단축키로 바꿉니다. 이전에 뜻을 지정한 항목의 변경 범위와 사전 뜻 수만으로 제외할지는 별도 확인 중이며, 전체 사전의 다의어 검수가 끝났다는 뜻은 아닙니다.
+출시 준비 코드의 뜻 변환 사전에는 **한글 표기 4,529개 / 고유 영문 결과 4,317개**가 있습니다(2026-10-28 후속 빌드102 소스 기준). 빌드100에서 추가한 기본 명사860개 중 다의어28개를 한 차례 제외한 뒤, 일상 대표 뜻이 확정된 `선반 → shelf`, `세제 → detergent`, `장갑 → gloves` 세 항목을 복원해 이번 추가분은 835개입니다. `학교 → school`, `식당 → restaurant`, `주방 → kitchen`, `가게 → store`, `견적서 → quotation`, `친구 → friend` 등 정확한 등록 표기만 변환 단축키로 바꿉니다. 기존 `배 → pear`, `사과 → apple`, `선물 → gift`도 유지합니다. 나머지25개는 계속 제외하며, 전체 사전의 다의어 검수가 끝났다는 뜻은 아닙니다. 다른 뜻을 고르는 새 후보 선택창은 이번 변경에 포함하지 않았습니다. 개발환경에서는 Developer ID로 서명한 로컬 검증본102의 메인 앱·입력기 설치와 자원 동일성·개인 설정 보존을 확인했습니다. 실제 사용하는 앱에서 물리 키로 입력하는 확인은 남아 있습니다.
 
 | 입력 | 단축키를 누른 결과 |
 |---|---|
@@ -95,6 +95,7 @@
 | 선물 / 선물거래 / 주식 | gift / futures trading / stock |
 | 단어 / 물 / 책상 / 세탁기 | word / water / desk / washing machine |
 | 학교 / 식당 / 주방 / 가게 | school / restaurant / kitchen / store |
+| 선반 / 세제 / 장갑 | shelf / detergent / gloves |
 | 학생 / 견적서 / 친구 / 가족 | student / quotation / friend / family |
 | 저장용량 / 메모리용량 | storage capacity / memory capacity |
 
@@ -261,7 +262,7 @@ HaneulKeyboard is a macOS menu bar app and two-set Korean input method, named af
 
 - **Caps Lock:** short press to switch Korean/English, long press for uppercase mode, using macOS input-source switching.
 - **Wrong-layout correction:** type English while in Korean mode, then press Space or punctuation: `메ㅔㅣㄷ` → `apple`. Korean words and jamo expressions are protected, with reviewed context-dependent exceptions.
-- **Shift+Space:** revert the previous conversion first, look up an exact registered Hangul spelling, or use keyboard-layout mapping if enabled. The build101 source dictionary has 4,526 Hangul spellings and 4,314 distinct English outputs. Of the 860 basic nouns added in build100, 28 confirmed ambiguous spellings were removed, leaving 832 additions. Existing owner-designated mappings are preserved pending scope confirmation. This targeted removal does not claim a complete dictionary-wide ambiguity audit. Plain Space does not perform semantic conversion.
+- **Shift+Space:** revert the previous conversion first, look up an exact registered Hangul spelling, or use keyboard-layout mapping if enabled. The build102 source dictionary has 4,529 Hangul spellings and 4,317 distinct English outputs. After 28 ambiguous entries were removed from the 860 basic nouns added in build100, three owner-confirmed everyday meanings were restored: 선반→shelf, 세제→detergent and 장갑→gloves. This leaves 835 additions and 25 targeted exclusions. Existing 배→pear, 사과→apple and 선물→gift remain unchanged. This targeted decision does not claim a complete dictionary-wide ambiguity audit, and no new alternative-sense selection window is included. Plain Space does not perform semantic conversion. The Developer ID-signed local build102 has been installed, and resource equality and personal-setting preservation were checked. Physical typing in actual host apps remains to be verified.
 - **Personal dictionary:** add conversion words, block unwanted conversions, and review the last 50 reverted pairs. Stored locally.
 - **Expanded vocabulary:** registered alphanumeric names (`a7r`, `800T`), units (`12mp`, `100ml`, `35mm`), and reviewed art/design terms (`risograph`, `ransomizer`, `surrealism`). Unit conversion is not a measurement calculator. English with an attached Korean particle is previewed while composing, including `github밖에`, `github뿐`, `github라도`, and registered alphanumeric names such as `T800에` and `a24에서`. The typed particle and original-text round trip are preserved; particles are not automatically corrected.
 - **Seven-step onboarding:** install, select the input source, practice wrong-layout correction, practice reverting, convert registered Hangul words, try slash English input, and find the menu bar. Paper texture, Korean architectural motifs, and the three selected original characters connect the guide to the new icon. The figures stay at the same size and position across all seven pages, preserving their original body proportions without limb deformation or page-specific scaling.
