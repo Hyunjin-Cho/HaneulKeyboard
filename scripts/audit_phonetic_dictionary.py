@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """2026-10-09 / #84: 발음 사전 수량·중복·번호 범위를 원본 JSON에서 검증한다."""
 import collections
+import csv
 import hashlib
 import json
 from pathlib import Path
@@ -40,6 +41,21 @@ for family, ko, en in [('galaxy', '갤럭시', 'Galaxy'), ('iphone', '아이폰'
             expected_phones[ko + str(number)] = (en + str(number), category)
 actual_phones = {e['hangul']: (e['english'], e['category']) for e in entries if e['category'].startswith('phone-')}
 assert actual_phones == expected_phones, '번호 정책과 실제 사전 불일치'
+
+# #100 · 2026-10-28: 현재 배치의 공개 채택/보류 목록과 제품 사전을 함께 대조한다.
+# 과거 검토 기록은 이력으로 보존하며 현재 배치의 검증 범위를 덮어쓰지 않는다.
+policy = document['nounPolicy']
+with (root / policy['record']).open(encoding='utf-8', newline='') as stream:
+    current_nouns = list(csv.DictReader(stream, delimiter='\t'))
+assert len(current_nouns) == policy['addedEntries'], '명사 채택 목록과 metadata 수량 불일치'
+assert len({r['hangul'] for r in current_nouns}) == len(current_nouns), '명사 채택 목록 중복'
+for row in current_nouns:
+    assert index.get(row['hangul']) == row['english'], ('명사 채택 목록과 제품 대응 불일치', row['hangul'])
+with (root / policy['exclusionRecord']).open(encoding='utf-8', newline='') as stream:
+    held_nouns = list(csv.DictReader(stream, delimiter='\t'))
+assert len({r['hangul'] for r in held_nouns}) == len(held_nouns), '명사 보류 목록 중복'
+assert not ({r['hangul'] for r in held_nouns} & set(index)), '명사 보류 항목이 제품에 포함됨'
+assert set(policy['excludedThisBatch']) <= {r['hangul'] for r in held_nouns}, '주요 보류 예시와 보류 목록 불일치'
 print(json.dumps({
     'reviewedOn': document['reviewedOn'],
     'sha256': hashlib.sha256(data).hexdigest(),

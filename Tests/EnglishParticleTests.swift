@@ -2,6 +2,7 @@ import Foundation
 
 // 실사전 + 실제 조합기/활성 경계/되돌리기 순수 경로. OS IMK 검사는 수동 검사표에 따로 둔다.
 func runEnglishParticleTests() {
+    runExpandedParticleTests()
     func raw(_ english: String, _ particle: String) -> String {
         english + ManualToggle.hangulToKeys(particle)!
     }
@@ -314,4 +315,118 @@ func runEnglishParticleTests() {
     }
     let long = String(repeating: "githubdp", count: 20)
     expect(type(long).committedText, hangul(long), "조사: 긴 입력 spill 뒤 부분 변환 없음")
+}
+
+/// 2026-10-28 (#101): 실제 컨트롤러처럼 숫자를 조합기에 보관한 뒤 조사와 함께 판정한다.
+private func runExpandedParticleTests() {
+    func raw(_ prefix: String, _ particle: String) -> String {
+        prefix + ManualToggle.hangulToKeys(particle)!
+    }
+    func hangul(_ keys: String) -> String { ManualToggle.keysToHangul(keys)! }
+    func live(_ keys: String, dictionary: PersonalDictionary = .empty,
+              enabled: Bool = true) -> (KoreanComposer, FakeClient) {
+        let composer = KoreanComposer(); let client = FakeClient()
+        composer.personalDictionary = dictionary
+        composer.autoEnglishEnabled = enabled
+        for key in keys { typeKeyViaController(key, composer: composer, client: client) }
+        return (composer, client)
+    }
+
+    for particle in ["밖에", "밖에는", "뿐", "뿐만", "뿐만은", "뿐만이라도", "라도", "이라도",
+                     "까지라도", "에서라도", "에게라도", "에서부터라도", "만이라도"] {
+        let keys = raw("github", particle)
+        let (composer, client) = live(keys)
+        expect(client.marked, "github" + particle, "확장 조사 미리보기: \(particle)")
+        expect(composer.commit(to: client, convertEnglish: true), "github" + particle,
+               "확장 조사 확정: \(particle)")
+    }
+
+    for (prefix, particle) in [("T800", "에"), ("800T", "는"), ("a24", "에서"),
+                               ("a16z", "라도"), ("a7R", "뿐"), ("A24", "에서부터는요")] {
+        let keys = raw(prefix, particle)
+        let original = hangul(keys)
+        let expected = prefix + particle
+        let (composer, client) = live(keys)
+        expect(client.marked, expected, "숫자 제품명 조사 미리보기: \(expected)")
+        expect(composer.commit(to: client, convertEnglish: true), expected,
+               "숫자 제품명 조사 확정: \(expected)")
+        expect(composer.lastConversion?.hangul ?? "", original, "숫자 조사 원문 쌍")
+        expect(composer.lastConversion?.english ?? "", expected, "숫자 조사 결과 쌍")
+        expect(composer.lastEnglishWord == nil, true, "숫자 조사 뒤 영어 문맥 차단")
+        expect(KoreanComposer.resolveToggle(before: expected + " ", english: expected,
+            hangul: original, atDocStart: true)?.text ?? "", original, "숫자 조사 확정 뒤 원문 복원")
+        expect(KoreanComposer.resolveToggle(before: original + " ", english: expected,
+            hangul: original, atDocStart: true)?.text ?? "", expected, "숫자 조사 확정 뒤 재적용")
+
+        let (off, offClient) = live(keys, enabled: false)
+        expect(off.commit(to: offClient, convertEnglish: true), original, "숫자 조사 전체 OFF")
+        for block in [prefix.lowercased(), hangul(prefix), keys.lowercased(), original] {
+            let (blocked, sink) = live(keys,
+                dictionary: PersonalDictionary(force: [prefix.lowercased()], block: [block]))
+            expect(sink.marked, original, "숫자 조사 전체/접두어 금지 표시")
+            expect(blocked.commit(to: sink, convertEnglish: true), original, "숫자 조사 금지 우선")
+            expect(blocked.lastConversion == nil, true, "숫자 조사 금지는 원문쌍 없음")
+        }
+        let (whole, wholeClient) = live(keys, dictionary: PersonalDictionary(force: [keys.lowercased()]))
+        expect(wholeClient.marked, original, "숫자 조사 전체 force는 미리보기 분리 금지")
+        expect(whole.commit(to: wholeClient, convertEnglish: true), keys, "숫자 조사 전체 force 우선")
+        let entry = RecentReverts.Entry(hangul: original, english: expected)
+        expect(entry.blockEntry ?? "", original, "숫자 조사 최근 되돌림 금지 키")
+    }
+
+    let customKeys = raw("z9", "에")
+    let (custom, customClient) = live(customKeys, dictionary: PersonalDictionary(force: ["z9"]))
+    expect(customClient.marked, "z9에", "개인 등록 제품명 조사 표시")
+    expect(custom.commit(to: customClient, convertEnglish: true), "z9에", "개인 등록 제품명 조사 확정")
+
+    // 수량만으로는 제품명을 새로 추정하지 않으며 개인 force도 단위 금지를 우회하지 못한다.
+    for prefix in ["100ml", "z9", "123"] {
+        let keys = raw(prefix, "에")
+        let (composer, client) = live(keys)
+        expect(client.committedText + client.marked, hangul(keys), "미등록 숫자 접두어 조사 표시 보존")
+        _ = composer.commit(to: client, convertEnglish: true)
+        if prefix != "123" {
+            expect(client.committedText == prefix + "에", false, "임의 숫자 접두어 조사 추론 없음")
+        }
+    }
+
+    let ambiguousKeys = raw("a24", "에서도")
+    let (ambiguous, ambiguousSink) = live(ambiguousKeys,
+        dictionary: PersonalDictionary(force: ["a24", raw("a24", "에서")]))
+    expect(ambiguousSink.marked, hangul(ambiguousKeys), "숫자 조사 복수 분해는 표시 보류")
+    expect(ambiguous.commit(to: ambiguousSink, convertEnglish: true), hangul(ambiguousKeys),
+           "숫자 조사 복수 분해는 원문 확정")
+
+    // 접두어 판정, 표시, 확정에서 같은 결합 목록을 사용한다.
+    for prefix in ["T800", "a24"] {
+        for particle in EnglishParticleSplitter.particles.sorted() {
+            let keys = raw(prefix, particle)
+            let (composer, client) = live(keys)
+            expect(client.marked, prefix + particle, "등록 숫자 이름 전체 조사 미리보기: \(prefix)+\(particle)")
+            expect(composer.commit(to: client, convertEnglish: true), prefix + particle,
+                   "등록 숫자 이름 전체 조사 확정: \(prefix)+\(particle)")
+        }
+    }
+    for block in ["ml", "ㅢ"] {
+        let keys = raw("100ml", "에")
+        let (composer, client) = live(keys, dictionary: PersonalDictionary(force: ["100ml"], block: [block]))
+        expect(client.marked, hangul(keys), "숫자 조사 개인 추가도 단위 금지 표시 준수")
+        expect(composer.commit(to: client, convertEnglish: true), hangul(keys), "숫자 조사 개인 추가도 단위 금지 준수")
+    }
+
+    let extended = live(raw("a24", "에"))
+    expect(extended.1.marked, "a24에", "숫자 조사 연장 시작")
+    _ = extended.0.handleInput("t", client: extended.1)
+    expect(extended.1.marked, "a24엣", "숫자 조사 연장 중 prefix 전체 유지")
+    _ = extended.0.handleInput("j", client: extended.1)
+    expect(extended.1.marked, "a24에서", "숫자 조사 연장 완성")
+    expect(extended.0.togglePendingParticlePreview(client: extended.1), true, "숫자 조사 조합 중 원문 선택")
+    expect(extended.1.marked, hangul(raw("a24", "에서")), "숫자 조사 조합 중 원문 전체 복원")
+    expect(extended.0.togglePendingParticlePreview(client: extended.1), true, "숫자 조사 조합 중 혼합 재선택")
+    expect(extended.1.marked, "a24에서", "숫자 조사 조합 중 혼합 전체 복원")
+    _ = extended.0.deleteBackward(client: extended.1)
+    expect(extended.1.marked, "a24엣", "숫자 조사 삭제 중 prefix 전체 유지")
+    _ = extended.0.deleteBackward(client: extended.1)
+    expect(extended.1.marked, "a24에", "숫자 조사 삭제 후 짧은 조사")
+    expect(extended.0.commit(to: extended.1), "a24에", "숫자 조사 passive는 표시 그대로")
 }

@@ -7,8 +7,8 @@ func runPhoneticTests() {
         expect(false, true, "발음 사전 로드")
         return
     }
-    expect(dictionary.entries.count, 3694, "발음 사전 입력 표기 수")
-    expect(Set(dictionary.entries.map(\.english)).count, 3564, "발음 사전 영문 출력 수")
+    expect(dictionary.entries.count, 4554, "발음 사전 입력 표기 수")
+    expect(Set(dictionary.entries.map(\.english)).count, 4339, "발음 사전 영문 출력 수")
     expect(dictionary.entries.filter { $0.category == "phone-confirmed" }.count, 29, "확인한 번호 별칭")
     expect(dictionary.entries.filter { $0.category == "phone-reserved" }.count, 6, "다음 3개 번호 별칭")
     for (hangul, english) in ["레스토랑": "restaurant", "라이트": "light", "워크": "work",
@@ -31,6 +31,20 @@ func runPhoneticTests() {
                                "알파": "alpha", "베타": "beta", "감마": "gamma", "원자": "atom",
                                "현물": "spot", "솔리드": "solid", "글래스": "glass", "글라스": "glass"] {
         expect(dictionary.english(for: hangul) ?? "", english, "오너 예시: \(hangul)")
+    }
+    // #100 · 2026-10-28: 기본 명사와 일반 관계/역할은 고유 인명이 아니다.
+    // 실제 사전 조회를 검증하고, 명사 추가가 일반 Space 번역을 켜지는 않는지 아래 전체 경로에서도 검사한다.
+    for (hangul, english) in ["학교": "school", "식당": "restaurant", "가게": "store",
+                               "주방": "kitchen", "장갑": "gloves", "견적서": "quotation",
+                               "가족": "family", "친구": "friend", "부모": "parents",
+                               "학생": "student", "선생님": "teacher", "형제자매": "siblings",
+                               "연구자": "researcher", "성당": "Catholic church",
+                               "경차": "small car", "곱창": "small intestine"] {
+        expect(dictionary.english(for: hangul) ?? "", english, "기본 명사 지정 의미: \(hangul)")
+    }
+    for ambiguous in ["시인", "연구원", "교수", "교사", "지원자", "약사", "일식",
+                      "사거리", "문진", "음차", "차단기", "독수리", "교구", "조카"] {
+        expect(dictionary.english(for: ambiguous) == nil, true, "새 기본 명사의 다의어 보류: \(ambiguous)")
     }
     for word in ["겔럭시", "에플", "레스토런트", "레스토랑에서", "애플은", "맥 스튜디오", "갤럭시024",
                  "갤럭시1", "갤럭시11", "갤럭시19", "갤럭시30", "갤럭시99", "아이폰9", "아이폰10",
@@ -98,7 +112,7 @@ func runPhoneticTests() {
 
     // 2026-10-14: 새 일반 명사는 영어 문맥·설정·개인 금지와 섞어 검사한다.
     // 사전 확장이 문장 추측이나 조사 제거로 번지지 않는지 확인한다.
-    for fixturePath in ["dict_work/2026-10-14-phonetic-common-nouns.tsv", "dict_work/2026-10-18-phonetic-common-nouns.tsv", "dict_work/2026-10-18-phonetic-reviewed-nouns.tsv"] {
+    for fixturePath in ["dict_work/2026-10-14-phonetic-common-nouns.tsv", "dict_work/2026-10-18-phonetic-common-nouns.tsv", "dict_work/2026-10-18-phonetic-reviewed-nouns.tsv", "dict_work/2026-10-28-phonetic-basic-nouns.tsv"] {
         if let nounFixture = try? String(contentsOfFile: fixturePath, encoding: .utf8) {
             for line in nounFixture.split(separator: "\n").dropFirst() {
                 let columns = line.split(separator: "\t", omittingEmptySubsequences: false).map(String.init)

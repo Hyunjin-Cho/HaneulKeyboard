@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "reviewedOn": "2026-10-18",
+  "reviewedOn": "2026-10-28",
   "scope": "Curated exact Korean spellings and explicitly registered meanings. Explicit shortcut only; no fuzzy match or general translation.",
   "entries": [
     {
@@ -22166,6 +22166,5166 @@
       "english": "pop song",
       "category": "creative",
       "subcategory": "audio-music"
+    },
+    {
+      "hangul": "주택",
+      "english": "house",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "아파트",
+      "english": "apartment",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "거실",
+      "english": "living room",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "주방",
+      "english": "kitchen",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "화장실",
+      "english": "restroom",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "다락방",
+      "english": "attic",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "지하실",
+      "english": "basement",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "현관",
+      "english": "entrance",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "베란다",
+      "english": "veranda",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "발코니",
+      "english": "balcony",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "복도",
+      "english": "corridor",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "계단",
+      "english": "stairs",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "지붕",
+      "english": "roof",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "천장",
+      "english": "ceiling",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "벽",
+      "english": "wall",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "대문",
+      "english": "main gate",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "담장",
+      "english": "fence",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "난간",
+      "english": "railing",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "기둥",
+      "english": "pillar",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "콘크리트",
+      "english": "concrete",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "벽지",
+      "english": "wallpaper",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "타일",
+      "english": "tile",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "하수구",
+      "english": "drain",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "배수구",
+      "english": "drain",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "거울",
+      "english": "mirror",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "침대",
+      "english": "bed",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "서랍",
+      "english": "drawer",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "선반",
+      "english": "shelf",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "탁자",
+      "english": "table",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "장롱",
+      "english": "wardrobe",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "이불",
+      "english": "blanket",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "방석",
+      "english": "cushion",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "침낭",
+      "english": "sleeping bag",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "병풍",
+      "english": "folding screen",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "난로",
+      "english": "stove",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "전열기",
+      "english": "electric heater",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "전등",
+      "english": "electric light",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "형광등",
+      "english": "fluorescent lamp",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "전구",
+      "english": "light bulb",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "플러그",
+      "english": "plug",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "건조기",
+      "english": "dryer",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "오븐",
+      "english": "oven",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "전화기",
+      "english": "telephone",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "안테나",
+      "english": "antenna",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "자명종",
+      "english": "alarm clock",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "모래시계",
+      "english": "hourglass",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "양초",
+      "english": "candle",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "방향제",
+      "english": "air freshener",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "세제",
+      "english": "detergent",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "대야",
+      "english": "washbasin",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "고무장갑",
+      "english": "rubber gloves",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "청소솔",
+      "english": "cleaning brush",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "스펀지",
+      "english": "sponge",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "재활용통",
+      "english": "recycling bin",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "면봉",
+      "english": "cotton swab",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "화장품",
+      "english": "cosmetics",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "족집게",
+      "english": "tweezers",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "우편함",
+      "english": "mailbox",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "금고",
+      "english": "safe",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "열쇠",
+      "english": "key",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "안경",
+      "english": "glasses",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "목발",
+      "english": "crutch",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "식기",
+      "english": "tableware",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "물병",
+      "english": "water bottle",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "술병",
+      "english": "liquor bottle",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "꽃병",
+      "english": "vase",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "젖병",
+      "english": "baby bottle",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "받침접시",
+      "english": "saucer",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "과도",
+      "english": "fruit knife",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "주걱",
+      "english": "rice paddle",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "도시락",
+      "english": "lunch box",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "보냉가방",
+      "english": "cooler bag",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "아이스박스",
+      "english": "cooler",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "밀폐용기",
+      "english": "airtight container",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "빨대",
+      "english": "straw",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "비닐랩",
+      "english": "plastic wrap",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "와인오프너",
+      "english": "corkscrew",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "커피필터",
+      "english": "coffee filter",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "쌀",
+      "english": "rice",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "현미",
+      "english": "brown rice",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "백미",
+      "english": "white rice",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "보리",
+      "english": "barley",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "귀리",
+      "english": "oats",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "수수",
+      "english": "sorghum",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "옥수수",
+      "english": "corn",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "메밀",
+      "english": "buckwheat",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "대두",
+      "english": "soybean",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "강낭콩",
+      "english": "kidney bean",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "완두콩",
+      "english": "pea",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "땅콩",
+      "english": "peanut",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "참깨",
+      "english": "sesame",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "들깨",
+      "english": "perilla seed",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "호두",
+      "english": "walnut",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "도토리",
+      "english": "acorn",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "콩가루",
+      "english": "soybean flour",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "빵가루",
+      "english": "breadcrumbs",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "녹말",
+      "english": "starch",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "소금",
+      "english": "salt",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "후추",
+      "english": "pepper",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "간장",
+      "english": "soy sauce",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "된장",
+      "english": "doenjang",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "식초",
+      "english": "vinegar",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "마요네즈",
+      "english": "mayonnaise",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "고추냉이",
+      "english": "wasabi",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "감자",
+      "english": "potato",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "고구마",
+      "english": "sweet potato",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "당근",
+      "english": "carrot",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "양파",
+      "english": "onion",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "생강",
+      "english": "ginger",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "배추",
+      "english": "napa cabbage",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "상추",
+      "english": "lettuce",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "오이",
+      "english": "cucumber",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "피망",
+      "english": "green pepper",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "풋고추",
+      "english": "green chili pepper",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "대파",
+      "english": "green onion",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "실파",
+      "english": "young green onion",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "미나리",
+      "english": "water parsley",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "쑥",
+      "english": "mugwort",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "더덕",
+      "english": "deodeok",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "도라지",
+      "english": "bellflower root",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "고사리",
+      "english": "bracken",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "콩나물",
+      "english": "bean sprout",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "숙주나물",
+      "english": "mung bean sprout",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "아티초크",
+      "english": "artichoke",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "버섯",
+      "english": "mushroom",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "목이버섯",
+      "english": "wood ear mushroom",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "홍시",
+      "english": "soft persimmon",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "대추",
+      "english": "jujube",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "매실",
+      "english": "Japanese apricot",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "유자",
+      "english": "yuja",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "모과",
+      "english": "quince",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "참외",
+      "english": "Korean melon",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "산딸기",
+      "english": "raspberry",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "오디",
+      "english": "mulberry",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "복분자",
+      "english": "Korean black raspberry",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "천도복숭아",
+      "english": "nectarine",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "칠면조고기",
+      "english": "turkey",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "토끼고기",
+      "english": "rabbit meat",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "삼겹살",
+      "english": "pork belly",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "닭다리",
+      "english": "chicken leg",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "곱창",
+      "english": "small intestine",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "햄",
+      "english": "ham",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "육포",
+      "english": "jerky",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "계란",
+      "english": "egg",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "노른자",
+      "english": "egg yolk",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "흰자",
+      "english": "egg white",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "생선",
+      "english": "fish",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "고등어",
+      "english": "mackerel",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "꽁치",
+      "english": "Pacific saury",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "전어",
+      "english": "gizzard shad",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "청어",
+      "english": "herring",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "참치",
+      "english": "tuna",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "연어",
+      "english": "salmon",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "동태",
+      "english": "frozen pollack",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "황태",
+      "english": "dried pollack",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "우럭",
+      "english": "rockfish",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "도미",
+      "english": "sea bream",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "장어",
+      "english": "eel",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "미꾸라지",
+      "english": "loach",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "오징어",
+      "english": "squid",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "낙지",
+      "english": "small octopus",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "새우",
+      "english": "shrimp",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "조개",
+      "english": "clam",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "전복",
+      "english": "abalone",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "미역",
+      "english": "sea mustard",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "톳",
+      "english": "hijiki",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "우유",
+      "english": "milk",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "두유",
+      "english": "soy milk",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "분유",
+      "english": "powdered milk",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "연유",
+      "english": "condensed milk",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "두부",
+      "english": "tofu",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "유부",
+      "english": "fried tofu",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "생수",
+      "english": "bottled water",
+      "category": "everyday",
+      "subcategory": "drink-cafe"
+    },
+    {
+      "hangul": "소주",
+      "english": "soju",
+      "category": "everyday",
+      "subcategory": "drink-cafe"
+    },
+    {
+      "hangul": "코코아",
+      "english": "cocoa",
+      "category": "everyday",
+      "subcategory": "drink-cafe"
+    },
+    {
+      "hangul": "핫초콜릿",
+      "english": "hot chocolate",
+      "category": "everyday",
+      "subcategory": "drink-cafe"
+    },
+    {
+      "hangul": "콜라",
+      "english": "cola",
+      "category": "everyday",
+      "subcategory": "drink-cafe"
+    },
+    {
+      "hangul": "밥",
+      "english": "rice",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "찌개",
+      "english": "jjigae",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "김치",
+      "english": "kimchi",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "깍두기",
+      "english": "kkakdugi",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "김밥",
+      "english": "gimbap",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "주먹밥",
+      "english": "rice ball",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "국밥",
+      "english": "gukbap",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "떡",
+      "english": "rice cake",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "라면",
+      "english": "ramyeon",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "국수",
+      "english": "noodles",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "짬뽕",
+      "english": "jjamppong",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "우동",
+      "english": "udon",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "당면",
+      "english": "glass noodles",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "만두",
+      "english": "mandu",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "파전",
+      "english": "pajeon",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "붕어빵",
+      "english": "fish-shaped bun",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "튀김",
+      "english": "fried food",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "사탕",
+      "english": "candy",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "과자",
+      "english": "snack",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "솜사탕",
+      "english": "cotton candy",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "빙수",
+      "english": "bingsu",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "젤리",
+      "english": "jelly",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "약과",
+      "english": "yakgwa",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "유과",
+      "english": "yugwa",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "강정",
+      "english": "gangjeong",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "하마",
+      "english": "hippopotamus",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "고릴라",
+      "english": "gorilla",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "원숭이",
+      "english": "monkey",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "노루",
+      "english": "roe deer",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "낙타",
+      "english": "camel",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "코알라",
+      "english": "koala",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "다람쥐",
+      "english": "squirrel",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "청설모",
+      "english": "squirrel",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "토끼",
+      "english": "rabbit",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "두더지",
+      "english": "mole",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "박쥐",
+      "english": "bat",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "수달",
+      "english": "otter",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "너구리",
+      "english": "raccoon dog",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "치타",
+      "english": "cheetah",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "흑곰",
+      "english": "black bear",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "염소",
+      "english": "goat",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "당나귀",
+      "english": "donkey",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "물소",
+      "english": "water buffalo",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "황소",
+      "english": "bull",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "참새",
+      "english": "sparrow",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "까치",
+      "english": "magpie",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "까마귀",
+      "english": "crow",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "갈매기",
+      "english": "seagull",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "올빼미",
+      "english": "owl",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "백조",
+      "english": "swan",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "기러기",
+      "english": "wild goose",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "거위",
+      "english": "goose",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "병아리",
+      "english": "chick",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "타조",
+      "english": "ostrich",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "딱따구리",
+      "english": "woodpecker",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "홍학",
+      "english": "flamingo",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "두루미",
+      "english": "crane",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "백로",
+      "english": "egret",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "거북",
+      "english": "turtle",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "악어",
+      "english": "crocodile",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "도마뱀",
+      "english": "lizard",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "뱀",
+      "english": "snake",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "개구리",
+      "english": "frog",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "도롱뇽",
+      "english": "salamander",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "올챙이",
+      "english": "tadpole",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "개미",
+      "english": "ant",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "꿀벌",
+      "english": "honeybee",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "말벌",
+      "english": "wasp",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "나비",
+      "english": "butterfly",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "매미",
+      "english": "cicada",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "귀뚜라미",
+      "english": "cricket",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "메뚜기",
+      "english": "grasshopper",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "무당벌레",
+      "english": "ladybug",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "반딧불이",
+      "english": "firefly",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "사슴벌레",
+      "english": "stag beetle",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "딱정벌레",
+      "english": "beetle",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "모기",
+      "english": "mosquito",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "날파리",
+      "english": "gnat",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "벼룩",
+      "english": "flea",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "빈대",
+      "english": "bedbug",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "거미",
+      "english": "spider",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "전갈",
+      "english": "scorpion",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "달팽이",
+      "english": "snail",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "금붕어",
+      "english": "goldfish",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "잉어",
+      "english": "carp",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "붕어",
+      "english": "crucian carp",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "메기",
+      "english": "catfish",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "상어",
+      "english": "shark",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "고래",
+      "english": "whale",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "바다표범",
+      "english": "seal",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "물개",
+      "english": "fur seal",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "불가사리",
+      "english": "starfish",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "산호",
+      "english": "coral",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "가재",
+      "english": "crayfish",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "잔디",
+      "english": "lawn",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "이끼",
+      "english": "moss",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "버드나무",
+      "english": "willow",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "자작나무",
+      "english": "birch",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "벚나무",
+      "english": "cherry tree",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "사과나무",
+      "english": "apple tree",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "밤나무",
+      "english": "chestnut tree",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "목련",
+      "english": "magnolia",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "철쭉",
+      "english": "royal azalea",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "개나리",
+      "english": "forsythia",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "무궁화",
+      "english": "rose of Sharon",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "수선화",
+      "english": "daffodil",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "난초",
+      "english": "orchid",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "제비꽃",
+      "english": "violet",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "봉선화",
+      "english": "balsam",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "코스모스",
+      "english": "cosmos",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "히아신스",
+      "english": "hyacinth",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "수국",
+      "english": "hydrangea",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "동백꽃",
+      "english": "camellia",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "매화",
+      "english": "Japanese apricot blossom",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "패랭이꽃",
+      "english": "Chinese pink",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "들국화",
+      "english": "wild chrysanthemum",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "꽃잎",
+      "english": "petal",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "꽃가루",
+      "english": "pollen",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "줄기",
+      "english": "stem",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "뿌리",
+      "english": "root",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "씨앗",
+      "english": "seed",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "열매",
+      "english": "fruit",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "새싹",
+      "english": "sprout",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "나이테",
+      "english": "annual ring",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "언덕",
+      "english": "hill",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "계곡",
+      "english": "valley",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "절벽",
+      "english": "cliff",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "바위",
+      "english": "rock",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "돌",
+      "english": "stone",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "자갈",
+      "english": "gravel",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "진흙",
+      "english": "mud",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "흙",
+      "english": "soil",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "화산",
+      "english": "volcano",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "용암",
+      "english": "lava",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "사막",
+      "english": "desert",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "오아시스",
+      "english": "oasis",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "초원",
+      "english": "grassland",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "습지",
+      "english": "wetland",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "개울",
+      "english": "stream",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "하천",
+      "english": "stream",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "호수",
+      "english": "lake",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "연못",
+      "english": "pond",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "바다",
+      "english": "sea",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "대양",
+      "english": "ocean",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "섬",
+      "english": "island",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "반도",
+      "english": "peninsula",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "군도",
+      "english": "archipelago",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "해안",
+      "english": "coast",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "산호초",
+      "english": "coral reef",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "파도",
+      "english": "wave",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "빙하",
+      "english": "glacier",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "빙산",
+      "english": "iceberg",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "얼음",
+      "english": "ice",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "서리",
+      "english": "frost",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "이슬",
+      "english": "dew",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "안개",
+      "english": "fog",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "비바람",
+      "english": "rainstorm",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "장마",
+      "english": "rainy season",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "이슬비",
+      "english": "drizzle",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "폭설",
+      "english": "heavy snow",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "우박",
+      "english": "hail",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "천둥",
+      "english": "thunder",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "태풍",
+      "english": "typhoon",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "회오리바람",
+      "english": "whirlwind",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "강풍",
+      "english": "strong wind",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "폭풍",
+      "english": "storm",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "황사",
+      "english": "yellow dust",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "홍수",
+      "english": "flood",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "지진",
+      "english": "earthquake",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "일출",
+      "english": "sunrise",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "일몰",
+      "english": "sunset",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "햇빛",
+      "english": "sunlight",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "햇살",
+      "english": "sunshine",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "태양",
+      "english": "sun",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "행성",
+      "english": "planet",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "위성",
+      "english": "satellite",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "혜성",
+      "english": "comet",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "운석",
+      "english": "meteorite",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "은하",
+      "english": "galaxy",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "은하수",
+      "english": "Milky Way",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "성운",
+      "english": "nebula",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "보름달",
+      "english": "full moon",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "반달",
+      "english": "half moon",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "지구",
+      "english": "Earth",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "목성",
+      "english": "Jupiter",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "학교",
+      "english": "school",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "중학교",
+      "english": "middle school",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "대학교",
+      "english": "university",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "대학",
+      "english": "college",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "학원",
+      "english": "private academy",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "교실",
+      "english": "classroom",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "강당",
+      "english": "auditorium",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "분실물보관소",
+      "english": "lost and found",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "파출소",
+      "english": "police substation",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "구청",
+      "english": "district office",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "군청",
+      "english": "county office",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "법원",
+      "english": "court",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "영사관",
+      "english": "consulate",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "세관",
+      "english": "customs office",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "약방",
+      "english": "drugstore",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "식당",
+      "english": "restaurant",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "카페",
+      "english": "cafe",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "편의점",
+      "english": "convenience store",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "상점",
+      "english": "shop",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "가게",
+      "english": "store",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "서점",
+      "english": "bookstore",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "충전소",
+      "english": "charging station",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "정비소",
+      "english": "repair shop",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "공장",
+      "english": "factory",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "창고",
+      "english": "warehouse",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "농장",
+      "english": "farm",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "목장",
+      "english": "ranch",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "온실",
+      "english": "greenhouse",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "유원지",
+      "english": "amusement park",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "놀이터",
+      "english": "playground",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "공원",
+      "english": "park",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "광장",
+      "english": "square",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "성당",
+      "english": "Catholic church",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "교회",
+      "english": "church",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "사찰",
+      "english": "Buddhist temple",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "궁전",
+      "english": "palace",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "성곽",
+      "english": "fortress wall",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "영화관",
+      "english": "movie theater",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "경차",
+      "english": "small car",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "승합차",
+      "english": "van",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "리무진",
+      "english": "limousine",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "견인차",
+      "english": "tow truck",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "택배차",
+      "english": "delivery truck",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "이삿짐차",
+      "english": "moving van",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "기차",
+      "english": "train",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "열차",
+      "english": "train",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "기관차",
+      "english": "locomotive",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "지하철",
+      "english": "subway",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "비행기",
+      "english": "airplane",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "전투기",
+      "english": "fighter jet",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "열기구",
+      "english": "hot-air balloon",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "비행선",
+      "english": "airship",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "드론",
+      "english": "drone",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "로켓",
+      "english": "rocket",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "선박",
+      "english": "ship",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "어선",
+      "english": "fishing boat",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "돛단배",
+      "english": "sailboat",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "나룻배",
+      "english": "ferryboat",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "군함",
+      "english": "warship",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "잠수정",
+      "english": "submersible",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "보트",
+      "english": "boat",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "트랙터",
+      "english": "tractor",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "경운기",
+      "english": "power tiller",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "증기롤러",
+      "english": "steamroller",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "지게",
+      "english": "carrying frame",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "수레",
+      "english": "cart",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "유모차",
+      "english": "stroller",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "썰매",
+      "english": "sled",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "도로",
+      "english": "road",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "차도",
+      "english": "roadway",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "삼거리",
+      "english": "three-way intersection",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "육교",
+      "english": "pedestrian overpass",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "터널",
+      "english": "tunnel",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "철교",
+      "english": "railroad bridge",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "선로",
+      "english": "railroad track",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "정거장",
+      "english": "station",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "정류장",
+      "english": "stop",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "버스정류장",
+      "english": "bus stop",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "항구",
+      "english": "port",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "부두",
+      "english": "pier",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "등대",
+      "english": "lighthouse",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "조선소",
+      "english": "shipyard",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "신호등",
+      "english": "traffic light",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "가로등",
+      "english": "streetlight",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "이정표",
+      "english": "signpost",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "안전벨트",
+      "english": "seat belt",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "운전대",
+      "english": "steering wheel",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "와이퍼",
+      "english": "windshield wiper",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "앞유리",
+      "english": "windshield",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "번호판",
+      "english": "license plate",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "범퍼",
+      "english": "bumper",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "브레이크페달",
+      "english": "brake pedal",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "인체",
+      "english": "human body",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "신체",
+      "english": "body",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "피부",
+      "english": "skin",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "뼈",
+      "english": "bone",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "두개골",
+      "english": "skull",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "척추",
+      "english": "spine",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "쇄골",
+      "english": "collarbone",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "얼굴",
+      "english": "face",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "이마",
+      "english": "forehead",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "눈썹",
+      "english": "eyebrow",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "각막",
+      "english": "cornea",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "망막",
+      "english": "retina",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "동공",
+      "english": "pupil",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "고막",
+      "english": "eardrum",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "코",
+      "english": "nose",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "콧구멍",
+      "english": "nostril",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "입술",
+      "english": "lip",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "치아",
+      "english": "tooth",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "송곳니",
+      "english": "canine tooth",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "성대",
+      "english": "vocal cord",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "식도",
+      "english": "esophagus",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "기관지",
+      "english": "bronchus",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "폐",
+      "english": "lung",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "심장",
+      "english": "heart",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "쓸개",
+      "english": "gallbladder",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "콩팥",
+      "english": "kidney",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "방광",
+      "english": "bladder",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "항문",
+      "english": "anus",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "동맥",
+      "english": "artery",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "정맥",
+      "english": "vein",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "뇌",
+      "english": "brain",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "소뇌",
+      "english": "cerebellum",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "척수",
+      "english": "spinal cord",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "바이러스",
+      "english": "virus",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "기생충",
+      "english": "parasite",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "광합성",
+      "english": "photosynthesis",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "석유",
+      "english": "petroleum",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "유리",
+      "english": "glass",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "자석",
+      "english": "magnet",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "도르래",
+      "english": "pulley",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "저울",
+      "english": "scale",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "시험관",
+      "english": "test tube",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "프리즘",
+      "english": "prism",
+      "category": "science",
+      "subcategory": "physics-chemistry"
+    },
+    {
+      "hangul": "직선",
+      "english": "straight line",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "부피",
+      "english": "volume",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "길이",
+      "english": "length",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "높이",
+      "english": "height",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "평균",
+      "english": "average",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "교과서",
+      "english": "textbook",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "참고서",
+      "english": "reference book",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "연습장",
+      "english": "exercise book",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "일기장",
+      "english": "diary",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "주소록",
+      "english": "address book",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "시간표",
+      "english": "timetable",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "신문",
+      "english": "newspaper",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "팸플릿",
+      "english": "pamphlet",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "카탈로그",
+      "english": "catalog",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "한지",
+      "english": "Korean paper",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "원고지",
+      "english": "manuscript paper",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "복사지",
+      "english": "copy paper",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "붓펜",
+      "english": "brush pen",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "물감",
+      "english": "paint",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "분필",
+      "english": "chalk",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "수정액",
+      "english": "correction fluid",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "수정테이프",
+      "english": "correction tape",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "스티커",
+      "english": "sticker",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "고무줄",
+      "english": "rubber band",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "책받침",
+      "english": "writing board",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "책상매트",
+      "english": "desk mat",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "문구용가위",
+      "english": "scissors",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "바인더",
+      "english": "binder",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "클립보드",
+      "english": "clipboard",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "인주",
+      "english": "stamp pad",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "한글",
+      "english": "Hangul",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "영어",
+      "english": "English",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "러시아어",
+      "english": "Russian",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "음절",
+      "english": "syllable",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "형태소",
+      "english": "morpheme",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "음소",
+      "english": "phoneme",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "구두점",
+      "english": "punctuation",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "마침표",
+      "english": "period",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "쉼표",
+      "english": "comma",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "물음표",
+      "english": "question mark",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "느낌표",
+      "english": "exclamation mark",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "괄호",
+      "english": "parenthesis",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "소괄호",
+      "english": "parenthesis",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "대괄호",
+      "english": "square bracket",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "중괄호",
+      "english": "curly bracket",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "붙임표",
+      "english": "hyphen",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "빗금",
+      "english": "slash",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "역슬래시",
+      "english": "backslash",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "모자",
+      "english": "hat",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "장갑",
+      "english": "gloves",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "우주복",
+      "english": "spacesuit",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "내복",
+      "english": "thermal underwear",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "속옷",
+      "english": "underwear",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "양복",
+      "english": "suit",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "정장",
+      "english": "formal wear",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "저고리",
+      "english": "jeogori",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "치마저고리",
+      "english": "chima jeogori",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "교복",
+      "english": "school uniform",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "털모자",
+      "english": "woolen hat",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "귀마개",
+      "english": "earmuffs",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "나비넥타이",
+      "english": "bow tie",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "벨트",
+      "english": "belt",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "허리띠",
+      "english": "belt",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "멜빵",
+      "english": "suspenders",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "스타킹",
+      "english": "stockings",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "타이츠",
+      "english": "tights",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "레깅스",
+      "english": "leggings",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "하이힐",
+      "english": "high heels",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "단화",
+      "english": "flat shoes",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "군화",
+      "english": "military boots",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "작업화",
+      "english": "work shoes",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "덧신",
+      "english": "overshoes",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "실내화",
+      "english": "indoor shoes",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "고글",
+      "english": "goggles",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "가방",
+      "english": "bag",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "배낭",
+      "english": "backpack",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "책가방",
+      "english": "schoolbag",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "지갑",
+      "english": "wallet",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "목걸이",
+      "english": "necklace",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "귀걸이",
+      "english": "earring",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "팔찌",
+      "english": "bracelet",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "발찌",
+      "english": "anklet",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "브로치",
+      "english": "brooch",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "왕관",
+      "english": "crown",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "보석",
+      "english": "jewel",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "진주",
+      "english": "pearl",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "루비",
+      "english": "ruby",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "오팔",
+      "english": "opal",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "바늘",
+      "english": "needle",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "골무",
+      "english": "thimble",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "뜨개질",
+      "english": "knitting",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "모시",
+      "english": "ramie fabric",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "가죽",
+      "english": "leather",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "망치",
+      "english": "hammer",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "장도리",
+      "english": "claw hammer",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "끌",
+      "english": "chisel",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "사포",
+      "english": "sandpaper",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "와셔",
+      "english": "washer",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "사다리",
+      "english": "ladder",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "발판사다리",
+      "english": "stepladder",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "대못",
+      "english": "large nail",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "철사",
+      "english": "wire",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "철판",
+      "english": "steel plate",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "쇠사슬",
+      "english": "chain",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "로프",
+      "english": "rope",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "삽",
+      "english": "shovel",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "호미",
+      "english": "hand hoe",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "낫",
+      "english": "sickle",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "곡괭이",
+      "english": "pickaxe",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "물뿌리개",
+      "english": "watering can",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "분무기",
+      "english": "sprayer",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "정원가위",
+      "english": "pruning shears",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "퇴비",
+      "english": "compost",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "묘목",
+      "english": "sapling",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "더블베이스",
+      "english": "double bass",
+      "category": "creative",
+      "subcategory": "audio-music"
+    },
+    {
+      "hangul": "일렉트릭기타",
+      "english": "electric guitar",
+      "category": "creative",
+      "subcategory": "audio-music"
+    },
+    {
+      "hangul": "하프",
+      "english": "harp",
+      "category": "creative",
+      "subcategory": "audio-music"
+    },
+    {
+      "hangul": "튜바",
+      "english": "tuba",
+      "category": "creative",
+      "subcategory": "audio-music"
+    },
+    {
+      "hangul": "오르간",
+      "english": "organ",
+      "category": "creative",
+      "subcategory": "audio-music"
+    },
+    {
+      "hangul": "트라이앵글",
+      "english": "triangle",
+      "category": "creative",
+      "subcategory": "audio-music"
+    },
+    {
+      "hangul": "봉고",
+      "english": "bongo",
+      "category": "creative",
+      "subcategory": "audio-music"
+    },
+    {
+      "hangul": "콩가",
+      "english": "conga",
+      "category": "creative",
+      "subcategory": "audio-music"
+    },
+    {
+      "hangul": "장구",
+      "english": "janggu",
+      "category": "creative",
+      "subcategory": "audio-music"
+    },
+    {
+      "hangul": "해금",
+      "english": "haegeum",
+      "category": "creative",
+      "subcategory": "audio-music"
+    },
+    {
+      "hangul": "백파이프",
+      "english": "bagpipe",
+      "category": "creative",
+      "subcategory": "audio-music"
+    },
+    {
+      "hangul": "디저리두",
+      "english": "didgeridoo",
+      "category": "creative",
+      "subcategory": "audio-music"
+    },
+    {
+      "hangul": "악보",
+      "english": "sheet music",
+      "category": "creative",
+      "subcategory": "audio-music"
+    },
+    {
+      "hangul": "악기",
+      "english": "musical instrument",
+      "category": "creative",
+      "subcategory": "audio-music"
+    },
+    {
+      "hangul": "유선키보드",
+      "english": "wired keyboard",
+      "category": "computing",
+      "subcategory": "hardware-network"
+    },
+    {
+      "hangul": "게임패드",
+      "english": "gamepad",
+      "category": "computing",
+      "subcategory": "hardware-network"
+    },
+    {
+      "hangul": "복사기",
+      "english": "photocopier",
+      "category": "computing",
+      "subcategory": "hardware-network"
+    },
+    {
+      "hangul": "삼차원프린터",
+      "english": "3D printer",
+      "category": "computing",
+      "subcategory": "hardware-network"
+    },
+    {
+      "hangul": "전자사전",
+      "english": "electronic dictionary",
+      "category": "computing",
+      "subcategory": "hardware-network"
+    },
+    {
+      "hangul": "전자계산기",
+      "english": "electronic calculator",
+      "category": "computing",
+      "subcategory": "hardware-network"
+    },
+    {
+      "hangul": "전자책단말기",
+      "english": "e-reader",
+      "category": "computing",
+      "subcategory": "hardware-network"
+    },
+    {
+      "hangul": "공유기",
+      "english": "router",
+      "category": "computing",
+      "subcategory": "hardware-network"
+    },
+    {
+      "hangul": "통신망",
+      "english": "communication network",
+      "category": "computing",
+      "subcategory": "hardware-network"
+    },
+    {
+      "hangul": "랜케이블",
+      "english": "LAN cable",
+      "category": "computing",
+      "subcategory": "hardware-network"
+    },
+    {
+      "hangul": "전원케이블",
+      "english": "power cable",
+      "category": "computing",
+      "subcategory": "hardware-network"
+    },
+    {
+      "hangul": "입력장치",
+      "english": "input device",
+      "category": "computing",
+      "subcategory": "hardware-network"
+    },
+    {
+      "hangul": "트랜지스터",
+      "english": "transistor",
+      "category": "computing",
+      "subcategory": "hardware-network"
+    },
+    {
+      "hangul": "보이스레코더",
+      "english": "voice recorder",
+      "category": "computing",
+      "subcategory": "hardware-network"
+    },
+    {
+      "hangul": "기쁨",
+      "english": "joy",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "이해관계",
+      "english": "interests",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "출입국",
+      "english": "immigration",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "발톱",
+      "english": "toenail",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "국내선",
+      "english": "domestic flight",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "국제선",
+      "english": "international flight",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "가족",
+      "english": "family",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "친구",
+      "english": "friend",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "부모",
+      "english": "parents",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "부모님",
+      "english": "parents",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "아버지",
+      "english": "father",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "어머니",
+      "english": "mother",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "아빠",
+      "english": "dad",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "엄마",
+      "english": "mom",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "할아버지",
+      "english": "grandfather",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "할머니",
+      "english": "grandmother",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "아들",
+      "english": "son",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "딸",
+      "english": "daughter",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "자매",
+      "english": "sisters",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "남매",
+      "english": "brother and sister",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "오빠",
+      "english": "older brother",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "누나",
+      "english": "older sister",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "언니",
+      "english": "older sister",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "동생",
+      "english": "younger sibling",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "남동생",
+      "english": "younger brother",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "여동생",
+      "english": "younger sister",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "남편",
+      "english": "husband",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "아내",
+      "english": "wife",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "배우자",
+      "english": "spouse",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "부부",
+      "english": "married couple",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "친척",
+      "english": "relative",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "사촌",
+      "english": "cousin",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "삼촌",
+      "english": "uncle",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "이모",
+      "english": "maternal aunt",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "고모",
+      "english": "paternal aunt",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "손자",
+      "english": "grandson",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "손녀",
+      "english": "granddaughter",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "이웃",
+      "english": "neighbor",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "동료",
+      "english": "colleague",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "직원",
+      "english": "employee",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "학생",
+      "english": "student",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "선생님",
+      "english": "teacher",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "학부모",
+      "english": "parent",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "유치원생",
+      "english": "kindergartener",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "초등학생",
+      "english": "elementary school student",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "중학생",
+      "english": "middle school student",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "고등학생",
+      "english": "high school student",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "대학생",
+      "english": "university student",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "대학원생",
+      "english": "graduate student",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "졸업생",
+      "english": "graduate",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "간호사",
+      "english": "nurse",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "치과의사",
+      "english": "dentist",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "수의사",
+      "english": "veterinarian",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "소방관",
+      "english": "firefighter",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "경찰관",
+      "english": "police officer",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "공무원",
+      "english": "civil servant",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "요리사",
+      "english": "cook",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "미용사",
+      "english": "hairdresser",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "변호사",
+      "english": "lawyer",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "회계사",
+      "english": "accountant",
+      "category": "finance",
+      "subcategory": "economy-accounting"
+    },
+    {
+      "hangul": "사업가",
+      "english": "entrepreneur",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "판매원",
+      "english": "salesperson",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "점원",
+      "english": "shop assistant",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "운전기사",
+      "english": "driver",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "택시기사",
+      "english": "taxi driver",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "버스기사",
+      "english": "bus driver",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "택배기사",
+      "english": "courier",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "번역가",
+      "english": "translator",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "통역사",
+      "english": "interpreter",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "과학자",
+      "english": "scientist",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "작가",
+      "english": "writer",
+      "category": "creative",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "소설가",
+      "english": "novelist",
+      "category": "creative",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "화가",
+      "english": "painter",
+      "category": "creative",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "조각가",
+      "english": "sculptor",
+      "category": "creative",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "사진가",
+      "english": "photographer",
+      "category": "creative",
+      "subcategory": "camera-light"
+    },
+    {
+      "hangul": "사진작가",
+      "english": "photographer",
+      "category": "creative",
+      "subcategory": "camera-light"
+    },
+    {
+      "hangul": "촬영기사",
+      "english": "camera operator",
+      "category": "creative",
+      "subcategory": "camera-light"
+    },
+    {
+      "hangul": "편집자",
+      "english": "editor",
+      "category": "creative",
+      "subcategory": "edit-color"
+    },
+    {
+      "hangul": "음향기사",
+      "english": "sound engineer",
+      "category": "creative",
+      "subcategory": "audio-music"
+    },
+    {
+      "hangul": "작곡가",
+      "english": "composer",
+      "category": "creative",
+      "subcategory": "audio-music"
+    },
+    {
+      "hangul": "연주자",
+      "english": "instrumentalist",
+      "category": "creative",
+      "subcategory": "audio-music"
+    },
+    {
+      "hangul": "가수",
+      "english": "singer",
+      "category": "creative",
+      "subcategory": "audio-music"
+    },
+    {
+      "hangul": "무용가",
+      "english": "dancer",
+      "category": "creative",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "발표자",
+      "english": "presenter",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "참가자",
+      "english": "participant",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "신청자",
+      "english": "applicant",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "고객",
+      "english": "customer",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "방문객",
+      "english": "visitor",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "관광객",
+      "english": "tourist",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "여행객",
+      "english": "traveler",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "승객",
+      "english": "passenger",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "보행자",
+      "english": "pedestrian",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "관객",
+      "english": "audience",
+      "category": "creative",
+      "subcategory": "film"
+    },
+    {
+      "hangul": "시청자",
+      "english": "viewer",
+      "category": "creative",
+      "subcategory": "film"
+    },
+    {
+      "hangul": "청취자",
+      "english": "listener",
+      "category": "creative",
+      "subcategory": "audio-music"
+    },
+    {
+      "hangul": "제작자",
+      "english": "producer",
+      "category": "creative",
+      "subcategory": "film"
+    },
+    {
+      "hangul": "근로자",
+      "english": "worker",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "자원봉사자",
+      "english": "volunteer",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "견적서",
+      "english": "quotation",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "계약서",
+      "english": "contract",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "자기소개서",
+      "english": "personal statement",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "동의서",
+      "english": "consent form",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "확인서",
+      "english": "confirmation letter",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "증명서",
+      "english": "certificate",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "진단서",
+      "english": "medical certificate",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "처방전",
+      "english": "prescription",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "청구서",
+      "english": "invoice",
+      "category": "finance",
+      "subcategory": "banking"
+    },
+    {
+      "hangul": "명세서",
+      "english": "statement",
+      "category": "finance",
+      "subcategory": "banking"
+    },
+    {
+      "hangul": "거래명세서",
+      "english": "transaction statement",
+      "category": "finance",
+      "subcategory": "banking"
+    },
+    {
+      "hangul": "세금계산서",
+      "english": "tax invoice",
+      "category": "finance",
+      "subcategory": "economy-accounting"
+    },
+    {
+      "hangul": "지출결의서",
+      "english": "expense approval form",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "기획서",
+      "english": "proposal",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "제안서",
+      "english": "proposal",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "회의록",
+      "english": "meeting minutes",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "의사록",
+      "english": "minutes",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "성적증명서",
+      "english": "academic transcript",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "재학증명서",
+      "english": "certificate of enrollment",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "졸업증명서",
+      "english": "graduation certificate",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "전문대학",
+      "english": "junior college",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "독서실",
+      "english": "study room",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "자습실",
+      "english": "self-study room",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "어학원",
+      "english": "language school",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "미술실",
+      "english": "art room",
+      "category": "creative",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "음악실",
+      "english": "music room",
+      "category": "creative",
+      "subcategory": "audio-music"
+    },
+    {
+      "hangul": "전시관",
+      "english": "exhibition hall",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "연습실",
+      "english": "practice room",
+      "category": "creative",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "녹음실",
+      "english": "recording studio",
+      "category": "creative",
+      "subcategory": "audio-music"
+    },
+    {
+      "hangul": "편집실",
+      "english": "editing room",
+      "category": "creative",
+      "subcategory": "edit-color"
+    },
+    {
+      "hangul": "분장실",
+      "english": "dressing room",
+      "category": "creative",
+      "subcategory": "film"
+    },
+    {
+      "hangul": "탕비실",
+      "english": "office pantry",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "세탁실",
+      "english": "laundry room",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "청소도구",
+      "english": "cleaning supplies",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "세면도구",
+      "english": "toiletries",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "필기도구",
+      "english": "writing instruments",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "문구류",
+      "english": "stationery",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "식탁의자",
+      "english": "dining chair",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "책상의자",
+      "english": "desk chair",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "이불커버",
+      "english": "duvet cover",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "베개커버",
+      "english": "pillowcase",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "수건걸이",
+      "english": "towel rack",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "휴지걸이",
+      "english": "toilet paper holder",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "린스",
+      "english": "hair conditioner",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "보디워시",
+      "english": "body wash",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "자외선차단제",
+      "english": "sunscreen",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "손소독제",
+      "english": "hand sanitizer",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "갑티슈",
+      "english": "facial tissues",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "두루마리휴지",
+      "english": "toilet paper",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "향신료",
+      "english": "spice",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "식재료",
+      "english": "ingredient",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "생필품",
+      "english": "daily necessities",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "주방용품",
+      "english": "kitchenware",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "수납장",
+      "english": "storage cabinet",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "세탁물",
+      "english": "laundry",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "빨래",
+      "english": "laundry",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "승차권",
+      "english": "ticket",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "승선권",
+      "english": "boarding ticket",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "예약확인서",
+      "english": "booking confirmation",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "짐보관소",
+      "english": "luggage storage",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "수하물보관소",
+      "english": "luggage storage",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "분실물센터",
+      "english": "lost and found",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "대합실",
+      "english": "waiting room",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "국제공항",
+      "english": "international airport",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "여객터미널",
+      "english": "passenger terminal",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "휴게소",
+      "english": "rest area",
+      "category": "mobility",
+      "subcategory": "motor-transport"
+    },
+    {
+      "hangul": "관광안내소",
+      "english": "tourist information center",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "숙박시설",
+      "english": "accommodation",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "객실",
+      "english": "guest room",
+      "category": "everyday",
+      "subcategory": "travel"
+    },
+    {
+      "hangul": "조식",
+      "english": "breakfast",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "석식",
+      "english": "dinner",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "아침식사",
+      "english": "breakfast",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "점심식사",
+      "english": "lunch",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "저녁식사",
+      "english": "dinner",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "간식",
+      "english": "snack",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "야식",
+      "english": "late-night snack",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "식사",
+      "english": "meal",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "후식",
+      "english": "dessert",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "식단",
+      "english": "meal plan",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "메뉴판",
+      "english": "menu",
+      "category": "everyday",
+      "subcategory": "food"
+    },
+    {
+      "hangul": "쓰레기봉투",
+      "english": "garbage bag",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "종량제봉투",
+      "english": "official garbage bag",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "우편번호",
+      "english": "postal code",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "전자우편",
+      "english": "email",
+      "category": "computing",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "첨부파일",
+      "english": "attachment",
+      "category": "computing",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "전자문서",
+      "english": "electronic document",
+      "category": "computing",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "문서파일",
+      "english": "document file",
+      "category": "computing",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "공유폴더",
+      "english": "shared folder",
+      "category": "computing",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "파일이름",
+      "english": "filename",
+      "category": "computing",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "파일명",
+      "english": "filename",
+      "category": "computing",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "바탕화면",
+      "english": "desktop",
+      "category": "computing",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "사용설명서",
+      "english": "user manual",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "업무일지",
+      "english": "work log",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "근무표",
+      "english": "work schedule",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "근로계약서",
+      "english": "employment contract",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "재직증명서",
+      "english": "employment certificate",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "급여명세서",
+      "english": "pay slip",
+      "category": "finance",
+      "subcategory": "banking"
+    },
+    {
+      "hangul": "급여",
+      "english": "salary",
+      "category": "finance",
+      "subcategory": "banking"
+    },
+    {
+      "hangul": "연봉",
+      "english": "annual salary",
+      "category": "finance",
+      "subcategory": "banking"
+    },
+    {
+      "hangul": "시급",
+      "english": "hourly wage",
+      "category": "finance",
+      "subcategory": "banking"
+    },
+    {
+      "hangul": "수당",
+      "english": "allowance",
+      "category": "finance",
+      "subcategory": "banking"
+    },
+    {
+      "hangul": "연차휴가",
+      "english": "annual leave",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "유급휴가",
+      "english": "paid leave",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "무급휴가",
+      "english": "unpaid leave",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "병가",
+      "english": "sick leave",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "육아휴직",
+      "english": "parental leave",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "출산휴가",
+      "english": "maternity leave",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "근무시간",
+      "english": "working hours",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "사원증",
+      "english": "employee ID",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "명함",
+      "english": "business card",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "상호명",
+      "english": "business name",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "사업자등록증",
+      "english": "business registration certificate",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "사업자등록번호",
+      "english": "business registration number",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "형제자매",
+      "english": "siblings",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "남자조카",
+      "english": "nephew",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "여자조카",
+      "english": "niece",
+      "category": "everyday",
+      "subcategory": "general"
+    },
+    {
+      "hangul": "연구자",
+      "english": "researcher",
+      "category": "science",
+      "subcategory": "math-biology"
+    },
+    {
+      "hangul": "반지",
+      "english": "ring",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
+    },
+    {
+      "hangul": "수신기",
+      "english": "receiver",
+      "category": "computing",
+      "subcategory": "hardware-network"
+    },
+    {
+      "hangul": "감지기",
+      "english": "detector",
+      "category": "computing",
+      "subcategory": "hardware-network"
+    },
+    {
+      "hangul": "단소",
+      "english": "danso",
+      "category": "creative",
+      "subcategory": "audio-music"
+    },
+    {
+      "hangul": "고원",
+      "english": "plateau",
+      "category": "everyday",
+      "subcategory": "nature"
+    },
+    {
+      "hangul": "라벨",
+      "english": "label",
+      "category": "everyday",
+      "subcategory": "lifestyle-work"
     }
   ],
   "phonePolicy": {
@@ -22366,35 +27526,47 @@
     }
   ],
   "nounPolicy": {
-    "reviewedOn": "2026-10-18",
-    "scope": "Finite explicitly registered literal noun meanings, not a general translator. Existing owner-designated meanings are preserved.",
-    "addedEntries": 1507,
-    "people": "No new person names, music groups or person-denoting noun meanings.",
-    "ambiguity": "Exclude newly considered spellings with distinct ordinary meanings or person-denoting alternatives; equivalent synonyms alone are not different meanings.",
+    "reviewedOn": "2026-10-28",
+    "scope": "Finite explicitly registered basic noun meanings and transparent compound labels. Exact explicit shortcut only; no contextual translation.",
+    "addedEntries": 860,
+    "people": "Common family, relationship and occupation nouns are included. Proper person names and music groups remain excluded. Historical person-denoting restrictions below describe earlier batches only.",
+    "ambiguity": "Use directly reviewed everyday literal meanings. An obsolete homonym, place/person name, figurative use, or several source definitions sharing one English meaning is not an automatic veto. Hold spellings with different ordinary meanings requiring incompatible English results. Preserve every previous spelling and owner-designated mapping.",
+    "authoring": "English pairs authored and reviewed directly; Korean headword/POS/sense records from the existing NIKL Urimalsaem 2026-06-03 snapshot were checked separately. Original Korean definitions were read for targeted ambiguity and scope checks, not every definition for every row. English translations were not externally corroborated for every row. Per-row source status distinguishes noun evidence, compound expressions and directly authored labels. No source definitions, examples, corpus or media are shipped.",
+    "record": "dict_work/2026-10-28-phonetic-basic-nouns.tsv",
+    "exclusionRecord": "dict_work/2026-10-28-phonetic-basic-nouns-held.tsv",
     "excludedThisBatch": [
-      "진드기",
-      "재규어",
-      "양식장"
-    ],
-    "deferredAmbiguousExamples": [
-      "용량",
       "눈",
       "밤",
       "말",
-      "차"
+      "차",
+      "의사",
+      "기타",
+      "나무",
+      "시인",
+      "연구원",
+      "교수",
+      "교사",
+      "지원자",
+      "약사",
+      "일식",
+      "사거리",
+      "문진",
+      "음차",
+      "독수리",
+      "차단기"
     ],
-    "qualifiedExamples": {
-      "저장용량": "storage capacity",
-      "메모리용량": "memory capacity"
+    "selectedExamples": {
+      "학교": "school",
+      "식당": "restaurant",
+      "가게": "store",
+      "주방": "kitchen",
+      "장갑": "gloves",
+      "견적서": "quotation",
+      "친구": "friend",
+      "형제자매": "siblings"
     },
-    "explicitExamples": {
-      "단어": "word",
-      "물": "water"
-    },
-    "authoring": "Pairs authored directly, screened against the existing NIKL Urimalsaem 2026-06-03 noun/sense metadata, and reviewed pair by pair by the root. English source corroboration and selected definition checks are identified per row; not every definition was manually read. No definitions, examples or corpus are shipped.",
-    "record": "dict_work/2026-10-18-phonetic-reviewed-nouns.tsv",
-    "exclusionRecord": "dict_work/2026-10-18-phonetic-reviewed-nouns-held.tsv",
-    "sourceRecord": "docs/feedback/2026-10-18-build89/04-noun-expansion-review.md",
+    "sourceSnapshot": "2026-06-03",
+    "sourceLicenseNotes": "NIKL Urimalsaem metadata: CC BY-SA 2.0 KR, already attributed by the project. NIKL Korean learner vocabulary membership: KOGL Type 1. English pairs are directly authored; no dictionary definitions/examples are copied.",
     "previousReviews": [
       {
         "reviewedOn": "2026-10-14",
@@ -22411,6 +27583,37 @@
         "reviewedOn": "2026-10-18",
         "addedEntries": 138,
         "record": "dict_work/2026-10-18-phonetic-common-nouns.tsv"
+      },
+      {
+        "reviewedOn": "2026-10-18",
+        "scope": "Finite explicitly registered literal noun meanings, not a general translator. Existing owner-designated meanings are preserved.",
+        "addedEntries": 1507,
+        "people": "No new person names, music groups or person-denoting noun meanings.",
+        "ambiguity": "Exclude newly considered spellings with distinct ordinary meanings or person-denoting alternatives; equivalent synonyms alone are not different meanings.",
+        "excludedThisBatch": [
+          "진드기",
+          "재규어",
+          "양식장"
+        ],
+        "deferredAmbiguousExamples": [
+          "용량",
+          "눈",
+          "밤",
+          "말",
+          "차"
+        ],
+        "qualifiedExamples": {
+          "저장용량": "storage capacity",
+          "메모리용량": "memory capacity"
+        },
+        "explicitExamples": {
+          "단어": "word",
+          "물": "water"
+        },
+        "authoring": "Pairs authored directly, screened against the existing NIKL Urimalsaem 2026-06-03 noun/sense metadata, and reviewed pair by pair by the root. English source corroboration and selected definition checks are identified per row; not every definition was manually read. No definitions, examples or corpus are shipped.",
+        "record": "dict_work/2026-10-18-phonetic-reviewed-nouns.tsv",
+        "exclusionRecord": "dict_work/2026-10-18-phonetic-reviewed-nouns-held.tsv",
+        "sourceRecord": "docs/feedback/2026-10-18-build89/04-noun-expansion-review.md"
       }
     ]
   }
