@@ -4,11 +4,17 @@
 
 대상: **현재 `project.yml`이 가리키는 최신 배포 후보**의 서명·공증·설치 완료된 배포본. `MARKETING_VERSION`·`HANEUL_RELEASE_SUFFIX`·`CURRENT_PROJECT_VERSION`과 앱/`HaneulKeyboardIM.app`의 버전·빌드가 일치하는지 확인한다. (프로브가 확인 — scripts/postinstall_probe.sh 1번)
 
-**2026-10-28 최신 후속 소스는 조사·숫자 제품명·명사 보강 후보100이다.** 공증·공개 배포는 보류 중이며 로컬 Developer ID 검증본과 공증 배포본을 구분한다. 자동 검사·Release 컴파일·로컬 설치 확인은 실제 호스트 앱의 물리 키 검증을 대신하지 않는다. 설치 버전과 검증 결과는 #86/#100/#101의 최신 기록을 확인한다. 아래 옛 후보별 번호와 검사 결과는 당시 기록이다.
+**2026-10-28 최신 후속 소스는 명확한 다의어28개를 제외한 후보101이다.** 공증·공개 배포는 보류 중이며 로컬 Developer ID 검증본과 공증 배포본을 구분한다. 자동 검사·Release 컴파일·로컬 설치 확인은 실제 호스트 앱의 물리 키 검증을 대신하지 않는다. 설치 버전과 검증 결과는 #86/#100/#101의 최신 기록을 확인한다. 아래 옛 후보별 번호와 검사 결과는 당시 기록이다.
 
 현재 합격 기준은 아래 활성 검사 절을 따른다. 맨 아래 **과거 후보별 검사 기록**은 당시 빌드·문구·수량을 보존한 참고 자료이며 현재 합격 기준과 구분한다. 2026-10-11 리뷰 F-3 반영 근거: `IMESources/PersonalDictionary.swift:normalizedForceEntry`, `Sources/WordSuggestion.swift:issueURL/emailURL`, `Sources/WordSuggestionSettingsSection.swift:open`, `PRIVACY.md` 8번.
 
-## 2026-10-28 조사·숫자 제품명·기본 명사 후속 후보100 (#100/#101)
+## 2026-10-28 다의어 1차 제외 후보101 (#100)
+
+- [ ] 등록 단어 변환 ON·자판 변환 OFF에서 눈·선반·세제·장갑은 뜻으로 변환되지 않고 원문이 남는다. 자판 변환을 켠 경우 키 위치 변환은 별개로 유지된다. 검사 뒤 사용자의 원래 설정을 복원한다.
+- [ ] 학교→school·식당→restaurant·주방→kitchen·견적서→quotation의 단축키/원문 복귀는 유지된다. 기존 지정 배→pear·사과→apple·선물→gift도 이 1차 제외에서 바꾸지 않는다.
+- [ ] 앱/IME의 버전101·사전 동일성·개인 사전 보존을 확인한다. 이 단계는 전체 사전의 다의어 전수검수 완료가 아니다.
+
+## 과거 — 2026-10-28 조사·숫자 제품명·기본 명사 후보100 (#100/#101)
 
 기준은 main `d2c451b` 이후 소스다. 실제 설치본/검사 결과는 [#100](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/100), [#101](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/101), [#86](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/86)의 최신 기록을 따른다. 자동 검사와 실제 사용자 입력칸 검증을 구분한다.
 

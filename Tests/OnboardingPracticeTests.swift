@@ -220,7 +220,7 @@ import CryptoKit
                                    "선물": "gift", "선물거래": "futures trading",
                                    "단어": "word", "물": "water", "의자": "chair",
                                    "빗방울": "raindrop", "세탁기": "washing machine", "고양이": "cat",
-                                   "학교": "school", "식당": "restaurant", "주방": "kitchen", "장갑": "gloves"] {
+                                   "학교": "school", "식당": "restaurant", "주방": "kitchen", "견적서": "quotation"] {
             editor.string = "앞 "; editor.setSelectedRange(NSRange(location: 2, length: 0))
             let phoneticComposer = KoreanComposer()
             for key in ManualToggle.hangulToKeys(hangul)! {
@@ -244,7 +244,7 @@ import CryptoKit
             }
         }
         // 새 명사와 공백 포함 출력을 실제 NSTextView의 NFD 원문 범위로 왕복한다.
-        for original in ["단어", "물", "세탁기", "옷걸이", "학교", "식당", "주방", "장갑"] {
+        for original in ["단어", "물", "세탁기", "옷걸이", "학교", "식당", "주방", "견적서"] {
             let rawOriginal = original.decomposedStringWithCanonicalMapping
             let initial = "앞 " + rawOriginal + " "
             editor.string = initial
