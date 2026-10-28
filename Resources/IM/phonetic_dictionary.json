@@ -22192,12 +22192,6 @@
       "subcategory": "lifestyle-work"
     },
     {
-      "hangul": "화장실",
-      "english": "restroom",
-      "category": "everyday",
-      "subcategory": "lifestyle-work"
-    },
-    {
       "hangul": "다락방",
       "english": "attic",
       "category": "everyday",
@@ -22330,12 +22324,6 @@
       "subcategory": "lifestyle-work"
     },
     {
-      "hangul": "선반",
-      "english": "shelf",
-      "category": "everyday",
-      "subcategory": "lifestyle-work"
-    },
-    {
       "hangul": "탁자",
       "english": "table",
       "category": "everyday",
@@ -22408,12 +22396,6 @@
       "subcategory": "lifestyle-work"
     },
     {
-      "hangul": "건조기",
-      "english": "dryer",
-      "category": "everyday",
-      "subcategory": "lifestyle-work"
-    },
-    {
       "hangul": "오븐",
       "english": "oven",
       "category": "everyday",
@@ -22452,12 +22434,6 @@
     {
       "hangul": "방향제",
       "english": "air freshener",
-      "category": "everyday",
-      "subcategory": "lifestyle-work"
-    },
-    {
-      "hangul": "세제",
-      "english": "detergent",
       "category": "everyday",
       "subcategory": "lifestyle-work"
     },
@@ -22516,12 +22492,6 @@
       "subcategory": "lifestyle-work"
     },
     {
-      "hangul": "금고",
-      "english": "safe",
-      "category": "everyday",
-      "subcategory": "lifestyle-work"
-    },
-    {
       "hangul": "열쇠",
       "english": "key",
       "category": "everyday",
@@ -22572,12 +22542,6 @@
     {
       "hangul": "받침접시",
       "english": "saucer",
-      "category": "everyday",
-      "subcategory": "lifestyle-work"
-    },
-    {
-      "hangul": "과도",
-      "english": "fruit knife",
       "category": "everyday",
       "subcategory": "lifestyle-work"
     },
@@ -22666,12 +22630,6 @@
       "subcategory": "food"
     },
     {
-      "hangul": "수수",
-      "english": "sorghum",
-      "category": "everyday",
-      "subcategory": "food"
-    },
-    {
       "hangul": "옥수수",
       "english": "corn",
       "category": "everyday",
@@ -22680,12 +22638,6 @@
     {
       "hangul": "메밀",
       "english": "buckwheat",
-      "category": "everyday",
-      "subcategory": "food"
-    },
-    {
-      "hangul": "대두",
-      "english": "soybean",
       "category": "everyday",
       "subcategory": "food"
     },
@@ -22758,12 +22710,6 @@
     {
       "hangul": "후추",
       "english": "pepper",
-      "category": "everyday",
-      "subcategory": "food"
-    },
-    {
-      "hangul": "간장",
-      "english": "soy sauce",
       "category": "everyday",
       "subcategory": "food"
     },
@@ -23146,12 +23092,6 @@
       "subcategory": "food"
     },
     {
-      "hangul": "전복",
-      "english": "abalone",
-      "category": "everyday",
-      "subcategory": "food"
-    },
-    {
       "hangul": "미역",
       "english": "sea mustard",
       "category": "everyday",
@@ -23194,12 +23134,6 @@
       "subcategory": "food"
     },
     {
-      "hangul": "유부",
-      "english": "fried tofu",
-      "category": "everyday",
-      "subcategory": "food"
-    },
-    {
       "hangul": "생수",
       "english": "bottled water",
       "category": "everyday",
@@ -23228,12 +23162,6 @@
       "english": "cola",
       "category": "everyday",
       "subcategory": "drink-cafe"
-    },
-    {
-      "hangul": "밥",
-      "english": "rice",
-      "category": "everyday",
-      "subcategory": "food"
     },
     {
       "hangul": "찌개",
@@ -23328,12 +23256,6 @@
     {
       "hangul": "튀김",
       "english": "fried food",
-      "category": "everyday",
-      "subcategory": "food"
-    },
-    {
-      "hangul": "사탕",
-      "english": "candy",
       "category": "everyday",
       "subcategory": "food"
     },
@@ -23616,12 +23538,6 @@
     {
       "hangul": "올챙이",
       "english": "tadpole",
-      "category": "everyday",
-      "subcategory": "nature"
-    },
-    {
-      "hangul": "개미",
-      "english": "ant",
       "category": "everyday",
       "subcategory": "nature"
     },
@@ -24148,12 +24064,6 @@
       "subcategory": "nature"
     },
     {
-      "hangul": "서리",
-      "english": "frost",
-      "category": "everyday",
-      "subcategory": "nature"
-    },
-    {
       "hangul": "이슬",
       "english": "dew",
       "category": "everyday",
@@ -24400,12 +24310,6 @@
       "subcategory": "travel"
     },
     {
-      "hangul": "군청",
-      "english": "county office",
-      "category": "everyday",
-      "subcategory": "travel"
-    },
-    {
       "hangul": "법원",
       "english": "court",
       "category": "everyday",
@@ -24436,20 +24340,8 @@
       "subcategory": "travel"
     },
     {
-      "hangul": "카페",
-      "english": "cafe",
-      "category": "everyday",
-      "subcategory": "travel"
-    },
-    {
       "hangul": "편의점",
       "english": "convenience store",
-      "category": "everyday",
-      "subcategory": "travel"
-    },
-    {
-      "hangul": "상점",
-      "english": "shop",
       "category": "everyday",
       "subcategory": "travel"
     },
@@ -24544,12 +24436,6 @@
       "subcategory": "travel"
     },
     {
-      "hangul": "사찰",
-      "english": "Buddhist temple",
-      "category": "everyday",
-      "subcategory": "travel"
-    },
-    {
       "hangul": "궁전",
       "english": "palace",
       "category": "everyday",
@@ -24576,12 +24462,6 @@
     {
       "hangul": "승합차",
       "english": "van",
-      "category": "mobility",
-      "subcategory": "motor-transport"
-    },
-    {
-      "hangul": "리무진",
-      "english": "limousine",
       "category": "mobility",
       "subcategory": "motor-transport"
     },
@@ -24640,12 +24520,6 @@
       "subcategory": "motor-transport"
     },
     {
-      "hangul": "열기구",
-      "english": "hot-air balloon",
-      "category": "mobility",
-      "subcategory": "motor-transport"
-    },
-    {
       "hangul": "비행선",
       "english": "airship",
       "category": "mobility",
@@ -24654,12 +24528,6 @@
     {
       "hangul": "드론",
       "english": "drone",
-      "category": "mobility",
-      "subcategory": "motor-transport"
-    },
-    {
-      "hangul": "로켓",
-      "english": "rocket",
       "category": "mobility",
       "subcategory": "motor-transport"
     },
@@ -24754,12 +24622,6 @@
       "subcategory": "motor-transport"
     },
     {
-      "hangul": "차도",
-      "english": "roadway",
-      "category": "mobility",
-      "subcategory": "motor-transport"
-    },
-    {
       "hangul": "삼거리",
       "english": "three-way intersection",
       "category": "mobility",
@@ -24780,12 +24642,6 @@
     {
       "hangul": "철교",
       "english": "railroad bridge",
-      "category": "mobility",
-      "subcategory": "motor-transport"
-    },
-    {
-      "hangul": "선로",
-      "english": "railroad track",
       "category": "mobility",
       "subcategory": "motor-transport"
     },
@@ -24976,12 +24832,6 @@
       "subcategory": "math-biology"
     },
     {
-      "hangul": "코",
-      "english": "nose",
-      "category": "science",
-      "subcategory": "math-biology"
-    },
-    {
       "hangul": "콧구멍",
       "english": "nostril",
       "category": "science",
@@ -25114,12 +24964,6 @@
       "subcategory": "physics-chemistry"
     },
     {
-      "hangul": "유리",
-      "english": "glass",
-      "category": "science",
-      "subcategory": "physics-chemistry"
-    },
-    {
       "hangul": "자석",
       "english": "magnet",
       "category": "science",
@@ -25148,12 +24992,6 @@
       "english": "prism",
       "category": "science",
       "subcategory": "physics-chemistry"
-    },
-    {
-      "hangul": "직선",
-      "english": "straight line",
-      "category": "science",
-      "subcategory": "math-biology"
     },
     {
       "hangul": "부피",
@@ -25440,12 +25278,6 @@
     {
       "hangul": "모자",
       "english": "hat",
-      "category": "everyday",
-      "subcategory": "lifestyle-work"
-    },
-    {
-      "hangul": "장갑",
-      "english": "gloves",
       "category": "everyday",
       "subcategory": "lifestyle-work"
     },
@@ -27528,7 +27360,7 @@
   "nounPolicy": {
     "reviewedOn": "2026-10-28",
     "scope": "Finite explicitly registered basic noun meanings and transparent compound labels. Exact explicit shortcut only; no contextual translation.",
-    "addedEntries": 860,
+    "addedEntries": 832,
     "people": "Common family, relationship and occupation nouns are included. Proper person names and music groups remain excluded. Historical person-denoting restrictions below describe earlier batches only.",
     "ambiguity": "Use directly reviewed everyday literal meanings. An obsolete homonym, place/person name, figurative use, or several source definitions sharing one English meaning is not an automatic veto. Hold spellings with different ordinary meanings requiring incompatible English results. Preserve every previous spelling and owner-designated mapping.",
     "authoring": "English pairs authored and reviewed directly; Korean headword/POS/sense records from the existing NIKL Urimalsaem 2026-06-03 snapshot were checked separately. Original Korean definitions were read for targeted ambiguity and scope checks, not every definition for every row. English translations were not externally corroborated for every row. Per-row source status distinguishes noun evidence, compound expressions and directly authored labels. No source definitions, examples, corpus or media are shipped.",
@@ -27553,14 +27385,41 @@
       "문진",
       "음차",
       "독수리",
-      "차단기"
+      "차단기",
+      "화장실",
+      "선반",
+      "건조기",
+      "세제",
+      "금고",
+      "장갑",
+      "과도",
+      "대두",
+      "수수",
+      "간장",
+      "전복",
+      "밥",
+      "사탕",
+      "유부",
+      "개미",
+      "서리",
+      "군청",
+      "카페",
+      "상점",
+      "사찰",
+      "리무진",
+      "열기구",
+      "로켓",
+      "차도",
+      "선로",
+      "코",
+      "유리",
+      "직선"
     ],
     "selectedExamples": {
       "학교": "school",
       "식당": "restaurant",
       "가게": "store",
       "주방": "kitchen",
-      "장갑": "gloves",
       "견적서": "quotation",
       "친구": "friend",
       "형제자매": "siblings"
@@ -27615,6 +27474,42 @@
         "exclusionRecord": "dict_work/2026-10-18-phonetic-reviewed-nouns-held.tsv",
         "sourceRecord": "docs/feedback/2026-10-18-build89/04-noun-expansion-review.md"
       }
-    ]
+    ],
+    "ambiguityReview": {
+      "reviewedOn": "2026-10-28",
+      "removedEntries": 28,
+      "removedSpellings": [
+        "화장실",
+        "선반",
+        "건조기",
+        "세제",
+        "금고",
+        "장갑",
+        "과도",
+        "대두",
+        "수수",
+        "간장",
+        "전복",
+        "밥",
+        "사탕",
+        "유부",
+        "개미",
+        "서리",
+        "군청",
+        "카페",
+        "상점",
+        "사찰",
+        "리무진",
+        "열기구",
+        "로켓",
+        "차도",
+        "선로",
+        "코",
+        "유리",
+        "직선"
+      ],
+      "criterion": "Confirmed noun meanings requiring distinct English outputs are excluded from the new batch. This is a targeted removal, not a complete dictionary-wide sense audit. Existing owner-designated meanings remain unchanged pending explicit scope confirmation.",
+      "record": "dict_work/2026-10-28-phonetic-basic-nouns-held.tsv"
+    }
   }
 }
