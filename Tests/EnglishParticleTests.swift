@@ -380,7 +380,9 @@ private func runExpandedParticleTests() {
     expect(custom.commit(to: customClient, convertEnglish: true), "z9에", "개인 등록 제품명 조사 확정")
 
     // 수량만으로는 제품명을 새로 추정하지 않으며 개인 force도 단위 금지를 우회하지 못한다.
-    for prefix in ["100ml", "z9", "123"] {
+    // 2026-11-01 (#106): ml이 단독 변환 단어가 되어 100ml에는 mg와 같이 "영어+조사"로
+    // 바뀐다. 수량 추론 금지는 단독으로는 보호되는 mm(ㅡㅡ)으로 확인한다.
+    for prefix in ["100mm", "z9", "123"] {
         let keys = raw(prefix, "에")
         let (composer, client) = live(keys)
         expect(client.committedText + client.marked, hangul(keys), "미등록 숫자 접두어 조사 표시 보존")
@@ -388,6 +390,16 @@ private func runExpandedParticleTests() {
         if prefix != "123" {
             expect(client.committedText == prefix + "에", false, "임의 숫자 접두어 조사 추론 없음")
         }
+    }
+    // #106: 단독 변환되는 단위(mg·ml)는 숫자 뒤 조사와 함께 같은 결과를 낸다.
+    for prefix in ["100mg", "100ml"] {
+        let keys = raw(prefix, "에")
+        let (composer, client) = live(keys)
+        _ = composer.commit(to: client, convertEnglish: true)
+        expect(client.committedText, prefix + "에", "#106 단독 변환 단위 + 조사: \(prefix)")
+        let (blocked, blockedClient) = live(keys, dictionary: PersonalDictionary(block: [String(prefix.dropFirst(3))]))
+        _ = blocked.commit(to: blockedClient, convertEnglish: true)
+        expect(blockedClient.committedText == prefix + "에", false, "#106 단위 금지는 조사 결합도 막음: \(prefix)")
     }
 
     let ambiguousKeys = raw("a24", "에서도")

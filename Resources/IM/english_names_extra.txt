@@ -151,3 +151,24 @@ microcontrast
 remjet
 summicron
 zwilling
+
+# 2026-11-01 (#106): owner-requested name/loanword and math terms. Broad only.
+# pele/max/mod exist in web2 only as capitalized Pele/Max/Mod, which loadWords
+# skips as proper nouns; kawaii was in no list. Every Hangul form is broken
+# (standalone jamo or non-KS X 1001 syllable), Tier A/B=0, C=13.
+# All-jamo forms (max=ㅡㅁㅌ, mod=ㅡㅐㅇ, ker=ㅏㄷㄱ, inf=ㅑㅜㄹ, sqrt=ㄴㅂㄱㅅ) were
+# reviewed one by one: none is a known 초성체/jamo slang. Audit:
+# dict_work/2026-11-01-dict106-audit.csv. No guard or veto changes.
+pele
+kawaii
+max
+mod
+ker
+inf
+sqrt
+cbrt
+cov
+arcsin
+arccos
+arctan
+laplacian

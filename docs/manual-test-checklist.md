@@ -1,6 +1,6 @@
 # HaneulKeyboard 수동 테스트 체크리스트
 
-> **기준일:** 2026-10-28 · "(프로브가 확인 — scripts/postinstall_probe.sh N번)"이 붙은 줄은 `bash scripts/postinstall_probe.sh`의 N번 항목이 기계로 대신 확인한다(#52). 표기 없는 줄은 사람이 본다.
+> **기준일:** 2026-11-01 · "(프로브가 확인 — scripts/postinstall_probe.sh N번)"이 붙은 줄은 `bash scripts/postinstall_probe.sh`의 N번 항목이 기계로 대신 확인한다(#52). 표기 없는 줄은 사람이 본다.
 
 대상: **현재 `project.yml`이 가리키는 최신 배포 후보**의 서명·공증·설치 완료된 배포본. `MARKETING_VERSION`·`HANEUL_RELEASE_SUFFIX`·`CURRENT_PROJECT_VERSION`과 앱/`HaneulKeyboardIM.app`의 버전·빌드가 일치하는지 확인한다. (프로브가 확인 — scripts/postinstall_probe.sh 1번)
 
@@ -8,7 +8,17 @@
 
 개발환경에는 Developer ID 서명 로컬 검증본102의 메인 앱·입력기 적용을 마쳤다. 사전 SHA·영어 목록의 spark·실행 파일 동일성·개인 설정 보존은 확인했으며, 아래 실제 호스트 앱의 물리 키 검사는 별도로 남아 있다.
 
+**2026-11-01 (#106):** main에 pele·kawaii·수학 용어 사전 보강과 단독 `ml` 변환이 들어갔다. 이 변경이 포함된 빌드는 아직 설치하지 않았다 — 설치 뒤 아래 #106 절을 확인한다.
+
 현재 합격 기준은 아래 활성 검사 절을 따른다. 맨 아래 **과거 후보별 검사 기록**은 당시 빌드·문구·수량을 보존한 참고 자료이며 현재 합격 기준과 구분한다. 2026-10-11 리뷰 F-3 반영 근거: `IMESources/PersonalDictionary.swift:normalizedForceEntry`, `Sources/WordSuggestion.swift:issueURL/emailURL`, `Sources/WordSuggestionSettingsSection.swift:open`, `PRIVACY.md` 8번.
+
+## 2026-11-01 pele·kawaii·수학 용어·단독 ml (#106)
+
+- [ ] 한글 모드에서 영문 자판 키로 `pele`, `kawaii`, `max`, `mod`, `sqrt`, `arcsin`, `laplacian`, `theorem`, `curl`을 치고 Space로 확정하면 그대로 영어가 된다. 자동 변환 OFF·앱별 OFF에서는 한글 원문(`ㅔ딛`, `ㅏㅁㅈ먀ㅑ`, `ㅡㅁㅌ` …)이 남는다.
+- [ ] `ml`을 단독으로 치면 `ml`, `mL`은 `mL`이 된다. 확정 직후 Shift+Space로 `ㅢ`와 왕복한다. 개인 사전에서 `ml` 또는 `ㅢ`를 금지하면 `ㅢ`로 남는다.
+- [ ] `mm`(ㅡㅡ)·`cc`(ㅊㅊ)·`ok`(ㅐㅏ) 단독은 계속 한글로 남는다. `100ml`, `100 ml`, `35mm`는 종전대로 변환된다.
+- [ ] `ml` 뒤에 한글 단어(예: 우유)를 이어 치면 한글이 유지된다.
+- [ ] 아직 넣지 않은 `cos`(챈)·`abs`(뮨)·`ln`(ㅣㅜ)·`pi`(ㅔㅑ)·`gcd`(ㅎㅊㅇ)는 한글로 남는다(오너 결정 대기).
 
 ## 2026-10-28 spark·일상 대표 뜻 복원 후보102 (#104)
 
@@ -588,7 +598,7 @@
 - [ ] 앱/입력기 모두 빌드 53. 기존 52에서 새 입력기 갱신을 인식한다.
 - [ ] `oz`, `km`, `kg`, `cm`, `100ml`, `35mm`, `1.25ml`, `100 ml`, `1.25 kg`.
 - [ ] 영상/디지털: `24fps`, `48kHz`, `100Mbps`, `10GB`, `10dB`. 입력 대소문자 유지.
-- [ ] 단독 `ml=ㅢ`, `mm=ㅡㅡ`, `cc=ㅊㅊ`, 한글 수량 `5개`, `3명`, `10이`, `3치`는 보존.
+- [ ] 단독 `mm=ㅡㅡ`, `cc=ㅊㅊ`, 한글 수량 `5개`, `3명`, `10이`, `3치`는 보존. (2026-11-01 #106부터 단독 `ml=ㅢ`은 `ml`로 변환 — 위 #106 절 참고)
 - [ ] `100ml`과 `1.25ml`을 확정한 직후 Shift+Space로 숫자/소수점까지 포함해 양방향 되돌리기. 터미널 제외.
 - [ ] `100 ml`을 확정하고 되돌렸다 다시 바꾼 후 `새`를 입력해 영어로 잘못 바뀌지 않는지 확인.
 - [ ] `1.5ml` 되돌린 항목의 ‘금지’가 실제로 적용된다. 단위 `ml` 자체를 금지하면 다른 수량의 ml도 보존.

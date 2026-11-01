@@ -5420,3 +5420,9 @@ fork
 # Curated exact entry reaches existing R5, without a Korean-veto override.
 # Tier A and the 넴 stem warning are retained in dict_work/2026-10-28-spark-audit.csv.
 spark
+
+# 2026-11-01 (#106): owner-requested math terms with clean Hangul forms.
+# theorem=소댁드, curl=쳐기 are absent from Urimalsaem; curated exact entries reach
+# existing R5 (Tier A, reviewed). No Korean-veto, Shift or short-word override.
+theorem
+curl
