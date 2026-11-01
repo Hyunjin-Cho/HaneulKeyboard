@@ -164,14 +164,16 @@ enum EnglishDetector {
     /// 정책과 묶어 오너 결정 대기 — 목록은 #39 검토 기록에.
     static let consonantPairShortWords: Set<String> = ["we", "at", "as", "ev"]
 
-    /// shortWords whose Hangul forms are everyday jamo slang (ㅢ=ml, ㅐㅏ=ok):
+    /// shortWords whose Hangul forms are everyday jamo slang (ㅐㅏ=ok):
     /// convertible ONLY in English context (R2), never standalone.
-    static let contextOnlyShortWords: Set<String> = ["ml", "ok"]
+    /// 2026-11-01 (#106): 오너 결정으로 ml(ㅢ)을 뺐다 — 단독 ㅢ도 R1(모음 시작)으로
+    /// ml이 된다. 반복 키 이모티콘 mm(ㅡㅡ)·cc(ㅊㅊ)는 위 공통 가드가 계속 막는다.
+    static let contextOnlyShortWords: Set<String> = ["ok"]
 
     /// 자음 초성체 슬랭 보호 목록 — 한국어 사전(완성 한글만)에는 없지만
     /// 의도적으로 치는 표현들. 영어 문맥 뒤에서도 절대 변환하지 않는다
     /// (ㅎㄷㄷ가 "gee"로 깨지는 것 방지). 한글 조합 결과 기준.
-    /// (ㅢ는 넣지 않는다 — R2 화이트리스트의 ml이 의도된 변환이라 우선.)
+    /// (ㅢ는 넣지 않는다 — ml이 의도된 변환이다. 2026-11-01 #106부터 단독으로도 변환.)
     static let protectedSlang: Set<String> = [
         "ㅎㄷㄷ", "ㅁㅊ", "ㅂㅅ", "ㅅㅂ", "ㅇㅈ", "ㄹㅇ", "ㄱㅅ", "ㅈㅅ",
         "ㄷㄷ", "ㅎㄹ", "ㅁㅈ", "ㅇㅇ", "ㄴㄴ", "ㄱㄱ", "ㅂㅂ", "ㅇㅋ",
@@ -386,7 +388,8 @@ enum EnglishDetector {
         }
 
         // #82: 명시된 단위만 추가한다. 반복/얼굴 자모·한국어 veto·슬랭은 위에서
-        // 이미 보호했다. ㅢ(ml/mL)·ㅚ(hl/hL)처럼 한 자모로 합쳐진 표기도 보존.
+        // 이미 보호했다. ㅚ(hl/hL)처럼 한 자모로 합쳐진 표기는 이 경로로 바꾸지 않는다.
+        // (2026-11-01 #106: ml/mL=ㅢ은 이 경로가 아니라 아래 R1의 shortWords로 변환한다.)
         // cm=츠는 검역한 비단어 예외, 다른 멀쩡한 1음절은 숫자 수량 조건을 요구한다.
         if MeasurementUnits.contains(String(keys)), keys.count >= 2,
            (brokenAsKorean && units.count >= 2) || String(keys) == "cm" {

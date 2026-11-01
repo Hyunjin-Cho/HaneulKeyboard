@@ -1,5 +1,15 @@
 # 어휘 범주와 확장 순서
 
+## 2026-11-01 영타 사전: 이름·대중어·수학 용어 (#106)
+
+자동 영타 사전(영문 자판 위치 변환)에 오너 요청 단어를 더했다. 등록 한글→영문 뜻 사전(`phonetic_dictionary.json`)과는 별개다.
+
+- **원인:** `pele`·`max`·`mod`는 macOS 사전에 `Pele`·`Max`·`Mod`처럼 대문자로만 있어, 고유명사를 거르는 로더(`EnglishDetector.loadWords`, 소문자로 시작하는 줄만 읽음)가 건너뛰었다. 글자 수 때문이 아니다. `kawaii`는 어느 목록에도 없었다.
+- **broad(`english_names_extra`) 13개:** pele, kawaii, max, mod, ker, inf, sqrt, cbrt, cov, arcsin, arccos, arctan, laplacian — 모두 깨진 한글형, 검역 Tier C.
+- **curated(`english_supplement`) 2개:** theorem(소댁드), curl(쳐기) — 멀쩡한 한글형이지만 우리말샘 미등재, Tier A 개별 검토.
+- **수학 용어 130개 표본 도달:** 99 → 112. 남은 18개는 한글 보호 예외를 넓혀야 하는 12개(ln·pi·mu·nu·cos·abs·xi·gcd·det·arg·std·csc, 오너 결정 대기), 실존 한국어 4개(cot=챗·cosh=채노·dy=요·rho=괘), 자음 2개 2개(dx·dt, 2글자 정책 대기)다.
+- 근거: [등록 기록](../dict_work/2026-11-01-dict106-registration.tsv), [검역](../dict_work/2026-11-01-dict106-audit.csv), [수학 표본 전](../dict_work/2026-11-01-dict106-math-reach-before.csv)·[후](../dict_work/2026-11-01-dict106-math-reach-after.csv). 단독 `ml` 변환은 [단위 문서](measurement-units.md)에 있다.
+
 ## 2026-10-28 일상 대표 뜻 복원 — 후속 빌드102
 
 기준 main `813f304` 이후 #104 소스에서 사용자 확정에 따라 **선반→shelf·세제→detergent·장갑→gloves** 세 항목만 복원했다. 기존4,526개 항목 객체는 모두 보존했고, 이번 기본 명사 보강은 **835개**, 총 **한글4,529표기 / 고유 영문4,317결과**다. 숫자35별칭은 그대로다. 배→pear·사과→apple·선물→gift 유지도 확정했으며, 다른 뜻 후보는 사용자가 준비한다. 새 후보 선택 UI는 이번 범위에 없고 나머지25개 제외는 유지한다. 전체 사전의 다의어 감사 완료로 보고하지 않는다. JSON SHA `d977f5b942930bd43af62fcbcd648bf8a95fcdc8e805eaf3eb8282e09b509125`. [현재 채택/출처](../dict_work/2026-10-28-phonetic-basic-nouns.tsv), [현재 보류/뜻 근거](../dict_work/2026-10-28-phonetic-basic-nouns-held.tsv), [기능·변경 이력](phonetic-conversion.md).

@@ -222,6 +222,64 @@ func runSparkRegistrationTests() {
     expect(KoreanComposer.resolveToggle(before: "넴가 ", english: "spark", hangul: "넴가", atDocStart: true)?.text ?? "", "spark", "spark reapplies saved conversion")
 }
 
+// #106 · 2026-11-01: owner-requested pele, kawaii, math terms and standalone ml.
+// pele/max/mod were only capitalized in web2 (skipped as proper nouns); the
+// others were in no list. Broken forms go to broad, clean theorem/curl to curated.
+func runDict106Tests() {
+    let broad: [(String, String)] = [
+        ("pele", "ㅔ딛"), ("kawaii", "ㅏㅁㅈ먀ㅑ"), ("max", "ㅡㅁㅌ"), ("mod", "ㅡㅐㅇ"),
+        ("ker", "ㅏㄷㄱ"), ("inf", "ㅑㅜㄹ"), ("sqrt", "ㄴㅂㄱㅅ"), ("cbrt", "츇"),
+        ("cov", "챞"), ("arcsin", "ㅁㄱㅊ냐ㅜ"), ("arccos", "ㅁㄱㅊ챈"), ("arctan", "ㅁㄱㅊㅅ무"),
+        ("laplacian", "ㅣ메ㅣㅁ챠무"),
+    ]
+    let curated: [(String, String)] = [("theorem", "소댁드"), ("curl", "쳐기")]
+    for (word, hangul) in broad + curated {
+        expect(ManualToggle.keysToHangul(word) ?? "", hangul, "#106 two-set composition: \(word)")
+        expect(KoreanDictionary.contains(hangul), false, "#106 original is not a Korean headword: \(word)")
+        expect(type(word).committedText, word, "#106 converts: \(word)")
+        expect(typeViaController(word + " ").committedText, word + " ", "#106 active Space: \(word)")
+        expect(type(word, autoEnglish: false).committedText, hangul, "#106 global OFF: \(word)")
+        expect(typePassive(word).committedText, hangul, "#106 passive boundary keeps marked text: \(word)")
+        let blocked = typeWithPersonalDictionary(word, PersonalDictionary(block: [word]))
+        expect(blocked.client.committedText, hangul, "#106 personal block wins: \(word)")
+        let result = typeWithPersonalDictionary(word, .empty)
+        expect(result.composer.lastConversion?.hangul ?? "", hangul, "#106 stores original Hangul: \(word)")
+        expect(KoreanComposer.resolveToggle(before: word + " ", english: word, hangul: hangul, atDocStart: true)?.text ?? "",
+               hangul, "#106 Shift+Space restores original: \(word)")
+    }
+    // Title Case names keep the typed casing (M is a no-op Shift key in two-set).
+    expect(type("Max").committedText, "Max", "#106 Title Case Max")
+    expect(typeWords([ManualToggle.hangulToKeys("오늘")!, "pele"]).last ?? "", "pele", "#106 pele after Korean")
+    expect(typeWords([ManualToggle.hangulToKeys("정말")!, "kawaii"]).last ?? "", "kawaii", "#106 kawaii after Korean")
+    // Clean curated additions must not widen into nearby Korean.
+    for word in ["쳐", "쳐서", "소대", "소댁", "학교", "사과"] {
+        expect(type(ManualToggle.hangulToKeys(word)!).committedText, word, "#106 preserves Korean: \(word)")
+    }
+    // Still out of scope until the owner decides (code short-word lists / veto).
+    for (keys, hangul) in [("cos", "챈"), ("abs", "뮨"), ("ln", "ㅣㅜ"), ("pi", "ㅔㅑ"),
+                           ("gcd", "ㅎㅊㅇ"), ("cot", "챗"), ("dy", "요"), ("dx", "ㅇㅌ")] {
+        expect(type(keys).committedText, hangul, "#106 not added yet: \(keys)")
+    }
+
+    // Standalone ml (ㅢ) converts; ok(ㅐㅏ) stays context-only; mm(ㅡㅡ) stays an emoticon.
+    for keys in ["ml", "mL"] {
+        expect(type(keys).committedText, keys, "#106 standalone \(keys)")
+        expect(typeViaController(keys + " ").committedText, keys + " ", "#106 standalone \(keys) Space")
+        expect(type(keys, autoEnglish: false).committedText, "ㅢ", "#106 \(keys) global OFF")
+        expect(typePassive(keys).committedText, "ㅢ", "#106 \(keys) passive boundary")
+    }
+    for blocked in ["ml", "ㅢ"] {
+        expect(typeWithPersonalDictionary("ml", PersonalDictionary(block: [blocked])).client.committedText,
+               "ㅢ", "#106 ml personal block: \(blocked)")
+    }
+    expect(KoreanComposer.resolveToggle(before: "ml ", english: "ml", hangul: "ㅢ", atDocStart: true)?.text ?? "",
+           "ㅢ", "#106 ml Shift+Space restores ㅢ")
+    expect(type("ok").committedText, "ㅐㅏ", "#106 ok stays context-only")
+    expect(type("mm").committedText, "ㅡㅡ", "#106 mm emoticon stays")
+    expect(type("dml").committedText, "의", "#106 의 stays Korean")
+    expect(typeWords(["ml", ManualToggle.hangulToKeys("우유")!]).last ?? "", "우유", "#106 Korean after ml stays Korean")
+}
+
 // MARK: - 사전 manifest (review-0712 P3-5)
 
 /// `dict_work/dict_manifest.tsv` 한 줄 — 번들 영어 사전 하나의 계약.
@@ -267,6 +325,9 @@ struct ComposerTests {
             if !KoreanDictionary.isLoaded {
                 guard typeViaController("100ml").committedText == "100ㅢ",
                       typeViaController("100 ml").committedText == "100 ㅢ",
+                      // 2026-11-01 (#106): 단독 ml 변환도 veto 사전 실패 시 꺼진다.
+                      typeViaController("ml").committedText == "ㅢ",
+                      typeViaController("pele").committedText == "ㅔ딛",
                       typeViaController("cm").committedText == "츠",
                       typeViaController("githubdp").committedText == "햐소ㅕㅠ에",
                       typeWithPersonalDictionary("githubdp", PersonalDictionary(force: ["github"])).client.committedText == "햐소ㅕㅠ에",
@@ -349,6 +410,7 @@ struct ComposerTests {
         )
 
         runSparkRegistrationTests()
+        runDict106Tests()
 
         // Hangul composition (regression — must match pre-word-buffer behavior)
         expect(type("dkssud").committedText, "안녕", "basic 안녕")
@@ -444,8 +506,9 @@ struct ComposerTests {
         expect(type("gee").committedText, "ㅎㄷㄷ", "consonant-only slang ㅎㄷㄷ untouched")
         expect(type("aw").committedText, "ㅁㅈ", "2-key slang ㅁㅈ untouched")
         expect(type("hi").committedText, "ㅗㅑ", "2-key vowel slang ㅗㅑ untouched")
-        // ㅢ(ml)/ㅐㅏ(ok)는 흔한 자모 슬랭 → 무맥락 유지, 영어 문맥서만 변환
-        expect(type("ml").committedText, "ㅢ", "ml: 무맥락 슬랭 ㅢ 보호")
+        // ㅐㅏ(ok)는 흔한 자모 슬랭 → 무맥락 유지, 영어 문맥서만 변환.
+        // 2026-11-01 (#106): ㅢ(ml)은 오너 결정으로 단독에서도 변환한다.
+        expect(type("ml").committedText, "ml", "ml: 단독 ㅢ도 변환 (#106)")
         expect(type("ok").committedText, "ㅐㅏ", "ok: 무맥락 슬랭 ㅐㅏ 보호")
         expect(typeWords(["want", "ml"]).last ?? "", "ml", "ml: 영어 문맥서만 변환")
         // (the composer assembles these as ㅡ므/ㅜ무/ㅠ뮤 — same as Apple's
@@ -2397,14 +2460,17 @@ struct ComposerTests {
                       "12mp", "12MP", "12Mp", "12 mp", "12 MP", "12.5mp", "12.5MP"] {
             expect(typeViaController(value).committedText, value, "숫자+단위: \(value)")
         }
-        for (keys, expected) in [("ml", "ㅢ"), ("mL", "ㅢ"), ("mm", "ㅡㅡ"), ("cc", "ㅊㅊ"),
+        // 2026-11-01 (#106): 오너 결정으로 단독 ml/mL(ㅢ)은 변환한다. 숫자 뒤가 아닌
+        // 경계(두 칸 공백·줄바꿈·쉼표·`1.`) 뒤의 ml도 단독 ml과 같이 변환된다.
+        for value in ["ml", "mL", "100  ml", "100\nml", "100,ml", "1.ml"] {
+            expect(typeViaController(value).committedText, value, "단위: 단독 ml 변환 (#106) \(value)")
+        }
+        for (keys, expected) in [("mm", "ㅡㅡ"), ("cc", "ㅊㅊ"),
                                  ("qt", "ㅂㅅ"), ("dl", "이"), ("cl", "치"), ("wk", "자"),
                                  ("100dl", "100이"), ("100 dl", "100 이"), ("3cl", "3치"),
                                  ("10wk", "10자"), ("5ro", "5개"), ("3aud", "3명"),
                                  ("2flxj", "2리터"), ("3dnjs", "3원"), ("10rue", "10겯"),
                                  ("100mlx", "100ㅢㅌ"), ("100mLx", "100ㅢㅌ"),
-                                 ("100  ml", "100  ㅢ"), ("100\nml", "100\nㅢ"),
-                                 ("100,ml", "100,ㅢ"), ("1.ml", "1.ㅢ"),
                                  ("100ml dl", "100ml 이"), ("100 ml dl", "100 ml 이")] {
             expect(typeViaController(keys).committedText, expected, "단위: 한글·경계 보호 \(keys)")
         }
@@ -2463,9 +2529,11 @@ struct ComposerTests {
             let client = FakeClient(), composer = KoreanComposer()
             for ch in "100 " { typeKeyViaController(ch, composer: composer, client: client) }
             composer.resetEnglishContext() // 앱·입력칸·커서 이동
-            for ch in "ml" { typeKeyViaController(ch, composer: composer, client: client) }
+            // 2026-11-01 (#106): ml은 이제 단독으로도 변환되므로, 숫자 문맥에서만
+            // 변환되는 mm(ㅡㅡ)으로 "문맥 폐기"를 확인한다.
+            for ch in "mm" { typeKeyViaController(ch, composer: composer, client: client) }
             composer.commit(to: client, convertEnglish: true)
-            expect(client.committedText, "100 ㅢ", "단위: 숫자 문맥 이동 시 폐기")
+            expect(client.committedText, "100 ㅡㅡ", "단위: 숫자 문맥 이동 시 폐기")
         }
         do {
             let client = FakeClient(), composer = KoreanComposer()

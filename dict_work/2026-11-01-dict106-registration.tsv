@@ -1,0 +1,16 @@
+word	hangulForm	role	decision	reviewedOn	reference	note
+pele	ㅔ딛	broad	owner_requested_name	2026-11-01	https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/106	web2 has only capitalized Pele; loadWords skips capitalized lines as proper nouns.
+kawaii	ㅏㅁㅈ먀ㅑ	broad	owner_requested_loanword	2026-11-01	https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/106	Japanese loanword in common English use; in no bundled list. Correct spelling has two i's.
+max	ㅡㅁㅌ	broad	owner_requested_math	2026-11-01	https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/106	web2 has only capitalized Max. All-jamo form reviewed: not a known jamo slang.
+mod	ㅡㅐㅇ	broad	owner_requested_math	2026-11-01	https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/106	web2 has only capitalized Mod. All-jamo form reviewed.
+ker	ㅏㄷㄱ	broad	owner_requested_math	2026-11-01	https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/106	Kernel abbreviation. All-jamo form reviewed.
+inf	ㅑㅜㄹ	broad	owner_requested_math	2026-11-01	https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/106	Infimum/infinity abbreviation. All-jamo form reviewed.
+sqrt	ㄴㅂㄱㅅ	broad	owner_requested_math	2026-11-01	https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/106	Square root. Four standalone consonants (existing R-consonant 4+ broad rule).
+cbrt	츇	broad	owner_requested_math	2026-11-01	https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/106	Cube root. Non-KS X 1001 syllable (R3).
+cov	챞	broad	owner_requested_math	2026-11-01	https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/106	Covariance. Non-KS X 1001 syllable (R3).
+arcsin	ㅁㄱㅊ냐ㅜ	broad	owner_requested_math	2026-11-01	https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/106	Broken form.
+arccos	ㅁㄱㅊ챈	broad	owner_requested_math	2026-11-01	https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/106	Broken form. Standalone cos(챈) is NOT added (owner decision pending).
+arctan	ㅁㄱㅊㅅ무	broad	owner_requested_math	2026-11-01	https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/106	Broken form.
+laplacian	ㅣ메ㅣㅁ챠무	broad	owner_requested_math	2026-11-01	https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/106	Broken form.
+theorem	소댁드	curated	owner_requested_math	2026-11-01	https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/106	Clean 3 syllables, absent from Urimalsaem. Tier A reviewed; reaches existing R5.
+curl	쳐기	curated	owner_requested_math	2026-11-01	https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/106	Clean 2 syllables, absent from Urimalsaem. Tier A reviewed; reaches existing R5.

@@ -1,0 +1,16 @@
+word,hangul_form,class,in_urimalsaem,standalone_before,standalone_after,context_before,context_after,trigger_before,trigger_after,tier,note,role
+arccos,ㅁㄱㅊ챈,broken,0,0,1,0,1,0,1,C,"",broad
+arcsin,ㅁㄱㅊ냐ㅜ,broken,0,0,1,0,1,0,1,C,"",broad
+arctan,ㅁㄱㅊㅅ무,broken,0,0,1,0,1,0,1,C,"",broad
+cbrt,츇,broken,0,0,1,0,1,0,1,C,"",broad
+cov,챞,broken,0,0,1,0,1,0,1,C,"",broad
+inf,ㅑㅜㄹ,all_jamo,0,0,1,0,1,0,1,C,"⚠️ 전부 자모(완성음절 0) — names 기본 제외 권장(ㅗㅜㅑ류 슬랭 보호)",broad
+kawaii,ㅏㅁㅈ먀ㅑ,broken,0,0,1,0,1,0,1,C,"",broad
+ker,ㅏㄷㄱ,all_jamo,0,0,1,0,1,0,1,C,"⚠️ 전부 자모(완성음절 0) — names 기본 제외 권장(ㅗㅜㅑ류 슬랭 보호)",broad
+laplacian,ㅣ메ㅣㅁ챠무,broken,0,0,1,0,1,0,1,C,"",broad
+max,ㅡㅁㅌ,all_jamo,0,0,1,0,1,0,1,C,"⚠️ 전부 자모(완성음절 0) — names 기본 제외 권장(ㅗㅜㅑ류 슬랭 보호)",broad
+mod,ㅡㅐㅇ,all_jamo,0,0,1,0,1,0,1,C,"⚠️ 전부 자모(완성음절 0) — names 기본 제외 권장(ㅗㅜㅑ류 슬랭 보호)",broad
+pele,ㅔ딛,broken,0,0,1,0,1,0,1,C,"",broad
+sqrt,ㄴㅂㄱㅅ,all_jamo,0,0,1,0,1,0,1,C,"⚠️ 전부 자모(완성음절 0) — names 기본 제외 권장(ㅗㅜㅑ류 슬랭 보호)",broad
+curl,쳐기,clean,0,0,1,0,1,0,1,A,"무맥락 신규 변환(R5) — 전수 리뷰 대상",curated
+theorem,소댁드,clean,0,0,1,0,1,0,1,A,"무맥락 신규 변환(R5) — 전수 리뷰 대상",curated
