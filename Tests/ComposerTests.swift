@@ -255,10 +255,11 @@ func runDict106Tests() {
     for word in ["쳐", "쳐서", "소대", "소댁", "학교", "사과"] {
         expect(type(ManualToggle.hangulToKeys(word)!).committedText, word, "#106 preserves Korean: \(word)")
     }
-    // Still out of scope until the owner decides (code short-word lists / veto).
-    for (keys, hangul) in [("cos", "챈"), ("abs", "뮨"), ("ln", "ㅣㅜ"), ("pi", "ㅔㅑ"),
-                           ("gcd", "ㅎㅊㅇ"), ("cot", "챗"), ("dy", "요"), ("dx", "ㅇㅌ")] {
-        expect(type(keys).committedText, hangul, "#106 not added yet: \(keys)")
+    // Not added: consonant-only 3-key forms (owner excluded, #109 A안), real Korean (veto),
+    // 2-consonant pairs (pending the 2-letter policy). cos/abs/ln/pi moved to #109.
+    for (keys, hangul) in [("gcd", "ㅎㅊㅇ"), ("det", "ㅇㄷㅅ"), ("std", "ㄴㅅㅇ"),
+                           ("cot", "챗"), ("dy", "요"), ("dx", "ㅇㅌ")] {
+        expect(type(keys).committedText, hangul, "#106 not added: \(keys)")
     }
 
     // Standalone ml (ㅢ) converts; ok(ㅐㅏ) stays context-only; mm(ㅡㅡ) stays an emoticon.
@@ -278,6 +279,44 @@ func runDict106Tests() {
     expect(type("mm").committedText, "ㅡㅡ", "#106 mm emoticon stays")
     expect(type("dml").committedText, "의", "#106 의 stays Korean")
     expect(typeWords(["ml", ManualToggle.hangulToKeys("우유")!]).last ?? "", "우유", "#106 Korean after ml stays Korean")
+}
+
+// #109 · 2026-11-01: owner-chosen math abbreviations (A안). Two-letter vowel-first
+// words go to shortWords (R1); clean one-syllable words go to standaloneShortWords.
+func runMath109Tests() {
+    let words: [(String, String)] = [
+        ("ln", "ㅣㅜ"), ("pi", "ㅔㅑ"), ("mu", "ㅡㅕ"), ("nu", "ㅜㅕ"),
+        ("cos", "챈"), ("abs", "뮨"), ("xi", "탸"),
+    ]
+    for (word, hangul) in words {
+        expect(ManualToggle.keysToHangul(word) ?? "", hangul, "#109 two-set composition: \(word)")
+        expect(KoreanDictionary.contains(hangul), false, "#109 original is not a Korean headword: \(word)")
+        expect(EnglishDetector.protectedSlang.contains(hangul), false, "#109 original is not protected slang: \(word)")
+        expect(type(word).committedText, word, "#109 converts: \(word)")
+        expect(typeViaController(word + " ").committedText, word + " ", "#109 active Space: \(word)")
+        expect(type(word, autoEnglish: false).committedText, hangul, "#109 global OFF: \(word)")
+        expect(typePassive(word).committedText, hangul, "#109 passive boundary keeps marked text: \(word)")
+        for blocked in [word, hangul] {
+            expect(typeWithPersonalDictionary(word, PersonalDictionary(block: [blocked])).client.committedText,
+                   hangul, "#109 personal block wins: \(word)/\(blocked)")
+        }
+        let result = typeWithPersonalDictionary(word, .empty)
+        expect(result.composer.lastConversion?.hangul ?? "", hangul, "#109 stores original Hangul: \(word)")
+        expect(KoreanComposer.resolveToggle(before: word + " ", english: word, hangul: hangul, atDocStart: true)?.text ?? "",
+               hangul, "#109 Shift+Space restores original: \(word)")
+        expect(typeWords([ManualToggle.hangulToKeys("그래서")!, word]).last ?? "", word, "#109 converts after Korean: \(word)")
+    }
+    // Title Case keeps the typed casing (C/A/X/M/N are no-op Shift keys in two-set; P gives ㅖ).
+    for keys in ["Cos", "Abs", "Xi", "Pi"] {
+        expect(type(keys).committedText, keys, "#109 Title Case: \(keys)")
+    }
+    // Nearby real Korean stays Korean: cot=챗(veto), and longer words built from these syllables.
+    for word in ["챗", "챈스", "탸", "학교", "그래서", "뮤지컬"] where KoreanDictionary.contains(word) {
+        expect(type(ManualToggle.hangulToKeys(word)!).committedText, word, "#109 preserves Korean: \(word)")
+    }
+    expect(type("cot").committedText, "챗", "#109 cot stays Korean (veto)")
+    // A Korean word after the new abbreviations stays Korean.
+    expect(typeWords(["cos", ManualToggle.hangulToKeys("학교")!]).last ?? "", "학교", "#109 Korean after cos stays Korean")
 }
 
 // MARK: - 사전 manifest (review-0712 P3-5)
@@ -411,6 +450,7 @@ struct ComposerTests {
 
         runSparkRegistrationTests()
         runDict106Tests()
+        runMath109Tests()
 
         // Hangul composition (regression — must match pre-word-buffer behavior)
         expect(type("dkssud").committedText, "안녕", "basic 안녕")
