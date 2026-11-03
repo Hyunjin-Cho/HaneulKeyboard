@@ -1,13 +1,27 @@
 import AppKit
 import SwiftUI
 
-/// 2026-11-03 (#116): 안내 1·2 두루마리 무대 — 긴 리소 그림 한 장 위를 카메라가 트럭·푸시 인 한다(앱 안에서 실시간).
+/// 2026-11-03 (#116): 안내 1~4 두루마리 무대 — 긴 리소 그림 한 장 위를 카메라가 트럭·푸시 인 한다(앱 안에서 실시간).
 /// 오너 결정(2026-11-03 17:46): 3D 세트 없이 그림 한 장 + 앱 안 카메라, 사람은 새로 그린 세 사람.
 /// 그림·카메라 정거장·인물 자리의 정본은 비공개 haneul-art `onboarding/`(scroll.py · people.py)이 내보낸
 /// OnboardingScroll.json · OnboardingPeople.json이다. 여기에 값을 옮겨 적지 않는다.
 enum OnboardingScrollArt {
     struct Station: Decodable { let page: Int; let cx: CGFloat; let cy: CGFloat; let zoom: CGFloat }
-    struct PeopleAt: Decodable { let page: Int; let x: CGFloat; let y: CGFloat; let scale: CGFloat; let spacing: CGFloat }
+    /// 인물 자리: 1·2페이지는 가운데 사람(x, y) + 간격, 3페이지부터는 사람마다(figures, PEOPLE 순서).
+    struct PeopleAt: Decodable {
+        let page: Int
+        let scale: CGFloat
+        let x: CGFloat?
+        let y: CGFloat?
+        let spacing: CGFloat?
+        let figures: [[CGFloat]]?
+
+        func foot(_ index: Int) -> CGPoint? {
+            if let figures, index < figures.count, figures[index].count == 2 { return CGPoint(x: figures[index][0], y: figures[index][1]) }
+            guard let x, let y else { return nil }
+            return CGPoint(x: x + CGFloat(index - 1) * (spacing ?? 0), y: y)
+        }
+    }
     struct Scroll: Decodable {
         let image_pt: [CGFloat]
         let stage_pt: [CGFloat]
@@ -20,7 +34,7 @@ enum OnboardingScrollArt {
     static let scroll: Scroll? = decode("OnboardingScroll")
     static let people: People? = decode("OnboardingPeople")
     static let image: CGImage? = cgImage(Bundle.main.url(forResource: "OnboardingScroll", withExtension: "jpg"))
-    /// 두루마리 그림이 있는 페이지 수(정거장 수). 2026-11-03 지금은 1·2페이지.
+    /// 두루마리 그림이 있는 페이지 수(정거장 수). 2026-11-03 지금은 1~4페이지.
     static var pageCount: Int { image == nil ? 0 : (scroll?.stations.count ?? 0) }
 
     @MainActor private static var spriteCache: [String: CGImage] = [:]
@@ -131,8 +145,8 @@ struct OnboardingScrollStage: NSViewRepresentable {
                   let at = art.people.first(where: { $0.page == page + 1 }),
                   let sprite = people.sprites["\(people.order[index])_p\(page + 1)"] else { return nil }
             let canvas = CGSize(width: sprite.canvas_pt[0], height: sprite.canvas_pt[1])
-            let x = at.x + CGFloat(index - 1) * at.spacing
-            return (CGPoint(x: x, y: art.image_pt[1] - at.y),
+            guard let foot = at.foot(index) else { return nil }
+            return (CGPoint(x: foot.x, y: art.image_pt[1] - foot.y),
                     CGRect(origin: .zero, size: CGSize(width: canvas.width * at.scale, height: canvas.height * at.scale)),
                     CGPoint(x: sprite.anchor_pt[0] / canvas.width, y: 1 - sprite.anchor_pt[1] / canvas.height))
         }

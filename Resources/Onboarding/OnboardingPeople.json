@@ -73,6 +73,72 @@
         167.0
       ]
     },
+    "ponytail_p3": {
+      "file": "OnboardingPerson_ponytail_p3.png",
+      "canvas_pt": [
+        150,
+        175
+      ],
+      "anchor_pt": [
+        75.0,
+        167.0
+      ]
+    },
+    "durumagi_p3": {
+      "file": "OnboardingPerson_durumagi_p3.png",
+      "canvas_pt": [
+        150,
+        175
+      ],
+      "anchor_pt": [
+        75.0,
+        167.0
+      ]
+    },
+    "bun_p3": {
+      "file": "OnboardingPerson_bun_p3.png",
+      "canvas_pt": [
+        150,
+        175
+      ],
+      "anchor_pt": [
+        75.0,
+        167.0
+      ]
+    },
+    "ponytail_p4": {
+      "file": "OnboardingPerson_ponytail_p4.png",
+      "canvas_pt": [
+        150,
+        175
+      ],
+      "anchor_pt": [
+        75.0,
+        167.0
+      ]
+    },
+    "durumagi_p4": {
+      "file": "OnboardingPerson_durumagi_p4.png",
+      "canvas_pt": [
+        150,
+        175
+      ],
+      "anchor_pt": [
+        75.0,
+        167.0
+      ]
+    },
+    "bun_p4": {
+      "file": "OnboardingPerson_bun_p4.png",
+      "canvas_pt": [
+        150,
+        175
+      ],
+      "anchor_pt": [
+        75.0,
+        167.0
+      ]
+    },
     "ponytail_walkA": {
       "file": "OnboardingPerson_ponytail_walkA.png",
       "canvas_pt": [
