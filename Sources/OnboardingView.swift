@@ -120,11 +120,12 @@ struct OnboardingView: View {
     }
 
     @ViewBuilder private var stage: some View {
-        if step == Self.stagePage {
-            OnboardingStageVideo(animate: !reduceMotion)
-        } else if step < OnboardingScrollArt.pageCount {
-            // 2026-11-03 (#116): 1·2페이지 = 두루마리 그림 + 앱 안 카메라. 같은 뷰가 페이지만 바꿔 받아 카메라를 옮긴다.
+        if step < OnboardingScrollArt.pageCount {
+            // 2026-11-03 (#116): 두루마리 그림 + 앱 안 카메라. 같은 뷰가 페이지만 바꿔 받아 카메라를 옮긴다.
+            // 20:57: 7페이지도 이 뷰가 맡는다 — 첫 프레임 자리로 트럭해 들어간 뒤 영상으로 바꿔 끼운다(숨은 컷).
             OnboardingScrollStage(page: step, reduceMotion: reduceMotion)
+        } else if step == Self.stagePage {
+            OnboardingStageVideo(animate: !reduceMotion)
         } else {
             // 블로킹: 3~6 그림 자리(#107 4번에서 채운다). 검수 하네스가 이 키 색 자리에 콘티 장면을 갈아 끼운다.
             Color(red: 0, green: 1, blue: 0)

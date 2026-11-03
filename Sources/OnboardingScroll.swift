@@ -46,7 +46,7 @@ enum OnboardingScrollArt {
     static let scroll: Scroll? = decode("OnboardingScroll")
     static let people: People? = decode("OnboardingPeople")
     static let image: CGImage? = cgImage(Bundle.main.url(forResource: "OnboardingScroll", withExtension: "jpg"))
-    /// 두루마리 그림이 있는 페이지 수(정거장 수). 2026-11-03 지금은 1~4페이지.
+    /// 두루마리 그림이 있는 페이지 수(정거장 수). 2026-11-03 20:57: 1~7페이지(7 = 영상 첫 프레임 자리).
     static var pageCount: Int { image == nil ? 0 : (scroll?.stations.count ?? 0) }
 
     @MainActor private static var spriteCache: [String: CGImage] = [:]
@@ -95,6 +95,15 @@ struct OnboardingScrollStage: NSViewRepresentable {
         private var persons: [CALayer] = []
         private var props: [CALayer] = []
         private var page: Int?
+        private var placedSize: CGSize = .zero
+        private var reduceMotion = false
+        /// 2026-11-03 20:57 오너(A안): 마지막 정거장 = 7페이지 영상의 첫 프레임(두루마리에 같은 화소로 붙여 둠).
+        /// 카메라가 도착하면 영상 무대로 바꿔 끼우고(숨은 컷) 0.2초 멈춘 뒤 달리 인 + 틸트 업을 재생한다.
+        private var video: OnboardingStageVideo.StageView?
+        private var videoIndex: Int? {
+            guard let st = OnboardingScrollArt.scroll?.stations, st.last?.page == OnboardingView.stagePage + 1 else { return nil }
+            return st.count - 1
+        }
 
         init() {
             super.init(frame: .zero)
@@ -137,13 +146,17 @@ struct OnboardingScrollStage: NSViewRepresentable {
             world.contentsScale = scale
             persons.forEach { $0.contentsScale = scale }
             props.forEach { $0.contentsScale = scale }
-            if let page { place(page) }
+            // 2026-11-03 21:1x: 크기가 바뀔 때만 다시 놓는다. 7페이지 영상 뷰를 떼어 낼 때도 layout이 불려 되감기 애니메이션이
+            // 지워졌다(실측 로그: 7→6 show 0.39초 뒤 layout).
+            if let page, bounds.size != placedSize { placedSize = bounds.size; place(page) }
         }
 
         func show(page target: Int, animated: Bool) {
             guard OnboardingScrollArt.scroll != nil, target != page else { return }
+            reduceMotion = !animated
             let from = page
             page = target
+            if from == videoIndex { leaveVideo(fade: from != nil && !bounds.isEmpty) }
             guard let from, animated, !bounds.isEmpty else {
                 if from != nil, !bounds.isEmpty {        // 동작 줄이기 — 움직이지 않고 디졸브
                     let fade = CATransition()
@@ -152,9 +165,38 @@ struct OnboardingScrollStage: NSViewRepresentable {
                     layer?.add(fade, forKey: "fade")
                 }
                 place(target)
+                if target == videoIndex { enterVideo() }
                 return
             }
-            travel(from: from, to: target)
+            travel(from: from, to: target) { [weak self] in
+                guard let self, target == self.videoIndex else { return }
+                self.enterVideo()
+            }
+        }
+
+        private func enterVideo() {
+            guard video == nil else { return }
+            let v = OnboardingStageVideo.StageView(animate: !reduceMotion, autoplay: false)
+            v.frame = bounds
+            v.autoresizingMask = [.width, .height]
+            addSubview(v)
+            video = v
+            guard !reduceMotion else { return }       // 동작 줄이기면 끝 그림만(재생 없음)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self, weak v] in
+                guard let self, let v, self.video === v else { return }
+                v.start()
+            }
+        }
+
+        private func leaveVideo(fade: Bool) {
+            guard let v = video else { return }
+            video = nil
+            v.stop()
+            guard fade else { v.removeFromSuperview(); return }
+            NSAnimationContext.runAnimationGroup({ ctx in
+                ctx.duration = 0.35
+                v.animator().alphaValue = 0
+            }, completionHandler: { v.removeFromSuperview() })
         }
 
         // MARK: 카메라·인물 자리
@@ -182,6 +224,7 @@ struct OnboardingScrollStage: NSViewRepresentable {
         }
 
         private func place(_ page: Int) {
+            placedSize = bounds.size
             CATransaction.begin(); CATransaction.setDisableActions(true)
             world.removeAllAnimations()
             world.transform = camera(page)
@@ -198,12 +241,23 @@ struct OnboardingScrollStage: NSViewRepresentable {
         }
 
         /// 지금 보이는 자리(이동 중이면 그 순간)에서 목표 정거장으로 — 이동 중에 눌러도 끊기지 않는다.
-        private func travel(from: Int, to: Int) {
+        private func travel(from: Int, to: Int, arrive: (() -> Void)? = nil) {
             let duration = to > from ? Self.forward : Self.backward
             let startCamera = world.presentation()?.transform ?? world.transform
             // 앞뒤: 뒤로 들어가는 사람은 출발할 때, 앞으로 나오는 사람은 도착한 뒤에 바꾼다(시소 판을 뚫고 지나가 보이지 않게).
+            // 2026-11-03 21:1x: 완료 블록은 애니메이션을 붙이기 "전에" 건다 — Core Animation은 블록을 건 뒤에 붙은 애니메이션만
+            // 기다린다. 뒤에 걸었더니 바로 불려 6→7에서 영상이 출발과 동시에 덮였다(녹화 실측: 3프레임 뒤 도착 화면).
             var arrivalDepths: [(CALayer, CGFloat)] = []
             CATransaction.begin(); CATransaction.setDisableActions(true)
+            CATransaction.setCompletionBlock { [weak self] in
+                MainActor.assumeIsolated {
+                    guard let self, self.page == to else { return }
+                    CATransaction.begin(); CATransaction.setDisableActions(true)
+                    arrivalDepths.forEach { $0.0.zPosition = $0.1 }
+                    CATransaction.commit()
+                    arrive?()
+                }
+            }
             world.transform = camera(to)
             let move = CABasicAnimation(keyPath: "transform")
             move.fromValue = startCamera
@@ -215,6 +269,14 @@ struct OnboardingScrollStage: NSViewRepresentable {
                 guard let g = personGeometry(to, i), let who = OnboardingScrollArt.people?.order[i] else { continue }
                 let startPosition = person.presentation()?.position ?? person.position
                 let startBounds = person.presentation()?.bounds ?? person.bounds
+                // 한 번도 자리를 받지 않았거나(7페이지에서 바로 열었을 때) 이미 그 자리면 걷지 않고 그대로 둔다.
+                if person.contents == nil || (abs(startPosition.x - g.position.x) < 0.5 && abs(startPosition.y - g.position.y) < 0.5) {
+                    person.removeAllAnimations()
+                    person.anchorPoint = g.anchor; person.position = g.position; person.bounds = g.bounds
+                    person.zPosition = g.depth
+                    person.contents = OnboardingScrollArt.sprite(who, "p\(to + 1)")
+                    continue
+                }
                 if g.depth < person.zPosition { person.zPosition = g.depth } else { arrivalDepths.append((person, g.depth)) }
                 person.anchorPoint = g.anchor
                 person.position = g.position
@@ -235,15 +297,6 @@ struct OnboardingScrollStage: NSViewRepresentable {
                 walk.calculationMode = .discrete
                 walk.duration = duration * 0.92
                 person.add(walk, forKey: "walk")
-            }
-            let arrivals = arrivalDepths
-            CATransaction.setCompletionBlock { [weak self] in
-                MainActor.assumeIsolated {
-                    guard let self, self.page == to else { return }
-                    CATransaction.begin(); CATransaction.setDisableActions(true)
-                    arrivals.forEach { $0.0.zPosition = $0.1 }
-                    CATransaction.commit()
-                }
             }
             CATransaction.commit()
         }
