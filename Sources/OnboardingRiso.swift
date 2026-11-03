@@ -61,21 +61,6 @@ struct OnboardingRisoPaper: View {
     }
 }
 
-/// 종이에 인쇄한 가는 테두리와 색판 표시로 영역을 구분한다.
-struct OnboardingPrintPanel: ViewModifier {
-    var tint: Color = OnboardingRiso.cyan
-    var strongerYellow = false
-    @Environment(\.colorScheme) private var scheme
-    func body(content: Content) -> some View {
-        content
-            .background(tint.opacity(strongerYellow ? (scheme == .dark ? 0.16 : 0.13) : (scheme == .dark ? 0.08 : 0.035)), in: RoundedRectangle(cornerRadius: 15))
-            .overlay(RoundedRectangle(cornerRadius: 15).strokeBorder(tint.opacity(strongerYellow ? 0.7 : 0.28), lineWidth: 1))
-            .overlay(alignment: .topLeading) {
-                RisoRegistrationMark().padding(.leading, 18).offset(y: -6.3)
-            }
-    }
-}
-
 struct RisoRegistrationMark: View {
     var body: some View {
         HStack(spacing: -1) {
@@ -110,89 +95,6 @@ struct OnboardingPeopleScene: View {
         .clipped()
         .transaction { $0.animation = nil }
         .allowsHitTesting(false).accessibilityHidden(true)
-    }
-}
-
-struct OnboardingRisoFinish: View {
-    let ready: Bool
-    var onSettings: () -> Void
-    var onReplay: () -> Void
-    var onSupport: () -> Void
-    var onInstall: () -> Void
-    @Environment(\.colorScheme) private var scheme
-    private var ink: Color { OnboardingRiso.ink(for: scheme) }
-
-    var body: some View {
-        VStack(spacing: 18) {
-            VStack(spacing: 0) {
-                HStack(alignment: .top, spacing: 12) {
-                    Spacer(minLength: 0)
-                    menuBar.padding(.top, 9)
-                }.frame(height: 94, alignment: .top)
-                Divider().padding(.vertical, 8)
-                RisoMenuRow("하늘키보드 설정…", symbol: "slider.horizontal.3", action: onSettings)
-                RisoMenuRow("시작하기 다시 보기…", symbol: "play.circle", action: onReplay)
-                RisoMenuRow("하늘키보드 응원하기…", symbol: "heart", action: onSupport)
-            }
-            .padding(16).modifier(OnboardingPrintPanel())
-
-            VStack(spacing: 10) {
-                Text("하늘키보드는 영원히 무료입니다.").font(OnboardingRiso.titleFont(size: 22))
-                Text("개발을 응원하고 싶다면, 후원은 자유롭게 선택해 주세요.")
-                    .font(.system(size: 14)).multilineTextAlignment(.center)
-            }.frame(maxWidth: .infinity)
-
-            if !ready {
-                HStack(spacing: 12) {
-                    Text("시작하기를 누르면 입력기 설치·설정을\n이어갈 수 있어요.")
-                        .font(.system(size: 13)).lineSpacing(3)
-                    Spacer(minLength: 0)
-                    Button("설치 단계로 이동", action: onInstall).fixedSize()
-                }.frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-    }
-
-    private var menuBar: some View {
-        HStack(spacing: 17) {
-            Image(systemName: "wifi").font(.system(size: 16, weight: .medium)).accessibilityHidden(true)
-            Image(nsImage: HaneulStatusIcon.image)
-                .resizable().renderingMode(.template).scaledToFit().frame(width: 22, height: 22)
-                .padding(.horizontal, 12).padding(.vertical, 9)
-                .accessibilityLabel("하늘키보드 메뉴바 아이콘")
-                .overlay {
-                    OnboardingPencilRing().stroke(ink, style: StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
-                        .allowsHitTesting(false).accessibilityHidden(true)
-                }
-                .overlay(alignment: .bottom) {
-                    OnboardingMenuHint().foregroundStyle(ink).offset(y: 53).allowsHitTesting(false)
-                }
-            Text("10:30").font(.system(size: 14, weight: .medium)).monospacedDigit()
-        }.fixedSize()
-    }
-}
-
-private struct RisoMenuRow: View {
-    let title: String
-    let symbol: String
-    let action: () -> Void
-    @State private var hovered = false
-    @Environment(\.colorScheme) private var scheme
-    init(_ title: String, symbol: String, action: @escaping () -> Void) {
-        self.title = title; self.symbol = symbol; self.action = action
-    }
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                Image(systemName: symbol).font(.system(size: 18)).frame(width: 22)
-                Text(title).font(.system(size: 16))
-                Spacer()
-                Image(systemName: "arrow.up.right").font(.system(size: 11)).opacity(hovered ? 1 : 0.4)
-            }
-            .padding(.horizontal, 10).padding(.vertical, 8)
-            .background(OnboardingRiso.ink(for: scheme).opacity(hovered ? 0.08 : 0), in: RoundedRectangle(cornerRadius: 8))
-            .contentShape(Rectangle())
-        }.buttonStyle(.plain).onHover { hovered = $0 }
     }
 }
 

@@ -65,6 +65,29 @@ struct OnboardingView: View {
     }
 
     var body: some View {
+        Group {
+            // 2026-11-03 (#113): 7페이지만 새 배치(위 무대 영상 + 아래 종이 카드). 1~6은 #107 4번에서 바꾼다.
+            if step == Self.stagePage { stagePage } else { standardPage }
+        }
+        .font(.system(size: 15))
+        .foregroundStyle(.primary)
+        .frame(width: windowSize.width, height: windowSize.height)
+        .background { OnboardingRisoPaper().ignoresSafeArea() }
+        .background { OnboardingPageNavigation { go(to: step + $0) } }
+        .tint(OnboardingRiso.ink(for: colorScheme))
+        .haneulWindowAppearance()
+        .ignoresSafeArea()
+        .task { refresh() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in refresh() }
+        .onReceive(DistributedNotificationCenter.default.publisher(
+            for: Notification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String))) { _ in
+                refreshSelection()
+        }
+        .onReceive(DistributedNotificationCenter.default.publisher(
+            for: Notification.Name(kTISNotifyEnabledKeyboardInputSourcesChanged as String))) { _ in refresh() }
+    }
+
+    private var standardPage: some View {
         VStack(spacing: 0) {
             header
             ZStack {
@@ -78,8 +101,7 @@ struct OnboardingView: View {
                         case 2: typingStep
                         case 3: reversalStep
                         case 4: registeredWordStep
-                        case 5: slashStep
-                        default: finishStep
+                        default: slashStep
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -99,22 +121,108 @@ struct OnboardingView: View {
                 navigation.padding(.horizontal, 32).frame(height: compact ? 62 : 76)
             }
         }
-        .font(.system(size: 15))
-        .foregroundStyle(.primary)
-        .frame(width: windowSize.width, height: windowSize.height)
-        .background { OnboardingRisoPaper().ignoresSafeArea() }
-        .background { OnboardingPageNavigation { go(to: step + $0) } }
-        .tint(OnboardingRiso.ink(for: colorScheme))
-        .haneulWindowAppearance()
-        .ignoresSafeArea()
-        .task { refresh() }
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in refresh() }
-        .onReceive(DistributedNotificationCenter.default.publisher(
-            for: Notification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String))) { _ in
-                refreshSelection()
+    }
+
+    // MARK: 7페이지 — 무대 + 종이 카드 (2026-11-03, #113)
+    // 블로킹 승인 비율(2026-11-02 23:28 오너): 끝 무대 = 창 폭 / 1.32, 카드는 그 아래. 카드는 UI 속도(0.5초 ease-out)로
+    // 창 폭 / 1.9 자리에서 내려와 자리 잡고, 카메라(영상)만 6초 움직인다. 작은 창은 카드 높이를 지키고 무대를 위아래로 자른다.
+    static let stagePage = 6
+    private static let stageCardMinHeight: CGFloat = 260
+    @State private var stageCardSettled = false
+
+    private var stageHeight: CGFloat {
+        min((windowSize.width / OnboardingStageArt.aspect).rounded(), windowSize.height - Self.stageCardMinHeight)
+    }
+
+    private var stagePage: some View {
+        let cardHeight = windowSize.height - stageHeight
+        let startTop = min((windowSize.width / 1.9).rounded(), stageHeight)
+        let top = stageCardSettled || reduceMotion ? stageHeight : startTop
+        return ZStack(alignment: .top) {
+            OnboardingStageVideo(animate: !reduceMotion)
+                .frame(width: windowSize.width, height: stageHeight)
+                .accessibilityHidden(true)
+            stageCard
+                .frame(width: windowSize.width - 20, height: cardHeight, alignment: .top)
+                .background(alignment: .top) {
+                    // 내려오는 동안 아래가 비지 않게 카드 종이를 창 밖까지 늘인다.
+                    UnevenRoundedRectangle(topLeadingRadius: 18, topTrailingRadius: 18)
+                        .fill(colorScheme == .dark ? Color(red: 0.13, green: 0.14, blue: 0.19) : Color(red: 250 / 255, green: 246 / 255, blue: 236 / 255))
+                        .overlay {
+                            UnevenRoundedRectangle(topLeadingRadius: 18, topTrailingRadius: 18)
+                                .strokeBorder(.primary.opacity(0.10), lineWidth: 1)
+                        }
+                        .shadow(color: .black.opacity(0.10), radius: 10, y: -2)
+                        .frame(height: windowSize.height - startTop + 40)
+                }
+                .offset(y: top)
         }
-        .onReceive(DistributedNotificationCenter.default.publisher(
-            for: Notification.Name(kTISNotifyEnabledKeyboardInputSourcesChanged as String))) { _ in refresh() }
+        .frame(width: windowSize.width, height: windowSize.height, alignment: .top)
+        .clipped()
+        .onAppear {
+            stageCardSettled = false
+            guard !reduceMotion else { stageCardSettled = true; return }
+            withAnimation(.timingCurve(0.2, 0, 0, 1, duration: 0.5)) { stageCardSettled = true }
+        }
+    }
+
+    private var stageCard: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .top, spacing: 16) {
+                VStack(alignment: .leading, spacing: 9) {
+                    HStack(alignment: .firstTextBaseline, spacing: 12) {
+                        Text(titles[Self.stagePage]).font(OnboardingRiso.titleFont(size: 27))
+                        Text(String(format: "%02d", Self.stagePage + 1) + "  " + sections[Self.stagePage])
+                            .font(.system(size: 12, weight: .semibold)).foregroundStyle(OnboardingRiso.ink(for: colorScheme))
+                            .padding(.horizontal, 10).padding(.vertical, 3)
+                            .background(OnboardingRiso.yellow.opacity(colorScheme == .dark ? 0.10 : 0.24), in: Capsule())
+                    }
+                    Text(subtitle).font(.system(size: 14)).lineSpacing(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: 8) {
+                        Button("하늘키보드 설정", systemImage: "slider.horizontal.3") { onSettings(.inputFeatures) }
+                        Button("시작하기 다시 보기", systemImage: "play.circle") { go(to: 0) }
+                        Button("응원하기", systemImage: "heart") { onSupport() }
+                    }.buttonStyle(OnboardingRisoButtonStyle(prominent: false)).font(.system(size: 13)).padding(.top, 3)
+                    if ready {
+                        Text("하늘키보드는 영원히 무료입니다. 후원은 자유롭게 선택해 주세요.")
+                            .font(.system(size: 13)).foregroundStyle(.secondary)
+                    } else {
+                        HStack(spacing: 10) {
+                            Text("시작하기를 누르면 입력기 설치·설정을 이어갈 수 있어요.").font(.system(size: 13))
+                            Button("설치 단계로 이동") { go(to: 0) }.font(.system(size: 13)).fixedSize()
+                        }
+                    }
+                }
+                Spacer(minLength: 0)
+                stageMenuBar.padding(.top, 6)
+            }
+            .padding(.horizontal, compact ? 24 : 30).padding(.top, 18)
+            Spacer(minLength: 0)
+            Divider().padding(.horizontal, 22)
+            navigation.padding(.horizontal, 22).frame(height: compact ? 58 : 64)
+        }
+        .accessibilityIdentifier("onboarding-page-content")
+    }
+
+    /// 메뉴바 자리를 알려 주는 작은 모형(옛 7페이지의 연필 동그라미를 카드 오른쪽에 옮겼다).
+    private var stageMenuBar: some View {
+        let ink = OnboardingRiso.ink(for: colorScheme)
+        return HStack(spacing: 14) {
+            Image(systemName: "wifi").font(.system(size: 14, weight: .medium)).accessibilityHidden(true)
+            Image(nsImage: HaneulStatusIcon.image)
+                .resizable().renderingMode(.template).scaledToFit().frame(width: 20, height: 20)
+                .padding(.horizontal, 10).padding(.vertical, 8)
+                .accessibilityLabel("하늘키보드 메뉴바 아이콘")
+                .overlay {
+                    OnboardingPencilRing().stroke(ink, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                        .allowsHitTesting(false).accessibilityHidden(true)
+                }
+                .overlay(alignment: .bottom) {
+                    OnboardingMenuHint().foregroundStyle(ink).offset(y: 50).allowsHitTesting(false)
+                }
+            Text("10:30").font(.system(size: 13, weight: .medium)).monospacedDigit()
+        }.fixedSize().frame(width: 190, height: 110, alignment: .top)
     }
 
     private var header: some View {
@@ -464,13 +572,6 @@ struct OnboardingView: View {
             .padding(.horizontal, 9).padding(.vertical, 5)
             .background(OnboardingRiso.yellow.opacity(0.16), in: RoundedRectangle(cornerRadius: 6))
             .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(.primary.opacity(0.16)))
-    }
-    private var finishStep: some View {
-        OnboardingRisoFinish(ready: ready,
-            onSettings: { onSettings(.inputFeatures) },
-            onReplay: { go(to: 0) },
-            onSupport: onSupport,
-            onInstall: { go(to: 0) })
     }
     private var navigation: some View {
         HStack {
