@@ -162,6 +162,30 @@
       "h": 110,
       "z": 7,
       "file": "OnboardingProp_seesaw.png"
+    },
+    {
+      "page": 5,
+      "name": "tags",
+      "x": 4520,
+      "y": 330,
+      "w": 560,
+      "h": 50,
+      "z": 6,
+      "misreg": 0.35,
+      "seed": 712,
+      "file": "OnboardingProp_tags.png"
+    },
+    {
+      "page": 6,
+      "name": "kite",
+      "x": 5340,
+      "y": 100,
+      "w": 170,
+      "h": 200,
+      "z": 7,
+      "misreg": 0.35,
+      "seed": 714,
+      "file": "OnboardingProp_kite.png"
     }
   ]
 }
