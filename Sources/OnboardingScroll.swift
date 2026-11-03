@@ -8,6 +8,7 @@ import SwiftUI
 enum OnboardingScrollArt {
     struct Station: Decodable { let page: Int; let cx: CGFloat; let cy: CGFloat; let zoom: CGFloat }
     /// 인물 자리: 1·2페이지는 가운데 사람(x, y) + 간격, 3페이지부터는 사람마다(figures, PEOPLE 순서).
+    /// figures 한 칸 = [x, y] · [x, y, 배율] · [x, y, 배율, 앞뒤]. 앞뒤 기본 10, 따로 찍은 층(Prop)과 비교해 쌓는다.
     struct PeopleAt: Decodable {
         let page: Int
         let scale: CGFloat
@@ -17,16 +18,27 @@ enum OnboardingScrollArt {
         let figures: [[CGFloat]]?
 
         func foot(_ index: Int) -> CGPoint? {
-            if let figures, index < figures.count, figures[index].count == 2 { return CGPoint(x: figures[index][0], y: figures[index][1]) }
+            if let figures, index < figures.count, figures[index].count >= 2 { return CGPoint(x: figures[index][0], y: figures[index][1]) }
             guard let x, let y else { return nil }
             return CGPoint(x: x + CGFloat(index - 1) * (spacing ?? 0), y: y)
         }
+        func scale(_ index: Int) -> CGFloat {
+            if let figures, index < figures.count, figures[index].count > 2 { return figures[index][2] }
+            return scale
+        }
+        func depth(_ index: Int) -> CGFloat {
+            if let figures, index < figures.count, figures[index].count > 3 { return figures[index][3] }
+            return 10
+        }
     }
+    /// 2026-11-03 20:29: 두루마리에서 떼어 따로 찍은 층(4페이지 시소 판 — 시소 뒤에 선 사람을 가린다). x, y = 세계 왼쪽 위 pt.
+    struct Prop: Decodable { let page: Int; let file: String; let x: CGFloat; let y: CGFloat; let w: CGFloat; let h: CGFloat; let z: CGFloat }
     struct Scroll: Decodable {
         let image_pt: [CGFloat]
         let stage_pt: [CGFloat]
         let stations: [Station]
         let people: [PeopleAt]
+        let props: [Prop]?
     }
     struct Sprite: Decodable { let file: String; let canvas_pt: [CGFloat]; let anchor_pt: [CGFloat] }
     struct People: Decodable { let order: [String]; let sprites: [String: Sprite] }
@@ -38,6 +50,10 @@ enum OnboardingScrollArt {
     static var pageCount: Int { image == nil ? 0 : (scroll?.stations.count ?? 0) }
 
     @MainActor private static var spriteCache: [String: CGImage] = [:]
+    @MainActor static func image(named file: String) -> CGImage? {
+        cgImage(Bundle.main.url(forResource: (file as NSString).deletingPathExtension, withExtension: "png"))
+    }
+
     @MainActor static func sprite(_ who: String, _ pose: String) -> CGImage? {
         let key = "\(who)_\(pose)"
         if let hit = spriteCache[key] { return hit }
@@ -77,6 +93,7 @@ struct OnboardingScrollStage: NSViewRepresentable {
 
         private let world = CALayer()
         private var persons: [CALayer] = []
+        private var props: [CALayer] = []
         private var page: Int?
 
         init() {
@@ -95,8 +112,18 @@ struct OnboardingScrollStage: NSViewRepresentable {
             for _ in OnboardingScrollArt.people?.order ?? [] {
                 let person = CALayer()
                 person.contentsGravity = .resize
+                person.zPosition = 10
                 world.addSublayer(person)
                 persons.append(person)
+            }
+            for prop in art.props ?? [] {                          // 따로 찍은 층 — 세계에 고정, 앞뒤(z)로 사람과 쌓인다
+                let layer = CALayer()
+                layer.contents = OnboardingScrollArt.image(named: prop.file)
+                layer.contentsGravity = .resize
+                layer.frame = CGRect(x: prop.x, y: art.image_pt[1] - prop.y - prop.h, width: prop.w, height: prop.h)
+                layer.zPosition = prop.z
+                world.addSublayer(layer)
+                props.append(layer)
             }
         }
 
@@ -109,6 +136,7 @@ struct OnboardingScrollStage: NSViewRepresentable {
             let scale = window?.backingScaleFactor ?? 2
             world.contentsScale = scale
             persons.forEach { $0.contentsScale = scale }
+            props.forEach { $0.contentsScale = scale }
             if let page { place(page) }
         }
 
@@ -140,15 +168,17 @@ struct OnboardingScrollStage: NSViewRepresentable {
             return CATransform3DConcat(CATransform3DMakeScale(s, s, 1), CATransform3DMakeTranslation(tx, ty, 0))
         }
 
-        private func personGeometry(_ page: Int, _ index: Int) -> (position: CGPoint, bounds: CGRect, anchor: CGPoint)? {
+        private func personGeometry(_ page: Int, _ index: Int) -> (position: CGPoint, bounds: CGRect, anchor: CGPoint, depth: CGFloat)? {
             guard let art = OnboardingScrollArt.scroll, let people = OnboardingScrollArt.people,
                   let at = art.people.first(where: { $0.page == page + 1 }),
                   let sprite = people.sprites["\(people.order[index])_p\(page + 1)"] else { return nil }
             let canvas = CGSize(width: sprite.canvas_pt[0], height: sprite.canvas_pt[1])
             guard let foot = at.foot(index) else { return nil }
+            let s = at.scale(index)
             return (CGPoint(x: foot.x, y: art.image_pt[1] - foot.y),
-                    CGRect(origin: .zero, size: CGSize(width: canvas.width * at.scale, height: canvas.height * at.scale)),
-                    CGPoint(x: sprite.anchor_pt[0] / canvas.width, y: 1 - sprite.anchor_pt[1] / canvas.height))
+                    CGRect(origin: .zero, size: CGSize(width: canvas.width * s, height: canvas.height * s)),
+                    CGPoint(x: sprite.anchor_pt[0] / canvas.width, y: 1 - sprite.anchor_pt[1] / canvas.height),
+                    at.depth(index))
         }
 
         private func place(_ page: Int) {
@@ -161,6 +191,7 @@ struct OnboardingScrollStage: NSViewRepresentable {
                 person.anchorPoint = g.anchor
                 person.bounds = g.bounds
                 person.position = g.position
+                person.zPosition = g.depth
                 person.contents = OnboardingScrollArt.sprite(who, "p\(page + 1)")
             }
             CATransaction.commit()
@@ -170,6 +201,8 @@ struct OnboardingScrollStage: NSViewRepresentable {
         private func travel(from: Int, to: Int) {
             let duration = to > from ? Self.forward : Self.backward
             let startCamera = world.presentation()?.transform ?? world.transform
+            // 앞뒤: 뒤로 들어가는 사람은 출발할 때, 앞으로 나오는 사람은 도착한 뒤에 바꾼다(시소 판을 뚫고 지나가 보이지 않게).
+            var arrivalDepths: [(CALayer, CGFloat)] = []
             CATransaction.begin(); CATransaction.setDisableActions(true)
             world.transform = camera(to)
             let move = CABasicAnimation(keyPath: "transform")
@@ -182,6 +215,7 @@ struct OnboardingScrollStage: NSViewRepresentable {
                 guard let g = personGeometry(to, i), let who = OnboardingScrollArt.people?.order[i] else { continue }
                 let startPosition = person.presentation()?.position ?? person.position
                 let startBounds = person.presentation()?.bounds ?? person.bounds
+                if g.depth < person.zPosition { person.zPosition = g.depth } else { arrivalDepths.append((person, g.depth)) }
                 person.anchorPoint = g.anchor
                 person.position = g.position
                 person.bounds = g.bounds
@@ -201,6 +235,15 @@ struct OnboardingScrollStage: NSViewRepresentable {
                 walk.calculationMode = .discrete
                 walk.duration = duration * 0.92
                 person.add(walk, forKey: "walk")
+            }
+            let arrivals = arrivalDepths
+            CATransaction.setCompletionBlock { [weak self] in
+                MainActor.assumeIsolated {
+                    guard let self, self.page == to else { return }
+                    CATransaction.begin(); CATransaction.setDisableActions(true)
+                    arrivals.forEach { $0.0.zPosition = $0.1 }
+                    CATransaction.commit()
+                }
             }
             CATransaction.commit()
         }
