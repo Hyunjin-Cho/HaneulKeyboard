@@ -65,10 +65,8 @@ struct OnboardingView: View {
     }
 
     var body: some View {
-        Group {
-            // 2026-11-03 (#113): 7페이지만 새 배치(위 무대 영상 + 아래 종이 카드). 1~6은 #107 4번에서 바꾼다.
-            if step == Self.stagePage { stagePage } else { standardPage }
-        }
+        // 2026-11-03 (#115 블로킹): 1~7 모두 같은 틀(위 무대 + 아래 종이 카드). 안의 내용만 페이지마다 바뀐다.
+        framePage
         .font(.system(size: 15))
         .foregroundStyle(.primary)
         .frame(width: windowSize.width, height: windowSize.height)
@@ -87,122 +85,118 @@ struct OnboardingView: View {
             for: Notification.Name(kTISNotifyEnabledKeyboardInputSourcesChanged as String))) { _ in refresh() }
     }
 
-    private var standardPage: some View {
-        VStack(spacing: 0) {
-            header
-            ZStack {
-                hero.id(pageID).transition(.opacity)
-            }.frame(height: 142)
-            ZStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 14) {
-                        switch step {
-                        case 0: installStep
-                        case 1: sourceStep
-                        case 2: typingStep
-                        case 3: reversalStep
-                        case 4: registeredWordStep
-                        default: slashStep
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, compact ? 32 : 48).padding(.vertical, 8)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityIdentifier("onboarding-page-content")
-                .id(pageID)
-                .transition(pageTransition)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            VStack(spacing: 0) {
-                HStack {
-                    Spacer(minLength: 0)
-                    OnboardingPeopleScene(page: step)
-                }.padding(.trailing, 32)
-                Divider().padding(.horizontal, 32)
-                navigation.padding(.horizontal, 32).frame(height: compact ? 62 : 76)
-            }
-        }
-    }
-
-    // MARK: 7페이지 — 무대 + 종이 카드 (2026-11-03, #113)
-    // 블로킹 승인 비율(2026-11-02 23:28 오너): 끝 무대 = 창 폭 / 1.32, 카드는 그 아래. 카드는 UI 속도(0.5초 ease-out)로
-    // 창 폭 / 1.9 자리에서 내려와 자리 잡고, 카메라(영상)만 6초 움직인다. 작은 창은 카드 높이를 지키고 무대를 위아래로 자른다.
+    // MARK: 같은 틀 — 위 무대 + 아래 종이 카드 (2026-11-03, #115 블로킹)
+    // 2026-11-03 16:10 오너 기획: 모든 안내 페이지가 같은 아트·UI 틀을 쓰고 안의 내용만 바뀐다(가볍고 이해하기 쉽게).
+    // 그 전 #113은 콘티 v1의 페이지별 비율(1.46 → 1.9 → 1.32)을 따라 7페이지만 무대가 컸다. 그 비율은 오너 기획과 어긋났다.
+    // 무대 비율은 후보(1.85:1 · 2.39:1)를 같은 내용으로 비교하려고 값으로 둔다. 오너가 고르면 상수로 박는다.
+    var stageAspect: CGFloat = 2.39
     static let stagePage = 6
-    private static let stageCardMinHeight: CGFloat = 260
-    @State private var stageCardSettled = false
+    /// 블로킹 측정용: 카드 윗부분(제목 + 본문) 높이를 하네스에 알린다. 제품에서는 nil이다.
+    static var cardTopHeightProbe: ((Int, CGFloat) -> Void)?
 
-    private var stageHeight: CGFloat {
-        min((windowSize.width / OnboardingStageArt.aspect).rounded(), windowSize.height - Self.stageCardMinHeight)
-    }
+    private var stageHeight: CGFloat { (windowSize.width / stageAspect).rounded() }
 
-    private var stagePage: some View {
-        let cardHeight = windowSize.height - stageHeight
-        let startTop = min((windowSize.width / 1.9).rounded(), stageHeight)
-        let top = stageCardSettled || reduceMotion ? stageHeight : startTop
-        return ZStack(alignment: .top) {
-            OnboardingStageVideo(animate: !reduceMotion)
+    private var framePage: some View {
+        ZStack(alignment: .top) {
+            stage
                 .frame(width: windowSize.width, height: stageHeight)
+                .clipped()
                 .accessibilityHidden(true)
-            stageCard
-                .frame(width: windowSize.width - 20, height: cardHeight, alignment: .top)
-                .background(alignment: .top) {
-                    // 내려오는 동안 아래가 비지 않게 카드 종이를 창 밖까지 늘인다.
-                    UnevenRoundedRectangle(topLeadingRadius: 18, topTrailingRadius: 18)
-                        .fill(colorScheme == .dark ? Color(red: 0.13, green: 0.14, blue: 0.19) : Color(red: 250 / 255, green: 246 / 255, blue: 236 / 255))
-                        .overlay {
-                            UnevenRoundedRectangle(topLeadingRadius: 18, topTrailingRadius: 18)
-                                .strokeBorder(.primary.opacity(0.10), lineWidth: 1)
-                        }
-                        .shadow(color: .black.opacity(0.10), radius: 10, y: -2)
-                        .frame(height: windowSize.height - startTop + 40)
-                }
-                .offset(y: top)
+            frameCard
+                .frame(width: windowSize.width - 20, height: windowSize.height - stageHeight, alignment: .top)
+                .background(alignment: .top) { cardPaper.frame(height: windowSize.height - stageHeight + 40) }
+                .offset(y: stageHeight)
         }
         .frame(width: windowSize.width, height: windowSize.height, alignment: .top)
         .clipped()
-        .onAppear {
-            stageCardSettled = false
-            guard !reduceMotion else { stageCardSettled = true; return }
-            withAnimation(.timingCurve(0.2, 0, 0, 1, duration: 0.5)) { stageCardSettled = true }
+    }
+
+    @ViewBuilder private var stage: some View {
+        if step == Self.stagePage {
+            OnboardingStageVideo(animate: !reduceMotion)
+        } else {
+            // 블로킹: 1~6 그림 자리. 검수 하네스가 이 키 색 자리에 콘티 장면을 갈아 끼운다.
+            Color(red: 0, green: 1, blue: 0)
         }
     }
 
-    private var stageCard: some View {
-        VStack(spacing: 0) {
-            HStack(alignment: .top, spacing: 16) {
-                VStack(alignment: .leading, spacing: 9) {
-                    HStack(alignment: .firstTextBaseline, spacing: 12) {
-                        Text(titles[Self.stagePage]).font(OnboardingRiso.titleFont(size: 27))
-                        Text(String(format: "%02d", Self.stagePage + 1) + "  " + sections[Self.stagePage])
-                            .font(.system(size: 12, weight: .semibold)).foregroundStyle(OnboardingRiso.ink(for: colorScheme))
-                            .padding(.horizontal, 10).padding(.vertical, 3)
-                            .background(OnboardingRiso.yellow.opacity(colorScheme == .dark ? 0.10 : 0.24), in: Capsule())
-                    }
-                    Text(subtitle).font(.system(size: 14)).lineSpacing(3)
-                        .fixedSize(horizontal: false, vertical: true)
-                    HStack(spacing: 8) {
-                        Button("하늘키보드 설정", systemImage: "slider.horizontal.3") { onSettings(.inputFeatures) }
-                        Button("시작하기 다시 보기", systemImage: "play.circle") { go(to: 0) }
-                        Button("응원하기", systemImage: "heart") { onSupport() }
-                    }.buttonStyle(OnboardingRisoButtonStyle(prominent: false)).font(.system(size: 13)).padding(.top, 3)
-                    if ready {
-                        Text("하늘키보드는 영원히 무료입니다. 후원은 자유롭게 선택해 주세요.")
-                            .font(.system(size: 13)).foregroundStyle(.secondary)
-                    } else {
-                        HStack(spacing: 10) {
-                            Text("시작하기를 누르면 입력기 설치·설정을 이어갈 수 있어요.").font(.system(size: 13))
-                            Button("설치 단계로 이동") { go(to: 0) }.font(.system(size: 13)).fixedSize()
-                        }
-                    }
-                }
-                Spacer(minLength: 0)
-                stageMenuBar.padding(.top, 6)
+    private var cardPaper: some View {
+        UnevenRoundedRectangle(topLeadingRadius: 18, topTrailingRadius: 18)
+            .fill(colorScheme == .dark ? Color(red: 0.13, green: 0.14, blue: 0.19) : Color(red: 250 / 255, green: 246 / 255, blue: 236 / 255))
+            .overlay {
+                UnevenRoundedRectangle(topLeadingRadius: 18, topTrailingRadius: 18)
+                    .strokeBorder(.primary.opacity(0.10), lineWidth: 1)
             }
-            .padding(.horizontal, compact ? 24 : 30).padding(.top, 18)
+            .shadow(color: .black.opacity(0.10), radius: 10, y: -2)
+    }
+
+    private var frameCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 0) {
+                cardTitle
+                pageBody.padding(.top, compact ? 10 : 14)
+            }
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .overlay(alignment: .topTrailing) {
+                if step == Self.stagePage { stageMenuBar.padding(.top, 2) }
+            }
+            .padding(.horizontal, compact ? 24 : 30).padding(.top, compact ? 14 : 18)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { [step] height in
+                Self.cardTopHeightProbe?(step, height)
+            }
+            .id(pageID)
+            .transition(pageTransition)
+            .accessibilityIdentifier("onboarding-page-content")
             Spacer(minLength: 0)
             Divider().padding(.horizontal, 22)
             navigation.padding(.horizontal, 22).frame(height: compact ? 58 : 64)
         }
-        .accessibilityIdentifier("onboarding-page-content")
+    }
+
+    private var cardTitle: some View {
+        VStack(alignment: .leading, spacing: compact ? 6 : 9) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Text(titles[step]).font(OnboardingRiso.titleFont(size: 27))
+                Text(String(format: "%02d", step + 1) + "  " + sections[step])
+                    .font(.system(size: 12, weight: .semibold)).foregroundStyle(OnboardingRiso.ink(for: colorScheme))
+                    .padding(.horizontal, 10).padding(.vertical, 3)
+                    .background(OnboardingRiso.yellow.opacity(colorScheme == .dark ? 0.10 : 0.24), in: Capsule())
+            }
+            Text(subtitle).font(.system(size: 14)).lineSpacing(3)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    @ViewBuilder private var pageBody: some View {
+        switch step {
+        case 0: installStep
+        case 1: sourceStep
+        case 2: typingStep
+        case 3: reversalStep
+        case 4: registeredWordStep
+        case 5: slashStep
+        default: menuBarStep
+        }
+    }
+
+    private var menuBarStep: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack(spacing: 8) {
+                Button("하늘키보드 설정", systemImage: "slider.horizontal.3") { onSettings(.inputFeatures) }
+                Button("시작하기 다시 보기", systemImage: "play.circle") { go(to: 0) }
+                Button("응원하기", systemImage: "heart") { onSupport() }
+            }.buttonStyle(OnboardingRisoButtonStyle(prominent: false)).font(.system(size: 13)).padding(.top, 3)
+            if ready {
+                Text("하늘키보드는 영원히 무료입니다. 후원은 자유롭게 선택해 주세요.")
+                    .font(.system(size: 13)).foregroundStyle(.secondary)
+            } else {
+                HStack(spacing: 10) {
+                    Text("시작하기를 누르면 입력기 설치·설정을 이어갈 수 있어요.").font(.system(size: 13))
+                    Button("설치 단계로 이동") { go(to: 0) }.font(.system(size: 13)).fixedSize()
+                }
+            }
+        }
     }
 
     /// 메뉴바 자리를 알려 주는 작은 모형(옛 7페이지의 연필 동그라미를 카드 오른쪽에 옮겼다).
@@ -225,40 +219,6 @@ struct OnboardingView: View {
         }.fixedSize().frame(width: 190, height: 110, alignment: .top)
     }
 
-    private var header: some View {
-        ZStack(alignment: .topTrailing) {
-            Image(nsImage: OnboardingRiso.eaves).resizable().scaledToFit()
-                .frame(width: 312, height: 104.4).offset(x: -15, y: 20)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .allowsHitTesting(false).accessibilityHidden(true)
-            Text("하늘키보드 시작하기").font(.system(size: 12, weight: .medium))
-                .foregroundStyle(.secondary).frame(maxWidth: .infinity).padding(.top, 23)
-            Image(nsImage: OnboardingRiso.appIcon).resizable().interpolation(.high)
-                .padding(3).frame(width: 60, height: 60)
-                .background(OnboardingRiso.ivory).clipShape(Circle())
-                .overlay(Circle().strokeBorder(.primary.opacity(0.08), lineWidth: 0.5))
-                .accessibilityLabel("하늘키보드 앱 아이콘")
-                .padding(.top, 50).padding(.trailing, 24)
-        }.frame(height: compact ? 70 : 90, alignment: .top)
-    }
-
-    private var hero: some View {
-        VStack(spacing: 10) {
-            Text(String(format: "%02d", step + 1) + "  " + sections[step])
-                .font(.system(size: 12, weight: .semibold)).foregroundStyle(OnboardingRiso.ink(for: colorScheme))
-                .padding(.horizontal, 12).padding(.vertical, 4)
-                .background(OnboardingRiso.yellow.opacity(colorScheme == .dark ? 0.10 : 0.24), in: Capsule())
-            Text(titles[step]).font(OnboardingRiso.titleFont(size: 31))
-                .fixedSize(horizontal: false, vertical: true)
-            Text(subtitle).font(.system(size: 16)).lineSpacing(4)
-                .multilineTextAlignment(.center)
-                .frame(height: 48, alignment: .top)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, 42).padding(.top, 8)
-        .frame(height: 142, alignment: .top)
-    }
-
     private var subtitle: String {
         switch step {
         case 0: "하늘키보드는 한글로 친 영어 단어를 알아보고 바꿔줘요.\n한/영 키를 누르지 않아도 돼요."
@@ -273,42 +233,42 @@ struct OnboardingView: View {
         }
     }
 
+    // 2026-11-03 (#115 블로킹): 카드 높이 안에 들어가게 본문을 두 단으로 놓는다. 문구·기능·글자 크기는 그대로다.
     private var installStep: some View {
-        VStack(alignment: .leading, spacing: compact ? 14 : 18) {
-            OnboardingConversionDemo(compact: compact)
-            HStack(spacing: 14) {
-                Image(systemName: ready ? "checkmark.circle" : "keyboard").font(.system(size: 25))
-                    .foregroundStyle((ready ? FeedbackStatus.success : .pending).color(in: colorScheme))
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("하늘키보드 두벌식").font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.primary)
-                    Text(installStatus).font(.system(size: 14))
+        HStack(alignment: .top, spacing: 22) {
+            OnboardingConversionDemo(compact: compact).frame(width: 350)
+            VStack(alignment: .leading, spacing: compact ? 10 : 14) {
+                HStack(spacing: 12) {
+                    Image(systemName: ready ? "checkmark.circle" : "keyboard").font(.system(size: 25))
                         .foregroundStyle((ready ? FeedbackStatus.success : .pending).color(in: colorScheme))
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("하늘키보드 두벌식").font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(.primary)
+                        Text(installStatus).font(.system(size: 14))
+                            .foregroundStyle((ready ? FeedbackStatus.success : .pending).color(in: colorScheme))
+                    }
+                    Spacer(minLength: 0)
+                    if !ready {
+                        OnboardingButton(core.isPreparingIME ? "확인·설치 중…" : "하늘키보드 설치") {
+                            Task {
+                                installError = nil
+                                if let error = await core.installIME() { installError = error.localizedDescription }
+                            }
+                        }.disabled(core.isPreparingIME).fixedSize()
+                    }
+                }.feedbackPanel(.information)
+                if let message = installError ?? core.imeActivationError?.localizedDescription ?? core.imeSettingsRefreshWarning {
+                    Text(message).font(.system(size: 14))
+                        .foregroundStyle(FeedbackStatus.warning.color(in: colorScheme)).textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true).feedbackPanel(.warning)
                 }
-                Spacer()
-                if !ready {
-                    OnboardingButton(core.isPreparingIME ? "확인·설치 중…" : "하늘키보드 설치") {
-                        Task {
-                            installError = nil
-                            if let error = await core.installIME() { installError = error.localizedDescription }
-                        }
-                    }.disabled(core.isPreparingIME)
-                }
-            }.padding(compact ? 0 : 4).feedbackPanel(.information)
-            if let message = installError ?? core.imeActivationError?.localizedDescription ?? core.imeSettingsRefreshWarning {
-                Text(message).font(.system(size: 14))
-                    .foregroundStyle(FeedbackStatus.warning.color(in: colorScheme)).textSelection(.enabled)
-                    .fixedSize(horizontal: false, vertical: true).feedbackPanel(.warning)
-            }
-            VStack(alignment: .leading, spacing: 8) {
-                Label("메뉴바 앱과 입력기는 하나의 하늘키보드예요.", systemImage: "link")
-                HStack {
+                VStack(alignment: .leading, spacing: 6) {
+                    Label("메뉴바 앱과 입력기는 하나의 하늘키보드예요.", systemImage: "link")
                     Text("함께 지울 때는 설정 → 앱 관리 → 하늘키보드 전체 제거")
-                    Spacer()
                     Button("앱 관리 열기") { onSettings(.appManagement) }
-                }
-            }.font(.system(size: 14)).padding(.horizontal, 4)
-                .fixedSize(horizontal: false, vertical: true)
+                }.font(.system(size: 14)).padding(.horizontal, 4)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
     private var installStatus: String {
@@ -319,7 +279,7 @@ struct OnboardingView: View {
         return "아직 설치되지 않았어요"
     }
     private var sourceStep: some View {
-        VStack(alignment: .leading, spacing: compact ? 12 : 20) {
+        HStack(alignment: .top, spacing: 20) {
             card {
                 HStack(alignment: .top, spacing: 8) {
                     guideColumn("1", core.imeInstalled ? "설치 완료" : "키보드", symbol: "keyboard",
@@ -339,96 +299,91 @@ struct OnboardingView: View {
                     FeedbackStatusLabel(complete: selectedHaneul,
                         completedText: "지금 하늘키보드를 선택했어요", pendingText: "현재 다른 입력 소스를 사용 중이에요")
                 }.font(.system(size: 15))
-            }
-            HStack(spacing: 12) {
+            }.frame(width: 440)
+            VStack(alignment: .leading, spacing: compact ? 10 : 14) {
                 OnboardingButton("키보드 설정 열기") { IMEInstaller.openInputSourcesSettings() }
                     .disabled(core.isPreparingIME)
+                VStack(alignment: .leading, spacing: compact ? 6 : 10) {
+                    Label("기존 Apple ‘두벌식’은 빼고, ‘ABC’는 남겨 주세요.", systemImage: "keyboard")
+                    Text("Caps Lock을 짧게 누르면 한글과 영어가 바뀌어요.\n키보드 설정의 ‘Caps Lock 키로 ABC 입력 소스 전환’도 확인해 주세요.")
+                        .lineSpacing(4)
+                    if let message = sourceError ?? core.imeSettingsRefreshWarning {
+                        Text(message).foregroundStyle(FeedbackStatus.warning.color(in: colorScheme))
+                            .textSelection(.enabled)
+                    }
+                }.font(.system(size: 14)).fixedSize(horizontal: false, vertical: true)
+                    .feedbackPanel(.warning)
             }
-            VStack(alignment: .leading, spacing: compact ? 6 : 12) {
-                Label("기존 Apple ‘두벌식’은 빼고, ‘ABC’는 남겨 주세요.", systemImage: "keyboard")
-                Text("Caps Lock을 짧게 누르면 한글과 영어가 바뀌어요.\n키보드 설정의 ‘Caps Lock 키로 ABC 입력 소스 전환’도 확인해 주세요.")
-                    .lineSpacing(4)
-                if let message = sourceError ?? core.imeSettingsRefreshWarning {
-                    Text(message).foregroundStyle(FeedbackStatus.warning.color(in: colorScheme))
-                        .textSelection(.enabled)
-                }
-            }.font(.system(size: 14)).fixedSize(horizontal: false, vertical: true)
-                .feedbackPanel(.warning)
         }
     }
-    private var typingStep: some View {
-        VStack(alignment: .leading, spacing: 22) {
-            practice(.automatic)
-            if !hasPracticeWarning(.automatic) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("다른 단어도 자유롭게 쳐보세요.").font(.system(size: 16, weight: .medium))
-                    HStack(spacing: 9) {
-                        exampleWord("bike", tint: OnboardingRiso.cyan)
-                        exampleWord("camera", tint: OnboardingRiso.pink)
-                        exampleWord("water", tint: OnboardingRiso.yellow)
-                    }
-                    Text("개인 사전의 변환 추가·변환 금지도 그대로 적용돼요.").font(.system(size: 14))
-                }.frame(maxWidth: .infinity, alignment: .leading)
-                    .feedbackPanel(.advice)
+
+    /// 왼쪽 = 연습칸, 오른쪽 = 도움말. 기능이 꺼져 있으면 연습칸 쪽에 경고가 뜨고 도움말은 숨긴다(예전과 같다).
+    private func practicePair<Advice: View>(_ lesson: PracticeLesson, @ViewBuilder advice: () -> Advice) -> some View {
+        HStack(alignment: .top, spacing: 20) {
+            practice(lesson).frame(width: 430)
+            if !hasPracticeWarning(lesson) {
+                VStack(alignment: .leading, spacing: 10) { advice() }
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
+        }
+    }
+
+    private var typingStep: some View {
+        practicePair(.automatic) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("다른 단어도 자유롭게 쳐보세요.").font(.system(size: 16, weight: .medium))
+                HStack(spacing: 9) {
+                    exampleWord("bike", tint: OnboardingRiso.cyan)
+                    exampleWord("camera", tint: OnboardingRiso.pink)
+                    exampleWord("water", tint: OnboardingRiso.yellow)
+                }
+                Text("개인 사전의 변환 추가·변환 금지도 그대로 적용돼요.").font(.system(size: 14))
+                    .fixedSize(horizontal: false, vertical: true)
+            }.frame(maxWidth: .infinity, alignment: .leading)
+                .feedbackPanel(.advice)
         }
     }
 
     private var reversalStep: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            practice(.reversal)
-            if !hasPracticeWarning(.reversal) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("방금 변환한 단어를 다시 한글로")
-                        .font(.system(size: 16, weight: .semibold))
-                    Text("apple을 친 뒤 Space → \(shortcut.displayName)를 눌러보세요.\n같은 단축키를 한 번 더 누르면 영어로 돌아와요.")
-                        .font(.system(size: 14)).lineSpacing(3)
-                }.feedbackPanel(.advice)
-                terminalShortcutNote
-            }
+        practicePair(.reversal) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("방금 변환한 단어를 다시 한글로")
+                    .font(.system(size: 16, weight: .semibold))
+                Text("apple을 친 뒤 Space → \(shortcut.displayName)를 눌러보세요.\n같은 단축키를 한 번 더 누르면 영어로 돌아와요.")
+                    .font(.system(size: 14)).lineSpacing(3).fixedSize(horizontal: false, vertical: true)
+            }.frame(maxWidth: .infinity, alignment: .leading).feedbackPanel(.advice)
+            terminalShortcutNote
         }
     }
 
     private var registeredWordStep: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            practice(.registeredWord)
-            if !hasPracticeWarning(.registeredWord) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("렌즈 → lens · 옷 → clothes · 세탁기 → washing machine")
-                        .font(.system(size: 15, weight: .medium))
-                    Text("등록된 표기만 바꿔요. 일반 Space에서는 한글 그대로예요.")
-                        .font(.system(size: 14))
-                    HStack {
-                        Text("나만의 변환 규칙은 설정 → 개인 사전에서")
-                            .font(.system(size: 13))
-                        Spacer(minLength: 4)
-                        Button("개인 사전 열기") { onSettings(.personalDictionary) }
-                            .font(.system(size: 13))
-                    }.padding(.top, 4)
-                }.feedbackPanel(.information)
-                terminalShortcutNote
-            }
+        practicePair(.registeredWord) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("렌즈 → lens · 옷 → clothes · 세탁기 → washing machine")
+                    .font(.system(size: 15, weight: .medium)).fixedSize(horizontal: false, vertical: true)
+                Text("등록된 표기만 바꿔요. 일반 Space에서는 한글 그대로예요.")
+                    .font(.system(size: 14)).fixedSize(horizontal: false, vertical: true)
+                Text("나만의 변환 규칙은 설정 → 개인 사전에서")
+                    .font(.system(size: 13)).padding(.top, 4)
+                Button("개인 사전 열기") { onSettings(.personalDictionary) }
+                    .font(.system(size: 13))
+            }.frame(maxWidth: .infinity, alignment: .leading).feedbackPanel(.information)
+            terminalShortcutNote
         }
     }
 
     private var slashStep: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            practice(.slash)
-            if !hasPracticeWarning(.slash) {
-                VStack(alignment: .leading, spacing: 7) {
-                    Text("/help → Space → 다시 한글 입력")
-                        .font(.system(size: 16, weight: .semibold))
-                    Text("/는 그대로 남고, 뒤에는 즉시 영어가 나와요.\nSpace·슬래시 삭제·닫는 괄호 뒤에는 한글로 돌아와요.")
-                        .font(.system(size: 14)).lineSpacing(3)
-                    HStack {
-                        Text("기본으로 켜져 있어요. 설정에서 끌 수 있어요.")
-                            .font(.system(size: 13))
-                        Spacer(minLength: 4)
-                        Button("입력 기능 설정") { onSettings(.inputFeatures) }
-                            .font(.system(size: 13))
-                    }
-                }.feedbackPanel(.advice)
-            }
+        practicePair(.slash) {
+            VStack(alignment: .leading, spacing: 7) {
+                Text("/help → Space → 다시 한글 입력")
+                    .font(.system(size: 16, weight: .semibold))
+                Text("/는 그대로 남고, 뒤에는 즉시 영어가 나와요.\nSpace·슬래시 삭제·닫는 괄호 뒤에는 한글로 돌아와요.")
+                    .font(.system(size: 14)).lineSpacing(3).fixedSize(horizontal: false, vertical: true)
+                Text("기본으로 켜져 있어요. 설정에서 끌 수 있어요.")
+                    .font(.system(size: 13))
+                Button("입력 기능 설정") { onSettings(.inputFeatures) }
+                    .font(.system(size: 13))
+            }.frame(maxWidth: .infinity, alignment: .leading).feedbackPanel(.advice)
         }
     }
 
