@@ -1,0 +1,47 @@
+{
+  "date": "2026-11-03",
+  "source": "haneul-art onboarding/scroll.py",
+  "world_pt": [
+    6800,
+    480
+  ],
+  "image_pt": [
+    2420,
+    480
+  ],
+  "px_per_pt": 2,
+  "stage_pt": [
+    820,
+    343
+  ],
+  "stations": [
+    {
+      "page": 1,
+      "cx": 560,
+      "cy": 246,
+      "zoom": 0.75
+    },
+    {
+      "page": 2,
+      "cx": 1720,
+      "cy": 300,
+      "zoom": 1.0
+    }
+  ],
+  "people": [
+    {
+      "page": 1,
+      "x": 170,
+      "y": 456,
+      "scale": 0.55,
+      "spacing": 24
+    },
+    {
+      "page": 2,
+      "x": 1590,
+      "y": 462,
+      "scale": 1.0,
+      "spacing": 66
+    }
+  ]
+}

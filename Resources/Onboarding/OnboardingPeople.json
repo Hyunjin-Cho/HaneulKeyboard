@@ -1,0 +1,143 @@
+{
+  "date": "2026-11-03",
+  "source": "haneul-art onboarding/people.py",
+  "order": [
+    "ponytail",
+    "durumagi",
+    "bun"
+  ],
+  "sprites": {
+    "ponytail_p1": {
+      "file": "OnboardingPerson_ponytail_p1.png",
+      "canvas_pt": [
+        150,
+        175
+      ],
+      "anchor_pt": [
+        75.0,
+        167.0
+      ]
+    },
+    "durumagi_p1": {
+      "file": "OnboardingPerson_durumagi_p1.png",
+      "canvas_pt": [
+        150,
+        175
+      ],
+      "anchor_pt": [
+        75.0,
+        167.0
+      ]
+    },
+    "bun_p1": {
+      "file": "OnboardingPerson_bun_p1.png",
+      "canvas_pt": [
+        150,
+        175
+      ],
+      "anchor_pt": [
+        75.0,
+        167.0
+      ]
+    },
+    "ponytail_p2": {
+      "file": "OnboardingPerson_ponytail_p2.png",
+      "canvas_pt": [
+        150,
+        175
+      ],
+      "anchor_pt": [
+        75.0,
+        167.0
+      ]
+    },
+    "durumagi_p2": {
+      "file": "OnboardingPerson_durumagi_p2.png",
+      "canvas_pt": [
+        150,
+        175
+      ],
+      "anchor_pt": [
+        75.0,
+        167.0
+      ]
+    },
+    "bun_p2": {
+      "file": "OnboardingPerson_bun_p2.png",
+      "canvas_pt": [
+        150,
+        175
+      ],
+      "anchor_pt": [
+        75.0,
+        167.0
+      ]
+    },
+    "ponytail_walkA": {
+      "file": "OnboardingPerson_ponytail_walkA.png",
+      "canvas_pt": [
+        150,
+        175
+      ],
+      "anchor_pt": [
+        75.0,
+        166.99999999999997
+      ]
+    },
+    "durumagi_walkA": {
+      "file": "OnboardingPerson_durumagi_walkA.png",
+      "canvas_pt": [
+        150,
+        175
+      ],
+      "anchor_pt": [
+        75.0,
+        166.99999999999997
+      ]
+    },
+    "bun_walkA": {
+      "file": "OnboardingPerson_bun_walkA.png",
+      "canvas_pt": [
+        150,
+        175
+      ],
+      "anchor_pt": [
+        75.0,
+        166.99999999999997
+      ]
+    },
+    "ponytail_walkB": {
+      "file": "OnboardingPerson_ponytail_walkB.png",
+      "canvas_pt": [
+        150,
+        175
+      ],
+      "anchor_pt": [
+        75.0,
+        166.99999999999997
+      ]
+    },
+    "durumagi_walkB": {
+      "file": "OnboardingPerson_durumagi_walkB.png",
+      "canvas_pt": [
+        150,
+        175
+      ],
+      "anchor_pt": [
+        75.0,
+        166.99999999999997
+      ]
+    },
+    "bun_walkB": {
+      "file": "OnboardingPerson_bun_walkB.png",
+      "canvas_pt": [
+        150,
+        175
+      ],
+      "anchor_pt": [
+        75.0,
+        166.99999999999997
+      ]
+    }
+  }
+}
