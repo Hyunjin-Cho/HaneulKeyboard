@@ -216,9 +216,11 @@ struct OnboardingView: View {
         let ink = OnboardingRiso.ink(for: colorScheme)
         return HStack(spacing: 14) {
             Image(systemName: "wifi").font(.system(size: 14, weight: .medium)).accessibilityHidden(true)
+            // 2026-11-04: 메뉴바 아이콘(G5b)은 22pt 화소 격자에 맞춰 그렸다. 20pt로 줄이면 2배 화면에서
+            // 마구리 점이 회색으로 뭉개져서, 실제 메뉴바와 같은 22pt로 그린다. 연필 동그라미 틀(40×36)은 그대로다.
             Image(nsImage: HaneulStatusIcon.image)
-                .resizable().renderingMode(.template).scaledToFit().frame(width: 20, height: 20)
-                .padding(.horizontal, 10).padding(.vertical, 8)
+                .resizable().renderingMode(.template).scaledToFit().frame(width: 22, height: 22)
+                .padding(.horizontal, 9).padding(.vertical, 7)
                 .accessibilityLabel("하늘키보드 메뉴바 아이콘")
                 .overlay {
                     OnboardingPencilRing().stroke(ink, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
