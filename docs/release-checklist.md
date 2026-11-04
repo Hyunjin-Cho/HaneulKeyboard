@@ -1,6 +1,6 @@
 # HaneulKeyboard 릴리스 체크리스트
 
-> **기준일:** 2026-10-25 (#85, 기존 #72) · 정식 버전은 실제 배포 날짜 `YYYY.MM.DD`를 사용한다. 규칙의 근거는 줄번호 대신 **코드 심볼**로 적었다 — 그 심볼이 바뀌면 이 문서도 같이 고친다.
+> **기준일:** 2026-11-04 (#131 버전 규칙 갱신 · 기존 #85 #72) · 정식 버전은 실제 배포 날짜를 0을 채운 `YYYY.MM.DD`로 쓰고, 핫픽스는 `_hotfix1`·`_hotfix2` 번호를 붙인다. 규칙의 근거는 줄번호 대신 **코드 심볼**로 적었다 — 그 심볼이 바뀌면 이 문서도 같이 고친다.
 
 ## 왜 이 문서가 있나
 
@@ -16,7 +16,7 @@
 
 | 규칙 | 어기면 | 근거 |
 |---|---|---|
-| **태그 = 공개 버전** (`MARKETING_VERSION` + `HANEUL_RELEASE_SUFFIX`). 기본판 `2026.10.15`, 핫픽스 `2026.10.15_hotfix`. `v`·`-beta` 금지 | 버전을 못 읽음 → 업데이트 없음 | `CalVer.init?`·`releaseVersion(info:)` |
+| **태그 = 공개 버전** (`MARKETING_VERSION` + `HANEUL_RELEASE_SUFFIX`). 기본판 `2026.11.04`, 핫픽스 `2026.11.04_hotfix1`·`_hotfix2`. `v`·`-beta`·맨 `_hotfix` 금지 | 버전을 못 읽음 → 업데이트 없음 | `CalVer.init?`·`releaseVersion(info:)` |
 | **에셋 = 빌드 스크립트가 만든 `HaneulKeyboard_<태그>.zip` 그대로** (이름 변경 금지) | 받을 파일을 못 찾음 → 업데이트 없음 | `assetName(forTag:)`·`selectAsset(in:)` — 정확 일치 |
 | **첫 설치 에셋 = `HaneulKeyboard_<태그>.dmg`**, 같은 버전 ZIP도 함께 게시 | DMG만 있으면 앱 안 업데이트 없음 | `scripts/package_dmg.sh`; `selectAsset(in:)` |
 | **정식 릴리스**(draft·pre-release 아님)로 올리고 "Latest"로 둔다 | 앱이 보는 `/releases/latest`에 안 나옴 | `latestReleaseURL(repository:)`·`parseRelease(_:)` |
@@ -28,12 +28,12 @@
 
 ### 버전 번호 고르는 법
 
-- **정식은 `연도.월.일`**이다. 실제 2026년 10월 10일에 게시하는 경우 `2026.10.10`을 쓴다. 날짜는 예시이며 첫 정식 출시일은 아직 확정하지 않았다.
+- **정식은 `연도.월.일`이고 0을 채운다**(2026-11-04 오너 재확인, #131). 11월 4일에 게시하면 `2026.11.04`다. 날짜는 예시이며 첫 정식 출시일은 아직 정하지 않았다. 빌드 스크립트(`build_notarize_install.sh`·`package_dmg.sh`)가 3칸 날짜의 0 채움과 달력 유효성을 검사한다.
 - 과거 `2026.01`~`2026.07`은 순번형 베타 이력이다. 기존 두 칸짜리 내부 설치본과 비교하기 위해 `CalVer`는 2~3칸 파싱을 유지한다. 날짜 유효성을 검사하는 타입은 아니므로 게시자가 실제 날짜를 확인한다.
 - **내부 확인용 빌드에 쓴 번호는 정식에 그대로 재사용하지 않는다.** 현재 버전은 `project.yml`, 설치본 버전은 `postinstall_probe.sh`로 읽고 새 번호가 더 큰지 확인한다. 예: `2026.9` → `2026.10.10`은 상승이다.
-- **핫픽스는 `_hotfix`만 붙인다**(2026-10-10 사용자 결정). Apple 표준 `CFBundleShortVersionString`은 숫자 날짜로 유지하며, `project.yml`의 `HANEUL_RELEASE_SUFFIX`를 `_hotfix`로 설정해 서명된 `HaneulReleaseSuffix`에 저장한다. `UpdateDecision.releaseVersion(info:)`가 화면·업데이트 비교에 쓸 공개 버전을 만든다. 기본판은 접미어가 빈 문자열이다. 근거: [Apple 버전 형식](https://developer.apple.com/documentation/bundleresources/information-property-list/cfbundleshortversionstring).
-- 같은 날짜 기본판 → 핫픽스 → 다음 날짜 순으로 업데이트한다. **이미 올린 같은 버전의 에셋을 바꿔치기하지 않는다.** 빌드 번호만 높여도 업데이트로 보지 않는다. **하루 기본판1개와 같은 날 핫픽스1개까지**(2026-10-10 사용자 확정). 같은 날 두 번째 기본판/핫픽스는 배포하지 않고 `_hotfix2`도 지원하지 않는다.
-- 전환 검사는 `Tests/ComposerTests.swift`의 날짜 버전 검사(이전 번호→날짜, 일/월/연도 경계, 파일명 일치, 같은 날짜 재게시 거부)에 있다.
+- **핫픽스는 `_hotfix1`, `_hotfix2` …처럼 번호를 붙인다**(2026-11-04 오너 결정, #131 — 2026-10-10의 `_hotfix` 하나 규칙을 바꿨다). 원래 판 날짜를 그대로 둔다. 예: `2026.11.04`의 첫 핫픽스는 며칠 뒤에 내도 `2026.11.04_hotfix1`이다. 번호는 1~999, 앞자리 0 없이 쓴다. Apple 표준 `CFBundleShortVersionString`은 숫자 날짜로 유지하고, `project.yml`의 `HANEUL_RELEASE_SUFFIX`에 `_hotfixN`을 넣어 서명된 `HaneulReleaseSuffix`에 저장한다. `UpdateDecision.releaseVersion(info:)`가 화면·업데이트 비교용 공개 버전을 만들고, `CalVer.hotfixNumber(ofSuffix:)`가 형식을 검사한다. 맨 `_hotfix`·`_hotfix0`·`_hotfix01`은 거부한다.
+- 업데이트 순서는 기본판 → `_hotfix1` → `_hotfix2` … → 다음 날짜 기본판이다. 번호는 숫자로 비교한다(`_hotfix9` < `_hotfix10`). **이미 올린 같은 버전의 에셋을 바꿔치기하지 않는다.** 빌드 번호만 높여도 업데이트로 보지 않는다. 기본판은 하루 1개까지다(같은 날 두 번째 기본판은 내지 않고 핫픽스 번호로 낸다).
+- 전환 검사는 `Tests/ComposerTests.swift`의 날짜 버전 검사(이전 번호→날짜, 일/월/연도 경계, 파일명 일치, 같은 날짜 재게시 거부, 핫픽스 번호 순서·역행 금지·형식 거부)에 있다.
 
 ## 2. 순서
 
@@ -55,7 +55,7 @@
 
 ### ② 버전 올리기
 
-- [ ] `project.yml`의 `MARKETING_VERSION`(날짜), `HANEUL_RELEASE_SUFFIX`(기본 빈 문자열 / 핫픽스 `_hotfix`), `CURRENT_PROJECT_VERSION`(+1)을 확인한다. 공개 태그·ZIP 이름에는 접미어를 포함한다.
+- [ ] `project.yml`의 `MARKETING_VERSION`(날짜), `HANEUL_RELEASE_SUFFIX`(기본 빈 문자열 / 핫픽스 `_hotfix1`·`_hotfix2` …), `CURRENT_PROJECT_VERSION`(+1)을 확인한다. 공개 태그·ZIP 이름에는 접미어를 포함한다.
 - [ ] **커밋·푸시·머지·태그는 먼저 사용자 승인을 받는다.** 이전 테스트 후보의 버전을 미래 날짜로 미리 바꾸지 않는다.
 
 ### ③ 빌드·서명·공증
@@ -84,7 +84,7 @@
 ### ⑥ 게시 — 🔴 오너가 직접
 
 ```bash
-RELEASE_VERSION=2026.10.10   # 예시: 실제 배포 날짜이자 MARKETING_VERSION과 같은 값
+RELEASE_VERSION=2026.11.04   # 예시: 실제 배포 날짜(0 채움)이자 MARKETING_VERSION과 같은 값. 핫픽스면 2026.11.04_hotfix1
 gh release create "$RELEASE_VERSION" "HaneulKeyboard_$RELEASE_VERSION.dmg" "HaneulKeyboard_$RELEASE_VERSION.dmg.sha256" \
   "HaneulKeyboard_$RELEASE_VERSION.zip" "HaneulKeyboard_$RELEASE_VERSION.zip.sha256" \
   --target "$(git rev-parse HEAD)" --title "$RELEASE_VERSION" --notes-file <노트 파일> --latest
@@ -102,7 +102,7 @@ gh release create "$RELEASE_VERSION" "HaneulKeyboard_$RELEASE_VERSION.dmg" "Hane
     | python3 -c 'import sys,json; r=json.load(sys.stdin); print(r["tag_name"], [a["name"] for a in r["assets"]])'
   ```
 
-  태그가 새 버전이고 `HaneulKeyboard_<태그>.dmg`·`.zip`·각 체크섬이 정확히 있어야 한다. 같은 날짜 기본판/핫픽스가 이미 있으면 재게시하지 않는다.
+  태그가 새 버전이고 `HaneulKeyboard_<태그>.dmg`·`.zip`·각 체크섬이 정확히 있어야 한다. 같은 버전(기본판·같은 번호 핫픽스)이 이미 있으면 재게시하지 않는다.
 - [ ] **새 버전 알림·사용자 선택 설치 실전 확인 (2026-10-24)** — 직전 버전(업데이터가 들어 있는 빌드)을 설치한 Mac에서 설정 → 버전·업데이트 → `지금 확인` → 새 버전이 뜨는지 → `새 버전 설치` → 재실행 뒤 앱 버전이 바뀌고 IME도 새 빌드로 갱신됐는지(`bash scripts/postinstall_probe.sh` 1번).
 - [ ] 이상하면 **릴리스를 지우지 말고** 원인부터 본다. 지우고 다시 올리면 이미 받은 사람과 번호가 꼬인다.
 

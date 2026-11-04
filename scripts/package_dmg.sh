@@ -38,12 +38,14 @@ info = plistlib.loads((Path(sys.argv[1])/"Contents/Info.plist").read_bytes())
 assert info["CFBundleIdentifier"] == "com.hyunjincho.haneulkeyboard", "Only the main app can be packaged"
 version = info["CFBundleShortVersionString"]
 suffix = info.get("HaneulReleaseSuffix", "")
-assert isinstance(version, str) and re.fullmatch(r"[0-9]{4}\.[0-9]{1,2}(?:\.[0-9]{1,2})?", version)
-assert suffix in ("", "_hotfix")
-if suffix:
+# 2026-11-04 (#131): 내부 후보 2칸(2026.9) 또는 0을 채운 날짜 3칸(2026.11.04). 핫픽스는 _hotfix1 ~ _hotfix999.
+assert isinstance(version, str) and re.fullmatch(r"[0-9]{4}\.(?:[0-9]{1,2}|[0-9]{2}\.[0-9]{2})", version)
+assert isinstance(suffix, str) and (suffix == "" or re.fullmatch(r"_hotfix[1-9][0-9]{0,2}", suffix))
+if version.count(".") == 2:
     from datetime import datetime
-    assert re.fullmatch(r"[0-9]{4}\.[0-9]{2}\.[0-9]{2}", version)
     datetime.strptime(version, "%Y.%m.%d")
+if suffix:
+    assert version.count(".") == 2, "Hotfix needs a dated version"
 print(version + suffix)
 PY
 )

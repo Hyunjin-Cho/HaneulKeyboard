@@ -14,23 +14,46 @@ import Foundation
 
 // MARK: - CalVer
 
-/// 정식 배포는 `YYYY.MM.DD`, 핫픽스는 `YYYY.MM.DD_hotfix`(2026-10-10 합의). 이전 설치본과의 비교를
+/// 정식 배포는 0을 채운 `YYYY.MM.DD`, 핫픽스는 `YYYY.MM.DD_hotfixN`(N = 1, 2, …). 이전 설치본과의 비교를
 /// 위해 2~3칸 숫자 파싱을 유지한다. 접미어가 있는 새 날짜는 달력 유효성도 검사하며,
 /// 과거 숫자 버전은 독립된 정수로 비교한다. 실제 배포 날짜는 릴리스 체크리스트에서 확인한다.
+/// 2026-11-04 (#131): 오너 결정으로 핫픽스에 번호를 붙인다(2026-10-10 합의는 `_hotfix` 하나·하루 1개였다).
+/// 원래 판 날짜를 유지한 채 같은 판에 여러 번 낼 수 있다. 공개된 적 없는 맨 `_hotfix`는 받지 않는다.
 struct CalVer: Equatable, Comparable, Sendable, CustomStringConvertible {
     let year: Int
     let release: Int
     /// 세 번째 칸: 정식 배포의 일(day), 이전 번호의 핫픽스. 없으면 0.
     let hotfix: Int
-    let isHotfix: Bool
+    /// `_hotfixN`의 N. 기본판은 0. 2026-11-04 (#131)
+    let hotfixNumber: Int
+    var isHotfix: Bool { hotfixNumber > 0 }
     /// 표시용 원문(`2026.08`). 비교에는 쓰지 않는다.
     let text: String
 
-    /// 허용: 숫자/점 2~3칸, 각 칸 1~6자리와 날짜 3칸에 붙는 `_hotfix`. `v2026.08`·`2026`·`2026.08.1.2`·
+    static let hotfixMarker = "_hotfix"
+
+    /// `_hotfix1`~`_hotfix999`(ASCII 숫자, 앞자리 0 없음)만 핫픽스 접미어로 인정하고 번호를 돌려준다.
+    /// 맨 `_hotfix`·`_hotfix0`·`_hotfix01`·대문자·다른 숫자 체계는 nil.
+    static func hotfixNumber(ofSuffix suffix: Substring) -> Int? {
+        guard suffix.hasPrefix(hotfixMarker) else { return nil }
+        let digits = suffix.dropFirst(hotfixMarker.count)
+        guard (1...3).contains(digits.count), digits.first != "0",
+              digits.allSatisfy({ $0.isASCII && $0.isNumber }),
+              let number = Int(digits) else { return nil }
+        return number
+    }
+
+    /// 허용: 숫자/점 2~3칸, 각 칸 1~6자리와 날짜 3칸에 붙는 `_hotfixN`. `v2026.08`·`2026`·`2026.08.1.2`·
     /// `2026..08`·`2026.-1`은 전부 nil.
     init?(_ text: String) {
-        let isHotfix = text.hasSuffix("_hotfix")
-        let numeric = isHotfix ? String(text.dropLast("_hotfix".count)) : text
+        var numeric = Substring(text)
+        var hotfixNumber = 0
+        if let marker = text.range(of: Self.hotfixMarker) {
+            guard let number = Self.hotfixNumber(ofSuffix: text[marker.lowerBound...]) else { return nil }
+            hotfixNumber = number
+            numeric = text[..<marker.lowerBound]
+        }
+        let isHotfix = hotfixNumber > 0
         let parts = numeric.split(separator: ".", omittingEmptySubsequences: false)
         guard parts.count == 2 || parts.count == 3 else { return nil }
         // 새 접미어는 날짜 3칸에만 쓴다. 과거 두 칸 번호는 그대로 유지한다.
@@ -54,16 +77,17 @@ struct CalVer: Equatable, Comparable, Sendable, CustomStringConvertible {
         year = numbers[0]
         release = numbers[1]
         hotfix = numbers.count == 3 ? numbers[2] : 0
-        self.isHotfix = isHotfix
+        self.hotfixNumber = hotfixNumber
         self.text = text
     }
 
     static func == (a: CalVer, b: CalVer) -> Bool {
-        a.year == b.year && a.release == b.release && a.hotfix == b.hotfix && a.isHotfix == b.isHotfix
+        a.year == b.year && a.release == b.release && a.hotfix == b.hotfix && a.hotfixNumber == b.hotfixNumber
     }
 
+    /// 핫픽스 번호는 글자가 아니라 숫자로 비교한다(`_hotfix9` < `_hotfix10`).
     static func < (a: CalVer, b: CalVer) -> Bool {
-        (a.year, a.release, a.hotfix, a.isHotfix ? 1 : 0) < (b.year, b.release, b.hotfix, b.isHotfix ? 1 : 0)
+        (a.year, a.release, a.hotfix, a.hotfixNumber) < (b.year, b.release, b.hotfix, b.hotfixNumber)
     }
 
     var description: String { text }
@@ -79,7 +103,7 @@ struct ReleaseAsset: Equatable, Sendable {
 }
 
 struct ReleaseInfo: Equatable, Sendable {
-    /// `tag_name` — 날짜 + `HANEUL_RELEASE_SUFFIX`로 만든 공개 버전(예: `2026.10.15_hotfix`).
+    /// `tag_name` — 날짜 + `HANEUL_RELEASE_SUFFIX`로 만든 공개 버전(예: `2026.10.15_hotfix1`).
     let tag: String
     let assets: [ReleaseAsset]
     /// 릴리스 페이지(`html_url`). 표시용 — 설정의 "릴리스 노트 보기" 링크.
@@ -128,13 +152,14 @@ struct UpdateVerification: Equatable, Sendable {
 // MARK: - 결정
 
 enum UpdateDecision {
-    /// Apple 표준 버전은 숫자로 유지하고, 서명된 추가 항목으로 공개 `_hotfix` 표기를 만든다.
+    /// Apple 표준 버전은 숫자로 유지하고, 서명된 추가 항목으로 공개 `_hotfixN` 표기를 만든다.
     /// 알 수 없는 접미어는 업데이트 검증에서 거부한다. 과거 번들에는 이 키가 없다.
     static func releaseVersion(info: [String: Any]?) -> String? {
         guard let version = info?["CFBundleShortVersionString"] as? String else { return nil }
         let suffix: String
         if let raw = info?["HaneulReleaseSuffix"] {
-            guard let value = raw as? String, value.isEmpty || value == "_hotfix" else { return nil }
+            guard let value = raw as? String,
+                  value.isEmpty || CalVer.hotfixNumber(ofSuffix: Substring(value)) != nil else { return nil }
             suffix = value
         } else {
             suffix = ""
