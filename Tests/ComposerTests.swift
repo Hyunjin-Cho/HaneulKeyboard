@@ -1831,7 +1831,7 @@ struct ComposerTests {
             expect(WordSuggestion.issueURL(typed: " \n ", expected: "apple", kind: .add) == nil, true, "WS: 공백·줄바꿈만이면 nil")
             expect(WordSuggestion.issueURL(typed: "메ㅔㅣㄷ", expected: "apple", kind: .add) != nil, true, "WS: 정상 입력은 URL")
             if let email = WordSuggestion.emailURL(typed: "ㅊ+ㅊ", expected: "c+c", kind: .block,
-                                                   note: "a&b#c", appVersion: "2026.10.15_hotfix", osVersion: "27.0") {
+                                                   note: "a&b#c", appVersion: "2026.10.15_hotfix1", osVersion: "27.0") {
                 let components = URLComponents(url: email, resolvingAgainstBaseURL: false)!
                 expect(components.scheme ?? "", "mailto", "이메일 제안: 작성창만 열기")
                 expect(components.path, "lifeismotive@gmail.com", "이메일 제안: 승인된 수신자 고정")
@@ -2139,41 +2139,73 @@ struct ComposerTests {
         expect(UpdateDecision.availableUpdate(currentVersion: "2026.9", release: datedRelease)?.tag ?? "",
                "2026.10.10", "날짜 버전: 태그와 파일명이 일치하는 정식 업데이트 탐지")
 
-        // 2026-10-10: 공개 이름의 _hotfix와 Apple 숫자 버전 항목을 연결한다.
-        expect(ver("2026.10.15")! < ver("2026.10.15_hotfix")!, true, "핫픽스는 같은 날짜의 기본판보다 새 버전")
-        expect(ver("2026.10.15_hotfix")! < ver("2026.10.16")!, true, "다음 날짜는 전날 핫픽스보다 새 버전")
-        expect(ver("2026.10.15_hotfix")?.description ?? "", "2026.10.15_hotfix", "핫픽스 표기 보존")
-        for invalid in ["2026.10_hotfix", "2026.10.15_hotfix2", "2026.10.15_hotfix_hotfix", "2026.10.15_HOTFIX",
-                        "2026.2.15_hotfix", "2026.13.15_hotfix", "2026.02.29_hotfix", "2026.04.31_hotfix"] {
+        // 2026-10-10: 공개 이름의 핫픽스와 Apple 숫자 버전 항목을 연결한다.
+        // 2026-11-04 (#131): 오너 결정으로 `_hotfix` 하나 → `_hotfix1`, `_hotfix2` … 번호. 번호는 숫자로 비교한다.
+        expect(ver("2026.10.15")! < ver("2026.10.15_hotfix1")!, true, "핫픽스는 같은 날짜의 기본판보다 새 버전")
+        expect(ver("2026.10.15_hotfix1")! < ver("2026.10.15_hotfix2")!, true, "핫픽스 번호가 크면 새 버전")
+        expect(ver("2026.10.15_hotfix9")! < ver("2026.10.15_hotfix10")!, true, "핫픽스 번호는 글자가 아니라 숫자로 비교")
+        expect(ver("2026.10.15_hotfix12")! < ver("2026.10.16")!, true, "다음 날짜는 전날 핫픽스보다 새 버전")
+        expect(ver("2026.10.15_hotfix2")! == ver("2026.10.15_hotfix2")!, true, "같은 핫픽스는 같음")
+        expect(ver("2026.10.15_hotfix1")! == ver("2026.10.15")!, false, "핫픽스와 기본판은 다름")
+        expect(ver("2026.10.15_hotfix1")?.description ?? "", "2026.10.15_hotfix1", "핫픽스 표기 보존")
+        expect(ver("2026.10.15_hotfix999")?.isHotfix ?? false, true, "핫픽스 999까지")
+        expect(ver("2026.10.15")?.isHotfix ?? true, false, "기본판은 핫픽스 아님")
+        for invalid in ["2026.10.15_hotfix", "2026.10_hotfix1", "2026.10.15_hotfix0", "2026.10.15_hotfix01",
+                        "2026.10.15_hotfix1000", "2026.10.15_hotfix-1", "2026.10.15_hotfix1_hotfix1",
+                        "2026.10.15_hotfix1 ", "2026.10.15_hotfix١", "2026.10.15_HOTFIX1", "2026.10.15_hotfixa",
+                        "2026.2.15_hotfix1", "2026.13.15_hotfix1", "2026.02.29_hotfix1", "2026.04.31_hotfix1"] {
             expect(ver(invalid) == nil, true, "확정된 핫픽스 형식만 허용: \(invalid)")
         }
-        expect(UpdateDecision.releaseVersion(info: ["CFBundleShortVersionString": "2026.10.15", "HaneulReleaseSuffix": "_hotfix"]) ?? "",
-               "2026.10.15_hotfix", "서명된 번들 항목에서 공개 핫픽스 버전 읽기")
+        expect(UpdateDecision.releaseVersion(info: ["CFBundleShortVersionString": "2026.10.15", "HaneulReleaseSuffix": "_hotfix2"]) ?? "",
+               "2026.10.15_hotfix2", "서명된 번들 항목에서 공개 핫픽스 버전 읽기")
+        expect(UpdateDecision.releaseVersion(info: ["CFBundleShortVersionString": "2026.10.15", "HaneulReleaseSuffix": ""]) ?? "",
+               "2026.10.15", "빈 접미어는 기본판")
         expect(UpdateDecision.releaseVersion(info: ["CFBundleShortVersionString": "2026.9"]) ?? "", "2026.9", "과거 번들 호환")
-        expect(UpdateDecision.releaseVersion(info: ["CFBundleShortVersionString": "2026.10.15", "HaneulReleaseSuffix": "oops"]) == nil,
-               true, "미확인 번들 접미어 거부")
+        for badSuffix in ["oops", "_hotfix", "_hotfix0", "hotfix1", "_hotfix1_hotfix1"] {
+            expect(UpdateDecision.releaseVersion(info: ["CFBundleShortVersionString": "2026.10.15", "HaneulReleaseSuffix": badSuffix]) == nil,
+                   true, "미확인 번들 접미어 거부: \(badSuffix)")
+        }
         expect(UpdateDecision.releaseVersion(info: ["CFBundleShortVersionString": "2026.10.15", "HaneulReleaseSuffix": 1]) == nil,
                true, "잘못된 번들 항목 타입 거부")
+        expect(UpdateDecision.releaseVersion(info: ["CFBundleShortVersionString": "2026.10_", "HaneulReleaseSuffix": "_hotfix1"]) == nil,
+               true, "핫픽스는 날짜 3칸에만")
         expect(UpdateDecision.isVersionIncrease(currentVersion: "2026.10.15", currentBuild: 69,
-                   newVersion: "2026.10.15_hotfix", newBuild: 70), true, "기본판에서 핫픽스 설치 허용")
-        expect(UpdateDecision.isVersionIncrease(currentVersion: "2026.10.15_hotfix", currentBuild: 70,
+                   newVersion: "2026.10.15_hotfix1", newBuild: 70), true, "기본판에서 핫픽스 설치 허용")
+        expect(UpdateDecision.isVersionIncrease(currentVersion: "2026.10.15_hotfix1", currentBuild: 70,
+                   newVersion: "2026.10.15_hotfix2", newBuild: 71), true, "핫픽스1에서 핫픽스2 설치 허용")
+        expect(UpdateDecision.isVersionIncrease(currentVersion: "2026.10.15_hotfix2", currentBuild: 71,
+                   newVersion: "2026.10.15_hotfix1", newBuild: 72), false, "핫픽스 번호 역행 금지")
+        expect(UpdateDecision.isVersionIncrease(currentVersion: "2026.10.15_hotfix1", currentBuild: 70,
                    newVersion: "2026.10.15", newBuild: 71), false, "핫픽스에서 기본판으로 역행 금지")
-        let hotfixRelease = ReleaseInfo(tag: "2026.10.15_hotfix", assets: [ReleaseAsset(
-            name: "HaneulKeyboard_2026.10.15_hotfix.zip",
-            downloadURL: URL(string: "https://github.com/Hyunjin-Cho/HaneulKeyboard/releases/download/2026.10.15_hotfix/HaneulKeyboard_2026.10.15_hotfix.zip")!,
+        let hotfixRelease = ReleaseInfo(tag: "2026.10.15_hotfix1", assets: [ReleaseAsset(
+            name: "HaneulKeyboard_2026.10.15_hotfix1.zip",
+            downloadURL: URL(string: "https://github.com/Hyunjin-Cho/HaneulKeyboard/releases/download/2026.10.15_hotfix1/HaneulKeyboard_2026.10.15_hotfix1.zip")!,
             size: 1_000)], pageURL: nil)
         expect(UpdateDecision.availableUpdate(currentVersion: "2026.10.15", release: hotfixRelease)?.tag ?? "",
-               "2026.10.15_hotfix", "핫픽스 파일명과 태그의 실제 업데이트 탐지")
-        let installerAsset = ReleaseAsset(name: "HaneulKeyboard_2026.10.15_hotfix.dmg",
-            downloadURL: URL(string: "https://github.com/Hyunjin-Cho/HaneulKeyboard/releases/download/2026.10.15_hotfix/HaneulKeyboard_2026.10.15_hotfix.dmg")!, size: 1_000)
+               "2026.10.15_hotfix1", "핫픽스 파일명과 태그의 실제 업데이트 탐지")
+        let secondHotfix = ReleaseInfo(tag: "2026.10.15_hotfix2", assets: [ReleaseAsset(
+            name: "HaneulKeyboard_2026.10.15_hotfix2.zip",
+            downloadURL: URL(string: "https://github.com/Hyunjin-Cho/HaneulKeyboard/releases/download/2026.10.15_hotfix2/HaneulKeyboard_2026.10.15_hotfix2.zip")!,
+            size: 1_000)], pageURL: nil)
+        expect(UpdateDecision.availableUpdate(currentVersion: "2026.10.15_hotfix1", release: secondHotfix)?.tag ?? "",
+               "2026.10.15_hotfix2", "두 번째 핫픽스도 업데이트로 탐지")
+        expect(UpdateDecision.availableUpdate(currentVersion: "2026.10.15_hotfix2", release: hotfixRelease) == nil,
+               true, "더 낮은 번호의 핫픽스는 제공하지 않음")
+        let installerAsset = ReleaseAsset(name: "HaneulKeyboard_2026.10.15_hotfix1.dmg",
+            downloadURL: URL(string: "https://github.com/Hyunjin-Cho/HaneulKeyboard/releases/download/2026.10.15_hotfix1/HaneulKeyboard_2026.10.15_hotfix1.dmg")!, size: 1_000)
         let dualFormatRelease = ReleaseInfo(tag: hotfixRelease.tag, assets: [installerAsset] + hotfixRelease.assets, pageURL: nil)
         expect(UpdateDecision.availableUpdate(currentVersion: "2026.10.15", release: dualFormatRelease)?.asset.name ?? "",
-               "HaneulKeyboard_2026.10.15_hotfix.zip", "첫 설치 DMG와 함께 있어도 앱 안 업데이트는 ZIP 선택")
-        expect(UpdateDecision.availableUpdate(currentVersion: "2026.10.15_hotfix", release: dualFormatRelease) == nil,
-               true, "같은 날짜 핫픽스는 다시 제공하지 않음")
+               "HaneulKeyboard_2026.10.15_hotfix1.zip", "첫 설치 DMG와 함께 있어도 앱 안 업데이트는 ZIP 선택")
+        expect(UpdateDecision.availableUpdate(currentVersion: "2026.10.15_hotfix1", release: dualFormatRelease) == nil,
+               true, "같은 핫픽스는 다시 제공하지 않음")
         expect(UpdateDecision.availableUpdate(currentVersion: "2026.10.15", release:
             ReleaseInfo(tag: hotfixRelease.tag, assets: [installerAsset], pageURL: nil)) == nil,
                true, "업데이트 ZIP 누락이면 DMG로 임의 대체하지 않음")
+        expect(UpdateDecision.availableUpdate(currentVersion: "2026.10.15", release:
+            ReleaseInfo(tag: "2026.10.15_hotfix", assets: [ReleaseAsset(name: "HaneulKeyboard_2026.10.15_hotfix.zip",
+                downloadURL: URL(string: "https://github.com/Hyunjin-Cho/HaneulKeyboard/releases/download/2026.10.15_hotfix/HaneulKeyboard_2026.10.15_hotfix.zip")!,
+                size: 1_000)], pageURL: nil)) == nil,
+               true, "번호 없는 옛 핫픽스 태그는 업데이트로 보지 않음(fail-closed)")
 
         // ── 저장소·URL·자산 이름 ──
         expect(UpdateDecision.isValidRepository("Hyunjin-Cho/HaneulKeyboard"), true, "업데이트: 정상 슬러그")

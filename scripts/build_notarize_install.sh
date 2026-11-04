@@ -297,7 +297,8 @@ fi
 # 같은 공개 이름의 기존 결과물은 덮어쓰지 않는다. 후보는 별도 빌드/경로에서 만든다.
 VERSION=$(defaults read "$RELEASE_APP/Contents/Info.plist" CFBundleShortVersionString)
 RELEASE_SUFFIX=$(defaults read "$RELEASE_APP/Contents/Info.plist" HaneulReleaseSuffix 2>/dev/null || true)
-if [[ "$RELEASE_SUFFIX" != "" && "$RELEASE_SUFFIX" != "_hotfix" ]]; then
+# 2026-11-04 (#131): 핫픽스는 번호를 붙인다 — _hotfix1 ~ _hotfix999(앞자리 0 없음). 맨 _hotfix는 받지 않는다.
+if [[ "$RELEASE_SUFFIX" != "" && ! "$RELEASE_SUFFIX" =~ ^_hotfix[1-9][0-9]{0,2}$ ]]; then
     echo "✗ Invalid release suffix: $RELEASE_SUFFIX" >&2
     exit 1
 fi
@@ -305,7 +306,8 @@ VERSION="${VERSION}${RELEASE_SUFFIX}"
 PACKAGE_OUTPUT_DIR="$PROJECT_ROOT"
 if [[ "${CANDIDATE_ONLY:-0}" == "1" ]]; then
     BUILD_NUMBER=$(defaults read "$RELEASE_APP/Contents/Info.plist" CFBundleVersion)
-    [[ "$VERSION" =~ ^[0-9]{4}\.[0-9]{1,2}(\.[0-9]{1,2})?(_hotfix)?$ && "$BUILD_NUMBER" =~ ^[0-9]+$ ]] || {
+    # 내부 후보 2칸(2026.9) 또는 0을 채운 날짜 3칸(2026.11.04, 핫픽스 _hotfixN) — 2026-11-04 (#131)
+    [[ ( "$VERSION" =~ ^[0-9]{4}\.[0-9]{1,2}$ || "$VERSION" =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}(_hotfix[1-9][0-9]{0,2})?$ ) && "$BUILD_NUMBER" =~ ^[0-9]+$ ]] || {
         echo "✗ Invalid candidate version/build." >&2; exit 1;
     }
     PACKAGE_OUTPUT_DIR="$PROJECT_ROOT/.build/candidates/${VERSION}-b${BUILD_NUMBER}"
