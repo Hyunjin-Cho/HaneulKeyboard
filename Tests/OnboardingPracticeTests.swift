@@ -1,5 +1,4 @@
 import AppKit
-import CryptoKit
 
 // 2026-10-07 (#80): 실제 NSTextView에 조합 코어 출력을 보내는 회귀 검사.
 // OS 키 이벤트/IMK 연결 실기 검사를 대신하지 않는다.
@@ -285,62 +284,8 @@ import CryptoKit
                   "NFD 명사 수동 변환은 자동 기록·영어 문맥 없음")
         }
         checkNavigation(check)
-        checkArtwork(check)
+        // 2026-11-04 (#118): 10월 승인 7자세(OnboardingPeopleArtwork) 검사는 그 그림·코드를 지우며 함께 뺐다.
         print("OnboardingPractice: \(checks) passed, 0 failed")
-    }
-
-    private static func checkArtwork(_ check: (Bool, String) -> Void) {
-        let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-            .appendingPathComponent("Resources/Onboarding")
-        let manifest = try! JSONSerialization.jsonObject(with:
-            Data(contentsOf: root.appendingPathComponent("HaneulApprovedPoses.json"))) as! [String: Any]
-        let pages = manifest["pages"] as! [[String: Any]]
-        check(pages.count == 7 && OnboardingPeopleArtwork.pageCount == 7, "승인 자세는 안내7페이지와 일치")
-        var renderedSignatures = [Set<String>](repeating: [], count: 3)
-        func hash(_ data: Data) -> String {
-            SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
-        }
-        for page in 0..<7 {
-            let figures = pages[page]["figures"] as! [[String: String]]
-            let expectedNames = figures.map { $0["resourceName"]! }
-            var requested: [String] = []
-            let people = OnboardingPeopleArtwork.people(page: page) { name in
-                requested.append(name)
-                return root.appendingPathComponent(name + ".png")
-            }
-            check(requested == expectedNames, "페이지\(page + 1)는 사용자 지정 순서의 세 인물을 요청")
-            check(people.count == 3, "페이지\(page + 1)의 그림3장 모두 실제 PNG로 읽기")
-            for person in 0..<3 {
-                let source = try! Data(contentsOf: root.appendingPathComponent(expectedNames[person] + ".png"))
-                check(hash(source) == figures[person]["sha256"], "승인 PNG 바이트 보존: \(expectedNames[person])")
-                let cg = people[person].cgImage(forProposedRect: nil, context: nil, hints: nil)!
-                check(cg.width == 512 && cg.height == 512, "공통 정사각형 렌더 캔버스")
-                let data = cg.dataProvider!.data! as Data
-                let pixels = [UInt8](data)
-                check(stride(from: 3, to: pixels.count, by: 4).contains { pixels[$0] > 0 }, "인물이 비어 있지 않음")
-                let edges = (0..<512).allSatisfy { i in
-                    pixels[i * 4 + 3] == 0 && pixels[511 * cg.bytesPerRow + i * 4 + 3] == 0 &&
-                    pixels[i * cg.bytesPerRow + 3] == 0 && pixels[i * cg.bytesPerRow + 511 * 4 + 3] == 0
-                }
-                check(edges, "팔·치마·신발을 자르지 않는 공통 투명 여백")
-                renderedSignatures[person].insert(hash(data))
-            }
-        }
-        for signatures in renderedSignatures {
-            check(signatures.count == 7, "각 인물은 모든 페이지에서 다른 승인 그림을 렌더")
-        }
-        let first = (pages[0]["figures"] as! [[String: String]]).map { $0["resourceName"]! }
-        let last = (pages[6]["figures"] as! [[String: String]]).map { $0["resourceName"]! }
-        check(OnboardingPeopleArtwork.resourceNames(for: Int.min) == first, "첫 페이지 이전은 첫 그림")
-        check(OnboardingPeopleArtwork.resourceNames(for: Int.max) == last, "마지막 페이지 이후는 마지막 그림")
-        let missing = OnboardingPeopleArtwork.people(page: 3) { name in
-            name == "HaneulPoseBraid04" ? nil : root.appendingPathComponent(name + ".png")
-        }
-        check(missing.isEmpty, "세 그림 중 하나가 누락되면 잘못된 부분 집합을 표시하지 않음")
-        let invalid = OnboardingPeopleArtwork.people(page: 0) { _ in
-            root.appendingPathComponent("missing-image.png")
-        }
-        check(invalid.isEmpty, "이미지를 읽지 못해도 충돌 없이 처리")
     }
 
     private static func checkNavigation(_ check: (Bool, String) -> Void) {
