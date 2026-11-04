@@ -138,7 +138,7 @@ Current application code is licensed under Apache License 2.0. `NOTICE` identifi
 ## Development tools
 
 - **Anthropic — [Claude](https://claude.com/claude-code)** — A companion throughout design, debugging, and documentation.
-- **OpenAI — [Codex · ChatGPT](https://openai.com/codex/)** — Helped with feature design, code implementation, compatibility reviews, tests, and documentation, as well as the dancheong and paper-textured onboarding artwork and character poses. These are development tools; the app does not send typing to an AI service.
+- **OpenAI — [Codex · ChatGPT](https://openai.com/codex/)** — Helped with feature design, code implementation, compatibility reviews, tests, and documentation, as well as the dancheong and paper-textured onboarding artwork and character poses.
 
 ## Studied for reference
 

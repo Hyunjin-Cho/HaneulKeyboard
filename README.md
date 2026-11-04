@@ -191,7 +191,7 @@ PACKAGE_ONLY=1 bash scripts/build_notarize_install.sh HaneulKeyboard
 | Wikidata 축구 클럽·선수 | CC0 1.0 |
 | 고운바탕·나눔손글씨 펜 | SIL Open Font License 1.1 |
 
-[McBopomofo](https://github.com/openvanilla/McBopomofo)의 입력기 등록·설치 구조, 공개 사전과 글꼴, 오픈소스 기여자들에게 감사드립니다. **[Claude](https://claude.com/claude-code)(Anthropic)**와 **[Codex · ChatGPT](https://openai.com/codex/)(OpenAI)**가 설계·개발·검증·문서·그림 작업에 함께했습니다. 만드는 도구로 썼다는 뜻이고, 앱이 입력 내용을 AI에 보낸다는 뜻은 아닙니다. 출처와 가공 방식은 [감사의 글](ACKNOWLEDGEMENTS.md)에 모았습니다.
+[McBopomofo](https://github.com/openvanilla/McBopomofo)의 입력기 등록·설치 구조, 공개 사전과 글꼴, 오픈소스 기여자들에게 감사드립니다. **[Claude](https://claude.com/claude-code)(Anthropic)**와 **[Codex · ChatGPT](https://openai.com/codex/)(OpenAI)**가 설계·개발·검증·문서·그림 작업에 함께했습니다. 출처와 가공 방식은 [감사의 글](ACKNOWLEDGEMENTS.md)에 모았습니다.
 
 ---
 
