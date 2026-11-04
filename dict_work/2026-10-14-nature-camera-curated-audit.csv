@@ -1,0 +1,8 @@
+word,hangul_form,class,in_urimalsaem,standalone_before,standalone_after,context_before,context_after,trigger_before,trigger_after,tier,note
+coral,책미,clean,0,0,1,0,1,0,1,A,"무맥락 신규 변환(R5) — 전수 리뷰 대상; 조사결합 의심('책' 등재)"
+eland,디뭉,clean,0,0,1,0,1,0,1,A,"무맥락 신규 변환(R5) — 전수 리뷰 대상; 조사결합 의심('디' 등재)"
+angelfish,뭏디랴노,clean,0,0,1,0,1,0,1,A,"무맥락 신규 변환(R5) — 전수 리뷰 대상"
+cockatiel,채참샤디,clean,0,0,1,0,1,0,1,A,"무맥락 신규 변환(R5) — 전수 리뷰 대상"
+guanaco,혀뭄채,clean,0,0,1,0,1,0,1,A,"무맥락 신규 변환(R5) — 전수 리뷰 대상"
+turtle,셕싣,clean,0,0,1,0,1,0,1,A,"무맥락 신규 변환(R5) — 전수 리뷰 대상"
+fork,래가,clean,0,0,1,0,1,0,1,A,"무맥락 신규 변환(R5) — 전수 리뷰 대상; 조사결합 의심('래' 등재)"
