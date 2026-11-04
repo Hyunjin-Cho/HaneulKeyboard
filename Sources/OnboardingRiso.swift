@@ -15,7 +15,11 @@ enum OnboardingRiso {
     static let meok = Color(red: 0.150, green: 0.140, blue: 0.128)
     // 작은 흰 버튼 글자와 대비를 확보한 시안 계열의 기능 색 (#0879BA).
     static let actionBlue = Color(red: 8 / 255, green: 121 / 255, blue: 186 / 255)
-    static let paper = bundledImage("DancheongPaper")
+    // 2026-11-04 오너 결정(#137): 창 바탕 = 새 한지 '또렷'. 10월 외부 생성 사진(DancheongPaper)을 창 크기로 늘려 쓰던 것을 바꿨다 —
+    // 섬유가 가로로 번지고, 다크에서는 결 세기가 라이트의 1/8로 죽었다(밝기 표준편차 3.78 → 0.49).
+    // 라이트·다크가 같은 결 구조를 쓰고(생성 코드: 비공개 haneul-art paper/), 늘리지 않고 1024pt 타일로 깐다.
+    static let hanjiLight = tileImage("HanjiPaperLight")
+    static let hanjiDark = tileImage("HanjiPaperDark")
     static let eaves = bundledImage("DancheongEaves")
     // 2026-11-04 (#118): 10월 안내의 작은 풍경·인물 띠(walkers·landscape·승인 7자세)와 머리 아이콘(appIcon)은
     // 리디자인(#107 — 두루마리·새 세 사람·7페이지 영상) 뒤 쓰이지 않아 자원과 함께 지웠다(git 기록에 남는다).
@@ -23,6 +27,14 @@ enum OnboardingRiso {
     private static func bundledImage(_ name: String) -> NSImage {
         guard let url = Bundle.main.url(forResource: name, withExtension: "png"),
               let image = NSImage(contentsOf: url) else { return NSImage(size: NSSize(width: 1, height: 1)) }
+        return image
+    }
+
+    /// 이음매 없는 한지 타일. 2048px 원본을 1024pt(@2x)로 맞춰, 레티나에서 한 픽셀이 그대로 찍히게 한다.
+    private static func tileImage(_ name: String) -> NSImage {
+        guard let url = Bundle.main.url(forResource: name, withExtension: "jpg"),
+              let image = NSImage(contentsOf: url) else { return NSImage(size: NSSize(width: 1, height: 1)) }
+        image.size = NSSize(width: 1024, height: 1024)
         return image
     }
 
@@ -47,10 +59,10 @@ struct OnboardingRisoPaper: View {
     @Environment(\.colorScheme) private var scheme
     var body: some View {
         ZStack {
+            // 텍스처를 못 읽었을 때도 같은 바탕색이 남는다. 한지 텍스처 자체가 이 색을 평균으로 만든 것이다.
             scheme == .dark ? OnboardingRiso.meok : OnboardingRiso.ivory
-            Image(nsImage: OnboardingRiso.paper).resizable().interpolation(.high)
-                .colorMultiply(scheme == .dark ? Color(white: 0.19) : .white)
-                .opacity(scheme == .dark ? 0.45 : 0.65)
+            Image(nsImage: scheme == .dark ? OnboardingRiso.hanjiDark : OnboardingRiso.hanjiLight)
+                .resizable(resizingMode: .tile)
         }.allowsHitTesting(false).accessibilityHidden(true)
     }
 }
