@@ -9,7 +9,6 @@ swiftc -parse-as-library -o "$TEST_DIR/onboarding-tests" \
   Sources/OnboardingPracticeField.swift \
   Sources/OnboardingPracticeProgress.swift \
   Sources/OnboardingPageNavigation.swift \
-  Sources/OnboardingPeopleArtwork.swift \
   IMESources/HangulJamo.swift IMESources/KeyboardLayout2Set.swift \
   IMESources/Contractions.swift IMESources/AlphanumericWords.swift IMESources/MeasurementUnits.swift \
   IMESources/PhoneticDictionary.swift IMESources/EnglishParticleSplitter.swift IMESources/KoreanComposer.swift IMESources/ManualToggle.swift \

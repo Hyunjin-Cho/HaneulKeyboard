@@ -17,17 +17,8 @@ enum OnboardingRiso {
     static let actionBlue = Color(red: 8 / 255, green: 121 / 255, blue: 186 / 255)
     static let paper = bundledImage("DancheongPaper")
     static let eaves = bundledImage("DancheongEaves")
-    static let walkers = bundledImage("DancheongWalkers")
-    static let landscape = bundledImage("DancheongLandscape")
-    // 2026-10-25: 승인된 일곱 자세를 페이지별로 한 번 읽어 캐시한다.
-    private static let peopleByPage: [[NSImage]] = (0..<OnboardingPeopleArtwork.pageCount).map {
-        OnboardingPeopleArtwork.people(page: $0)
-    }
-
-    static func people(for page: Int) -> [NSImage] {
-        peopleByPage[OnboardingPeopleArtwork.pageIndex(page)]
-    }
-    static let appIcon = bundledImage("HaneulBrandIcon")
+    // 2026-11-04 (#118): 10월 안내의 작은 풍경·인물 띠(walkers·landscape·승인 7자세)와 머리 아이콘(appIcon)은
+    // 리디자인(#107 — 두루마리·새 세 사람·7페이지 영상) 뒤 쓰이지 않아 자원과 함께 지웠다(git 기록에 남는다).
 
     private static func bundledImage(_ name: String) -> NSImage {
         guard let url = Bundle.main.url(forResource: name, withExtension: "png"),
@@ -73,31 +64,6 @@ struct RisoRegistrationMark: View {
             }
             Rectangle().fill(OnboardingRiso.yellow).frame(width: 8, height: 12.6)
         }.allowsHitTesting(false).accessibilityHidden(true)
-    }
-}
-
-/// 2026-10-25 (#80): 사용자 선택 B안. 인물만48→60pt(+25%)로 확대한다.
-/// 풍경의 크기·색은 유지하고, 상하 여백과 기준 위치로 손·발 잘림을 막는다.
-struct OnboardingPeopleScene: View {
-    let page: Int
-    private var people: [NSImage] { OnboardingRiso.people(for: page) }
-
-    var body: some View {
-        ZStack(alignment: .topLeading) {
-            Image(nsImage: OnboardingRiso.landscape).resizable().scaledToFit()
-                .frame(width: 240, height: 80)
-            if people.count == 3 {
-                ForEach(0..<3) { person in
-                    Image(nsImage: people[person]).resizable().scaledToFit()
-                        .frame(width: 60, height: 60)
-                        .position(x: [48.0, 114.0, 178.0][person], y: 33.72)
-                }
-            }
-        }.frame(width: 240, height: 80)
-        .frame(width: 280, height: 66, alignment: .trailing)
-        .clipped()
-        .transaction { $0.animation = nil }
-        .allowsHitTesting(false).accessibilityHidden(true)
     }
 }
 
