@@ -1,9 +1,16 @@
 {
   "created": "2026-11-04",
   "file": "MaeulArtwork.png",
-  "sha256": "bc7184d4e259264b729a6ab43d5a9df66464c92cd0c47f40c53f987f54e9e98e",
-  "pixels": [1536, 1024],
-  "source": "비공개 haneul-art 7ea956f dmg/dmg.py (riso-press로 판별 인쇄 — 안내 두루마리와 같은 그리기 함수·인쇄 설정)",
+  "sha256": "ebf4a659f260b200cbf1401bde9f5e2ee4ce6f8c3a5e80c731861ceacb5493f2",
+  "pixels": [
+    1536,
+    1024
+  ],
+  "source": "비공개 haneul-art 1d6457f dmg/dmg.py outline (riso-press로 판별 인쇄 — 안내 두루마리와 같은 그리기 함수·인쇄 설정)",
   "purpose": "DMG 설치 화면 배경(maeul 변형, @2x). 글자는 넣지 않는다 — scripts/dmg_background.swift가 layout.json 글줄을 실제 글꼴로 얹는다.",
-  "decision": "2026-11-04 14:15 오너: 코덱스 느낌은 전부 없애고 Claude가 안내 리소 디자인을 기반으로 새로 만든다. 옛 색동 판은 saekdong 변형으로 보존. 오너 실기기 확인 대기(#89)."
+  "decision": "2026-11-04 14:15 오너: 코덱스 느낌은 전부 없애고 Claude가 안내 리소 디자인을 기반으로 새로 만든다. 옛 색동 판은 saekdong 변형으로 보존. 15:3x 오너: Applications 폴더 뒤에 폴더 윤곽을 따라 5pt 큰 종이 받침(outline). 윤곽은 macOS 27.2 시스템 폴더 아이콘에서 뽑았다 — 다른 macOS의 폴더 모양에선 조금 어긋날 수 있다(확인 못 함). 오너 실기기 확인 대기(#89).",
+  "previous": {
+    "sha256": "bc7184d4e259264b729a6ab43d5a9df66464c92cd0c47f40c53f987f54e9e98e",
+    "note": "2026-11-04 첫 판(폴더 뒤 장식 없음) — haneul-art dmg.py 인자 없이"
+  }
 }
