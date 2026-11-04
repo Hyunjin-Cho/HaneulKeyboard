@@ -1,7 +1,8 @@
 import Foundation
 
-/// #87 · 2026-10-25: `/` 뒤 영문을 전달하고 Space·시작 기호 삭제·종료 기호에서 복귀한다.
+/// #87 · 2026-10-25: `/` 뒤 영문을 전달하고 Space·시작 기호 삭제·종료 기호에서 복귀한다(2026-11-04 Return 추가).
 /// 시작 위치만 세션 동안 보유하며 입력 내용은 저장하지 않는다. 자동 변환 설정과 독립적이다.
+/// 2026-11-04: 글자 조회가 안 되는 앱을 위해 `/` 뒤 글자 "수"만 함께 센다(내용·키 순서는 남기지 않는다).
 struct SlashEnglishSession {
     static let defaultsKey = "haneul.slashEnglishEnabled"
     static let defaultEnabled = true
@@ -33,11 +34,22 @@ struct SlashEnglishSession {
     /// Only the very next key can use the no-readback immediate-delete fallback.
     /// No text or sequence of typed characters is retained.
     private var awaitingFirstKeyAfterTrigger = false
+    /// 2026-11-04 (#87 오너 신고): 글자 조회가 안 되는 앱(터미널 등)에서 `/`와 뒷글자를 전부 지워도 영어가 남았다.
+    /// `/` 뒤에 앱이 넣은 글자 수만 센다 — 내용은 저장하지 않는다. 셀 수 없는 편집(이동·붙여넣기·수정키 삭제·
+    /// 엔터·dead key 등)이 끼면 nil로 두고 개수로는 종료하지 않는다(기존 보수 정책).
+    private var typedAfterTrigger: Int?
+    /// 커서 위치를 돌려주지만 입력해도 움직이지 않는 앱(Ghostty처럼 늘 시작 자리)을 확인했는지.
+    private var caretFrozen = false
+    /// 커서 위치가 개수와 한 번이라도 어긋났는지(마우스 이동 등 — 그 뒤로는 개수를 믿지 않는다).
+    private var caretDiverged = false
 
     mutating func reset() {
         isActive = false
         triggerRange = nil
         awaitingFirstKeyAfterTrigger = false
+        typedAfterTrigger = nil
+        caretFrozen = false
+        caretDiverged = false
     }
 
     /// 앞 조합을 확정한 뒤, `/` 키를 앱에 전달하기 직전의 삽입 위치를 사용한다.
@@ -103,6 +115,40 @@ struct SlashEnglishSession {
         return context.selection.location == trigger.location + 1
     }
 
+    /// 앱에 글자 하나를 넣는 일반 키인지(Shift·Option 문자 포함, Cmd/Ctrl 단축키·제어 문자·기능 키 제외).
+    private static func insertsOneCharacter(_ characters: String?, modifiers: UInt) -> Bool {
+        guard modifiers & ((1 << 18) | (1 << 20)) == 0, let characters, characters.count == 1,
+              let scalar = characters.unicodeScalars.first else { return false }
+        return scalar.value >= 0x20 && scalar.value != 0x7f && !(0xF700...0xF8FF).contains(scalar.value)
+    }
+
+    /// 커서 위치를 개수와 맞춰 본다. 조회 가능한 위치가 개수 기대값(시작 기호 뒤 + typed)과 다르면:
+    /// 시작 자리에 그대로면 '움직이지 않는 커서' 호스트, 그 밖이면 실제 커서 이동으로 본다.
+    private mutating func observeCaret(_ context: Context?, typed: Int, firstKey: Bool) {
+        guard let context, let trigger = triggerRange, Self.validSelection(context.selection),
+              context.selection.location != NSNotFound, Self.noMarkedText(context.markedRange),
+              context.selection.length == 0 else { return }
+        let location = context.selection.location
+        if location == trigger.location + 1 + typed { return }
+        if location == trigger.location, typed > 0 || firstKey || caretFrozen {
+            caretFrozen = true
+        } else if !caretFrozen {
+            caretDiverged = true
+        }
+    }
+
+    /// 개수가 0일 때의 일반 Backspace를 시작 기호 삭제로 봐도 되는지 — 글자 조회가 안 되는 경우에만 쓴다.
+    private func countedDeletionAllowed(_ context: Context?, firstKey: Bool) -> Bool {
+        guard typedAfterTrigger == 0, !caretDiverged else { return false }
+        guard let context else { return true }
+        guard context.triggerText == nil, Self.noMarkedText(context.markedRange) else { return false }
+        let selection = context.selection
+        if selection.location == NSNotFound { return selection.length == 0 }
+        guard Self.validSelection(selection), selection.length == 0, let trigger = triggerRange else { return false }
+        if selection.location == trigger.location + 1 { return true }
+        return selection.location == trigger.location && (caretFrozen || firstKey)
+    }
+
     mutating func process(characters: String?, keyCode: UInt16,
                           modifierFlagsRaw: UInt, enabled: Bool, context: Context? = nil) -> Action {
         guard enabled else {
@@ -156,6 +202,27 @@ struct SlashEnglishSession {
                 reset()
                 return .end
             }
+            // 2026-11-04 오너 결정: Return도 한글로 돌아온다(10월 'Space만 종료'에서 확장). 글자를 돌려주지 않는 터미널에서
+            // /clear를 실행한 뒤 다음 입력이 영어로 남았다. Return·키패드 Enter, Cmd/Ctrl/Option 없이(Shift 줄바꿈 포함).
+            if keyCode == 36 || keyCode == 76, modifiers & applicationModifiers == 0 {
+                reset()
+                return .end
+            }
+            // 2026-11-04 (#87): 글자 조회가 안 되는 앱에서도 개수로 시작 기호 삭제를 알아챈다.
+            if let typed = typedAfterTrigger { observeCaret(context, typed: typed, firstKey: isFirstKeyAfterTrigger) }
+            let plainBackspace = keyCode == 51 && modifiers & applicationModifiers == 0
+                && modifierFlagsRaw & (1 << 23) == 0
+            if plainBackspace {
+                if countedDeletionAllowed(context, firstKey: isFirstKeyAfterTrigger) {
+                    reset()
+                    return .end
+                }
+                if let typed = typedAfterTrigger { typedAfterTrigger = typed > 0 ? typed - 1 : nil }
+            } else if Self.insertsOneCharacter(characters, modifiers: modifiers) {
+                if let typed = typedAfterTrigger { typedAfterTrigger = typed + 1 }
+            } else {
+                typedAfterTrigger = nil
+            }
             return .passThrough
         }
         let applicationModifiers: UInt = (1 << 18) | (1 << 19) | (1 << 20)
@@ -168,6 +235,9 @@ struct SlashEnglishSession {
         }
         isActive = true
         awaitingFirstKeyAfterTrigger = true
+        typedAfterTrigger = 0
+        caretFrozen = false
+        caretDiverged = false
         return .begin
     }
 }

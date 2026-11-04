@@ -17,11 +17,20 @@ private struct IMKComposerClient: ComposerClient, ExternalEnglishContextClient {
         }
     }
 
+    /// 2026-11-04 오너 결정: 조합 중 글자에 밑줄. 꾸밈 없는 문자열을 넘기면 텍스트 칸(NSTextView 등)이 기본값으로
+    /// 노란 배경(어두운 화면은 올리브)을 칠해 선택한 것처럼 보였다(실측). 밑줄 색은 밝음·어두움 둘 다에서 보이는 중간 회색 —
+    /// 색을 안 주면 어두운 화면에서 검정 밑줄이 거의 안 보였고, 시스템 표준값(mark(forStyle:))도 진한 회색 0.17이다(실측).
+    static let markedAttributes: [NSAttributedString.Key: Any] = [
+        .underlineStyle: NSUnderlineStyle.single.rawValue,
+        .underlineColor: NSColor(calibratedWhite: 0.5, alpha: 1),
+        .markedClauseSegment: 0,
+    ]
+
     func setMarkedText(_ text: String) {
         guard isCurrentSession() else { return }
         trace.call(.composerMark, composer: composer) {
             client.setMarkedText(
-                text as NSString,
+                NSAttributedString(string: text, attributes: Self.markedAttributes),
                 selectionRange: NSRange(location: (text as NSString).length, length: 0),
                 replacementRange: NSRange(location: NSNotFound, length: 0)
             )
@@ -255,7 +264,10 @@ final class HaneulInputController: IMKInputController {
             // nothing) breaks any English run — otherwise a wrongly-converted
             // word (새→to) can't be fixed by delete+retype (it re-converts).
             if !handled {
+                // 2026-11-04: 앱에 보낸 숫자를 지우면 기억한 숫자열에서도 뺀다(12.5ml을 지우고 oz → 12oz).
+                let run = composer.digitRunAfterHostDelete()
                 composer.resetEnglishContext()
+                composer.setSentDigits(run)
             }
             return handled
         }
@@ -460,9 +472,21 @@ final class HaneulInputController: IMKInputController {
                 externalContextPending = false
                 return true
             }
+            // 2026-11-04 (오너 신고 — CLI 숫자 선택이 안 먹었다): 붙잡지 않은 숫자는 경계로 앱에 바로 보내고,
+            // 다음 단어의 수량·영숫자 판정(10kg·3d)을 위해 보낸 숫자열만 기억한다.
+            let run = composer.digitRunAfterSending(typed)
+            commitActiveBoundary(typed, client: client)
+            composer.setSentDigits(run)
+            return false
         }
 
-        if event.characters == ".", composer.handleQuantityPoint(client: composerClient) { return true }
+        if event.characters == "." {
+            if composer.handleQuantityPoint(client: composerClient) { return true }
+            let run = composer.pointRunAfterSending()     // 2026-11-04: 1.5kg — 보낸 숫자 뒤 소수점 하나
+            commitActiveBoundary(".", client: client)
+            composer.setSentDigits(run)
+            return false
+        }
 
         // Active boundary: the user typed a non-jamo key (space, punctuation,
         // digit, Enter...) — the only path where English auto-conversion may

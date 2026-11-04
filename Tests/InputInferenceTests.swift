@@ -60,6 +60,15 @@ enum InputInferenceTests {
         composer.beginExternalEnglishContext(external)
         for key in keys {
             if AlphanumericWords.isDigit(key), composer.handleDigit(key, client: sink) { continue }
+            if AlphanumericWords.isDigit(key) {
+                // 2026-11-04: 컨트롤러와 같이 — 붙잡지 않은 숫자는 활성 경계로 앱에 바로 들어가고 보낸 숫자열만 기억한다.
+                let run = composer.digitRunAfterSending(key)
+                composer.commit(to: sink, convertEnglish: true)
+                sink.insertText(String(key))
+                composer.completeBoundary(key)
+                composer.setSentDigits(run)
+                continue
+            }
             _ = composer.handleInput(String(key), client: sink)
         }
         composer.commit(to: sink, convertEnglish: active)

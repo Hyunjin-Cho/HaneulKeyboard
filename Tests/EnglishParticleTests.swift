@@ -347,9 +347,10 @@ private func runExpandedParticleTests() {
         let original = hangul(keys)
         let expected = prefix + particle
         let (composer, client) = live(keys)
-        expect(client.marked, expected, "숫자 제품명 조사 미리보기: \(expected)")
-        expect(composer.commit(to: client, convertEnglish: true), expected,
-               "숫자 제품명 조사 확정: \(expected)")
+        // 2026-11-04 (오너 결정 — CLI 숫자): 첫머리 숫자(800T의 800)는 먼저 앱에 들어간다. 화면 = 확정 + 조합 중.
+        expect(client.committedText + client.marked, expected, "숫자 제품명 조사 미리보기: \(expected)")
+        composer.commit(to: client, convertEnglish: true)
+        expect(client.committedText, expected, "숫자 제품명 조사 확정: \(expected)")
         expect(composer.lastConversion?.hangul ?? "", original, "숫자 조사 원문 쌍")
         expect(composer.lastConversion?.english ?? "", expected, "숫자 조사 결과 쌍")
         expect(composer.lastEnglishWord == nil, true, "숫자 조사 뒤 영어 문맥 차단")
@@ -359,17 +360,20 @@ private func runExpandedParticleTests() {
             hangul: original, atDocStart: true)?.text ?? "", expected, "숫자 조사 확정 뒤 재적용")
 
         let (off, offClient) = live(keys, enabled: false)
-        expect(off.commit(to: offClient, convertEnglish: true), original, "숫자 조사 전체 OFF")
+        off.commit(to: offClient, convertEnglish: true)
+        expect(offClient.committedText, original, "숫자 조사 전체 OFF")
         for block in [prefix.lowercased(), hangul(prefix), keys.lowercased(), original] {
             let (blocked, sink) = live(keys,
                 dictionary: PersonalDictionary(force: [prefix.lowercased()], block: [block]))
-            expect(sink.marked, original, "숫자 조사 전체/접두어 금지 표시")
-            expect(blocked.commit(to: sink, convertEnglish: true), original, "숫자 조사 금지 우선")
+            expect(sink.committedText + sink.marked, original, "숫자 조사 전체/접두어 금지 표시")
+            blocked.commit(to: sink, convertEnglish: true)
+            expect(sink.committedText, original, "숫자 조사 금지 우선")
             expect(blocked.lastConversion == nil, true, "숫자 조사 금지는 원문쌍 없음")
         }
         let (whole, wholeClient) = live(keys, dictionary: PersonalDictionary(force: [keys.lowercased()]))
-        expect(wholeClient.marked, original, "숫자 조사 전체 force는 미리보기 분리 금지")
-        expect(whole.commit(to: wholeClient, convertEnglish: true), keys, "숫자 조사 전체 force 우선")
+        expect(wholeClient.committedText + wholeClient.marked, original, "숫자 조사 전체 force는 미리보기 분리 금지")
+        whole.commit(to: wholeClient, convertEnglish: true)
+        expect(wholeClient.committedText, keys, "숫자 조사 전체 force 우선")
         let entry = RecentReverts.Entry(hangul: original, english: expected)
         expect(entry.blockEntry ?? "", original, "숫자 조사 최근 되돌림 금지 키")
     }
@@ -422,8 +426,10 @@ private func runExpandedParticleTests() {
     for block in ["ml", "ㅢ"] {
         let keys = raw("100ml", "에")
         let (composer, client) = live(keys, dictionary: PersonalDictionary(force: ["100ml"], block: [block]))
-        expect(client.marked, hangul(keys), "숫자 조사 개인 추가도 단위 금지 표시 준수")
-        expect(composer.commit(to: client, convertEnglish: true), hangul(keys), "숫자 조사 개인 추가도 단위 금지 준수")
+        // 2026-11-04: 첫머리 숫자 100은 먼저 앱에 들어간다 — 화면(확정 + 조합 중)으로 본다.
+        expect(client.committedText + client.marked, hangul(keys), "숫자 조사 개인 추가도 단위 금지 표시 준수")
+        composer.commit(to: client, convertEnglish: true)
+        expect(client.committedText, hangul(keys), "숫자 조사 개인 추가도 단위 금지 준수")
     }
 
     let extended = live(raw("a24", "에"))
