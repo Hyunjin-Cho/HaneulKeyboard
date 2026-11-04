@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # 2026-10-10: 검증한 앱을 Finder 드래그 설치 DMG로 포장한다. 공증/게시/설치는 하지 않는다.
-# Usage: bash scripts/package_dmg.sh APP OUTPUT_DMG [saekdong]
+# Usage: bash scripts/package_dmg.sh APP OUTPUT_DMG [variant]
+# 2026-11-04 (#89): 변형(variant)별 설정 = Resources/Installer/layout.json의 variants. 기본 maeul, 옛 saekdong 보존.
 # Preview: HANEUL_DMG_PREVIEW=1 ... (파일명에 -preview- 필수, 설치용으로 배포 금지)
 set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -64,7 +65,7 @@ swiftc -parse-as-library scripts/dmg_background.swift -o "$STAGE/artwork"
 "$STAGE/artwork" "$STAGE" "$VARIANT"
 tiffutil -cathidpicheck "$STAGE/${VARIANT}.png" "$STAGE/${VARIANT}@2x.png" -out "$STAGE/background.tiff"
 "$DMGBUILD" -s scripts/dmg_settings.py -D app="$APP" -D background="$STAGE/background.tiff" \
-    -D layout="$PROJECT_ROOT/Resources/Installer/layout.json" -D icon="$PROJECT_ROOT/Resources/AppIcon.icns" \
+    -D layout="$PROJECT_ROOT/Resources/Installer/layout.json" -D variant="$VARIANT" -D icon="$PROJECT_ROOT/Resources/AppIcon.icns" \
     "$VOLUME" "$STAGE/installer.dmg"
 mv -n "$STAGE/installer.dmg" "$OUTPUT"
 [[ ! -e "$STAGE/installer.dmg" ]] || { echo "Output appeared during packaging; nothing overwritten." >&2; exit 1; }

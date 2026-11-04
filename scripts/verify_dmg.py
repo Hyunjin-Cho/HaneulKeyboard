@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """2026-10-10: 읽기 전용 마운트로 내용/배경/아이콘 배치 검사. Finder/앱을 실행하지 않는다.
-Run with the project DMG venv: python scripts/verify_dmg.py IMAGE SOURCE_APP.
+Run with the project DMG venv: python scripts/verify_dmg.py IMAGE SOURCE_APP [VARIANT].
+2026-11-04 (#89): layout.json이 변형별 설정으로 나뉘었다 — 변형을 안 주면 기본 변형(배포 DMG)으로 검사한다.
 """
 import hashlib
 import json
@@ -14,9 +15,10 @@ import tempfile
 from ds_store import DSStore
 
 
-def verify(image, source):
+def verify(image, source, variant=None):
     root = Path(__file__).resolve().parent.parent
-    layout = json.loads((root / "Resources/Installer/layout.json").read_text())
+    layouts = json.loads((root / "Resources/Installer/layout.json").read_text())
+    layout = layouts["variants"][variant or layouts["defaultVariant"]]
     with tempfile.TemporaryDirectory(prefix="haneul-dmg-verify-") as temporary:
         mount = Path(temporary) / "mount"
         mount.mkdir()
@@ -76,6 +78,7 @@ def verify(image, source):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        raise SystemExit("Usage: verify_dmg.py IMAGE SOURCE_APP")
-    verify(Path(sys.argv[1]).resolve(strict=True), Path(sys.argv[2]).resolve(strict=True))
+    if len(sys.argv) not in (3, 4):
+        raise SystemExit("Usage: verify_dmg.py IMAGE SOURCE_APP [VARIANT]")
+    verify(Path(sys.argv[1]).resolve(strict=True), Path(sys.argv[2]).resolve(strict=True),
+           sys.argv[3] if len(sys.argv) == 4 else None)
