@@ -58,7 +58,7 @@ private final class SlashTextClient: ComposerClient {
             check(session.isActive, "영문 유지")
         }
         let nonEnding: [(String?, UInt16, NSEvent.ModifierFlags)] = [
-            ("\r", 36, []), ("\t", 48, []), ("\u{1b}", 53, []),
+            ("\t", 48, []), ("\u{1b}", 53, []), ("\r", 36, .command), ("\r", 36, .option),
             ("?", 44, .shift), ("/", 44, []), (".", 47, []), ("1", 18, []),
             ("\u{7f}", 51, []), ("\u{7f}", 51, .command),
             (" ", 49, .shift), (" ", 49, .option), (" ", 49, [.control, .shift]),
@@ -68,6 +68,13 @@ private final class SlashTextClient: ComposerClient {
         for (text, key, flags) in nonEnding {
             check(step(&session, text, key: key, flags: flags) == .passThrough, "Space 외 키 전달: \(key)")
             check(session.isActive, "Space 외에는 종료하지 않음: \(key)")
+        }
+        // 2026-11-04 오너 결정: Return(·키패드 Enter·Shift+Return)도 종료하고 앱에 한 번 전달한다.
+        for (text, key, flags): (String?, UInt16, NSEvent.ModifierFlags) in [("\r", 36, []), ("\u{3}", 76, [.numericPad]), ("\r", 36, .shift)] {
+            var run = SlashEnglishSession(); _ = step(&run, "/")
+            _ = step(&run, "c")
+            check(step(&run, text, key: key, flags: flags) == .end && !run.isActive, "Return 종료: \(key)")
+            check(step(&run, "g") == .composeKorean, "Return 뒤 한글: \(key)")
         }
         check(step(&session, " ", key: 49) == .end, "일반 Space 종료·전달")
         check(!session.isActive, "일반 Space 직후 한글 상태")
@@ -226,10 +233,13 @@ private final class SlashTextClient: ComposerClient {
         for key: UInt16 in [0,123] {
             var run = SlashEnglishSession(); start(&run,at:0)
             _ = step(&run,key == 0 ? "a" : nil,key:key)
-            check(step(&run,"\u{7f}",key:51,context:context(1,text:nil)) == .passThrough,
+            // 2026-11-04: `/a` 뒤 커서는 2(왼쪽 이동이면 1). 예전 값 1은 a를 친 경우와 맞지 않았다.
+            check(step(&run,"\u{7f}",key:51,context:context(key == 0 ? 2 : 1,text:nil)) == .passThrough,
                   "intervening text or navigation invalidates immediate fallback")
-            check(step(&run,"\u{7f}",key:51,context:context(NSNotFound,text:nil)) == .passThrough,
-                  "unavailable geometry cannot revive an expired immediate fallback")
+            // 2026-11-04 (#87 오너 신고): 글자 한 개(a)를 치고 지운 뒤의 일반 Backspace는 시작 기호 삭제다 —
+            // 예전에는 영어로 남는 것을 정답으로 적어 두었다(이번 버그). 이동 키가 끼면 지금도 추측하지 않는다.
+            check(step(&run,"\u{7f}",key:51,context:context(NSNotFound,text:nil)) == (key == 0 ? .end : .passThrough),
+                  "counted typing lets unavailable geometry end at the slash; navigation still does not")
         }
         start(&session,at:0)
         check(step(&session,"\u{7f}",key:51,
@@ -258,6 +268,77 @@ private final class SlashTextClient: ComposerClient {
         for flags: NSEvent.ModifierFlags in [.command,.option,.control] {
             var run = SlashEnglishSession(); _ = step(&run,"/")
             check(step(&run,")",key:29,flags:flags) == .passThrough,"modified parenthesis stays a host shortcut")
+        }
+
+        // 2026-11-04 오너 신고(#87): `/` 뒤 영어를 치고 `/`까지 전부 지운 뒤 다시 치면 한글이 아니라 영어가 나왔다.
+        // 글자 조회가 안 되는 앱(터미널 등)에서는 시작 기호가 지워졌는지 확인할 길이 없었다.
+        // → `/` 뒤에 친 글자 수만 세어(내용은 저장하지 않는다) 0에서 누른 일반 Backspace를 시작 기호 삭제로 본다.
+        // 호스트 세 유형: 조회 전무(context 없음) · 커서가 늘 시작 자리(Ghostty형) · 커서는 맞고 글자만 없음.
+        enum Host: CaseIterable { case none, frozenCaret, caretOnly }
+        func hostContext(_ host: Host, typed: Int) -> SlashEnglishSession.Context? {
+            switch host {
+            case .none: return nil
+            case .frozenCaret: return context(0, text: nil)
+            case .caretOnly: return context(1 + typed, text: nil)
+            }
+        }
+        func startHost(_ run: inout SlashEnglishSession, _ host: Host) {
+            run.reset()
+            check(step(&run, "/", key: 44) == .begin, "조회 제한 호스트 시작")
+            if host != .none {
+                check(run.captureTrigger(in: NSRange(location: 0, length: 0),
+                                         markedRange: NSRange(location: NSNotFound, length: 0)), "시작 위치 캡처")
+            }
+        }
+        for host in Host.allCases {
+            for word in ["abc", "Help", "é1", ""] {
+                var run = SlashEnglishSession(); startHost(&run, host)
+                var typed = 0
+                for key in word {
+                    let flags: NSEvent.ModifierFlags = key == "é" ? .option : (key.isUppercase ? .shift : [])
+                    check(step(&run, String(key), key: 0, flags: flags, context: hostContext(host, typed: typed)) == .passThrough,
+                          "slash 뒤 글자 전달: \(host)")
+                    typed += 1
+                }
+                while typed > 0 {
+                    check(step(&run, "\u{7f}", key: 51, context: hostContext(host, typed: typed)) == .passThrough && run.isActive,
+                          "뒷글자 삭제는 영어 유지: \(host) \(word)")
+                    typed -= 1
+                }
+                check(step(&run, "\u{7f}", key: 51, context: hostContext(host, typed: 0)) == .end,
+                      "조회 없이도 시작 slash 삭제를 알아챈다: \(host) \(word)")
+                check(!run.isActive && step(&run, "g") == .composeKorean, "전부 지운 뒤 다음 키는 한글: \(host) \(word)")
+            }
+            // 셀 수 없는 편집이 끼면 추측하지 않는다(기존 보수 정책 유지).
+            for (text, key, flags): (String?, UInt16, NSEvent.ModifierFlags) in [
+                (nil, 123, [.function, .numericPad]), ("v", 9, .command), ("\u{7f}", 51, .option),
+                ("", 14, .option), ("\t", 48, []), (nil, 117, [.function])
+            ] {
+                var run = SlashEnglishSession(); startHost(&run, host)
+                _ = step(&run, "a", key: 0, context: hostContext(host, typed: 0))
+                _ = step(&run, text, key: key, flags: flags, context: hostContext(host, typed: 1))
+                for _ in 0..<3 {
+                    check(step(&run, "\u{7f}", key: 51, context: hostContext(host, typed: 0)) == .passThrough && run.isActive,
+                          "셀 수 없는 편집 뒤에는 개수로 종료하지 않음: \(host) \(key)")
+                }
+            }
+        }
+        // 커서를 알려 주는 앱에서 커서가 실제로 다른 곳에 있으면(마우스 이동 등) 개수가 0이어도 종료하지 않는다.
+        do {
+            var run = SlashEnglishSession(); startHost(&run, .caretOnly)
+            _ = step(&run, "a", key: 0, context: context(1, text: nil))
+            check(step(&run, "\u{7f}", key: 51, context: context(9, text: nil)) == .passThrough && run.isActive,
+                  "커서가 시작 기호 뒤가 아니면 개수로 종료하지 않음")
+            check(step(&run, "\u{7f}", key: 51, context: context(8, text: nil)) == .passThrough && run.isActive,
+                  "한 번 어긋난 뒤에는 개수를 믿지 않음")
+        }
+        // 글자를 돌려주는 앱은 지금처럼 실제 기호로 판단한다(개수보다 우선).
+        do {
+            var run = SlashEnglishSession(); start(&run, at: 0)
+            _ = step(&run, "a", key: 0, context: context(1))
+            check(step(&run, "\u{7f}", key: 51, context: context(2)) == .passThrough, "조회 앱: 뒷글자 삭제는 유지")
+            check(step(&run, "\u{7f}", key: 51, context: context(5)) == .passThrough && run.isActive,
+                  "조회 앱: 커서가 기호 뒤가 아니면 개수가 0이어도 유지")
         }
 
         let unavailable = [

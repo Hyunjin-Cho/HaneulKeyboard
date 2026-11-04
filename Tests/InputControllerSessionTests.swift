@@ -35,6 +35,8 @@ final class ProbeClient: NSObject, IMKTextInput {
     var preserveTrailingCaret = false
     var reportMissingMarkedRange = false
     var reportMissingSelectionRange = false
+    /// 2026-11-04 (#87): 커서 위치를 늘 0으로 돌려주는 호스트(Ghostty형 터미널).
+    var frozenSelection = false
     var replacementReadSnapshot: String?
     func beginKeyEvent() { replacementReadSnapshot = nil }
     func insertText(_ value: Any!, replacementRange: NSRange) {
@@ -60,6 +62,7 @@ final class ProbeClient: NSObject, IMKTextInput {
     }
     func selectedRange() -> NSRange {
         beforeSelection?()
+        if frozenSelection { return NSRange(location: 0, length: 0) }
         return reportMissingSelectionRange ? NSRange(location: NSNotFound, length: 0) : selection
     }
     func markedRange() -> NSRange { reportMissingMarkedRange ? NSRange(location: NSNotFound, length: 0) : marked }
@@ -496,6 +499,40 @@ final class ProbeClient: NSObject, IMKTextInput {
                 result("immediate_slash_delete_\(unavailable)_\(prefix.isEmpty)",c,h)
             }
         }
+        // 2026-11-04 오너 신고: CLI에서 숫자 선택(1. Yes)이 안 먹었다 — 첫머리 숫자가 조합 중 글자로 붙잡혔다.
+        // 조합이 없을 때 숫자는 앱에 바로 전달되고(조합 중 표시 없음), 수량 변환은 그대로 남는다.
+        for host in ["readable", "unreadable"] {
+            let (c,h) = fresh(); h.unreadable = host == "unreadable"
+            check(!press(c,h,"1",code:18),"cli_digit_forwarded_\(host)")
+            check(h.text == "1" && h.marked.location == NSNotFound,"cli_digit_no_marked_\(host)")
+            press(c,h,"0",code:29)
+            for (key, code) in [("k", UInt16(40)), ("g", 5)] { press(c,h,key,code:code) }
+            press(c,h," ",code:49)
+            check(h.text == "10kg ","cli_digit_quantity_still_converts_\(host)")
+            result("cli_digit_\(host)",c,h)
+        }
+        // 2026-11-04 오너 신고(#87): `/` 뒤 영어를 치고 `/`까지 전부 지운 뒤 다시 치면 영어가 나왔다.
+        // 글자를 돌려주지 않는 호스트(터미널 등)에서도 전부 지운 다음 키는 한글이어야 한다.
+        for prefix in ["", "앞 "] {
+            for host in ["readable", "substring", "selection", "frozen"] {
+                let (c,h) = fresh(); h.setField(0,text:prefix)
+                h.unreadable = host != "readable"
+                h.reportMissingSelectionRange = host == "selection"
+                h.frozenSelection = host == "frozen"
+                press(c,h,"/",code:44)
+                for (letter, code) in [("a", UInt16(0)), ("b", 11), ("c", 8)] {
+                    check(!press(c,h,letter,code:code),"slash_delete_all_letter_forwarded_\(host)")
+                }
+                check(h.text == prefix + "/abc" && c.probeSlashActive,"slash_delete_all_typed_\(host)")
+                for _ in 0..<3 { hostDelete(c,h) }
+                check(h.text == prefix + "/" && c.probeSlashActive,"slash_delete_all_letters_keep_english_\(host)")
+                hostDelete(c,h)
+                check(h.text == prefix && !c.probeSlashActive,"slash_delete_all_slash_ends_\(host)")
+                press(c,h,"h",code:4)
+                check(h.text == prefix + "ㅗ","slash_delete_all_then_korean_\(host)")
+                result("slash_delete_all_\(host)_\(prefix.isEmpty)",c,h)
+            }
+        }
         // #87: capability can disappear after '/' was already anchored. This
         // differs from a host whose selection is unavailable for the entire run.
         for prefix in ["", "앞🙂 "] {
@@ -621,7 +658,8 @@ final class ProbeClient: NSObject, IMKTextInput {
         for (text, code, label): (String, UInt16, String) in [("\r",36,"enter"),("\t",48,"tab"),("\u{1b}",53,"escape")] {
             let (c,h) = fresh()
             press(c,h,"/",code:44); press(c,h,text,code:code)
-            check(c.probeSlashActive,"slash_special_key_alone_keeps_session")
+            // 2026-11-04 오너 결정: Return은 이제 slash 영어를 끝낸다(Tab·Esc는 그대로 유지).
+            check(c.probeSlashActive == (label != "enter"),"slash_special_key_alone_keeps_session")
             h.active = 1
             c.commitComposition(h)
             check(!c.probeSlashActive,"slash_later_commit_always_ends_session")
