@@ -1,14 +1,35 @@
 {
-  "reviewedOn": "2026-10-10",
-  "canvasSize": [768, 512],
-  "windowSize": [768, 544],
-  "iconSize": 144,
-  "textSize": 14,
-  "appCenter": [226, 262],
-  "applicationsCenter": [543, 262],
-  "backgroundArtwork": "SaekdongArtwork.png",
-  "subtitle": {"text": "응용 프로그램 폴더로 옮겨 주세요", "top": 140, "fontSize": 22},
-  "instruction": {"text": "옮긴 뒤, 응용 프로그램 폴더에서 실행해 주세요.", "top": 391, "fontSize": 15},
-  "defaultVariant": "saekdong",
-  "variants": ["saekdong"]
+  "reviewedOn": "2026-11-04",
+  "defaultVariant": "maeul",
+  "variants": {
+    "maeul": {
+      "note": "2026-11-04 (#89): 안내 리소 디자인을 이어받은 새 판(마을 어귀). 그림 원본은 비공개 haneul-art dmg/dmg.py.",
+      "canvasSize": [768, 512],
+      "windowSize": [768, 544],
+      "iconSize": 128,
+      "textSize": 13,
+      "appCenter": [232, 214],
+      "applicationsCenter": [536, 214],
+      "backgroundArtwork": "MaeulArtwork.png",
+      "captions": [
+        {"text": "하늘키보드 설치", "top": 36, "fontSize": 30, "font": "GowunBatang-Bold"},
+        {"text": "응용 프로그램 폴더로 옮겨 주세요", "top": 84, "fontSize": 16, "weight": "semibold"},
+        {"text": "옮긴 뒤, 응용 프로그램 폴더에서 실행해 주세요.", "top": 108, "fontSize": 13, "weight": "regular"}
+      ]
+    },
+    "saekdong": {
+      "note": "2026-10-10 (#89): 색동 보자기 판(제목은 그림 안 손글씨). 2026-11-04 새 판으로 기본을 바꾸며 그대로 보존한다.",
+      "canvasSize": [768, 512],
+      "windowSize": [768, 544],
+      "iconSize": 144,
+      "textSize": 14,
+      "appCenter": [226, 262],
+      "applicationsCenter": [543, 262],
+      "backgroundArtwork": "SaekdongArtwork.png",
+      "captions": [
+        {"text": "응용 프로그램 폴더로 옮겨 주세요", "top": 140, "fontSize": 22, "weight": "medium"},
+        {"text": "옮긴 뒤, 응용 프로그램 폴더에서 실행해 주세요.", "top": 391, "fontSize": 15, "weight": "medium"}
+      ]
+    }
+  }
 }

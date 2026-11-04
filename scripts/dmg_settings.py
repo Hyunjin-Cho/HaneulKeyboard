@@ -1,9 +1,11 @@
-"""2026-10-10: Finder 설치 화면. 좌표는 배경 렌더러와 layout.json 하나를 공유한다."""
+"""2026-10-10: Finder 설치 화면. 좌표는 배경 렌더러와 layout.json 하나를 공유한다.
+2026-11-04 (#89): layout.json이 변형별 설정으로 나뉘었다 — -D variant로 고른다(없으면 기본 변형)."""
 import json
 import os
 
 with open(defines["layout"], encoding="utf-8") as source:
-    layout = json.load(source)
+    layouts = json.load(source)
+layout = layouts["variants"][defines.get("variant") or layouts["defaultVariant"]]
 application = os.path.abspath(defines["app"])
 appname = os.path.basename(application)
 format = "UDZO"

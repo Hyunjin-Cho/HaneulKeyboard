@@ -1,43 +1,53 @@
 import AppKit
+import CoreText
 import Foundation
 
-/// 2026-10-10: 확정한 색동 보자기·작은 삼태극 위에 본문을 조판한다.
+/// 2026-10-10: 확정한 그림 위에 본문을 조판한다.
 /// 실제 앱/Applications 아이콘과 이름은 Finder가 그리며 preview에만 합성한다.
+/// 2026-11-04 (#89): layout.json을 변형(variant)별 설정으로 나눴다. 새 기본 = maeul(안내 리소 디자인을 이어받은 마을 어귀),
+/// 옛 saekdong(색동 보자기)은 그대로 보존해 같은 명령으로 다시 만들 수 있다. 글줄마다 글꼴(번들 TTF)·굵기를 고른다.
 @main @MainActor enum DMGArtwork {
     struct Caption: Decodable {
         let text: String
         let top, fontSize: CGFloat
+        /// 저장소 안 TTF 이름(확장자 없이, Resources/Onboarding). 없으면 시스템 글꼴.
+        let font: String?
+        /// regular·medium·semibold·bold. 없으면 medium(2026-10-10 조판과 같다).
+        let weight: String?
     }
-    struct Layout: Decodable {
+    struct Variant: Decodable {
         let canvasSize, windowSize: [CGFloat]
         let iconSize, textSize: CGFloat
         let appCenter, applicationsCenter: [CGFloat]
         let backgroundArtwork: String
-        let subtitle, instruction: Caption
+        let captions: [Caption]
+    }
+    struct Layout: Decodable {
         let defaultVariant: String
-        let variants: [String]
+        let variants: [String: Variant]
     }
     static let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
     static let ink = NSColor(calibratedRed: 33/255, green: 32/255, blue: 162/255, alpha: 1)
 
     static func main() throws {
         guard CommandLine.arguments.count == 3 else {
-            print("Usage: dmg-artwork OUTPUT_DIRECTORY saekdong|all")
+            print("Usage: dmg-artwork OUTPUT_DIRECTORY <variant>|all")
             exit(2)
         }
         let output = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
         let layout = try JSONDecoder().decode(Layout.self, from: Data(contentsOf: root.appendingPathComponent("Resources/Installer/layout.json")))
         let requested = CommandLine.arguments[2]
-        guard requested == "all" || layout.variants.contains(requested) else { exit(2) }
+        guard requested == "all" || layout.variants[requested] != nil else { exit(2) }
         try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
-        for variant in requested == "all" ? layout.variants : [requested] {
+        for name in requested == "all" ? layout.variants.keys.sorted() : [requested] {
+            let variant = layout.variants[name]!
             for scale in [1, 2] {
-                let bitmap = try render(layout: layout, scale: scale, preview: false)
+                let bitmap = try render(variant, scale: scale, preview: false)
                 let suffix = scale == 1 ? "" : "@2x"
-                try png(bitmap).write(to: output.appendingPathComponent("\(variant)\(suffix).png"))
+                try png(bitmap).write(to: output.appendingPathComponent("\(name)\(suffix).png"))
             }
-            try png(render(layout: layout, scale: 2, preview: true)).write(to: output.appendingPathComponent("\(variant)-preview.png"))
-            print("\(variant): \(Int(layout.canvasSize[0]))×\(Int(layout.canvasSize[1]))pt, 1x/2x + preview")
+            try png(render(variant, scale: 2, preview: true)).write(to: output.appendingPathComponent("\(name)-preview.png"))
+            print("\(name): \(Int(variant.canvasSize[0]))×\(Int(variant.canvasSize[1]))pt, 1x/2x + preview")
         }
     }
 
@@ -48,7 +58,22 @@ import Foundation
         return data
     }
 
-    static func render(layout: Layout, scale: Int, preview: Bool) throws -> NSBitmapImageRep {
+    /// 번들 TTF를 이 프로세스에만 등록하고 글꼴을 만든다(시스템에 설치하지 않는다).
+    static func font(for caption: Caption) throws -> NSFont {
+        if let name = caption.font {
+            let url = root.appendingPathComponent("Resources/Onboarding/\(name).ttf")
+            CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+            guard let descriptors = CTFontManagerCreateFontDescriptorsFromURL(url as CFURL) as? [CTFontDescriptor],
+                  let postScript = descriptors.first.flatMap({ CTFontDescriptorCopyAttribute($0, kCTFontNameAttribute) as? String }),
+                  let font = NSFont(name: postScript, size: caption.fontSize) else { throw CocoaError(.fileReadCorruptFile) }
+            return font
+        }
+        let weights: [String: NSFont.Weight] = ["regular": .regular, "medium": .medium, "semibold": .semibold, "bold": .bold]
+        guard let weight = weights[caption.weight ?? "medium"] else { throw CocoaError(.fileReadCorruptFile) }
+        return NSFont.systemFont(ofSize: caption.fontSize, weight: weight)
+    }
+
+    static func render(_ layout: Variant, scale: Int, preview: Bool) throws -> NSBitmapImageRep {
         let width = layout.canvasSize[0], height = layout.canvasSize[1]
         guard let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(width) * scale,
             pixelsHigh: Int(height) * scale, bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
@@ -68,10 +93,8 @@ import Foundation
         guard let artwork = NSImage(contentsOf: artworkURL) else { throw CocoaError(.fileReadCorruptFile) }
         artwork.draw(in: rect(0, 0, width, height), from: .zero, operation: .copy, fraction: 1)
 
-        for caption in [layout.subtitle, layout.instruction] {
-            let attributes: [NSAttributedString.Key: Any] = [
-                .font: NSFont.systemFont(ofSize: caption.fontSize, weight: .medium), .foregroundColor: ink
-            ]
+        for caption in layout.captions {
+            let attributes: [NSAttributedString.Key: Any] = [.font: try font(for: caption), .foregroundColor: ink]
             let size = (caption.text as NSString).size(withAttributes: attributes)
             precondition(size.width < width - 120, "DMG text overlaps the border: \(caption.text)")
             (caption.text as NSString).draw(at: NSPoint(x: (width - size.width)/2, y: height - caption.top - size.height), withAttributes: attributes)
