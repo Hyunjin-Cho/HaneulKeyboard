@@ -134,7 +134,7 @@ struct OnboardingView: View {
 
     private var cardPaper: some View {
         UnevenRoundedRectangle(topLeadingRadius: 18, topTrailingRadius: 18)
-            .fill(colorScheme == .dark ? Color(red: 0.13, green: 0.14, blue: 0.19) : Color(red: 250 / 255, green: 246 / 255, blue: 236 / 255))
+            .fill(colorScheme == .dark ? OnboardingRiso.meok : Color(red: 250 / 255, green: 246 / 255, blue: 236 / 255))
             .overlay {
                 UnevenRoundedRectangle(topLeadingRadius: 18, topTrailingRadius: 18)
                     .strokeBorder(.primary.opacity(0.10), lineWidth: 1)

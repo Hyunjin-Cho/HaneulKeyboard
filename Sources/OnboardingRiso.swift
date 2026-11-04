@@ -10,6 +10,9 @@ enum OnboardingRiso {
     static let pink = Color(red: 250 / 255, green: 16 / 255, blue: 156 / 255)
     static let yellow = Color(red: 252 / 255, green: 220 / 255, blue: 12 / 255)
     static let indigo = Color(red: 33 / 255, green: 32 / 255, blue: 162 / 255)
+    /// 2026-11-04 오너 결정(#119): 어두운 화면 종이 = 먹색(따뜻한 검정). 예전 회남색(0.13, 0.14, 0.19)·리소 남색과 비교해
+    /// 그림 아래 노란 땅·아이보리 종이와 이어지는 쪽을 골랐다. 안내 카드와 창 종이(설정·후원 창도 같은 종이)가 함께 쓴다.
+    static let meok = Color(red: 0.150, green: 0.140, blue: 0.128)
     // 작은 흰 버튼 글자와 대비를 확보한 시안 계열의 기능 색 (#0879BA).
     static let actionBlue = Color(red: 8 / 255, green: 121 / 255, blue: 186 / 255)
     static let paper = bundledImage("DancheongPaper")
@@ -53,7 +56,7 @@ struct OnboardingRisoPaper: View {
     @Environment(\.colorScheme) private var scheme
     var body: some View {
         ZStack {
-            scheme == .dark ? Color(red: 0.13, green: 0.14, blue: 0.19) : OnboardingRiso.ivory
+            scheme == .dark ? OnboardingRiso.meok : OnboardingRiso.ivory
             Image(nsImage: OnboardingRiso.paper).resizable().interpolation(.high)
                 .colorMultiply(scheme == .dark ? Color(white: 0.19) : .white)
                 .opacity(scheme == .dark ? 0.45 : 0.65)
