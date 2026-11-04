@@ -8,8 +8,10 @@ enum OnboardingWindow {
     static func make(rootView: OnboardingView) -> NSWindow {
         var rootView = rootView
         let available = NSScreen.main?.visibleFrame.size ?? OnboardingView.size
-        let size = NSSize(width: min(OnboardingView.size.width, available.width - 32),
-                          height: min(OnboardingView.size.height, available.height - 32))
+        // 2026-11-03 (#115): 높이는 정해 둔 크기(900·780) 중 화면에 들어가는 큰 쪽. 둘 다 안 들어가는 화면만 남는 높이를 쓴다.
+        let room = available.height - 32
+        let height = OnboardingView.presetHeights.first { $0 <= room } ?? room
+        let size = NSSize(width: min(OnboardingView.size.width, available.width - 32), height: height)
         rootView.windowSize = size
         let hosting = NSHostingView(rootView: rootView)
         hosting.safeAreaRegions = []

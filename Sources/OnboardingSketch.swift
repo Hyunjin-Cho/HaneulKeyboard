@@ -79,29 +79,26 @@ struct OnboardingConversionDemo: View {
     private let words = ["ㅁ", "메", "메ㅔ", "메ㅔㅣ", "메ㅔㅣㄷ", "메ㅔㅣㄷ", "apple"]
     private var showsResult: Bool { reduceMotion || frame == 6 }
 
+    // 2026-11-03 (#115): 안내 카드가 가로 띠로 바뀌어 시연도 한 줄로 흐른다(예전에는 세 줄로 쌓았다).
     var body: some View {
-        VStack(spacing: 8) {
-            HStack(alignment: .top) {
-                OnboardingSketchNote(text: "한/영 키는 그대로 두세요", compact: compact)
-                    .foregroundStyle(OnboardingRiso.ink(for: scheme))
-                Spacer()
-            }.frame(height: compact ? 44 : 80)
-            HStack(spacing: 14) {
+        HStack(alignment: .center, spacing: 16) {
+            OnboardingSketchNote(text: "한/영 키는 그대로 두세요", compact: compact)
+                .foregroundStyle(OnboardingRiso.ink(for: scheme))
+            VStack(alignment: .leading, spacing: 6) {
                 Text(showsResult ? "메ㅔㅣㄷ → apple" : words[frame])
                     .font(.system(size: showsResult ? 34 : 48, weight: .medium))
                     .contentTransition(.numericText())
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .lineLimit(1).minimumScaleFactor(0.7)
+                Label("한글 모드 유지", systemImage: "checkmark.circle").font(.system(size: 14))
+            }.frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .trailing, spacing: 10) {
                 Text("Space").font(.system(size: 15, weight: .medium))
                     .frame(width: 124, height: 32)
                     .background(OnboardingRiso.yellow.opacity(frame == 5 ? 0.6 : 0.2), in: RoundedRectangle(cornerRadius: 7))
                     .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(OnboardingRiso.yellow.opacity(0.5)))
-            }.frame(height: compact ? 44 : 68)
-            HStack {
-                Label("한글 모드 유지", systemImage: "checkmark.circle").font(.system(size: 14))
-                Spacer()
                 Button("다시 보기", systemImage: "arrow.counterclockwise") { replay += 1 }
                     .buttonStyle(OnboardingRisoButtonStyle(prominent: false))
-            }.padding(.top, 10)
+            }
         }
         .feedbackPanel(.information)
         .task(id: "\(replay)-\(reduceMotion)") {

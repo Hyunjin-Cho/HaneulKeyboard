@@ -38,9 +38,12 @@ struct OnboardingStageVideo: NSViewRepresentable {
         private var player: AVPlayer?
         private var endObserver: NSObjectProtocol?
         private let animate: Bool
+        /// 2026-11-03 20:57 (#116): 두루마리 무대가 7페이지 첫 프레임에 도착한 뒤 직접 재생을 시작한다(false면 창에 붙어도 기다린다).
+        private let autoplay: Bool
 
-        init(animate: Bool) {
+        init(animate: Bool, autoplay: Bool = true) {
             self.animate = animate
+            self.autoplay = autoplay
             super.init(frame: .zero)
             wantsLayer = true
             layer?.backgroundColor = NSColor(red: 247 / 255, green: 242 / 255, blue: 229 / 255, alpha: 1).cgColor
@@ -88,7 +91,15 @@ struct OnboardingStageVideo: NSViewRepresentable {
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
             guard let player else { return }
-            if window != nil { player.seek(to: .zero); player.play() } else { player.pause() }
+            if window == nil { player.pause() } else if autoplay { player.seek(to: .zero); player.play() }
+        }
+
+        /// 처음부터 재생한다(두루마리에서 넘겨받을 때). 처음 프레임 그림이 아래에 깔려 있어 준비 전에도 빈 화면이 없다.
+        func start() {
+            guard let player else { return }
+            player.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero) { _ in
+                MainActor.assumeIsolated { player.play() }
+            }
         }
 
         /// 2026-11-03: 영상 끝(압축으로 망점이 살짝 무름) → 무손실 PNG. 블록 평균색은 1 이내로 같고(재생기 화면 실측)
