@@ -20,6 +20,12 @@ final class FakeClient: ComposerClient {
     }
 
     var committedText: String { inserted.joined() }
+
+    /// 2026-11-04: 조합이 없을 때 Backspace는 앱이 커서 앞 한 글자를 지운다(실제 호스트 동작 흉내).
+    func hostDeleteBackward() {
+        guard let index = inserted.lastIndex(where: { !$0.isEmpty }) else { return }
+        inserted[index].removeLast()
+    }
 }
 
 // MARK: - Tiny assertion runner
@@ -106,11 +112,26 @@ func typeKeyViaController(_ ch: Character, composer: KoreanComposer, client: Fak
         _ = composer.handleInput(String(ch), client: client)
         return
     }
+    // 2026-11-04: 컨트롤러와 같이 — 붙잡지 않은 숫자·소수점은 앱에 바로 보내고 보낸 숫자열만 기억한다.
+    let run: String? = AlphanumericWords.isDigit(ch) ? composer.digitRunAfterSending(ch)
+        : ch == "." ? composer.pointRunAfterSending() : nil
     // 흡수되지 않은 비자모 = active boundary. 컨트롤러는 false를 돌려주고
     // 클라이언트가 그 글자를 직접 넣으므로 여기서도 똑같이 기록한다.
     composer.commit(to: client, convertEnglish: true)
     client.insertText(String(ch))
     composer.completeBoundary(ch)
+    if AlphanumericWords.isDigit(ch) || ch == "." { composer.setSentDigits(run) }
+}
+
+/// 2026-11-04: 컨트롤러의 Backspace 경로 — 조합기가 못 지우면 앱이 지우고, 보낸 숫자열도 한 글자 줄인다.
+@discardableResult
+func deleteKeyViaController(composer: KoreanComposer, client: FakeClient) -> Bool {
+    if composer.deleteBackward(client: client) { return true }
+    client.hostDeleteBackward()
+    let run = composer.digitRunAfterHostDelete()
+    composer.resetEnglishContext()
+    composer.setSentDigits(run)
+    return false
 }
 
 /// 위 경로로 한 단어를 치고 active boundary(스페이스)에서 커밋한다.
@@ -2401,9 +2422,13 @@ struct ComposerTests {
             let client = FakeClient()
             let composer = KoreanComposer()
             for ch in name { typeKeyViaController(ch, composer: composer, client: client) }
-            let raw = client.marked
-            expect(client.committedText, "", "숫자 이름: 경계 전 확정 없음 \(name)")
-            expect(composer.commit(to: client, convertEnglish: true), name, "숫자 이름: 전체·대소문자 보존 \(name)")
+            // 2026-11-04 (오너 결정): 단어 첫머리 숫자는 앱에 바로 들어간다(CLI 숫자 선택). 800T는 800이 먼저 확정되고
+            // 경계에서 뒤 글자만 넣는다(앞 숫자를 붙여 예전 판정 그대로). 되돌림 쌍은 화면 단어 전체(800ㅆ↔800T)다.
+            let lead = String(name.prefix(while: \.isNumber))
+            let raw = lead + client.marked
+            expect(client.committedText, lead, "숫자 이름: 경계 전 확정 없음 \(name)")
+            composer.commit(to: client, convertEnglish: true)
+            expect(client.committedText, name, "숫자 이름: 전체·대소문자 보존 \(name)")
             expect(composer.lastConversion?.hangul ?? "", raw, "숫자 이름: 전체 되돌림 쌍 \(name)")
             expect(composer.lastEnglishWord == nil, true, "숫자 이름: 다음 한국어 문맥 보호 \(name)")
             expect(KoreanComposer.resolveToggle(before: name + " ", english: name, hangul: raw,
@@ -2551,7 +2576,7 @@ struct ComposerTests {
         for value in ["100ml", "1.25ml", "800ml", "10GB", "12mp", "12MP"] {
             let client = FakeClient(), composer = KoreanComposer()
             for ch in value { typeKeyViaController(ch, composer: composer, client: client) }
-            let raw = client.marked
+            let raw = client.committedText + client.marked     // 2026-11-04: 숫자는 먼저 앱에 — 원문 쌍은 화면 단어 전체
             composer.commit(to: client, convertEnglish: true)
             expect(composer.lastEnglishWord == nil, true, "단위: 다음 한글 문맥 보호 \(value)")
             expect(composer.lastConversion?.hangul ?? "", raw, "단위: 전체 원문 저장 \(value)")
@@ -2578,10 +2603,35 @@ struct ComposerTests {
         do {
             let client = FakeClient(), composer = KoreanComposer()
             for ch in "12.5ml" { typeKeyViaController(ch, composer: composer, client: client) }
-            for _ in 0..<4 { expect(composer.deleteBackward(client: client), true, "단위: 자모/소수점 삭제") }
-            expect(client.marked, "12", "단위: 소수점까지 지운 숫자")
+            // 2026-11-04: 12.5는 이미 앱에 있다 — 앞 두 번은 조합기가 자모를, 뒤 두 번은 앱이 5와 소수점을 지운다.
+            for i in 0..<4 { expect(deleteKeyViaController(composer: composer, client: client), i < 2, "단위: 자모/소수점 삭제") }
+            expect(client.committedText + client.marked, "12", "단위: 소수점까지 지운 숫자")
             for ch in "oz" { typeKeyViaController(ch, composer: composer, client: client) }
-            expect(composer.commit(to: client, convertEnglish: true), "12oz", "단위: 삭제 후 다른 단위")
+            composer.commit(to: client, convertEnglish: true)
+            expect(client.committedText, "12oz", "단위: 삭제 후 다른 단위")
+        }
+        // 2026-11-04 오너 신고: CLI에서 숫자를 눌러도 안 먹었다(1. Yes / 2. No) — 첫머리 숫자를 조합 중 글자로 붙잡아서.
+        // 이제 조합이 없을 때 숫자는 바로 앱에 들어가고(붙잡지 않음), 수량·이름 변환은 경계에서 예전과 같은 결과를 낸다.
+        do {
+            let client = FakeClient(), composer = KoreanComposer()
+            expect(composer.handleDigit("1", client: client), false, "CLI: 첫머리 숫자는 붙잡지 않음")
+            for digit in "1234567890" {
+                let c = FakeClient(), k = KoreanComposer()
+                typeKeyViaController(digit, composer: k, client: c)
+                expect(c.committedText + "|" + c.marked, String(digit) + "|", "CLI: 숫자 하나가 바로 들어감 \(digit)")
+            }
+            for (keys, expected) in [("10kg", "10kg"), ("1.5kg", "1.5kg"), ("10 kg", "10 kg"), ("35mm", "35mm"),
+                                     ("12 ", "12 "), ("2026.11.4", "2026.11.4"), ("123", "123")] {
+                let c = FakeClient(), k = KoreanComposer()
+                for ch in keys { typeKeyViaController(ch, composer: k, client: c) }
+                k.commit(to: c, convertEnglish: true)
+                expect(c.committedText, expected, "CLI 숫자 즉시 + 수량 유지: \(keys)")
+            }
+            let c = FakeClient(), k = KoreanComposer()
+            for ch in "10" { typeKeyViaController(ch, composer: k, client: c) }
+            expect(c.committedText + "|" + c.marked, "10|", "CLI: 10은 경계 전에 이미 앱에")
+            for ch in "kg" { typeKeyViaController(ch, composer: k, client: c) }
+            expect(c.committedText + "|" + c.marked, "10|ㅏㅎ", "숫자 뒤 단위는 조합 중")
         }
         let longQuantity = String(repeating: "1", count: 95)
         expect(typeViaController(longQuantity).committedText, longQuantity, "단위: 긴 숫자 유실 없음")

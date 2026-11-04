@@ -74,9 +74,17 @@ final class KoreanComposer {
     private var alphanumericStartAllowed = true
     /// 활성 경계에서 확정한 수량. 바로 다음 Space 한 번 뒤 단위에만 사용한다.
     private var lastQuantity: String?
+    /// 2026-11-04 (오너 신고 — CLI에서 숫자가 안 먹는다): 단어 첫머리 숫자를 조합 중 글자로 붙잡지 않고 앱에 바로 보낸다
+    /// (터미널은 조합 중 글자를 키로 받지 못한다 — 1. Yes / 2. No 선택이 안 됐다). 수량·영숫자 이름 판정(10kg·3d)은
+    /// 바로 앞에 보낸 숫자(소수점 하나 포함)를 기억했다가, 이어지는 단어를 확정할 때 앞에 붙여 예전 판정을 그대로 쓴다.
+    /// 경계·커서 이동·삭제에서 지운다. 기록·저장하지 않는 메모리 값이다(조합 중 단어와 같은 성격).
+    private var sentDigits = ""
+    /// 다음 숫자·소수점을 이어 붙일 수 있는지 — 글자를 치기 시작하면 닫히고, 그 단어를 확정할 때 쓰고 지운다.
+    private var sentDigitsOpen = false
 
     func resetEnglishContext() {
         lastQuantity = nil
+        sentDigits = ""; sentDigitsOpen = false
         alphanumericStartAllowed = true
         lastEnglishWord = nil
         externalEnglishWord = nil
@@ -90,9 +98,43 @@ final class KoreanComposer {
     /// 실제 비자모 경계를 지난 뒤 호출. 이미 밖으로 보낸 숫자 뒤에서는
     /// 새 후보를 시작하지 않아 123a24의 끝 a24만 바꾸지 않는다.
     func completeBoundary(_ character: Character?) {
+        // 2026-11-04: 앱에 보낸 수량 뒤 Space는 예전 `10 ㅏㅎ → 10 kg`처럼 다음 단어의 단위 판정에 넘긴다.
+        if character == " ", !sentDigits.isEmpty, autoEnglishEnabled, MeasurementUnits.isQuantity(sentDigits) {
+            lastQuantity = sentDigits
+        }
         if character != " " { lastQuantity = nil }
+        sentDigits = ""; sentDigitsOpen = false
         if character != " " && character != "," { resetEnglishContext() }
         alphanumericStartAllowed = !(character.map(AlphanumericWords.isDigit) ?? false)
+    }
+
+    /// 2026-11-04: 숫자 하나를 앱에 보내기 전(경계 처리 전)에 부른다 — 보낸 뒤 기억할 숫자열(없으면 nil).
+    /// 조합 중 단어 바로 뒤의 숫자(`무게10`)는 예전처럼 수량 후보를 시작하지 않는다.
+    func digitRunAfterSending(_ digit: Character) -> String? {
+        if sentDigitsOpen { return sentDigits + String(digit) }
+        guard !hasPendingComposition, alphanumericStartAllowed else { return nil }
+        return String(digit)
+    }
+
+    /// 소수점 하나는 보낸 숫자열에 이어 붙인다(1.5kg). 이미 점이 있거나 숫자로 끝나지 않으면 끊는다.
+    func pointRunAfterSending() -> String? {
+        guard sentDigitsOpen, !hasPendingComposition, let last = sentDigits.last,
+              AlphanumericWords.isDigit(last), !sentDigits.contains(".") else { return nil }
+        return sentDigits + "."
+    }
+
+    /// 경계 처리(completeBoundary) 뒤에 부른다 — 경계가 지운 값을 이번 숫자열로 바꾼다.
+    func setSentDigits(_ run: String?) {
+        sentDigits = run ?? ""
+        sentDigitsOpen = run != nil
+    }
+
+    /// 조합이 없을 때의 Backspace는 앱이 커서 앞 한 글자를 지운다 — 보낸 숫자열에서도 마지막 글자를 뺀다(12.5 → 12.).
+    /// 경계 정리(resetEnglishContext) 전에 부르고, 결과를 setSentDigits로 되돌린다.
+    func digitRunAfterHostDelete() -> String? {
+        guard !sentDigits.isEmpty, !hasPendingComposition else { return nil }
+        let rest = String(sentDigits.dropLast())
+        return rest.isEmpty ? nil : rest
     }
 
     /// (M-01) shift+space 토글이 화면 텍스트를 영어↔한글로 바꾼 뒤, 내부 영어
@@ -284,6 +326,7 @@ final class KoreanComposer {
             commit(to: client, convertEnglish: true)
             return false
         }
+        sentDigitsOpen = false   // 2026-11-04: 보낸 숫자 뒤 단어가 시작됐다 — 숫자는 그 단어를 확정할 때 쓴다
 
         switch jamo {
         case .consonant(let c):
@@ -320,9 +363,10 @@ final class KoreanComposer {
             $0.contains(where: AlphanumericWords.isDigit)
                 && ($0.hasPrefix(candidate) || $0.hasPrefix(hangulCandidate))
         }
-        guard !didSpillWord, hasBufferedDigits || (alphanumericStartAllowed
-            && (candidate.allSatisfy(AlphanumericWords.isDigit)
-                || AlphanumericWords.hasPrefix(candidate) || personalPrefix)) else { return false }
+        // 2026-11-04: 조합 중인 단어가 없으면 숫자는 붙잡지 않는다(앱에 바로 — 컨트롤러가 setSentDigits로 기억).
+        // 글자로 시작한 단어 속 숫자(a24·mp3)는 예전처럼 단어 안에 둔다.
+        guard !didSpillWord, hasPendingComposition, hasBufferedDigits || (alphanumericStartAllowed
+            && (AlphanumericWords.hasPrefix(candidate) || personalPrefix)) else { return false }
         lastConversion = nil
         stashBuffer()
         word.append((text: String(character), keys: [character]))
@@ -416,6 +460,7 @@ final class KoreanComposer {
         // 미리보기에서 원본으로 되돌린 선택도 현재 단어가 끝날 때까지 유지한다.
         if !convertEnglish || particlePreviewSuppressed {
             let displayed = convertEnglish ? hangul : (lastMarkedText ?? hangul)
+            sentDigits = ""; sentDigitsOpen = false
             lastEnglishWord = nil
             lastConversion = displayed != hangul ? (hangul, displayed) : nil
             lastConversionOrigin = .automatic
@@ -435,6 +480,24 @@ final class KoreanComposer {
         // part of) the marked text the user saw.
         let convertible = convertEnglish && autoEnglishEnabled && !didSpillWord
             && word.allSatisfy { !$0.keys.isEmpty }
+        let digitsBefore = sentDigits
+        sentDigits = ""; sentDigitsOpen = false
+        if !digitsBefore.isEmpty, !hasBufferedDigits, apostropheIndex == nil {
+            // 2026-11-04: 예전엔 숫자와 단어가 한 조합(10ㅏㅎ)이었다. 같은 판정(수량·영숫자 이름·개인 사전·조사)을 그대로 쓰려고
+            // 앞에 보낸 숫자를 붙여 판정하고, 결과에서 숫자 부분만 떼어 넣는다. 숫자 부분이 달라지는 결과는 쓰지 않는다.
+            let fullKeys = Array(digitsBefore) + keys
+            let sink = BufferedClient()
+            let text = commitAlphanumeric(to: sink, convertible: convertible, hangul: digitsBefore + hangul, keys: fullKeys)
+            if text.hasPrefix(digitsBefore) {
+                if convertible, MeasurementUnits.isQuantity(String(fullKeys)) { nextQuantity = String(fullKeys) }
+                // 되돌림 쌍은 숫자를 포함한 전체로 둔다 — 화면에는 800T가 한 단어로 있어 Shift+Space가 단어 전체를 찾는다.
+                // (같은 날 1차에 숫자를 뗀 쌍(ㅆ↔T)을 썼더니 앞 숫자에 붙은 T를 단어로 못 찾아 되돌리기가 안 됐다.)
+                let rest = String(text.dropFirst(digitsBefore.count))
+                client.insertText(rest)
+                client.setMarkedText("")
+                return rest
+            }
+        }
         if hasBufferedDigits {
             if convertible, MeasurementUnits.isQuantity(String(keys)) { nextQuantity = String(keys) }
             return commitAlphanumeric(to: client, convertible: convertible, hangul: hangul, keys: keys)
@@ -696,11 +759,16 @@ final class KoreanComposer {
         if !buffer.isEmpty {
             peelJamo()
             if !pendingKeys.isEmpty { pendingKeys.removeLast() }
+            if word.isEmpty, buffer.isEmpty, !sentDigits.isEmpty { sentDigitsOpen = true }   // 2026-11-04: 위와 같은 이유
             refreshMarkedText(client: client)
             return true
         }
 
         if !word.isEmpty {
+            defer {
+                // 2026-11-04: 숫자 뒤 단어를 다 지우면 다시 숫자·소수점을 이어 붙일 수 있다(12ml → 12 → 12.5).
+                if word.isEmpty, buffer.isEmpty, !sentDigits.isEmpty { sentDigitsOpen = true }
+            }
             let removed = word.removeLast()
             // 숫자 직전 음절을 다시 조합 중으로 돌린다. a1 → Backspace → k는 「마」다.
             // 숫자 때문에 보관했던 음절이므로, 숫자를 지운 뒤 「ㅁㅏ」로 갈라지지 않게 한다.
@@ -859,9 +927,17 @@ final class KoreanComposer {
             particlePreview = nil
             return
         }
-        particlePreview = EnglishParticleSplitter.preview(
-            keys: word.flatMap(\.keys) + pendingKeys, hangul: wordText() + buffer.previewString(),
-            personalDictionary: personalDictionary, previousPrefix: particlePreview?.prefix)
+        // 2026-11-04: 앞에 보낸 숫자(800T는의 800)도 판정에 붙이고, 화면에는 숫자 뒤 부분만 보인다(숫자는 이미 앱에 있다).
+        let lead = sentDigitsOpen ? "" : sentDigits
+        guard let preview = EnglishParticleSplitter.preview(
+            keys: Array(lead) + word.flatMap(\.keys) + pendingKeys, hangul: lead + wordText() + buffer.previewString(),
+            personalDictionary: personalDictionary, previousPrefix: particlePreview.map { lead + $0.prefix }),
+            preview.text.hasPrefix(lead), preview.prefix.hasPrefix(lead) else {
+            particlePreview = nil
+            return
+        }
+        particlePreview = EnglishParticleSplitter.Preview(prefix: String(preview.prefix.dropFirst(lead.count)),
+                                                         text: String(preview.text.dropFirst(lead.count)))
     }
 
     private func refreshMarkedText(client: ComposerClient) {

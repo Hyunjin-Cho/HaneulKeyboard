@@ -106,9 +106,13 @@ import CryptoKit
                 if KeyboardLayout2Set.jamo(for: key) != nil {
                     _ = quantityComposer.handleInput(String(key), client: client)
                 } else {
+                    // 2026-11-04: 컨트롤러와 같이 — 붙잡지 않은 숫자·소수점은 바로 넣고 보낸 숫자열만 기억한다.
+                    let run: String? = AlphanumericWords.isDigit(key) ? quantityComposer.digitRunAfterSending(key)
+                        : key == "." ? quantityComposer.pointRunAfterSending() : nil
                     quantityComposer.commit(to: client, convertEnglish: true)
                     client.insertText(String(key))
                     quantityComposer.completeBoundary(key)
+                    if AlphanumericWords.isDigit(key) || key == "." { quantityComposer.setSentDigits(run) }
                 }
             }
             quantityComposer.commit(to: client, convertEnglish: true)
@@ -131,12 +135,23 @@ import CryptoKit
             let mixed = KoreanComposer()
             for key in typed {
                 if AlphanumericWords.isDigit(key), mixed.handleDigit(key, client: client) { continue }
+                if AlphanumericWords.isDigit(key) {
+                    // 2026-11-04: 컨트롤러와 같이 — 첫머리 숫자는 바로 넣고 보낸 숫자열만 기억한다(800T는).
+                    let run = mixed.digitRunAfterSending(key)
+                    mixed.commit(to: client, convertEnglish: true)
+                    client.insertText(String(key))
+                    mixed.completeBoundary(key)
+                    mixed.setSentDigits(run)
+                    continue
+                }
                 _ = mixed.handleInput(String(key), client: client)
             }
             check(editor.string == prefix + expected, "혼합 입력 Space 전 미리보기")
             check(editor.hasMarkedText(), "혼합 입력 조합 상태")
-            check(editor.markedRange() == NSRange(location: (prefix as NSString).length,
-                  length: (expected as NSString).length), "혼합 미리보기 UTF16 범위")
+            // 2026-11-04: 첫머리 숫자(800T의 800)는 이미 확정 — 조합 중 범위는 그 뒤부터다.
+            let lead = (String(typed.prefix(while: \.isNumber)) as NSString).length
+            check(editor.markedRange() == NSRange(location: (prefix as NSString).length + lead,
+                  length: (expected as NSString).length - lead), "혼합 미리보기 UTF16 범위")
             check(editor.selectedRange().location == NSMaxRange(editor.markedRange()), "미리보기 끝 커서")
             check(mixed.togglePendingParticlePreview(client: client), "미확정 원문 표시 토글")
             check(editor.string == prefix + original && editor.hasMarkedText(), "미확정 원문 전체 복원")
