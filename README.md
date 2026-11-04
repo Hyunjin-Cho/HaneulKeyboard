@@ -20,6 +20,8 @@
 
 <p align="center"><a href="#english">English</a></p>
 
+> **정식 버전 준비 중입니다.** 설치 파일은 준비가 끝나면 [릴리스 페이지](https://github.com/Hyunjin-Cho/HaneulKeyboard/releases)에 올라옵니다. 아래는 정식 버전 기준의 안내입니다.
+
 <!-- 2026-11-04 (#133): 데모 영상 자리. 새 영상이 준비되면 여기에 넣는다(옛 GIF 3개는 뺐다). -->
 
 ---
@@ -200,6 +202,8 @@ PACKAGE_ONLY=1 bash scripts/build_notarize_install.sh HaneulKeyboard
 # English
 
 **HaneulKeyboard** is a Korean input method for macOS that lets you type English without switching layouts. It is named after my daughter Haneul, which means "sky" in Korean.
+
+> **The first stable release is in preparation.** Installers will be posted on the [Releases](https://github.com/Hyunjin-Cho/HaneulKeyboard/releases) page when ready. This README describes the stable version.
 
 ## What it does
 
