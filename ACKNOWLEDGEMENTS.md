@@ -93,7 +93,6 @@
 - https://openai.com/codex/
 - 기능 설계와 코드 구현, 기존 기능과의 충돌 검토, 테스트와 문서 정리에 함께했습니다.
 - 단청과 종이 질감을 담은 시작하기 안내의 시각 디자인, 이미지 제작과 인물 자세 작업에도 도움을 받았습니다.
-- 개발에 사용한 도구이며, 앱이 사용자의 입력을 AI 서비스로 보내는 기능은 아닙니다.
 
 ## 참고한 오픈소스 입력기
 
@@ -139,7 +138,7 @@ Current application code is licensed under Apache License 2.0. `NOTICE` identifi
 ## Development tools
 
 - **Anthropic — [Claude](https://claude.com/claude-code)** — A companion throughout design, debugging, and documentation.
-- **OpenAI — [Codex · ChatGPT](https://openai.com/codex/)** — Helped with feature design, code implementation, compatibility reviews, tests, and documentation, as well as the dancheong and paper-textured onboarding artwork and character poses. These are development tools; the app does not send typing to an AI service.
+- **OpenAI — [Codex · ChatGPT](https://openai.com/codex/)** — Helped with feature design, code implementation, compatibility reviews, tests, and documentation, as well as the dancheong and paper-textured onboarding artwork and character poses.
 
 ## Studied for reference
 
