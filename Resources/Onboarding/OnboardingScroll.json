@@ -1,5 +1,5 @@
 {
-  "date": "2026-11-03",
+  "date": "2026-11-04",
   "source": "haneul-art onboarding/scroll.py",
   "world_pt": [
     6800,
@@ -89,6 +89,22 @@
           3048,
           456
         ]
+      ],
+      "hops": [
+        {
+          "who": 1,
+          "rise": [
+            2884,
+            458
+          ],
+          "land": [
+            2938,
+            458
+          ],
+          "up": "p3",
+          "down": "p3",
+          "air_dy": 0
+        }
       ]
     },
     {
@@ -113,6 +129,22 @@
           0.9,
           5
         ]
+      ],
+      "hops": [
+        {
+          "who": 0,
+          "rise": [
+            4144,
+            470
+          ],
+          "land": [
+            4226,
+            462
+          ],
+          "up": "airL",
+          "down": "air",
+          "air_dy": 14
+        }
       ]
     },
     {
@@ -187,5 +219,11 @@
       "seed": 714,
       "file": "OnboardingProp_kite.png"
     }
-  ]
+  ],
+  "roll": {
+    "w": 84,
+    "h": 560,
+    "edge": 30.0,
+    "file": "OnboardingRoll.png"
+  }
 }
