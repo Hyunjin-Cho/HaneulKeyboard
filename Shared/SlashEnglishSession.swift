@@ -42,6 +42,8 @@ struct SlashEnglishSession {
     private var caretFrozen = false
     /// 커서 위치가 개수와 한 번이라도 어긋났는지(마우스 이동 등 — 그 뒤로는 개수를 믿지 않는다).
     private var caretDiverged = false
+    /// 커서 위치가 개수와 한 번이라도 맞았는지 — 맞았던 호스트는 커서를 제대로 알려 주는 앱이다(Fable 리뷰 F3).
+    private var caretMatched = false
 
     mutating func reset() {
         isActive = false
@@ -50,6 +52,7 @@ struct SlashEnglishSession {
         typedAfterTrigger = nil
         caretFrozen = false
         caretDiverged = false
+        caretMatched = false
     }
 
     /// 앞 조합을 확정한 뒤, `/` 키를 앱에 전달하기 직전의 삽입 위치를 사용한다.
@@ -124,13 +127,23 @@ struct SlashEnglishSession {
 
     /// 커서 위치를 개수와 맞춰 본다. 조회 가능한 위치가 개수 기대값(시작 기호 뒤 + typed)과 다르면:
     /// 시작 자리에 그대로면 '움직이지 않는 커서' 호스트, 그 밖이면 실제 커서 이동으로 본다.
-    private mutating func observeCaret(_ context: Context?, typed: Int, firstKey: Bool) {
+    private mutating func observeCaret(_ context: Context?, typed: Int) {
         guard let context, let trigger = triggerRange, Self.validSelection(context.selection),
               context.selection.location != NSNotFound, Self.noMarkedText(context.markedRange),
               context.selection.length == 0 else { return }
         let location = context.selection.location
-        if location == trigger.location + 1 + typed { return }
-        if location == trigger.location, typed > 0 || firstKey || caretFrozen {
+        // Fable 리뷰 F2: 커서를 Int.max 근처로 주는 호스트에서 덧셈이 넘쳐 입력기가 죽었다 — 넘침 검사 덧셈으로.
+        let (expected, overflow) = trigger.location.addingReportingOverflow(1 + typed)
+        guard !overflow else { return }
+        if location == expected {
+            // 한 박자 늦은 스냅샷 때문에 잠깐 '움직이지 않는 커서'로 봤어도, 맞는 순간 정상 호스트로 돌아온다.
+            caretMatched = true
+            caretFrozen = false
+            return
+        }
+        // Fable 리뷰 F3: 한 번이라도 맞았던 호스트에서 커서가 시작 자리에 있으면 '움직이지 않는 커서'가 아니라
+        // 실제 이동(마우스)이다. 시작 자리 고정은 맞은 적이 없는 호스트(Ghostty형 — 늘 0)만 해당한다.
+        if location == trigger.location, !caretMatched {
             caretFrozen = true
         } else if !caretFrozen {
             caretDiverged = true
@@ -145,7 +158,7 @@ struct SlashEnglishSession {
         let selection = context.selection
         if selection.location == NSNotFound { return selection.length == 0 }
         guard Self.validSelection(selection), selection.length == 0, let trigger = triggerRange else { return false }
-        if selection.location == trigger.location + 1 { return true }
+        if selection.location == trigger.location &+ 1 { return true }     // trigger는 validSelection을 거쳐 넘치지 않는다
         return selection.location == trigger.location && (caretFrozen || firstKey)
     }
 
@@ -209,7 +222,7 @@ struct SlashEnglishSession {
                 return .end
             }
             // 2026-11-04 (#87): 글자 조회가 안 되는 앱에서도 개수로 시작 기호 삭제를 알아챈다.
-            if let typed = typedAfterTrigger { observeCaret(context, typed: typed, firstKey: isFirstKeyAfterTrigger) }
+            if let typed = typedAfterTrigger { observeCaret(context, typed: typed) }
             let plainBackspace = keyCode == 51 && modifiers & applicationModifiers == 0
                 && modifierFlagsRaw & (1 << 23) == 0
             if plainBackspace {

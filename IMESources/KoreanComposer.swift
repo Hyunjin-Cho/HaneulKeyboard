@@ -365,7 +365,10 @@ final class KoreanComposer {
         }
         // 2026-11-04: 조합 중인 단어가 없으면 숫자는 붙잡지 않는다(앱에 바로 — 컨트롤러가 setSentDigits로 기억).
         // 글자로 시작한 단어 속 숫자(a24·mp3)는 예전처럼 단어 안에 둔다.
-        guard !didSpillWord, hasPendingComposition, hasBufferedDigits || (alphanumericStartAllowed
+        // 2026-11-04 Fable 리뷰 F1·F6: 앞에 보낸 숫자에 이어진 단어(예전엔 숫자로 시작한 한 단어 10a·3ㅇ)는 예전처럼
+        // 뒤 숫자도 단어 안에 둔다 — 그래야 개인 사전 10a2(추가)·3d2(금지)가 통째로 판정되고 3d2가 반쪽(3d+2)만 바뀌지 않는다.
+        let continuesSentDigits = !sentDigits.isEmpty && !sentDigitsOpen
+        guard !didSpillWord, hasPendingComposition, continuesSentDigits || hasBufferedDigits || (alphanumericStartAllowed
             && (AlphanumericWords.hasPrefix(candidate) || personalPrefix)) else { return false }
         lastConversion = nil
         stashBuffer()
@@ -482,17 +485,23 @@ final class KoreanComposer {
             && word.allSatisfy { !$0.keys.isEmpty }
         let digitsBefore = sentDigits
         sentDigits = ""; sentDigitsOpen = false
-        if !digitsBefore.isEmpty, !hasBufferedDigits, apostropheIndex == nil {
+        if !digitsBefore.isEmpty, apostropheIndex == nil {
             // 2026-11-04: 예전엔 숫자와 단어가 한 조합(10ㅏㅎ)이었다. 같은 판정(수량·영숫자 이름·개인 사전·조사)을 그대로 쓰려고
             // 앞에 보낸 숫자를 붙여 판정하고, 결과에서 숫자 부분만 떼어 넣는다. 숫자 부분이 달라지는 결과는 쓰지 않는다.
             let fullKeys = Array(digitsBefore) + keys
             let sink = BufferedClient()
             let text = commitAlphanumeric(to: sink, convertible: convertible, hangul: digitsBefore + hangul, keys: fullKeys)
             if text.hasPrefix(digitsBefore) {
-                if convertible, MeasurementUnits.isQuantity(String(fullKeys)) { nextQuantity = String(fullKeys) }
+                // (Fable 리뷰 F7: 여기 있던 수량 전달 줄은 조합 중 단어에 자모가 늘 있어 도달하지 않았다 — 지웠다.
+                //  `10 kg`의 수량 전달은 completeBoundary(" ")가 맡는다.)
                 // 되돌림 쌍은 숫자를 포함한 전체로 둔다 — 화면에는 800T가 한 단어로 있어 Shift+Space가 단어 전체를 찾는다.
                 // (같은 날 1차에 숫자를 뗀 쌍(ㅆ↔T)을 썼더니 앞 숫자에 붙은 T를 단어로 못 찾아 되돌리기가 안 됐다.)
                 let rest = String(text.dropFirst(digitsBefore.count))
+                // Fable 리뷰 F5: 단위·이름이 아닌 일반 단어(10apple)는 판정이 뒷부분만의 쌍(메ㅔㅣㄷ↔apple)을 남긴다.
+                // 화면엔 10apple이 한 단어라 그 쌍으론 Shift+Space가 단어를 못 찾는다 — 뒷부분이 쌍과 같으면 숫자를 붙인다.
+                if let pair = lastConversion, !pair.english.hasPrefix(digitsBefore), pair.english == rest {
+                    lastConversion = (digitsBefore + pair.hangul, digitsBefore + pair.english)
+                }
                 client.insertText(rest)
                 client.setMarkedText("")
                 return rest

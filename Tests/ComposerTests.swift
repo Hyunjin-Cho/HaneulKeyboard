@@ -2633,6 +2633,30 @@ struct ComposerTests {
             for ch in "kg" { typeKeyViaController(ch, composer: k, client: c) }
             expect(c.committedText + "|" + c.marked, "10|ㅏㅎ", "숫자 뒤 단위는 조합 중")
         }
+        // 2026-11-04 Fable 리뷰(58ca392) 재현 테스트 — 숫자를 먼저 보내는 방식의 구멍.
+        // F1: 숫자로 시작해 글자 뒤에 숫자가 또 오는 개인 사전 항목(force·block)이 예전처럼 통째로 판정돼야 한다.
+        expect(typeViaControllerWithPersonalDictionary("10a2", PersonalDictionary(force: ["10a2"])).committedText,
+               "10a2", "리뷰 F1: 숫자+글자+숫자 개인 추가 통째 변환")
+        expect(typeViaControllerWithPersonalDictionary("1a1", PersonalDictionary(force: ["1a1"])).committedText,
+               "1a1", "리뷰 F1: 1a1 개인 추가")
+        for block in ["3d2", "3ㅇ2"] {
+            expect(typeViaControllerWithPersonalDictionary("3d2", PersonalDictionary(block: [block])).committedText,
+                   "3ㅇ2", "리뷰 F1: 숫자+글자+숫자 금지는 한글 유지 \(block)")
+        }
+        // F6: 사전 없이도 예전과 같은 결과(두 번째 숫자에서 반쪽만 단위로 바뀌지 않는다).
+        expect(typeViaController("3d2").committedText, "3ㅇ2", "리뷰 F6: 3d2 반쪽 변환 없음")
+        expect(typeViaController("10h30m").committedText, "10ㅗ30ㅡ", "리뷰 F6: 10h30m 반쪽 변환 없음")
+        // F5: 숫자 뒤 영어 단어(10apple)도 Shift+Space 되돌림 쌍이 화면 단어 전체여야 되돌릴 수 있다.
+        do {
+            let client = FakeClient(), composer = KoreanComposer()
+            for ch in "10apple" { typeKeyViaController(ch, composer: composer, client: client) }
+            composer.commit(to: client, convertEnglish: true)
+            expect(client.committedText, "10apple", "리뷰 F5: 10apple 변환")
+            let pair = composer.lastConversion
+            expect((pair?.hangul ?? "") + "|" + (pair?.english ?? ""), "10메ㅔㅣㄷ|10apple", "리뷰 F5: 되돌림 쌍은 화면 단어 전체")
+            expect(KoreanComposer.resolveToggle(before: "10apple ", english: pair?.english ?? "", hangul: pair?.hangul ?? "",
+                                                atDocStart: true)?.text ?? "", "10메ㅔㅣㄷ", "리뷰 F5: 10apple 되돌리기")
+        }
         let longQuantity = String(repeating: "1", count: 95)
         expect(typeViaController(longQuantity).committedText, longQuantity, "단위: 긴 숫자 유실 없음")
         expect(typeViaController("123.456.789").committedText, "123.456.789", "단위: 여러 점 숫자 유실 없음")

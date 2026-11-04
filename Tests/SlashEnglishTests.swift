@@ -341,6 +341,40 @@ private final class SlashTextClient: ComposerClient {
                   "조회 앱: 커서가 기호 뒤가 아니면 개수가 0이어도 유지")
         }
 
+        // 2026-11-04 Fable 리뷰(58ca392) 재현 테스트.
+        // F2: 커서를 Int.max 근처로 돌려주는 호스트에서도 덧셈 넘침으로 입력기가 죽지 않는다.
+        do {
+            var run = SlashEnglishSession(); _ = step(&run, "/", key: 44)
+            check(run.captureTrigger(in: NSRange(location: Int.max - 1, length: 0),
+                                     markedRange: NSRange(location: NSNotFound, length: 0)), "거대 커서 캡처")
+            for _ in 0..<3 {
+                check(step(&run, "a", key: 0, context: context(Int.max - 1, text: nil)) == .passThrough, "리뷰 F2: 넘침 없이 전달")
+            }
+            check(step(&run, "\u{7f}", key: 51, context: context(Int.max - 1, text: nil)) == .passThrough, "리뷰 F2: 넘침 없이 삭제 판단")
+        }
+        // F3: 커서가 한 번이라도 개수와 맞았던 호스트(커서는 알려 주고 글자는 못 읽음)에서, 나중에 커서가 시작 자리로
+        // 옮겨지면(마우스) '움직이지 않는 커서'로 오인하지 않는다 — 실제 이동으로 보고 개수로 끝내지 않는다.
+        do {
+            var run = SlashEnglishSession(); startHost(&run, .caretOnly)
+            _ = step(&run, "a", key: 0, context: context(1, text: nil))
+            _ = step(&run, "b", key: 0, context: context(2, text: nil))
+            check(step(&run, "\u{7f}", key: 51, context: context(0, text: nil)) == .passThrough && run.isActive,
+                  "리뷰 F3: 시작 자리로 옮긴 뒤 Backspace는 시작 기호 삭제가 아님")
+            for location in [3, 2] {
+                check(step(&run, "\u{7f}", key: 51, context: context(location, text: nil)) == .passThrough && run.isActive,
+                      "리뷰 F3: 한 번 어긋난 뒤엔 개수로 끝내지 않음 \(location)")
+            }
+        }
+        // 첫 키에서 커서 스냅샷이 한 박자 늦은 호스트는 다음 키에서 맞으면 정상 호스트로 돌아온다.
+        do {
+            var run = SlashEnglishSession(); startHost(&run, .caretOnly)
+            _ = step(&run, "a", key: 0, context: context(0, text: nil))
+            _ = step(&run, "b", key: 0, context: context(2, text: nil))
+            _ = step(&run, "\u{7f}", key: 51, context: context(3, text: nil))
+            _ = step(&run, "\u{7f}", key: 51, context: context(2, text: nil))
+            check(step(&run, "\u{7f}", key: 51, context: context(1, text: nil)) == .end, "늦은 스냅샷 호스트도 시작 기호 삭제 감지")
+        }
+
         let unavailable = [
             context(-1, text: ""),
             context(Int.max - 1, length: 2, text: ""),
