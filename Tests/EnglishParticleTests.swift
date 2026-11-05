@@ -1,7 +1,64 @@
 import Foundation
 
 // 실사전 + 실제 조합기/활성 경계/되돌리기 순수 경로. OS IMK 검사는 수동 검사표에 따로 둔다.
+/// 2026-11-06 (#152): 입력 중 영어가 비치는 것과 어간 오변환을 막는다. 기준은 docs/input-conversion-rules.md의 P13과 어간 거부.
+private func runLivePreviewHoldTests() {
+    func typing(_ keys: String) -> (showedLatin: Bool, committed: String) {
+        let composer = KoreanComposer()
+        let client = FakeClient()
+        var showed = false
+        for key in keys {
+            _ = composer.handleInput(String(key), client: client)
+            if client.marked.contains(where: { $0.isASCII && $0.isLetter }) { showed = true }
+        }
+        composer.commit(to: client, convertEnglish: true)
+        return (showed, client.committedText)
+    }
+    // 더 긴 우리말로 이어지는 동안에는 영어를 비치지 않는다.
+    for (keys, word) in [("gptrkfflrp", "헷갈리게"), ("gptrkfflsms", "헷갈리는"), ("diskdlwm", "야나이즈"),
+                         ("cmdhksk", "츠와나"), ("tidrkd", "샹강"), ("cmfmfm", "츠르르"), ("epfldpfm", "데리에르")] {
+        let result = typing(keys)
+        expect(result.showedLatin, false, "#152 입력 중 영어 없음: \(word)")
+        expect(result.committed, word, "#152 확정은 한글: \(word)")
+    }
+    // 그대로 끝내면 확정은 영어+조사다. 미리보기만 미룬다.
+    for (keys, expected) in [("gptrk", "gpt가"), ("diskdl", "disk이"), ("cmdhk", "cm와")] {
+        let result = typing(keys)
+        expect(result.showedLatin, false, "#152 미리보기 미룸: \(expected)")
+        expect(result.committed, expected, "#152 확정 유지: \(expected)")
+    }
+    // 우리말로 이어질 수 없는 조합은 미리보기를 계속 보여 준다.
+    for (keys, expected) in [("gptsms", "gpt는"), ("gptfmf", "gpt를"), ("anddl", "and이"), ("whork", "who가")] {
+        let result = typing(keys)
+        expect(result.showedLatin, true, "#152 미리보기 유지: \(expected)")
+        expect(result.committed, expected, "#152 미리보기 유지 확정: \(expected)")
+    }
+    // X다가 표제어면 X는 어간이다. 단독으로도, 조사처럼 보이는 어미가 붙어도 한글이다.
+    for (keys, word) in [("dix", "얕"), ("dixdms", "얕은"), ("dixdmf", "얕을"), ("dixrp", "얕게"),
+                         ("dixdmsanf", "얕은물"), ("epfl", "데리"), ("epfldp", "데리에")] {
+        let result = typing(keys)
+        expect(result.showedLatin, false, "#152 어간 입력 중: \(word)")
+        expect(result.committed, word, "#152 어간 확정: \(word)")
+    }
+    // 앞부분 검사 자체: 받침이 더 붙는 경우, 다음 글자로 넘어가는 경우, 이어질 말이 없는 경우.
+    expect(KoreanDictionary.mayContinue("헷가"), true, "#152 헷가 → 헷갈리다")
+    expect(KoreanDictionary.mayContinue("헷는"), false, "#152 헷는은 이어질 말 없음")
+    expect(KoreanDictionary.mayContinue("얕은"), true, "#152 얕은 → 얕은꾀")
+    expect(KoreanDictionary.mayContinue("낱"), true, "#152 낱 → 낱말")
+    expect(KoreanDictionary.mayContinue("가ㄱ"), false, "#152 끝이 낱자면 검사하지 않는다")
+    expect(KoreanDictionary.mayContinue(""), false, "#152 빈 문자열")
+    // 이진 탐색의 전제: 표제어 파일이 UTF-8 바이트 순이다.
+    if let text = try? String(contentsOfFile: "Resources/IM/korean_words.txt", encoding: .utf8) {
+        let lines = text.split(separator: "\n").filter { !$0.hasPrefix("#") }.map { Array($0.utf8) }
+        expect(zip(lines, lines.dropFirst()).allSatisfy { $0.lexicographicallyPrecedes($1) }, true,
+               "#152 korean_words.txt는 바이트 순 정렬")
+    } else {
+        expect(false, true, "#152 korean_words.txt 읽기")
+    }
+}
+
 func runEnglishParticleTests() {
+    runLivePreviewHoldTests()
     runExpandedParticleTests()
     func raw(_ english: String, _ particle: String) -> String {
         english + ManualToggle.hangulToKeys(particle)!
