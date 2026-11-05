@@ -7,8 +7,8 @@ func runPhoneticTests() {
         expect(false, true, "발음 사전 로드")
         return
     }
-    expect(dictionary.entries.count, 4529, "발음 사전 입력 표기 수")
-    expect(Set(dictionary.entries.map(\.english)).count, 4317, "발음 사전 영문 출력 수")
+    expect(dictionary.entries.count, 6860, "발음 사전 입력 표기 수")
+    expect(Set(dictionary.entries.map(\.english)).count, 6027, "발음 사전 영문 출력 수")
     expect(dictionary.entries.filter { $0.category == "phone-confirmed" }.count, 29, "확인한 번호 별칭")
     expect(dictionary.entries.filter { $0.category == "phone-reserved" }.count, 6, "다음 3개 번호 별칭")
     for (hangul, english) in ["레스토랑": "restaurant", "라이트": "light", "워크": "work",
@@ -42,8 +42,8 @@ func runPhoneticTests() {
                                "경차": "small car", "곱창": "small intestine"] {
         expect(dictionary.english(for: hangul) ?? "", english, "기본 명사 지정 의미: \(hangul)")
     }
-    for ambiguous in ["시인", "연구원", "교수", "교사", "지원자", "약사", "일식",
-                      "사거리", "문진", "음차", "차단기", "독수리", "교구", "조카"] {
+    // 2026-11-05 (#140): 시인·교수·교사·약사 등은 대표 뜻이 분명해 넣었다. 뜻이 정말 둘인 말만 남긴다.
+    for ambiguous in ["일식", "문진", "음차", "교구", "조카"] {
         expect(dictionary.english(for: ambiguous) == nil, true, "새 기본 명사의 다의어 보류: \(ambiguous)")
     }
     // #104 · 2026-10-28: 오너가 확정한 일상 대표 뜻만 복원한다.
@@ -55,11 +55,31 @@ func runPhoneticTests() {
         expect(selected?.text ?? "", english, "대표 뜻은 자판 역변환보다 우선: \(word)")
         expect(selected?.origin == .phonetic, true, "대표 뜻은 등록 단어 변환 출처: \(word)")
     }
-    // 기존 28개 중 오너가 확정한 세 단어 외의 25개는 보류를 유지한다.
-    for word in ["화장실", "건조기", "금고", "과도", "대두", "수수", "간장", "전복", "밥", "사탕", "유부", "개미", "서리", "군청", "카페", "상점", "사찰", "리무진", "열기구", "로켓", "차도", "선로", "코", "유리", "직선"] {
-        expect(dictionary.english(for: word) == nil, true, "새 다의어 의미 조회 제외: \(word)")
+    // 2026-11-05 오너(#140): 기본 단어를 넣는다. 일상에서 뜻이 둘인 말만 뺀다("눈 같이 의미가 2개").
+    // 사전 뜻 번호가 둘이라고 보류하던 예전 기준을 바꿔, 2026-10-28에 보류한 25개 중 22개도 되돌렸다.
+    for (word, english) in ["카드": "card", "집": "house", "책": "book", "회사": "company", "전화": "phone", "사람": "person",
+                            "사랑": "love", "하늘": "sky", "오늘": "today", "내일": "tomorrow", "음식": "food", "음악": "music",
+                            "여행": "travel", "시간": "time", "꽃": "flower", "나무": "tree", "산": "mountain", "강": "river",
+                            "돈": "money", "문": "door", "빵": "bread", "시계": "clock", "칼": "knife", "고기": "meat",
+                            "화장실": "restroom", "건조기": "dryer", "금고": "safe", "간장": "soy sauce", "전복": "abalone",
+                            "밥": "rice", "사탕": "candy", "유부": "fried tofu", "개미": "ant", "서리": "frost", "군청": "county office",
+                            "카페": "cafe", "상점": "shop", "사찰": "Buddhist temple", "리무진": "limousine", "열기구": "hot-air balloon",
+                            "로켓": "rocket", "차도": "roadway", "선로": "railroad track", "코": "nose", "유리": "glass", "직선": "straight line"] {
+        expect(dictionary.english(for: word) ?? "", english, "기본 단어 등록: \(word)")
+        expect(ManualToggle.resolve(word: word, phoneticEnabled: true, keyboardEnabled: true,
+                                    dictionary: dictionary)?.origin == .phonetic, true, "기본 단어는 등록 단어 변환 출처: \(word)")
+    }
+    // 일상에서 뜻이 둘인 말은 넣지 않는다.
+    for word in ["과도", "대두", "수수", "눈", "밤", "말", "차", "다리", "머리", "병", "풀", "팔", "키", "기타", "연기", "일"] {
+        expect(dictionary.english(for: word) == nil, true, "뜻이 둘인 말 제외: \(word)")
         expect(ManualToggle.resolve(word: word, phoneticEnabled: true, keyboardEnabled: false,
-                                   dictionary: dictionary) == nil, true, "다의어 뜻 변환 후보 없음: \(word)")
+                                   dictionary: dictionary) == nil, true, "뜻이 둘인 말은 변환 후보 없음: \(word)")
+    }
+    // 자판 그대로 옮기면 영어가 되는 말은 넣지 않는다 — 넣으면 단축키 자판 변환이 깨진다.
+    for (word, keys) in ["새": "to", "내": "so", "무": "an", "해": "go", "애": "do"] {
+        expect(dictionary.english(for: word) == nil, true, "자판 영어와 겹치는 말 제외: \(word)")
+        expect(ManualToggle.resolve(word: word, phoneticEnabled: true, keyboardEnabled: true,
+                                    dictionary: dictionary)?.text ?? "", keys, "자판 변환 유지: \(word)→\(keys)")
     }
     for word in ["눈"] {
         let keyboard = ManualToggle.resolve(word: word, phoneticEnabled: true, keyboardEnabled: true,
@@ -181,8 +201,8 @@ func runPhoneticTests() {
             expect(false, true, "새 명사 독립 표본 목록 로드")
         }
     }
-    for ambiguous in ["용량", "눈", "밤", "말", "차", "가위", "화장지", "강아지", "호랑이"] {
-        expect(dictionary.english(for: ambiguous) == nil, true, "새 명사 애매한 뜻·사람 지칭 제외: \(ambiguous)")
+    for ambiguous in ["용량", "눈", "밤", "말", "차"] {
+        expect(dictionary.english(for: ambiguous) == nil, true, "새 명사 애매한 뜻 제외: \(ambiguous)")
     }
     expect(dictionary.english(for: "배") ?? "", "pear", "기존 지정 과일 뜻은 명사 확장으로 삭제하지 않음")
 
