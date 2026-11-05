@@ -207,14 +207,4 @@ final class AppCore {
         await updateIMEStatus()
         return failure
     }
-
-    /// 한↔영 전환. 실패(영문 자판 없음·우리 입력 소스 꺼짐)를 호출자가 알 수 있게 돌려준다.
-    /// 2026-09-20 (#45, 리뷰 F-5): 종전엔 반환값을 버려 메뉴가 조용히 실패했다.
-    @discardableResult
-    func toggleLanguage() -> Bool {
-        guard !isRemovingProduct else { return false }
-        let switched = InputSwitcher.toggle()
-        refreshLanguage()
-        return switched
-    }
 }
