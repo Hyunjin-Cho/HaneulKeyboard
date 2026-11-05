@@ -37,6 +37,34 @@ private struct SketchArrow: Shape {
     }
 }
 
+/// 2026-11-05 (#145): 입력칸 바로 위 줄에 놓는 손글씨 안내. 글 끝에서 화살표가 아래 입력칸으로 떨어진다.
+struct OnboardingSketchHint: View {
+    let text: String
+    var body: some View {
+        HStack(alignment: .center, spacing: 6) {
+            Text(text).font(OnboardingHandwriting.font()).rotationEffect(.degrees(-2)).fixedSize()
+            SketchDownArrow().stroke(style: StrokeStyle(lineWidth: 1.8, lineCap: .round, lineJoin: .round))
+                .frame(width: 30, height: 32).offset(y: 6)
+                .accessibilityHidden(true)
+        }
+    }
+}
+
+private struct SketchDownArrow: Shape {
+    func path(in rect: CGRect) -> Path {
+        func at(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+            CGPoint(x: rect.minX + x * rect.width, y: rect.minY + y * rect.height)
+        }
+        var p = Path()
+        p.move(to: at(0.04, 0.10))
+        p.addCurve(to: at(0.62, 0.96), control1: at(0.62, -0.04), control2: at(0.96, 0.40))
+        p.move(to: at(0.24, 0.72))
+        p.addLine(to: at(0.62, 0.96))
+        p.addLine(to: at(0.90, 0.60))
+        return p
+    }
+}
+
 /// 일부러 닫히지 않는 두 획으로 색연필 표시처럼 아이콘을 강조한다.
 struct OnboardingPencilRing: Shape {
     func path(in rect: CGRect) -> Path {
@@ -85,8 +113,9 @@ struct OnboardingConversionDemo: View {
             OnboardingSketchNote(text: "한/영 키는 그대로 두세요", compact: compact)
                 .foregroundStyle(OnboardingRiso.ink(for: scheme))
             VStack(alignment: .leading, spacing: 6) {
+                // 2026-11-05 (#145): 큰 창에서는 남는 높이만큼 글자를 키운다.
                 Text(showsResult ? "메ㅔㅣㄷ → apple" : words[frame])
-                    .font(.system(size: showsResult ? 34 : 48, weight: .medium))
+                    .font(.system(size: showsResult ? (compact ? 34 : 40) : (compact ? 48 : 62), weight: .medium))
                     .contentTransition(.numericText())
                     .lineLimit(1).minimumScaleFactor(0.7)
                 Label("한글 모드 유지", systemImage: "checkmark.circle").font(.system(size: 14))
@@ -100,6 +129,7 @@ struct OnboardingConversionDemo: View {
                     .buttonStyle(OnboardingRisoButtonStyle(prominent: false))
             }
         }
+        .frame(maxHeight: .infinity)
         .feedbackPanel(.information)
         .task(id: "\(replay)-\(reduceMotion)") {
             frame = 0

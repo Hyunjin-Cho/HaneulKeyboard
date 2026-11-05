@@ -144,23 +144,25 @@ struct OnboardingView: View {
 
     private var frameCard: some View {
         VStack(alignment: .leading, spacing: 0) {
+            // 2026-11-05 오너(#145): 하단이 비어 보였다. 예전엔 내용을 제 키로 고정하고 남는 칸을 Spacer가 먹었다.
+            // 이제 본문이 남는 높이를 받아 페이지마다 주인공(입력칸·시연·단계·메뉴 칸)이 늘어난다.
             VStack(alignment: .leading, spacing: 0) {
-                cardTitle
+                cardTitle.fixedSize(horizontal: false, vertical: true)
                 pageBody.padding(.top, compact ? 10 : 14)
+                    .frame(maxHeight: .infinity, alignment: .top)
             }
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .overlay(alignment: .topTrailing) {
                 if step == Self.stagePage { stageMenuBar.padding(.top, 2) }
             }
             .padding(.horizontal, compact ? 24 : 30).padding(.top, compact ? 14 : 18)
+            .padding(.bottom, compact ? 12 : 18)
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { [step] height in
                 Self.cardTopHeightProbe?(step, height)
             }
             .id(pageID)
             .transition(pageTransition)
             .accessibilityIdentifier("onboarding-page-content")
-            Spacer(minLength: 0)
             Divider().padding(.horizontal, 22)
             navigation.padding(.horizontal, 22).frame(height: compact ? 58 : 64)
         }
@@ -192,23 +194,59 @@ struct OnboardingView: View {
         }
     }
 
+    /// 2026-11-05 오너(#145): 버튼 한 줄 아래가 통째로 비었다. 같은 세 기능을 카드 폭을 채우는 칸으로 키우고,
+    /// 메뉴바 아이콘을 종료했을 때 어떻게 되는지 아래 띠에 적는다(#142에서 정한 종료의 뜻).
     private var menuBarStep: some View {
-        VStack(alignment: .leading, spacing: 9) {
-            HStack(spacing: 8) {
-                Button("하늘키보드 설정", systemImage: "slider.horizontal.3") { onSettings(.inputFeatures) }
-                Button("시작하기 다시 보기", systemImage: "play.circle") { go(to: 0) }
-                Button("응원하기", systemImage: "heart") { onSupport() }
-            }.buttonStyle(OnboardingRisoButtonStyle(prominent: false)).font(.system(size: 13)).padding(.top, 3)
-            if ready {
-                Text("하늘키보드는 영원히 무료입니다. 후원은 자유롭게 선택해 주세요.")
-                    .font(.system(size: 13)).foregroundStyle(.secondary)
-            } else {
-                HStack(spacing: 10) {
-                    Text("시작하기를 누르면 입력기 설치·설정을 이어갈 수 있어요.").font(.system(size: 13))
-                    Button("설치 단계로 이동") { go(to: 0) }.font(.system(size: 13)).fixedSize()
+        VStack(alignment: .leading, spacing: compact ? 10 : 14) {
+            HStack(spacing: 12) {
+                menuTile("하늘키보드 설정", detail: "입력 기능과 개인 사전을\n내 손에 맞게 바꿔요",
+                         symbol: "slider.horizontal.3", tint: OnboardingRiso.cyan) { onSettings(.inputFeatures) }
+                menuTile("시작하기 다시 보기", detail: "이 안내를 처음부터\n다시 볼 수 있어요",
+                         symbol: "play.circle", tint: OnboardingRiso.yellow) { go(to: 0) }
+                menuTile("응원하기", detail: "영원히 무료예요\n후원은 자유롭게 선택해 주세요",
+                         symbol: "heart", tint: OnboardingRiso.pink) { onSupport() }
+            }
+            .frame(maxHeight: .infinity)
+            VStack(alignment: .leading, spacing: 6) {
+                Label("메뉴바 아이콘을 종료해도 입력기는 그대로 동작해요.", systemImage: "menubar.rectangle")
+                Text("아이콘이 다시 필요하면 응용 프로그램에서 하늘키보드를 열어 주세요.")
+                    .padding(.leading, 28)
+                if !ready {
+                    HStack(spacing: 10) {
+                        Text("시작하기를 누르면 입력기 설치·설정을 이어갈 수 있어요.")
+                        Spacer(minLength: 4)
+                        Button("설치 단계로 이동") { go(to: 0) }.fixedSize()
+                    }
                 }
             }
+            .font(.system(size: 14)).padding(.horizontal, 4)
+            .fixedSize(horizontal: false, vertical: true)
         }
+        // 오른쪽 위 메뉴바 모형의 손글씨(필요할 땐 여기!)가 칸에 닿지 않게 내린다.
+        .padding(.top, compact ? 16 : 22)
+    }
+
+    /// 메뉴 칸 — 누르는 곳이 칸 전체다. 칠과 테두리는 다른 안내 띠와 같은 잉크 계열이다.
+    private func menuTile(_ title: String, detail: String, symbol: String, tint: Color,
+                          action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: compact ? 8 : 12) {
+                Image(systemName: symbol).font(.system(size: compact ? 20 : 26, weight: .medium))
+                    .symbolRenderingMode(.monochrome).foregroundStyle(.primary)
+                    .frame(width: compact ? 40 : 52, height: compact ? 36 : 46)
+                    .background(tint.opacity(colorScheme == .dark ? 0.26 : 0.24), in: RoundedRectangle(cornerRadius: 10))
+                Text(title).font(.system(size: compact ? 15 : 17, weight: .semibold))
+                Text(detail).font(.system(size: compact ? 13 : 14)).lineSpacing(2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(compact ? 12 : 16)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            .background(tint.opacity(colorScheme == .dark ? 0.13 : 0.09), in: RoundedRectangle(cornerRadius: 15))
+            .overlay(RoundedRectangle(cornerRadius: 15).strokeBorder(tint.opacity(0.42), lineWidth: 1))
+            .contentShape(RoundedRectangle(cornerRadius: 15))
+        }
+        .buttonStyle(.plain)
     }
 
     /// 메뉴바 자리를 알려 주는 작은 모형(옛 7페이지의 연필 동그라미를 카드 오른쪽에 옮겼다).
@@ -252,6 +290,7 @@ struct OnboardingView: View {
     // 문구·기능·글자 크기는 그대로다.
     private var installStep: some View {
         VStack(alignment: .leading, spacing: compact ? 10 : 14) {
+            // 2026-11-05 (#145): 시연이 이 페이지의 주인공이라 남는 높이를 받는다.
             OnboardingConversionDemo(compact: compact)
             HStack(spacing: 14) {
                 Image(systemName: ready ? "checkmark.circle" : "keyboard").font(.system(size: 25))
@@ -271,11 +310,12 @@ struct OnboardingView: View {
                         }
                     }.disabled(core.isPreparingIME).fixedSize()
                 }
-            }.feedbackPanel(.information)
+            }.feedbackPanel(.information).fixedSize(horizontal: false, vertical: true)
             if let message = installError ?? core.imeActivationError?.localizedDescription ?? core.imeSettingsRefreshWarning {
                 Text(message).font(.system(size: 14))
                     .foregroundStyle(FeedbackStatus.warning.color(in: colorScheme)).textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true).feedbackPanel(.warning)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             VStack(alignment: .leading, spacing: 8) {
                 Label("메뉴바 앱과 입력기는 하나의 하늘키보드예요.", systemImage: "link")
@@ -309,6 +349,8 @@ struct OnboardingView: View {
                     guideStep("3", "하늘키보드", symbol: "checkmark.circle",
                               detail: core.imeInstalled ? "한글 입력을\n시작해 보세요" : "한국어\n하늘키보드 (두벌식)")
                 }
+                // 2026-11-05 (#145): 세 단계가 남는 높이를 받는다.
+                .frame(maxHeight: .infinity)
                 Divider()
                 HStack(spacing: 18) {
                     FeedbackStatusLabel(complete: core.imeInstalled,
@@ -330,14 +372,16 @@ struct OnboardingView: View {
                 }
             }.font(.system(size: 14)).fixedSize(horizontal: false, vertical: true)
                 .feedbackPanel(.warning)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
-    /// 위 띠 = 연습(손글씨 안내 → 입력칸, 그 아래 한 줄), 아래 띠 = 도움말. 기능이 꺼져 있으면 경고가 뜨고 도움말은 숨긴다(예전과 같다).
+    /// 위 띠 = 연습(손글씨 안내 → 입력칸 → 안내 한 줄), 아래 띠 = 도움말. 기능이 꺼져 있으면 경고가 뜨고 도움말은 숨긴다(예전과 같다).
+    /// 2026-11-05 (#145): 도움말은 제 키를 지키고, 남는 높이는 입력칸이 받는다.
     private func practiceBands<Advice: View>(_ lesson: PracticeLesson, @ViewBuilder advice: () -> Advice) -> some View {
         VStack(alignment: .leading, spacing: compact ? 10 : 14) {
             practice(lesson)
-            if !hasPracticeWarning(lesson) { advice() }
+            if !hasPracticeWarning(lesson) { advice().fixedSize(horizontal: false, vertical: true) }
         }
     }
 
@@ -427,45 +471,26 @@ struct OnboardingView: View {
         sourceError != nil || lessonDisabled(lesson)
     }
 
-    /// 2026-11-03 (#115): 가로 띠. 손글씨 안내는 입력칸 왼쪽에서 화살표로 입력칸을 가리키고,
-    /// 안내 문장·선택 상태·비우기는 입력칸 아래 한 줄에 놓는다(예전에는 안내가 입력칸 위에 있었다).
+    /// 2026-11-05 오너(#145): 입력칸이 카드 가로를 다 채운다(1·2페이지 띠와 같은 폭). 그동안(#115) 손글씨 안내를
+    /// 입력칸 왼쪽에 두느라 칸이 좁았다. 이제 맨 위 줄 = 손글씨 안내 + 선택 상태, 그 아래 입력칸, 맨 아래 줄 = 안내 문장 + 비우기.
     private func practice(_ lesson: PracticeLesson) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: compact ? 6 : 8) {
             HStack(alignment: .center, spacing: 12) {
-                ZStack(alignment: .topLeading) {
-                    OnboardingSketchNote(text: lesson.hint, compact: true)
+                ZStack(alignment: .leading) {
+                    OnboardingSketchHint(text: lesson.hint)
                         .opacity(practiceStage == .empty || lesson == .slash ? 1 : 0)
                     if practiceStage != .empty && lesson != .slash {
-                        VStack(alignment: .leading, spacing: 8) {
+                        HStack(alignment: .center, spacing: 10) {
                             Text(cueTitle(lesson)).font(OnboardingHandwriting.font())
+                                .lineLimit(1).minimumScaleFactor(0.8)
                             if showPracticeKey(lesson) { keycap(practiceKey(lesson)) }
-                        }.padding(.top, 4)
+                        }
                     }
                 }
-                .frame(width: 235, height: compact ? 84 : 94, alignment: .topLeading)
+                .frame(height: compact ? 40 : 46, alignment: .leading)
                 .foregroundStyle(OnboardingRiso.ink(for: colorScheme))
                 .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: practiceStage)
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(OnboardingRiso.yellow.opacity(0.65)).offset(x: 3, y: 4)
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(colorScheme == .dark ? Color(white: 0.14) : Color(red: 1, green: 0.99, blue: 0.96))
-                    OnboardingPracticeField(focusRequest: focusRequest, resetRequest: resetRequest,
-                                            accessibilityName: lesson.accessibilityName,
-                                            placeholder: "", onProgressChange: { [observedPage = pageID] stage in
-                                                // 전환 중 퇴장하는 입력칸의 늦은 알림이 새 화면을 바꾸지 않게 한다.
-                                                guard pageID == observedPage else { return }
-                                                practiceStage = stage
-                                            })
-                        .transaction { $0.animation = nil }
-                        .padding(8)
-                }
-                .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(OnboardingRiso.cyan.opacity(0.60), lineWidth: 1.3))
-                .frame(height: compact ? 84 : 94)
-            }
-            HStack(alignment: .top, spacing: 12) {
-                Text(practiceMessage(lesson)).font(.system(size: 15))
-                    .frame(maxWidth: .infinity, minHeight: compact ? 34 : 40, maxHeight: compact ? 34 : 40, alignment: .topLeading)
+                Spacer(minLength: 0)
                 FeedbackStatusLabel(complete: selectedHaneul,
                     completedText: "하늘키보드 선택됨", pendingText: "하늘키보드를 선택해 주세요")
                     .font(.system(size: 14)).fixedSize()
@@ -474,8 +499,35 @@ struct OnboardingView: View {
                         if selectHaneul() { focusRequest = UUID() }
                     }.disabled(!core.imeInstalled).fixedSize()
                 }
-                Button("비우기", systemImage: "arrow.counterclockwise") { resetRequest = UUID() }
-                    .buttonStyle(OnboardingRisoButtonStyle(prominent: false)).fixedSize()
+                if compact { clearPracticeButton }
+            }
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(OnboardingRiso.yellow.opacity(0.65)).offset(x: 3, y: 4)
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(colorScheme == .dark ? Color(white: 0.14) : Color(red: 1, green: 0.99, blue: 0.96))
+                OnboardingPracticeField(focusRequest: focusRequest, resetRequest: resetRequest,
+                                        accessibilityName: lesson.accessibilityName,
+                                        placeholder: "", onProgressChange: { [observedPage = pageID] stage in
+                                            // 전환 중 퇴장하는 입력칸의 늦은 알림이 새 화면을 바꾸지 않게 한다.
+                                            guard pageID == observedPage else { return }
+                                            practiceStage = stage
+                                        })
+                    .transaction { $0.animation = nil }
+                    .padding(8)
+            }
+            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(OnboardingRiso.cyan.opacity(0.60), lineWidth: 1.3))
+            // 70 = 글자 한 줄(23pt) + 위아래 여백이 들어가 스크롤바가 생기지 않는 높이다.
+            .frame(minHeight: compact ? 70 : 84, maxHeight: .infinity)
+            .padding(.trailing, 3).padding(.bottom, 4)     // 노란 그림자까지 아래 띠 오른쪽 끝에 맞춘다
+            // 작은 창(780)에서는 이 줄을 뺀다. 같은 내용이 부제목과 손글씨 안내에 있고, 넣으면 6페이지가 넘친다.
+            if !compact {
+                HStack(alignment: .center, spacing: 12) {
+                    Text(practiceMessage(lesson)).font(.system(size: 15))
+                        .lineLimit(1).minimumScaleFactor(0.85)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    clearPracticeButton
+                }
             }
             if hasPracticeWarning(lesson) {
                 VStack(alignment: .leading, spacing: 6) {
@@ -498,8 +550,14 @@ struct OnboardingView: View {
                         Button("입력 기능 설정 열기") { onSettings(.inputFeatures) }
                     }
                 }.font(.system(size: 14)).feedbackPanel(.warning)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-        }.padding(.horizontal, 8)
+        }
+    }
+
+    private var clearPracticeButton: some View {
+        Button("비우기", systemImage: "arrow.counterclockwise") { resetRequest = UUID() }
+            .buttonStyle(OnboardingRisoButtonStyle(prominent: false)).fixedSize()
     }
 
     private func showPracticeKey(_ lesson: PracticeLesson) -> Bool {
@@ -610,13 +668,13 @@ struct OnboardingView: View {
     private func guideStep(_ number: String, _ title: String, symbol: String, detail: String) -> some View {
         let tint = FeedbackTone.information.tint
         return HStack(alignment: .center, spacing: 9) {
-            Text(number).font(OnboardingRiso.titleFont(size: 18))
-            Image(systemName: symbol).font(.system(size: compact ? 20 : 24, weight: .medium))
+            Text(number).font(OnboardingRiso.titleFont(size: compact ? 18 : 21))
+            Image(systemName: symbol).font(.system(size: compact ? 20 : 27, weight: .medium))
                 .symbolRenderingMode(.monochrome).foregroundStyle(.primary)
-                .frame(width: compact ? 40 : 48, height: compact ? 36 : 44)
+                .frame(width: compact ? 40 : 52, height: compact ? 36 : 50)
                 .background(tint.opacity(colorScheme == .dark ? 0.23 : 0.20), in: RoundedRectangle(cornerRadius: 10))
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title).font(.system(size: compact ? 15 : 16, weight: .semibold))
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title).font(.system(size: compact ? 15 : 17, weight: .semibold))
                 Text(detail).font(.system(size: compact ? 13 : 14)).lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
