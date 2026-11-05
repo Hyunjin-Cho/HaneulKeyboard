@@ -21,7 +21,9 @@ struct HaneulKeyboardApp: App {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let core = AppCore()
-    private var statusItem: NSStatusItem!
+    /// 2026-11-06 (#154): 설정에서 아이콘을 끄면 nil이다.
+    private var statusItem: NSStatusItem?
+    private var launchedAsLoginItem = false
     private var onboardingWindow: NSWindow?
     private var settingsWindow: NSWindow?
     private var supportWindow: NSWindow?
@@ -38,6 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        noteLaunchEvent()
         // (멀티모니터 좌상단 버그 — 근본 수정) status item 생성을 다음 런루프로 지연한다.
         // 재부팅 직후 메뉴바 레이아웃이 끝나기 전에 status item을 만들면 button의 window
         // 좌표가 (0,0)으로 잡혀 statusItem.menu 자동 팝업이 메뉴를 화면 좌상단에 띄웠다.
@@ -45,11 +48,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // 으로 메뉴가 아이콘 바로 아래에 정확히 뜬다(수동 popUp의 위치 오차·메뉴바 침범도
         // 사라진다).
         DispatchQueue.main.async { [weak self] in
-            self?.setupStatusItem()
-            if !UserDefaults.standard.bool(forKey: "haneul.hasCompletedOnboarding") {
-                self?.showOnboarding()
+            guard let self else { return }
+            self.applyMenuBarIconPreference()
+            switch MenuBarIconDecision.launchWindow(
+                onboardingDone: UserDefaults.standard.bool(forKey: "haneul.hasCompletedOnboarding"),
+                iconVisible: self.menuBarIconVisible,
+                launchedAsLoginItem: self.launchedAsLoginItem) {
+            case .onboarding: self.showOnboarding()
+            case .settings: self.showSettings(tab: .appManagement)
+            case .none: break
             }
         }
+
+        // 2026-11-06 (#154): 메뉴바 아이콘을 꺼도 메뉴에 있던 일은 설정에서 할 수 있어야 한다.
+        NotificationCenter.default.addObserver(self, selector: #selector(applyMenuBarIconPreference),
+                                               name: .haneulMenuBarIconChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(showOnboarding),
+                                               name: .haneulOnboardingRequested, object: nil)
 
         core.updater.onUpdateAvailable = { [weak self] update in
             self?.showUpdateNotice(update)
@@ -73,13 +88,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     /// 2026-11-05 (#142): 메뉴바 아이콘에 기대지 않는다(HIG "Avoid relying on the presence of menu bar extras").
     /// macOS 26부터 사용자가 시스템 설정 → 메뉴 막대에서 아이콘을 끌 수 있다. 실행 중에 앱을 다시 열면 설정으로 안내한다.
+    /// 2026-11-06 (#154): 설정에서 아이콘을 꺼 둔 상태라면 다시 켜는 항목이 있는 앱 관리로 바로 간다.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        if !flag { showSettings(tab: nil) }
+        if !flag { showSettings(tab: menuBarIconVisible ? nil : .appManagement) }
         return true
     }
 
+    /// 2026-11-06 (#154): 로그인 항목으로 떴는지 시스템의 실행 이벤트로 본다. 실측: WillFinish에서는 이벤트가 비어 있고
+    /// DidFinish 안에서만 읽힌다. 그래서 비동기 블록에 들어가기 전에 확인한다.
+    private func noteLaunchEvent() {
+        guard let event = NSAppleEventManager.shared().currentAppleEvent,
+              event.eventClass == AEEventClass(kCoreEventClass),
+              event.eventID == AEEventID(kAEOpenApplication) else { return }
+        let source = event.paramDescriptor(forKeyword: AEKeyword(keyAEPropData))?.enumCodeValue
+        if source == OSType(keyAELaunchedAsLogInItem) { launchedAsLoginItem = true }
+    }
+
+    private var menuBarIconVisible: Bool {
+        MenuBarIconDecision.isVisible(storedValue: UserDefaults.standard.object(forKey: MenuBarIconDecision.defaultsKey))
+    }
+
+    /// 2026-11-06 (#154): 아이콘을 끄면 항목 자체를 지운다. 켤 때는 메뉴바가 이미 준비된 뒤라 바로 만들어도 좌표가 정상이다.
+    @objc private func applyMenuBarIconPreference() {
+        if menuBarIconVisible {
+            if statusItem == nil { setupStatusItem() }
+        } else if let item = statusItem {
+            NSStatusBar.system.removeStatusItem(item)
+            statusItem = nil
+        }
+    }
+
     private func setupStatusItem() {
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        self.statusItem = statusItem
         if let button = statusItem.button {
             // 2026-10-09: 사용자 확정 처마/ㅎ. 안내 화면과 같은 템플릿을 쓴다.
             button.image = HaneulStatusIcon.image

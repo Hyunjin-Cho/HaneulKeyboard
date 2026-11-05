@@ -304,6 +304,27 @@ func runDict106Tests() {
 
 // #109 · 2026-11-01: owner-chosen math abbreviations (A안). Two-letter vowel-first
 // words go to shortWords (R1); clean one-syllable words go to standaloneShortWords.
+/// 2026-11-06 (#154): 메뉴바 아이콘 켜고 끄기의 판단.
+func runMenuBarIconTests() {
+    expect(MenuBarIconDecision.isVisible(storedValue: nil), true, "아이콘: 저장값 없으면 켜짐")
+    expect(MenuBarIconDecision.isVisible(storedValue: true), true, "아이콘: 켜 둠")
+    expect(MenuBarIconDecision.isVisible(storedValue: false), false, "아이콘: 꺼 둠")
+    expect(MenuBarIconDecision.isVisible(storedValue: "no"), true, "아이콘: 이상한 값이면 켜짐으로 본다")
+    func win(_ done: Bool, _ icon: Bool, _ login: Bool) -> String {
+        switch MenuBarIconDecision.launchWindow(onboardingDone: done, iconVisible: icon, launchedAsLoginItem: login) {
+        case .onboarding: return "안내"
+        case .settings: return "설정"
+        case .none: return "없음"
+        }
+    }
+    expect(win(false, true, false), "안내", "아이콘: 안내를 안 끝냈으면 안내")
+    expect(win(false, false, true), "안내", "아이콘: 안내 우선은 로그인 실행에서도 종전대로")
+    expect(win(true, true, false), "없음", "아이콘: 켜져 있으면 창 없이 시작")
+    expect(win(true, true, true), "없음", "아이콘: 켜져 있고 로그인 실행이어도 창 없음")
+    expect(win(true, false, false), "설정", "아이콘: 끈 채 직접 열면 설정 창")
+    expect(win(true, false, true), "없음", "아이콘: 끈 채 로그인 실행이면 창 없음")
+}
+
 func runMath109Tests() {
     let words: [(String, String)] = [
         ("ln", "ㅣㅜ"), ("pi", "ㅔㅑ"), ("mu", "ㅡㅕ"), ("nu", "ㅜㅕ"),
@@ -2695,6 +2716,7 @@ struct ComposerTests {
 
         runEnglishParticleTests()
         runPhoneticTests()
+        runMenuBarIconTests()
         print("\(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
     }

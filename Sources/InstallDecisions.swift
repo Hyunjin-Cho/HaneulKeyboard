@@ -64,3 +64,21 @@ struct UninstallOutcome {
         report.statusText + (fullyRemoved ? "\n\n필수 정리를 모두 확인했어요. 확인을 누르면 실행 중인 앱도 종료해요." : "\n\n완료되지 않은 항목을 확인한 뒤 이 앱에서 다시 시도해 주세요.")
     }
 }
+
+/// 2026-11-06 (#154): 메뉴바 아이콘 켜고 끄기의 판단. 기본은 켜짐이다.
+/// 아이콘을 끈 동안에도 사용자가 앱을 직접 열면 반드시 창이 보여야 한다(아니면 눌러도 아무 일도 안 일어난 것처럼 보인다).
+/// 로그인 항목으로 뜰 때는 사용자가 연 것이 아니므로 창을 띄우지 않는다.
+enum MenuBarIconDecision {
+    static let defaultsKey = "haneul.showsMenuBarIcon"
+
+    enum LaunchWindow: Equatable { case onboarding, settings, none }
+
+    /// 저장값이 없으면(처음 실행, 전체 제거 뒤) 켜짐이다.
+    static func isVisible(storedValue: Any?) -> Bool { storedValue as? Bool ?? true }
+
+    static func launchWindow(onboardingDone: Bool, iconVisible: Bool, launchedAsLoginItem: Bool) -> LaunchWindow {
+        if !onboardingDone { return .onboarding }
+        if iconVisible || launchedAsLoginItem { return .none }
+        return .settings
+    }
+}
