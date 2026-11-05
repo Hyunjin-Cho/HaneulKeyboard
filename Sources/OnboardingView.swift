@@ -97,6 +97,7 @@ struct OnboardingView: View {
     // 2.0은 위·아래 중 어디가 중심인지 안 느껴졌다. 2.39는 위 = 움직이는 그림, 아래 = 본문이라는 위계가 분명하다.
     static let stageAspect: CGFloat = 2.39
     static let stagePage = 6
+    static let practiceFieldHeight: CGFloat = 72
     /// 블로킹 측정용: 카드 윗부분(제목 + 본문) 높이를 하네스에 알린다. 제품에서는 nil이다.
     static var cardTopHeightProbe: ((Int, CGFloat) -> Void)?
 
@@ -377,11 +378,11 @@ struct OnboardingView: View {
     }
 
     /// 위 띠 = 연습(손글씨 안내 → 입력칸 → 안내 한 줄), 아래 띠 = 도움말. 기능이 꺼져 있으면 경고가 뜨고 도움말은 숨긴다(예전과 같다).
-    /// 2026-11-05 (#145): 도움말은 제 키를 지키고, 남는 높이는 입력칸이 받는다.
+    /// 2026-11-05 (#145): 입력칸은 높이가 고정이고 남는 높이는 도움말 띠가 받는다. 그래서 3~6페이지의 칸 자리가 모두 같다.
     private func practiceBands<Advice: View>(_ lesson: PracticeLesson, @ViewBuilder advice: () -> Advice) -> some View {
         VStack(alignment: .leading, spacing: compact ? 10 : 14) {
             practice(lesson)
-            if !hasPracticeWarning(lesson) { advice().fixedSize(horizontal: false, vertical: true) }
+            if !hasPracticeWarning(lesson) { advice() }
         }
     }
 
@@ -389,16 +390,16 @@ struct OnboardingView: View {
         practiceBands(.automatic) {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 14) {
-                    Text("다른 단어도 자유롭게 쳐보세요.").font(.system(size: 16, weight: .medium))
+                    Text("다른 단어도 자유롭게 쳐보세요.").font(.system(size: adviceTitleSize, weight: .medium))
                     HStack(spacing: 9) {
                         exampleWord("bike", tint: OnboardingRiso.cyan)
                         exampleWord("camera", tint: OnboardingRiso.pink)
                         exampleWord("water", tint: OnboardingRiso.yellow)
                     }
                 }
-                Text("개인 사전의 변환 추가·변환 금지도 그대로 적용돼요.").font(.system(size: 14))
+                Text("개인 사전의 변환 추가·변환 금지도 그대로 적용돼요.").font(.system(size: adviceBodySize))
             }.frame(maxWidth: .infinity, alignment: .leading)
-                .feedbackPanel(.advice)
+                .feedbackPanel(.advice, fills: true)
         }
     }
 
@@ -407,34 +408,37 @@ struct OnboardingView: View {
             HStack(alignment: .bottom, spacing: 16) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("방금 변환한 단어를 다시 한글로")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.system(size: adviceTitleSize, weight: .semibold))
                     Text("apple을 친 뒤 Space → \(shortcut.displayName)를 눌러보세요.\n같은 단축키를 한 번 더 누르면 영어로 돌아와요.")
-                        .font(.system(size: 14)).lineSpacing(3)
+                        .font(.system(size: adviceBodySize)).lineSpacing(3)
                 }
                 Spacer(minLength: 0)
                 terminalShortcutNote
-            }.feedbackPanel(.advice)
+            }.feedbackPanel(.advice, fills: true)
         }
     }
 
     private var registeredWordStep: some View {
         practiceBands(.registeredWord) {
-            HStack(alignment: .bottom, spacing: 16) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("렌즈 → lens · 옷 → clothes · 세탁기 → washing machine")
-                        .font(.system(size: 15, weight: .medium))
-                    Text("등록된 표기만 바꿔요. 일반 Space에서는 한글 그대로예요.")
-                        .font(.system(size: 14))
-                    HStack(spacing: 10) {
-                        Text("나만의 변환 규칙은 설정 → 개인 사전에서")
-                            .font(.system(size: 13))
-                        Button("개인 사전 열기") { onSettings(.personalDictionary) }
-                            .font(.system(size: 13))
-                    }.padding(.top, 4)
+            VStack(alignment: .leading, spacing: 6) {
+                // 예시 줄은 띠 전체 폭을 쓴다. 터미널 안내와 한 줄에 두면 큰 글자에서 두 줄로 꺾인다.
+                Text("렌즈 → lens · 옷 → clothes · 세탁기 → washing machine")
+                    .font(.system(size: adviceTitleSize - 1, weight: .medium))
+                HStack(alignment: .bottom, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("등록된 표기만 바꿔요. 일반 Space에서는 한글 그대로예요.")
+                            .font(.system(size: adviceBodySize))
+                        HStack(spacing: 10) {
+                            Text("나만의 변환 규칙은 설정 → 개인 사전에서")
+                                .font(.system(size: adviceNoteSize))
+                            Button("개인 사전 열기") { onSettings(.personalDictionary) }
+                                .font(.system(size: adviceNoteSize))
+                        }.padding(.top, 4)
+                    }
+                    Spacer(minLength: 0)
+                    terminalShortcutNote
                 }
-                Spacer(minLength: 0)
-                terminalShortcutNote
-            }.feedbackPanel(.information)
+            }.feedbackPanel(.information, fills: true)
         }
     }
 
@@ -442,23 +446,28 @@ struct OnboardingView: View {
         practiceBands(.slash) {
             VStack(alignment: .leading, spacing: 7) {
                 Text("/help → Space → 다시 한글 입력")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: adviceTitleSize, weight: .semibold))
                 Text("/는 그대로 남고, 뒤에는 즉시 영어가 나와요.\nSpace·슬래시 삭제·닫는 괄호 뒤에는 한글로 돌아와요.")
-                    .font(.system(size: 14)).lineSpacing(3)
+                    .font(.system(size: adviceBodySize)).lineSpacing(3)
                 HStack {
                     Text("기본으로 켜져 있어요. 설정에서 끌 수 있어요.")
-                        .font(.system(size: 13))
+                        .font(.system(size: adviceNoteSize))
                     Spacer(minLength: 4)
                     Button("입력 기능 설정") { onSettings(.inputFeatures) }
-                        .font(.system(size: 13))
+                        .font(.system(size: adviceNoteSize))
                 }
-            }.feedbackPanel(.advice)
+            }.feedbackPanel(.advice, fills: true)
         }
     }
 
+    // 2026-11-05 (#145): 큰 창의 도움말 띠는 남는 높이를 받아 넓다. 글자도 한 단계 키워 띠가 비어 보이지 않게 한다.
+    private var adviceTitleSize: CGFloat { compact ? 16 : 18 }
+    private var adviceBodySize: CGFloat { compact ? 14 : 15 }
+    private var adviceNoteSize: CGFloat { compact ? 13 : 14 }
+
     private var terminalShortcutNote: some View {
         Label("터미널에서는 \(shortcut.displayName)로 되돌릴 수 없어요.", systemImage: "terminal")
-            .font(.system(size: 13)).foregroundStyle(.secondary).padding(.horizontal, 8)
+            .font(.system(size: adviceNoteSize)).foregroundStyle(.secondary).padding(.horizontal, 8)
     }
 
     private func lessonDisabled(_ lesson: PracticeLesson) -> Bool {
@@ -517,8 +526,9 @@ struct OnboardingView: View {
                     .padding(8)
             }
             .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(OnboardingRiso.cyan.opacity(0.60), lineWidth: 1.3))
-            // 70 = 글자 한 줄(23pt) + 위아래 여백이 들어가 스크롤바가 생기지 않는 높이다.
-            .frame(minHeight: compact ? 70 : 84, maxHeight: .infinity)
+            // 2026-11-05 오너(#145): 입력칸은 모든 페이지·모든 창에서 같은 크기여야 하고 글자에 비해 크면 안 된다.
+            // 72 = 23pt 한 줄 + 위아래 여백. 잠깐 입력칸이 남는 높이를 받게 했다가 이 지적으로 되돌렸다.
+            .frame(height: Self.practiceFieldHeight)
             .padding(.trailing, 3).padding(.bottom, 4)     // 노란 그림자까지 아래 띠 오른쪽 끝에 맞춘다
             // 작은 창(780)에서는 이 줄을 뺀다. 같은 내용이 부제목과 손글씨 안내에 있고, 넣으면 6페이지가 넘친다.
             if !compact {
