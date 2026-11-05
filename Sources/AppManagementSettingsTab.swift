@@ -6,6 +6,8 @@ struct AppManagementSettingsTab: View {
     @Bindable var core: AppCore
     @Binding var showingUninstallConfirm: Bool
     @State private var operationError: String?
+    /// 2026-11-06 (#154): 메인 앱만 읽는 설정이라 입력기 도메인이 아니라 기본 도메인에 둔다.
+    @AppStorage(MenuBarIconDecision.defaultsKey) private var showsMenuBarIcon = true
 
     private var isBusy: Bool {
         if core.isPreparingIME { return true }
@@ -88,6 +90,28 @@ struct AppManagementSettingsTab: View {
                 Text("입력기만 제거해도 하늘키보드 앱과 사용자 설정은 남습니다.")
                     .font(SettingsTypography.body)
                     .foregroundStyle(.secondary)
+            }
+
+            // 2026-11-06 (#154): 아이콘을 꺼도 메뉴에 있던 일을 여기서 할 수 있다. 설정과 응원하기는 왼쪽 메뉴에 있다.
+            HaneulSettingsSection("메뉴바 아이콘") {
+                Toggle("메뉴바에 아이콘 보기", isOn: $showsMenuBarIcon)
+                    .onChange(of: showsMenuBarIcon) { _, _ in
+                        NotificationCenter.default.post(name: .haneulMenuBarIconChanged, object: nil)
+                    }
+                Text("꺼도 한글 입력과 영타 변환은 그대로 동작합니다. 아이콘을 끈 동안에는 응용 프로그램 폴더에서 하늘키보드를 열면 이 화면이 열립니다.")
+                    .font(SettingsTypography.body)
+                    .foregroundStyle(.secondary)
+                Text("아이콘을 꺼도 앱은 뒤에서 계속 실행되고 새 버전 알림도 그대로 받습니다. 완전히 끄려면 앱 종료를 누르세요.")
+                    .font(SettingsTypography.body)
+                    .foregroundStyle(.secondary)
+                HStack(spacing: 12) {
+                    Button("시작하기 다시 보기") {
+                        NotificationCenter.default.post(name: .haneulOnboardingRequested, object: nil)
+                    }
+                    Spacer()
+                    Button("앱 종료") { NSApp.terminate(nil) }
+                        .disabled(isBusy)
+                }
             }
 
             HaneulSettingsSection("하늘키보드 전체 제거") {

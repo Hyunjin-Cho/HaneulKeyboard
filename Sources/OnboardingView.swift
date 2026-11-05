@@ -210,8 +210,9 @@ struct OnboardingView: View {
             }
             .frame(maxHeight: .infinity)
             VStack(alignment: .leading, spacing: 6) {
-                Label("메뉴바 아이콘을 종료해도 입력기는 그대로 동작해요.", systemImage: "menubar.rectangle")
-                Text("아이콘이 다시 필요하면 응용 프로그램에서 하늘키보드를 열어 주세요.")
+                // 2026-11-06 (#154): 설정에서 아이콘을 끌 수 있게 되어 문구를 맞췄다.
+                Label("메뉴바 아이콘을 꺼도 입력기는 그대로 동작해요.", systemImage: "menubar.rectangle")
+                Text("설정 → 앱 관리에서 끌 수 있고, 아이콘이 없을 때는 응용 프로그램에서 하늘키보드를 열어 주세요.")
                     .padding(.leading, 28)
                 if !ready {
                     HStack(spacing: 10) {
