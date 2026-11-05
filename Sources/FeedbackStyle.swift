@@ -31,10 +31,12 @@ enum FeedbackStatus {
 
 private struct FeedbackPanel: ViewModifier {
     let tone: FeedbackTone
+    /// 2026-11-05 (#145): 켜면 띠가 남는 높이를 받고 내용은 세로 가운데에 놓인다.
+    var fills = false
     @Environment(\.colorScheme) private var scheme
     func body(content: Content) -> some View {
         content
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, maxHeight: fills ? .infinity : nil, alignment: .leading)
             .padding(14)
             .foregroundStyle(scheme == .dark ? Color(white: 0.94) : Color(white: 0.10))
             .background(tone.tint.opacity(scheme == .dark ? 0.16 : 0.10), in: RoundedRectangle(cornerRadius: 15))
@@ -46,7 +48,9 @@ private struct FeedbackPanel: ViewModifier {
 }
 
 extension View {
-    func feedbackPanel(_ tone: FeedbackTone) -> some View { modifier(FeedbackPanel(tone: tone)) }
+    func feedbackPanel(_ tone: FeedbackTone, fills: Bool = false) -> some View {
+        modifier(FeedbackPanel(tone: tone, fills: fills))
+    }
 }
 
 struct FeedbackStatusLabel: View {
