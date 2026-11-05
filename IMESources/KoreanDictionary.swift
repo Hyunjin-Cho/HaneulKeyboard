@@ -21,6 +21,71 @@ enum KoreanDictionary {
         return words.contains(word)
     }
 
+    /// 2026-11-06 (#152): 지금까지 친 글자가 더 긴 표제어로 이어질 수 있는가.
+    /// 입력 중 조사 미리보기를 미루는 데만 쓴다. 헷가 → gpt가로 비친 뒤 헷갈리게로 돌아오던 깜빡임을 막는다.
+    /// 확정 판정에는 쓰지 않는다 — 헷가를 그대로 끝내면 Space에서 gpt가가 맞다.
+    /// 끝 글자는 받침이 더 붙거나(가 → 갈) 다음 글자로 넘어갈 수 있어(은 → 으니) 그 경우까지 본다.
+    /// 파일을 읽지 못하면 false — 예전 동작(미리보기)으로 돌아갈 뿐 입력을 막지 않는다.
+    static func mayContinue(_ hangul: String) -> Bool {
+        guard let last = hangul.unicodeScalars.last, (0xAC00...0xD7A3).contains(last.value) else { return false }
+        let head = Array(String(String.UnicodeScalarView(hangul.unicodeScalars.dropLast())).utf8)
+        func key(_ suffix: UInt32...) -> [UInt8] {
+            var out = head
+            for value in suffix { out += Array(String(UnicodeScalar(value)!).utf8) }
+            return out
+        }
+        let finalIndex = Int((last.value - 0xAC00) % 28)
+        let open = last.value - UInt32(finalIndex)
+        if finalIndex == 0 { return hasWord(from: key(open), below: key(open + 28)) }
+        if hasWord(from: key(last.value), below: key(last.value + 1)) { return true }
+        if let compound = compoundFinals[finalIndex],
+           hasWord(from: key(open + UInt32(compound.lowerBound)), below: key(open + UInt32(compound.upperBound))) {
+            return true
+        }
+        if let onset = finalToOnset[finalIndex] {
+            let first = 0xAC00 + UInt32(onset) * 588
+            return hasWord(from: key(open, first), below: key(open, first + 588))
+        }
+        return false
+    }
+
+    /// 겹받침으로 늘어나는 받침 번호 (ㄱ→ㄳ, ㄴ→ㄵㄶ, ㄹ→ㄺ~ㅀ, ㅂ→ㅄ)
+    private static let compoundFinals: [Int: Range<Int>] = [1: 3..<4, 4: 5..<7, 8: 9..<16, 17: 18..<19]
+    /// 받침 번호 → 다음 글자 첫소리 번호. ㅇ 받침은 첫소리로 넘어가지 않는다.
+    private static let finalToOnset: [Int: Int] = [1: 0, 2: 1, 4: 2, 7: 3, 8: 5, 16: 6, 17: 7, 19: 9, 20: 10,
+                                                  22: 12, 23: 14, 24: 15, 25: 16, 26: 17, 27: 18]
+
+    /// 표제어 파일은 UTF-8 바이트 순으로 정렬돼 있다(테스트가 지킨다). 메모리를 더 쓰지 않으려고
+    /// Set을 복제하지 않고 파일을 필요할 때 매핑해 이진 탐색한다. 미리보기 후보가 있을 때만 불린다.
+    private static let sortedFile: Data? = wordlistPath.flatMap {
+        try? Data(contentsOf: URL(fileURLWithPath: $0), options: .mappedIfSafe)
+    }
+
+    private static func hasWord(from lower: [UInt8], below upper: [UInt8]) -> Bool {
+        guard let sortedFile else { return false }
+        return sortedFile.withUnsafeBytes { (raw: UnsafeRawBufferPointer) -> Bool in
+            let bytes = raw.bindMemory(to: UInt8.self)
+            let newline = UInt8(ascii: "\n"), hash = UInt8(ascii: "#")
+            func lineEnd(_ start: Int) -> Int {
+                var end = start
+                while end < bytes.count, bytes[end] != newline { end += 1 }
+                return end
+            }
+            var lo = 0
+            while lo < bytes.count, bytes[lo] == hash { lo = lineEnd(lo) + 1 }   // 머리 주석은 정렬 대상이 아니다
+            let floor = lo
+            var hi = bytes.count
+            while lo < hi {
+                var mid = (lo + hi) / 2
+                while mid > floor, bytes[mid - 1] != newline { mid -= 1 }
+                let end = lineEnd(mid)
+                if bytes[mid..<end].lexicographicallyPrecedes(lower) { lo = end + 1 } else { hi = mid }
+            }
+            guard lo < bytes.count else { return false }
+            return bytes[lo..<lineEnd(lo)].lexicographicallyPrecedes(upper)
+        }
+    }
+
     /// (H-10/H-04) 사전이 **온전히** 로드됐는지. EnglishDetector가 이 값으로
     /// fail-closed(사전이 정상이 아니면 자동변환 자체를 끔)를 판단한다.
     /// - 빈 Set → 로딩 실패(번들 누락·읽기 실패).

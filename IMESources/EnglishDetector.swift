@@ -383,6 +383,12 @@ enum EnglishDetector {
         if KoreanDictionary.contains(hangul) {
             return false
         }
+        // 2026-11-06 (#152): 표제어에는 기본형만 있어 어간은 빠진다. 얕(얕다)이 사전에 없어 영어 이름 dix로 넘어가
+        // "얕은" + Space가 "dix은"으로 확정됐다. X다가 표제어면 X는 우리말 어간이다.
+        // 활용형 98만 개 전수에서 확정 오변환을 낸 어간이 이 기준으로 전부 막힌다. 잃는 영어는 epfl(데리)·dix(얕) 둘이다.
+        if KoreanDictionary.contains(hangul + "다") {
+            return false
+        }
         // 초성체 슬랭도 동급 보호 (사전엔 완성 한글만 있어서 별도 목록).
         if protectedSlang.contains(hangul) {
             return false

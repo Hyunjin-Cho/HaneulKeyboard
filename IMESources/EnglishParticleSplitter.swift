@@ -66,6 +66,9 @@ enum EnglishParticleSplitter {
         guard maySplit(keys: keys, hangul: hangul, personalDictionary: personalDictionary) else { return nil }
         switch split(keys: keys, hangul: hangul, personalDictionary: personalDictionary) {
         case .mixed(let text):
+            // 2026-11-06 오너(#152): 헷갈리게를 치면 헷가에서 gpt가로 비쳤다가 돌아왔다.
+            // 아직 더 긴 우리말로 이어질 수 있으면 미리 바꾸지 않는다. 확정 판정은 그대로라 헷가 + Space는 gpt가다.
+            if KoreanDictionary.mayContinue(hangul) { return nil }
             return Preview(prefix: String(text.prefix { $0.isASCII && ($0.isLetter || $0.isNumber) }), text: text)
         case .preserveHangul:
             return nil
