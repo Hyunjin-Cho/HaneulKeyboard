@@ -12,6 +12,13 @@
 
 현재 합격 기준은 아래 활성 검사 절을 따른다. 맨 아래 **과거 후보별 검사 기록**은 당시 빌드·문구·수량을 보존한 참고 자료이며 현재 합격 기준과 구분한다. 2026-10-11 리뷰 F-3 반영 근거: `IMESources/PersonalDictionary.swift:normalizedForceEntry`, `Sources/WordSuggestion.swift:issueURL/emailURL`, `Sources/WordSuggestionSettingsSection.swift:open`, `PRIVACY.md` 8번.
 
+## 2026-11-05 등록 단어 기본 단어 추가 (#140)
+
+- [ ] `카드`를 치고 단축키(기본 Shift+Space) → `card`. 한 번 더 누르면 `카드`로 돌아온다.
+- [ ] `집`→`house`, `회사`→`company`, `화장실`→`restroom`, `코`→`nose`도 같다. 일반 Space에서는 한글 그대로다.
+- [ ] 뜻이 둘인 `눈`·`밤`·`말`·`차`는 등록 단어로 바뀌지 않는다(자판 변환을 켰다면 자판 위치로 바뀐다).
+- [ ] `새` + 단축키 → `to`, `해` + 단축키 → `go`처럼 자판 변환이 그대로다.
+
 ## 2026-11-01 수학 약어 7개 (#109)
 
 - [ ] `ln`, `pi`, `mu`, `nu`, `cos`, `abs`, `xi`를 한글 모드에서 치고 Space로 확정하면 그대로 영어가 된다. 한글 문장 뒤(예: `그래서` 다음)에서도 바뀐다. 자동 변환 OFF·앱별 OFF에서는 `ㅣㅜ`·`ㅔㅑ`·`ㅡㅕ`·`ㅜㅕ`·`챈`·`뮨`·`탸`가 남는다.
