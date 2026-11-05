@@ -141,7 +141,43 @@ enum IMEInstaller {
         let url = try await Task.detached(priority: .userInitiated) {
             try installBundleOnDisk()
         }.value
-        return try await activateBundle(at: url)
+        let result = try await activateBundle(at: url)
+        await launchIMEIfNeeded()
+        return result
+    }
+
+    /// 2026-11-05 (#146): 입력기 프로세스를 우리가 먼저 띄운다.
+    /// 오너 첫 설치 로그(2026-11-05 21:27): 앱 안에서 하늘키보드를 고른 순간 시스템 imklaunchagent가
+    /// `LaunchInputMethod() Error, status=-50`으로 입력기를 못 띄웠고 재시도도 없었다. 그래서 안내 입력칸에서
+    /// 한글이 안 쳐졌다. 18초 뒤 메모를 열자 그 요청으로 입력기가 떴고, 돌아오니 쳐졌다.
+    /// 입력기는 시작할 때 IMKServer가 연결 주소를 스스로 등록한다(같은 로그의 `setIMKXPCEndpoint`).
+    /// 그래서 먼저 띄워 두면 실패한 경로를 타지 않는다. -50이 왜 나는지는 시스템 내부라 확인하지 못했다.
+    /// 실행 중이면 아무것도 하지 않는다. 신뢰 검증을 통과한 설치본만 띄운다. 실제로 띄웠을 때만 true.
+    @MainActor private static var launchInFlight = false
+
+    @MainActor @discardableResult
+    static func launchIMEIfNeeded() async -> Bool {
+        guard !launchInFlight,
+              NSRunningApplication.runningApplications(withBundleIdentifier: imeBundleID).isEmpty else { return false }
+        launchInFlight = true
+        defer { launchInFlight = false }
+        let trusted = await Task.detached(priority: .userInitiated) { () -> URL? in
+            guard let url = installedBundleURL(), isTrustedIMEBundle(at: url) else { return nil }
+            return url
+        }.value
+        guard let trusted else { return false }
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.activates = false
+        configuration.addsToRecentItems = false
+        do {
+            _ = try await NSWorkspace.shared.openApplication(at: trusted, configuration: configuration)
+            // 같은 로그에서 프로세스 시작부터 연결 주소 등록까지 0.8초였다. 등록 뒤에 입력칸 세션을 다시 잇게 기다린다.
+            try? await Task.sleep(for: .seconds(1))
+            return true
+        } catch {
+            haneulLog("HaneulKeyboard: 입력기 먼저 띄우기 실패 — \(error.localizedDescription)")
+            return false
+        }
     }
 
     private static func installBundleOnDisk() throws -> URL {
