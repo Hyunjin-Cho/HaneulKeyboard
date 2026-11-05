@@ -20,7 +20,6 @@ enum OnboardingRiso {
     // 라이트·다크가 같은 결 구조를 쓰고(생성 코드: 비공개 haneul-art paper/), 늘리지 않고 1024pt 타일로 깐다.
     static let hanjiLight = tileImage("HanjiPaperLight")
     static let hanjiDark = tileImage("HanjiPaperDark")
-    static let eaves = bundledImage("DancheongEaves")
     // 2026-11-04 (#118): 10월 안내의 작은 풍경·인물 띠(walkers·landscape·승인 7자세)와 머리 아이콘(appIcon)은
     // 리디자인(#107 — 두루마리·새 세 사람·7페이지 영상) 뒤 쓰이지 않아 자원과 함께 지웠다(git 기록에 남는다).
 
@@ -109,7 +108,7 @@ struct OnboardingRisoButtonStyle: ButtonStyle {
 }
 
 /// 잉크의 미세한 빈 입자는 글자 아래 배경에만 고정된 위치로 그린다.
-private struct RisoInkGrain: View {
+struct RisoInkGrain: View {
     var body: some View {
         Canvas { context, size in
             for i in 0..<180 {

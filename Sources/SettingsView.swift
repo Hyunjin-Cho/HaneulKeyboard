@@ -32,7 +32,8 @@ enum SettingsTab: Hashable, CaseIterable, Identifiable {
     }
 }
 
-/// 2026-10-10 (#88): 왼쪽 메뉴 160pt + 기존 본문 너비를 확보한 800×660 설정 창.
+/// 2026-10-10 (#88): 왼쪽 메뉴 160pt + 기존 본문 너비를 확보한 설정 창.
+/// 2026-11-05 (#135): 그림이 창 맨 위까지 올라가게 제목 막대를 겹쳤다. 660 + 제목 막대 28 = 전체 688이라 창 크기는 그대로다.
 /// 분류·선택 상태·전체 제거 확인/결과 창을 맡고, 각 본문은 별도 뷰가 맡는다.
 /// 근거: https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/88 및 사용자 후속 선택.
 struct SettingsView: View {
@@ -55,36 +56,27 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            SettingsBrandHeader()
+            SettingsBand(tab: selectedTab)
             HStack(spacing: 0) {
-                VStack(spacing: 0) {
-                    List(selection: Binding<SettingsTab?>(
-                        get: { selectedTab },
-                        set: { if let tab = $0 { selectedTab = tab } }
-                    )) {
-                        ForEach(SettingsTab.allCases) { tab in
-                            menuLabel(tab.title, symbol: tab.symbol)
-                                .tag(tab)
+                // 2026-11-05 (#135): 시스템 목록의 파란 선택 칸 대신 안내 버튼과 같은 잉크 칸을 쓴다.
+                VStack(spacing: 4) {
+                    ForEach(SettingsTab.allCases) { tab in
+                        SettingsMenuRow(title: tab.title, symbol: tab.symbol, selected: selectedTab == tab) {
+                            selectedTab = tab
                         }
                     }
-                    .listStyle(.sidebar)
-                    .scrollDisabled(true)
-                    // 네 메뉴 아래에 별도 버튼을 두고, 나머지는 단청을 위한 빈 공간으로 남긴다.
-                    .frame(height: CGFloat(SettingsTab.allCases.count) * 36 + 16)
-                    .accessibilityLabel("설정 메뉴")
-
-                    Button { showingSupport = true } label: {
-                        menuLabel("응원하기", symbol: "heart")
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(SupportView.title)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-
+                    SettingsMenuRow(title: "응원하기", symbol: "heart", selected: false) { showingSupport = true }
+                        .accessibilityLabel(SupportView.title)
+                        .padding(.top, 8)
                     Spacer(minLength: 0)
                 }
+                .padding(.horizontal, 10).padding(.top, 12)
+                .focusable()
+                .focusEffectDisabled()
+                .onKeyPress(.upArrow) { moveMenu(by: -1) }
+                .onKeyPress(.downArrow) { moveMenu(by: 1) }
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("설정 메뉴")
                 .frame(width: SettingsLayout.sidebarWidth)
 
                 Divider()
@@ -105,12 +97,11 @@ struct SettingsView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.top, SettingsCornerArtwork.bodyTopInset)
             }
         }
         .disabled(core.isRemovingProduct)
-        .frame(width: 800, height: 660)
-        .modifier(SettingsCornerArtwork())
+        .frame(width: 800, height: 688)
+        .ignoresSafeArea()
         .scrollContentBackground(.hidden)
         .tint(OnboardingRiso.actionBlue)
         .haneulWindowAppearance()
@@ -166,16 +157,12 @@ struct SettingsView: View {
             }
         }
     }
-    private func menuLabel(_ title: String, symbol: String) -> some View {
-        Label {
-            Text(title).lineLimit(1)
-        } icon: {
-            Image(systemName: symbol).resizable().scaledToFit()
-                .frame(width: 18, height: 18)
-        }
-        .labelStyle(SettingsMenuLabelStyle())
-        .font(.system(size: 14))
-        .padding(.vertical, 5)
+    private func moveMenu(by offset: Int) -> KeyPress.Result {
+        let tabs = SettingsTab.allCases
+        guard let index = tabs.firstIndex(of: selectedTab),
+              tabs.indices.contains(tabs.index(index, offsetBy: offset)) else { return .ignored }
+        selectedTab = tabs[tabs.index(index, offsetBy: offset)]
+        return .handled
     }
 
     private func panel<Content: View>(_ tab: SettingsTab,
@@ -189,12 +176,38 @@ struct SettingsView: View {
 
 }
 
-/// 2026-10-10 (#88): 넓은 글자형 심벌도 같은 아이콘 칸에 넣고 메뉴 이름과 간격을 확보한다.
-private struct SettingsMenuLabelStyle: LabelStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        HStack(spacing: 10) {
-            configuration.icon
-            configuration.title
+/// 2026-11-05 (#135): 메뉴 한 줄. 선택 칸은 안내의 주 버튼과 같은 잉크(파랑 + 어긋난 분홍 + 잉크 결)다.
+private struct SettingsMenuRow: View {
+    let title: String
+    let symbol: String
+    let selected: Bool
+    let action: () -> Void
+    @Environment(\.appearsActive) private var appearsActive
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: symbol).resizable().scaledToFit().frame(width: 18, height: 18)
+                Text(title).lineLimit(1)
+            }
+            .font(.system(size: 14, weight: selected ? .semibold : .regular))
+            .foregroundStyle(selected && appearsActive ? .white : .primary)
+            .padding(.horizontal, 10)
+            .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
+            .background {
+                if selected {
+                    if appearsActive {
+                        RoundedRectangle(cornerRadius: 10).fill(OnboardingRiso.pink.opacity(0.8)).offset(x: 1.5, y: 2)
+                        RoundedRectangle(cornerRadius: 10).fill(OnboardingRiso.actionBlue)
+                        RisoInkGrain().clipShape(RoundedRectangle(cornerRadius: 10))
+                    } else {
+                        RoundedRectangle(cornerRadius: 10).fill(.primary.opacity(0.16))
+                    }
+                }
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 10))
         }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
