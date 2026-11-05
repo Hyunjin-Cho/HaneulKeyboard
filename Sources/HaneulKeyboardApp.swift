@@ -71,6 +71,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    /// 2026-11-05 (#142): 메뉴바 아이콘에 기대지 않는다(HIG "Avoid relying on the presence of menu bar extras").
+    /// macOS 26부터 사용자가 시스템 설정 → 메뉴 막대에서 아이콘을 끌 수 있다. 실행 중에 앱을 다시 열면 설정으로 안내한다.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag { showSettings(tab: nil) }
+        return true
+    }
+
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
@@ -108,7 +115,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let hasCompleted = UserDefaults.standard.bool(forKey: "haneul.hasCompletedOnboarding")
         let version = Updater.currentVersion
 
-        addDisabled(menu, "HaneulKeyboard \(version)")
+        addDisabled(menu, "하늘키보드 \(version)")
         addDisabled(menu, core.isKoreanActive ? "현재: 한국어" : "현재: 영어")
         menu.addItem(.separator())
 
@@ -117,8 +124,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             menu.addItem(.separator())
         }
 
-        add(menu, core.isKoreanActive ? "영어로 전환" : "한국어로 전환", #selector(toggleLanguage))
-
+        // 2026-11-05 오너(#142): "영어로 전환"을 뺐다. 한영 전환은 Caps Lock과 시스템 입력 메뉴가 맡는다.
         if core.imeDisabled {
             // (#32) 번들은 있는데 시스템 설정에서 입력 소스를 뺀 상태 — 한 번에 되살린다.
             add(menu, "한글 입력기가 꺼져 있음 — 다시 켜기", #selector(reenableIME))
@@ -133,18 +139,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         menu.addItem(.separator())
         add(menu, "설정...", #selector(openSettings))
-        let updateCheck = add(menu, "새 버전 확인…", #selector(checkForUpdates))
-        switch core.updater.phase {
-        case .checking, .downloading, .verifying, .installing:
-            updateCheck.isEnabled = false
-        default:
-            updateCheck.isEnabled = !core.isPreparingIME
-        }
+        // 2026-11-05 오너(#142): "새 버전 확인…"을 뺐다. 설정 → 버전·업데이트의 「지금 확인」이 같은 일을 한다.
         add(menu, SupportView.title + "…", #selector(openSupport))
         if hasCompleted {
             add(menu, "시작하기 다시 보기...", #selector(showOnboarding))
         }
-        add(menu, "HaneulKeyboard 종료", #selector(quit), key: "q")
+        // 2026-11-05 오너(#142): 종료의 뜻을 분명히 한다 — 메뉴바 앱만 꺼진다. 입력기는 별도 프로세스라 계속 동작한다.
+        let quitItem = add(menu, "메뉴바 앱 종료", #selector(quit), key: "q")
+        quitItem.toolTip = "메뉴바 아이콘만 사라져요. 한글 입력과 영타 변환은 그대로 동작해요. 응용 프로그램 폴더에서 다시 열 수 있어요."
     }
 
     @discardableResult
@@ -162,28 +164,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     // MARK: - Actions
-
-    @objc private func toggleLanguage() {
-        core.refreshLanguage()
-        let wasKorean = core.isKoreanActive
-        let switched = core.toggleLanguage()
-        updateButtonDescription()
-        guard !switched else { return }
-        // 2026-09-20 (#45, 리뷰 F-5): 전환 실패를 삼키지 않는다 — reenableIME(리뷰 M-3)와 같은
-        // 패턴. 영어 방향은 영문 자판이 하나도 없거나 선택 불가일 때, 한국어 방향은 우리
-        // 입력 소스가 꺼져 있을 때(M-08: 다른 한국어 입력기로 대신 전환하지 않는다) 실패한다.
-        let alert = NSAlert()
-        if wasKorean {
-            alert.messageText = "영어로 전환하지 못했어요"
-            alert.informativeText = "시스템 설정 → 키보드 → 입력 소스에 ABC 같은 영문 자판이 없거나 선택할 수 없습니다. 영문 자판을 추가한 뒤 다시 시도해 주세요. (Caps Lock 전환은 macOS가 처리하므로 이 메뉴와 별개입니다.)"
-        } else {
-            alert.messageText = "한국어로 전환하지 못했어요"
-            alert.informativeText = "하늘키보드 입력 소스가 켜져 있지 않습니다. 메뉴의 \"다시 켜기\"를 누르거나 설정에서 IME를 설치·활성화한 뒤 다시 시도해 주세요."
-        }
-        alert.alertStyle = .warning
-        NSApp.activate(ignoringOtherApps: true)
-        alert.runModal()
-    }
 
     @objc private func reenableIME() {
         Task { [weak self] in
@@ -207,13 +187,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func openUpdateSettings() {
         showSettings(tab: .update)
-    }
-
-    @objc private func checkForUpdates() {
-        showSettings(tab: .update)
-        // Direct checks use the existing screen, including when automatic
-        // notices are off. Only the install button starts a download.
-        Task { await core.updater.checkNow(forced: true, showNotice: false) }
     }
 
     private func showUpdateNotice(_ update: AvailableUpdate) {
