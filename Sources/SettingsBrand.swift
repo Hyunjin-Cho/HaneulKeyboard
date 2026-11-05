@@ -8,65 +8,41 @@ enum SettingsTypography {
     static let version = Font.system(size: 17, weight: .regular, design: .rounded)
 }
 
-/// 2026-10-11: 메뉴 너비와 단청의 오른쪽 끝을 같은 세로 구분선에 맞춘다.
 enum SettingsLayout {
     static let sidebarWidth: CGFloat = 160
+    /// 위 정물 띠 높이. 그림은 800×128pt @2x다.
+    static let bandHeight: CGFloat = 128
 }
 
-/// 2026-10-10: 안내와 같은 처마·종이·손글씨를 쓰되 본문과 조작부는 시스템 글꼴로 유지한다.
-struct SettingsBrandHeader: View {
-    @Environment(\.colorScheme) private var scheme
+/// 2026-11-05 오너 결정(#135): 설정은 안내 장면을 다시 쓰지 않고 메뉴마다 따로 찍은 리소 정물을 위 띠에 놓는다.
+/// 움직이지 않고 사람도 없다. 구석의 매듭·단청과 손글씨 머리글은 지저분해 보여 뺐다.
+/// 그림 원본은 비공개 haneul-art `settings/stills.py`다. 띠는 종이 그림이라 어두운 화면에서도 그대로 밝다(안내 무대와 같다).
+struct SettingsBand: View {
+    let tab: SettingsTab
     var body: some View {
-        HStack(spacing: 12) {
-            Image(nsImage: OnboardingRiso.eaves).resizable().scaledToFit()
-                .frame(width: 178, height: 60)
-                .allowsHitTesting(false).accessibilityHidden(true)
-            Text("하늘키보드 설정")
-                .font(OnboardingHandwriting.font(size: 30))
-                .foregroundStyle(OnboardingRiso.ink(for: scheme))
-            Spacer(minLength: 0)
-        }
-        .padding(.leading, 12).padding(.trailing, 24)
-        .frame(height: 68)
-    }
-}
-
-/// 2026-10-11 (#88): 새로 창작한 리소그래프 매듭 둘은 오른쪽 위, 단청은 왼쪽 아래에 고정한다.
-/// 본문 시작 여백을 확보한 고정 장식이며 조작·접근성 탐색에서 제외한다.
-struct SettingsCornerArtwork: ViewModifier {
-    // 제목 영역 68pt 아래에서도 매듭(상단 4pt + 높이 116pt)이 본문과 겹치지 않게 한다.
-    static let bodyTopInset: CGFloat = 52
-    // 2026-10-11: 직전 176pt 시안에서 20% 확대한 크기는 유지한다.
-    static let dancheongSize: CGFloat = 176 * 1.2
-    // 2026-10-12: 중심 꽃의 아래쪽도 보이도록 위로 올리고, 문양 아래 끝은 계속 자른다.
-    static let dancheongLift: CGFloat = 32
-
-    func body(content: Content) -> some View {
-        content
-            .overlay(alignment: .topTrailing) {
-                Image(nsImage: SettingsArtwork.knots)
-                    .resizable().interpolation(.high).scaledToFit()
-                    .frame(width: 94, height: 116)
-                    .padding(.trailing, 12)
-                    .padding(.top, 4)
-                    .allowsHitTesting(false).accessibilityHidden(true)
-            }
-            .overlay(alignment: .bottomLeading) {
-                Image(nsImage: SettingsArtwork.dancheong)
-                    .resizable().interpolation(.high).scaledToFit()
-                    .frame(width: Self.dancheongSize, height: Self.dancheongSize)
-                    // 오른쪽 끝은 구분선에 유지하고, 크기/가로 위치 변화 없이 세로로만 올린다.
-                    .offset(x: SettingsLayout.sidebarWidth - Self.dancheongSize,
-                        y: Self.dancheongSize / 2 - Self.dancheongLift)
-                    .allowsHitTesting(false).accessibilityHidden(true)
+        Image(nsImage: SettingsArtwork.band(for: tab))
+            .resizable().interpolation(.high)
+            .frame(height: SettingsLayout.bandHeight)
+            .accessibilityHidden(true)
+            .overlay(alignment: .leading) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("하늘키보드 설정").font(.system(size: 13, weight: .medium))
+                    Text(tab.title).font(OnboardingRiso.titleFont(size: 31))
+                }
+                .foregroundStyle(OnboardingRiso.ink(for: .light))
+                .padding(.leading, 26).padding(.top, 18)
+                .accessibilityElement(children: .combine)
             }
             .clipped()
     }
 }
 
 private enum SettingsArtwork {
-    static let knots = bundledImage("SettingsKnotPair")
-    static let dancheong = bundledImage("SettingsDancheongRosette")
+    private static let bands: [SettingsTab: NSImage] = Dictionary(uniqueKeysWithValues: SettingsTab.allCases.map {
+        ($0, bundledImage("SettingsBand_\($0.bandName)"))
+    })
+
+    static func band(for tab: SettingsTab) -> NSImage { bands[tab] ?? NSImage(size: NSSize(width: 1, height: 1)) }
 
     private static func bundledImage(_ name: String) -> NSImage {
         guard let url = Bundle.main.url(forResource: name, withExtension: "png"),
@@ -77,7 +53,18 @@ private enum SettingsArtwork {
     }
 }
 
-/// 큰 구획 이름에만 손글씨를 사용한다. 작은 설명·목록·입력란의 읽기 속도를 보존한다.
+private extension SettingsTab {
+    var bandName: String {
+        switch self {
+        case .inputFeatures: return "input"
+        case .personalDictionary: return "dictionary"
+        case .update: return "update"
+        case .appManagement: return "app"
+        }
+    }
+}
+
+/// 2026-11-05 (#135): 구획 이름은 안내 제목과 같은 고운바탕이다(그 전에는 손글씨). 설명·목록·입력란은 시스템 글꼴을 유지한다.
 struct HaneulSettingsSection<Content: View>: View {
     let title: String
     let content: Content
@@ -92,7 +79,7 @@ struct HaneulSettingsSection<Content: View>: View {
                 .font(SettingsTypography.control)
                 .controlSize(.large)
         } header: {
-            Text(title).font(OnboardingHandwriting.font(size: 27))
+            Text(title).font(OnboardingRiso.titleFont(size: 20))
                 .foregroundStyle(OnboardingRiso.ink(for: scheme))
                 .textCase(nil)
         }

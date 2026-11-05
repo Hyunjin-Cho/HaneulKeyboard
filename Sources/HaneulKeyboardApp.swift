@@ -215,7 +215,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let win = NSWindow(contentViewController: hosting)
         // 2026-09-21 (#60): 제목 문구는 `SettingsView.windowTitle` 한 곳에서 정한다.
         win.title = SettingsView.windowTitle
-        win.styleMask = [.titled, .closable]
+        // 2026-11-05 (#135): 안내 창처럼 그림이 맨 위까지 올라간다. 제목은 띠 안에 적혀 있어 막대 글자는 숨긴다.
+        win.styleMask = [.titled, .closable, .fullSizeContentView]
+        win.titleVisibility = .hidden
         win.isReleasedWhenClosed = false
         win.center()
         settingsWindow = win
