@@ -559,6 +559,18 @@
 - [ ] 복구까지 실패한 경우 백업을 지우지 않으며, 결과에 실제 백업 경로·복원할 위치·Finder 복구 방법이 표시된다. 무조건 "기존 앱은 그대로"라고 안내하지 않는다.
 - [ ] 정상 교체는 새 앱 배치 → 재실행 → IME 갱신까지 확인한다. 백업 정리만 실패한 경우에는 새 앱 설치 성공과 구분한다.
 
+## 첫 설치 직후 안내 입력칸 (#146, 2026-11-05)
+
+> 입력기를 완전히 지운 상태에서 시작한다. 다른 앱을 거치지 않는 것이 핵심이다.
+
+- [ ] 안내 1페이지에서 설치 → 2페이지에서 하늘키보드 선택 → 3페이지 입력칸을 눌러 바로 한글을 친다. 다른 앱을 열지 않아도 쳐진다.
+- [ ] 3페이지에서 `apple`을 치고 Space를 눌러 자동 변환까지 된다.
+- [ ] 안 되면 아래 로그를 남긴다. 키 내용은 들어 있지 않다.
+  ```
+  /usr/bin/log show --last 10m --style compact --predicate 'process == "imklaunchagent" AND (composedMessage CONTAINS "LaunchInputMethod" OR composedMessage CONTAINS "setIMKXPCEndpoint:forBundleIdentifier: from")'
+  ```
+  `LaunchInputMethod() Error, status=-50`이 입력기 등록(`setIMKXPCEndpoint`)보다 먼저 찍혔다면 수정이 듣지 않은 것이다.
+
 ## 과거 후보별 검사 기록 (현재 합격 기준과 구분)
 
 아래는 2026-10-06~10-09 후보에서 작성한 기록이다. 당시 빌드 번호·디자인·수량·메뉴 이름을 그대로 보존한다. **현재 릴리스의 합격 판정에는 위 활성 절과 현재 코드를 사용한다.** 이 기록의 입력 예시를 추가 회귀 검사로 재사용할 때도 앱/IME 번호는 현재 `project.yml`을 확인하고, 디자인은 위 빌드 69 이후 절을 따른다.

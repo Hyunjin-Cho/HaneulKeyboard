@@ -8,6 +8,8 @@ struct OnboardingPracticeField: NSViewRepresentable {
     var resetRequest: UUID
     var accessibilityName: String
     var placeholder: String
+    /// 2026-11-05 (#146): 바뀌면 입력칸의 입력 세션을 다시 잇는다. 입력기가 입력칸보다 늦게 떴을 때 쓴다.
+    var inputSessionRequest: UUID?
     var onProgressChange: (OnboardingPracticeStage) -> Void = { _ in }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
@@ -23,6 +25,7 @@ struct OnboardingPracticeField: NSViewRepresentable {
         scroll.documentView = editor
         context.coordinator.focusRequest = focusRequest
         context.coordinator.resetRequest = resetRequest
+        context.coordinator.inputSessionRequest = inputSessionRequest
         return scroll
     }
 
@@ -52,11 +55,16 @@ struct OnboardingPracticeField: NSViewRepresentable {
             context.coordinator.focusRequest = focusRequest
             DispatchQueue.main.async { editor.window?.makeFirstResponder(editor) }
         }
+        if context.coordinator.inputSessionRequest != inputSessionRequest {
+            context.coordinator.inputSessionRequest = inputSessionRequest
+            editor.refreshInputSession()
+        }
     }
 
     final class Coordinator {
         var focusRequest: UUID?
         var resetRequest: UUID?
+        var inputSessionRequest: UUID?
     }
 }
 
@@ -71,6 +79,14 @@ final class OnboardingPracticeTextView: NSTextView {
     func resetProgress() {
         progress.reset()
         scheduleProgressDelivery()
+    }
+
+    /// 2026-11-05 (#146): 다른 앱에 갔다 오면 되던 것과 같은 일 — 세션을 닫았다 다시 열어 입력기에 새로 연결한다.
+    /// 조합 중이면 글자가 깨질 수 있어 건드리지 않는다. 입력칸에 커서가 없으면 다음 포커스 때 새로 연결되므로 할 일이 없다.
+    func refreshInputSession() {
+        guard window?.firstResponder === self, !hasMarkedText(), let context = inputContext else { return }
+        context.deactivate()
+        context.activate()
     }
 
     private func reportProgress() {

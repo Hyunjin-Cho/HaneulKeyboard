@@ -27,6 +27,7 @@ struct OnboardingView: View {
     @State private var sourceError: String?
     @State private var focusRequest = UUID()
     @State private var resetRequest = UUID()
+    @State private var inputSessionRequest: UUID?
     @State private var practiceStage: OnboardingPracticeStage = .empty
     @State private var shortcut = RevertKey.default
     @State private var autoEnabled = true
@@ -517,7 +518,8 @@ struct OnboardingView: View {
                     .fill(colorScheme == .dark ? Color(white: 0.14) : Color(red: 1, green: 0.99, blue: 0.96))
                 OnboardingPracticeField(focusRequest: focusRequest, resetRequest: resetRequest,
                                         accessibilityName: lesson.accessibilityName,
-                                        placeholder: "", onProgressChange: { [observedPage = pageID] stage in
+                                        placeholder: "", inputSessionRequest: inputSessionRequest,
+                                        onProgressChange: { [observedPage = pageID] stage in
                                             // 전환 중 퇴장하는 입력칸의 늦은 알림이 새 화면을 바꾸지 않게 한다.
                                             guard pageID == observedPage else { return }
                                             practiceStage = stage
@@ -707,7 +709,14 @@ struct OnboardingView: View {
     }
     private func refreshSelection() {
         selectedHaneul = InputSwitcher.currentSourceID() == InputSwitcher.koreanModeID
-        if selectedHaneul { sourceError = nil }
+        guard selectedHaneul else { return }
+        sourceError = nil
+        // 2026-11-05 (#146): 하늘키보드를 골랐는데 입력기가 안 떠 있으면(시스템이 띄우다 실패한 경우) 직접 띄우고 세션을 다시 잇는다.
+        // 설치·교체·제거 중에는 입력기를 일부러 멈춘 상태라 건드리지 않는다.
+        guard ready else { return }
+        Task {
+            if await IMEInstaller.launchIMEIfNeeded() { inputSessionRequest = UUID() }
+        }
     }
     @discardableResult private func selectHaneul() -> Bool {
         let success = InputSwitcher.selectKorean()
