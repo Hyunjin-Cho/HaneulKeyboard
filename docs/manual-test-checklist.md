@@ -12,6 +12,13 @@
 
 현재 합격 기준은 아래 활성 검사 절을 따른다. 맨 아래 **과거 후보별 검사 기록**은 당시 빌드·문구·수량을 보존한 참고 자료이며 현재 합격 기준과 구분한다. 2026-10-11 리뷰 F-3 반영 근거: `IMESources/PersonalDictionary.swift:normalizedForceEntry`, `Sources/WordSuggestion.swift:issueURL/emailURL`, `Sources/WordSuggestionSettingsSection.swift:open`, `PRIVACY.md` 8번.
 
+## 2026-11-06 메모리 할당기 절약 설정 (#163)
+
+- [ ] `plutil -p /Applications/HaneulKeyboard.app/Contents/Info.plist | grep -A1 LSEnvironment`에 `MallocSpaceEfficient`가 있는가.
+- [ ] 재로그인 직후 창을 안 연 채 `footprint -p $(pgrep -x HaneulKeyboard) | grep phys_footprint`가 13~16MB 근처인가. 18MB 이상이면 로그인 항목으로 뜰 때 설정이 안 먹은 것이니 알린다.
+- [ ] 설정을 열고 닫은 뒤 약 32MB 근처인가(이 설정이 없으면 52MB).
+- [ ] 안내 두루마리와 7페이지 영상이 끊기지 않는가. 끊기면 실패.
+
 ## 2026-11-06 입력기 한국어 사전 파일 조회 (#162)
 
 - [ ] 입력기 메모리: `footprint -p $(pgrep -x HaneulKeyboardIM) | grep phys_footprint`가 약 19MB 근처인가(빌드 105는 41MB). 40MB대면 실패.
