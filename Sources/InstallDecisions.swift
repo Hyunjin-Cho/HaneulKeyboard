@@ -65,6 +65,19 @@ struct UninstallOutcome {
     }
 }
 
+/// 2026-11-06 (#157): 실행 중인 메인 앱을 휴지통에 넣었을 때 스스로 끝낼지의 판단.
+/// 다른 폴더로 옮긴 것은 버린 것이 아니므로 그대로 둔다.
+enum AppBundleWatchDecision {
+    /// - currentPath: 번들이 지금 있는 곳. 번들이 지워졌으면 nil.
+    /// - originalPathExists: 실행할 때의 경로에 무언가 있는가. nil과 함께 true면 새 번들로 교체된 것이다.
+    /// - busy: 업데이트 교체 또는 전체 제거 중. 그 작업이 앱 종료까지 맡으므로 끼어들지 않는다.
+    static func shouldQuit(currentPath: String?, originalPathExists: Bool, busy: Bool) -> Bool {
+        if busy { return false }
+        if let currentPath { return OrphanDecision.isInTrash(currentPath) }
+        return !originalPathExists
+    }
+}
+
 /// 2026-11-06 (#154): 메뉴바 아이콘 켜고 끄기의 판단. 기본은 켜짐이다.
 /// 아이콘을 끈 동안에도 사용자가 앱을 직접 열면 반드시 창이 보여야 한다(아니면 눌러도 아무 일도 안 일어난 것처럼 보인다).
 /// 로그인 항목으로 뜰 때는 사용자가 연 것이 아니므로 창을 띄우지 않는다.

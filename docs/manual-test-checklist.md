@@ -12,6 +12,14 @@
 
 현재 합격 기준은 아래 활성 검사 절을 따른다. 맨 아래 **과거 후보별 검사 기록**은 당시 빌드·문구·수량을 보존한 참고 자료이며 현재 합격 기준과 구분한다. 2026-10-11 리뷰 F-3 반영 근거: `IMESources/PersonalDictionary.swift:normalizedForceEntry`, `Sources/WordSuggestion.swift:issueURL/emailURL`, `Sources/WordSuggestionSettingsSection.swift:open`, `PRIVACY.md` 8번.
 
+## 2026-11-06 휴지통에 넣으면 앱 종료 (#157)
+
+- [ ] 아이콘을 끈 채 Finder에서 앱을 휴지통에 넣으면 5초쯤 뒤 프로세스가 사라지는가(`pgrep -x HaneulKeyboard`). 남아 있으면 실패.
+- [ ] 휴지통에 넣고 바로 ⌘Z로 되돌리면 앱이 계속 도는가. 꺼지면 실패.
+- [ ] 앱을 다른 폴더로 옮겨도 앱이 계속 도는가. 꺼지면 실패.
+- [ ] 앱 안 업데이트가 끝까지 되고 새 버전으로 다시 뜨는가. 교체 도중 꺼지고 다시 안 뜨면 실패.
+- [ ] 설정의 전체 제거에서 결과 창이 뜨고, 확인을 눌러야 앱이 끝나는가. 결과 창 없이 꺼지면 실패.
+
 ## 2026-11-06 닫은 창의 메모리 (#156)
 
 - [ ] 안내를 끝까지 보고 닫은 뒤 `footprint -p $(pgrep -x HaneulKeyboard)`의 `phys_footprint`가 안내를 보는 중보다 크게 줄어드는가(검수 앱 실측 150MB → 52MB). 줄지 않으면 실패.

@@ -305,6 +305,22 @@ func runDict106Tests() {
 // #109 · 2026-11-01: owner-chosen math abbreviations (A안). Two-letter vowel-first
 // words go to shortWords (R1); clean one-syllable words go to standaloneShortWords.
 /// 2026-11-06 (#154): 메뉴바 아이콘 켜고 끄기의 판단.
+func runAppBundleWatchTests() {
+    func quit(_ path: String?, _ exists: Bool, busy: Bool = false) -> Bool {
+        AppBundleWatchDecision.shouldQuit(currentPath: path, originalPathExists: exists, busy: busy)
+    }
+    expect(quit("/Applications/HaneulKeyboard.app", true), false, "번들 감시: 제자리면 계속")
+    expect(quit("/Users/a/.Trash/HaneulKeyboard.app", false), true, "번들 감시: 휴지통이면 종료")
+    expect(quit("/Volumes/X/.Trashes/501/HaneulKeyboard.app", false), true, "번들 감시: 외장 볼륨 휴지통이면 종료")
+    expect(quit("/Users/a/.Trash/HaneulKeyboard.app", true), true, "번들 감시: 새 번들을 두고 옛것을 버려도 종료")
+    expect(quit("/Users/a/Apps/HaneulKeyboard.app", false), false, "번들 감시: 다른 폴더로 옮긴 건 버린 게 아니다")
+    expect(quit("/Users/a/Trash-like/HaneulKeyboard.app", false), false, "번들 감시: 비슷한 폴더 이름에 속지 않는다")
+    expect(quit(nil, false), true, "번들 감시: 지워졌으면 종료")
+    expect(quit(nil, true), false, "번들 감시: 새 번들로 교체됐으면 계속")
+    expect(quit("/Users/a/.Trash/HaneulKeyboard.app", false, busy: true), false, "번들 감시: 전체 제거 중이면 끼어들지 않는다")
+    expect(quit(nil, false, busy: true), false, "번들 감시: 업데이트 교체 중 빈 순간에 끝나지 않는다")
+}
+
 func runMenuBarIconTests() {
     expect(MenuBarIconDecision.isVisible(storedValue: nil), true, "아이콘: 저장값 없으면 켜짐")
     expect(MenuBarIconDecision.isVisible(storedValue: true), true, "아이콘: 켜 둠")
@@ -2717,6 +2733,7 @@ struct ComposerTests {
         runEnglishParticleTests()
         runPhoneticTests()
         runMenuBarIconTests()
+        runAppBundleWatchTests()
         print("\(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
     }
