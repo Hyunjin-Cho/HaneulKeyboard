@@ -24,6 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     /// 2026-11-06 (#154): 설정에서 아이콘을 끄면 nil이다.
     private var statusItem: NSStatusItem?
     private var launchedAsLoginItem = false
+    private var bundleWatcher: AppBundleWatcher?
     private var onboardingWindow: NSWindow?
     private var settingsWindow: NSWindow?
     private var supportWindow: NSWindow?
@@ -44,6 +45,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         noteLaunchEvent()
+        // 2026-11-06 (#157): 앱을 옮기는 판단(WillFinish)이 끝난 뒤의 경로를 지켜본다.
+        let watcher = AppBundleWatcher(
+            path: Bundle.main.bundlePath,
+            isBusy: { [weak self] in
+                guard let self else { return true }
+                return self.core.isRemovingProduct || self.core.updater.phase == .installing
+            },
+            onGone: { NSApp.terminate(nil) })
+        watcher.start()
+        bundleWatcher = watcher
         // (멀티모니터 좌상단 버그 — 근본 수정) status item 생성을 다음 런루프로 지연한다.
         // 재부팅 직후 메뉴바 레이아웃이 끝나기 전에 status item을 만들면 button의 window
         // 좌표가 (0,0)으로 잡혀 statusItem.menu 자동 팝업이 메뉴를 화면 좌상단에 띄웠다.
