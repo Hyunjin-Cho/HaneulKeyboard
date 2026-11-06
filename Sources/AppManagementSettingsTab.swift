@@ -8,6 +8,9 @@ struct AppManagementSettingsTab: View {
     @State private var operationError: String?
     /// 2026-11-06 (#154): 메인 앱만 읽는 설정이라 입력기 도메인이 아니라 기본 도메인에 둔다.
     @AppStorage(MenuBarIconDecision.defaultsKey) private var showsMenuBarIcon = true
+    /// 2026-11-06 (#160): 시스템 설정에서도 바뀌는 값이라 저장하지 않고 macOS에 물어본다.
+    @State private var loginItem = LoginItem.state
+    @State private var loginItemError: String?
 
     private var isBusy: Bool {
         if core.isPreparingIME { return true }
@@ -93,6 +96,28 @@ struct AppManagementSettingsTab: View {
             }
 
             // 2026-11-06 (#154): 아이콘을 꺼도 메뉴에 있던 일을 여기서 할 수 있다. 설정과 응원하기는 왼쪽 메뉴에 있다.
+            HaneulSettingsSection("로그인할 때 열기") {
+                Toggle("Mac에 로그인할 때 하늘키보드 열기", isOn: Binding(
+                    get: { loginItem != .off },
+                    set: { setLoginItem($0) }))
+                Text("켜 두면 Mac을 켤 때 앱이 뒤에서 열려 메뉴바 아이콘과 새 버전 알림이 이어집니다. 꺼도 한글 입력과 영타 변환은 그대로 동작합니다.")
+                    .font(SettingsTypography.body)
+                    .foregroundStyle(.secondary)
+                if loginItem == .needsApproval {
+                    HStack(spacing: 12) {
+                        Label("시스템 설정에서 허용해야 합니다.", systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                        Spacer()
+                        Button("로그인 항목 열기") { LoginItem.openSystemSettings() }
+                    }
+                }
+                if let loginItemError {
+                    Text(loginItemError)
+                        .font(SettingsTypography.body)
+                        .foregroundStyle(.red)
+                }
+            }
+
             HaneulSettingsSection("메뉴바 아이콘") {
                 Toggle("메뉴바에 아이콘 보기", isOn: $showsMenuBarIcon)
                     .onChange(of: showsMenuBarIcon) { _, _ in
@@ -101,7 +126,7 @@ struct AppManagementSettingsTab: View {
                 Text("꺼도 한글 입력과 영타 변환은 그대로 동작합니다. 아이콘을 끈 동안에는 응용 프로그램 폴더에서 하늘키보드를 열면 이 화면이 열립니다.")
                     .font(SettingsTypography.body)
                     .foregroundStyle(.secondary)
-                Text("아이콘을 꺼도 앱은 뒤에서 계속 실행되고 새 버전 알림도 그대로 받습니다. 완전히 끄려면 앱 종료를 누르세요.")
+                Text("아이콘을 꺼도 앱은 뒤에서 실행되어 새 버전 알림을 받습니다. 앱 종료를 누르면 꺼지고, 로그인할 때 열기가 켜져 있으면 다음 로그인 때 다시 열립니다.")
                     .font(SettingsTypography.body)
                     .foregroundStyle(.secondary)
                 HStack(spacing: 12) {
@@ -128,5 +153,18 @@ struct AppManagementSettingsTab: View {
             }
         }
         .formStyle(.grouped)
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            loginItem = LoginItem.state
+        }
+    }
+
+    private func setLoginItem(_ enabled: Bool) {
+        do {
+            try LoginItem.set(enabled: enabled)
+            loginItemError = nil
+        } catch {
+            loginItemError = "바꾸지 못했습니다. 시스템 설정 → 일반 → 로그인 항목에서 바꿔 주세요. (\(error.localizedDescription))"
+        }
+        loginItem = LoginItem.state
     }
 }

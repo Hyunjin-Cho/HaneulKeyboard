@@ -305,6 +305,18 @@ func runDict106Tests() {
 // #109 · 2026-11-01: owner-chosen math abbreviations (A안). Two-letter vowel-first
 // words go to shortWords (R1); clean one-syllable words go to standaloneShortWords.
 /// 2026-11-06 (#154): 메뉴바 아이콘 켜고 끄기의 판단.
+func runLoginItemTests() {
+    let app = "/Applications/HaneulKeyboard.app"
+    func auto(_ done: Bool, _ tried: Bool, _ path: String) -> Bool {
+        LoginItemDecision.shouldAutoRegister(onboardingDone: done, alreadyTried: tried, bundlePath: path)
+    }
+    expect(auto(true, false, app), true, "로그인 항목: 안내를 끝낸 설치본은 자동으로 켠다")
+    expect(auto(false, false, app), false, "로그인 항목: 안내 전에는 켜지 않는다")
+    expect(auto(true, true, app), false, "로그인 항목: 한 번 시도했으면 다시 켜지 않는다(사용자가 끈 것 존중)")
+    expect(auto(true, false, "/Users/a/Downloads/HaneulKeyboard.app"), false, "로그인 항목: 응용 프로그램 밖이면 켜지 않는다")
+    expect(auto(true, false, "/Users/a/Library/Developer/Xcode/DerivedData/x/HaneulKeyboard.app"), false, "로그인 항목: 개발 빌드는 켜지 않는다")
+}
+
 func runAppBundleWatchTests() {
     func quit(_ path: String?, _ exists: Bool, busy: Bool = false) -> Bool {
         AppBundleWatchDecision.shouldQuit(currentPath: path, originalPathExists: exists, busy: busy)
@@ -2734,6 +2746,7 @@ struct ComposerTests {
         runPhoneticTests()
         runMenuBarIconTests()
         runAppBundleWatchTests()
+        runLoginItemTests()
         print("\(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
     }

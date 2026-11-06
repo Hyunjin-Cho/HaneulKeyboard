@@ -65,6 +65,18 @@ struct UninstallOutcome {
     }
 }
 
+/// 2026-11-06 (#160): 로그인할 때 열기 자동 등록의 판단. 오너 결정 = 기본 켜짐, 원하지 않으면 사용자가 끈다.
+/// 자동 등록은 안내를 끝낸 뒤 **한 번만** 한다. 그래야 사용자가 끈 것을 되돌리지 않는다.
+/// 실행할 때마다 등록을 부르면 macOS 알림이 매번 뜬다는 보고가 있다(sindresorhus/LaunchAtLogin #100).
+/// 응용 프로그램 폴더 밖의 사본(개발 빌드, 받은 그대로의 앱)은 등록하지 않는다.
+enum LoginItemDecision {
+    static let autoRegisteredKey = "haneul.loginItemAutoRegistered"
+
+    static func shouldAutoRegister(onboardingDone: Bool, alreadyTried: Bool, bundlePath: String) -> Bool {
+        onboardingDone && !alreadyTried && AppMoveDecision.isAlreadyInPlace(bundlePath: bundlePath)
+    }
+}
+
 /// 2026-11-06 (#157): 실행 중인 메인 앱을 휴지통에 넣었을 때 스스로 끝낼지의 판단.
 /// 다른 폴더로 옮긴 것은 버린 것이 아니므로 그대로 둔다.
 enum AppBundleWatchDecision {
