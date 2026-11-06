@@ -67,6 +67,8 @@ enum Uninstaller {
                 let ime = RemovalObservation.unregister(imeURLs, identifier: RemovalObservation.imeID)
                 guard ime.reachedGoal else { return ime }
                 if mode == .wholeProduct {
+                    // 2026-11-06 (#160): 로그인 항목이 지운 앱을 가리키지 않게 먼저 푼다. 실패해도 제거는 계속한다.
+                    try? LoginItem.set(enabled: false)
                     return RemovalObservation.unregister(mainTargets.map(\.url), identifier: RemovalObservation.mainID)
                 }
                 return ime

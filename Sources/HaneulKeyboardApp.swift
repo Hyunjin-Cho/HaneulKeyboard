@@ -64,6 +64,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.applyMenuBarIconPreference()
+            self.registerLoginItemIfNeeded()
             switch MenuBarIconDecision.launchWindow(
                 onboardingDone: UserDefaults.standard.bool(forKey: "haneul.hasCompletedOnboarding"),
                 iconVisible: self.menuBarIconVisible,
@@ -116,6 +117,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
               event.eventID == AEEventID(kAEOpenApplication) else { return }
         let source = event.paramDescriptor(forKeyword: AEKeyword(keyAEPropData))?.enumCodeValue
         if source == OSType(keyAELaunchedAsLogInItem) { launchedAsLoginItem = true }
+    }
+
+    /// 2026-11-06 (#160): 실패해도 다시 시도하지 않는다. 사용자는 설정에서 직접 켤 수 있다.
+    private func registerLoginItemIfNeeded() {
+        let defaults = UserDefaults.standard
+        guard LoginItemDecision.shouldAutoRegister(
+            onboardingDone: defaults.bool(forKey: "haneul.hasCompletedOnboarding"),
+            alreadyTried: defaults.bool(forKey: LoginItemDecision.autoRegisteredKey),
+            bundlePath: Bundle.main.bundlePath) else { return }
+        defaults.set(true, forKey: LoginItemDecision.autoRegisteredKey)
+        if LoginItem.state == .off { try? LoginItem.set(enabled: true) }
     }
 
     private var menuBarIconVisible: Bool {
@@ -330,7 +342,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
             core: core,
             onSettings: { [weak self] in self?.showSettings(tab: $0) },
             onSupport: { [weak self] in self?.openSupport() },
-            onComplete: { [weak self] in self?.onboardingWindow?.close() }))
+            onComplete: { [weak self] in
+                self?.onboardingWindow?.close()
+                self?.registerLoginItemIfNeeded()
+            }))
         win.delegate = self
         onboardingWindow = win
         win.makeKeyAndOrderFront(nil)

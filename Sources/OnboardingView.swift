@@ -214,6 +214,9 @@ struct OnboardingView: View {
                 Label("메뉴바 아이콘을 꺼도 입력기는 그대로 동작해요.", systemImage: "menubar.rectangle")
                 Text("설정 → 앱 관리에서 끌 수 있고, 아이콘이 없을 때는 응용 프로그램에서 하늘키보드를 열어 주세요.")
                     .padding(.leading, 28)
+                // 2026-11-06 (#160): 기본으로 켜지는 자동 실행은 안내에서 미리 알린다.
+                Text("하늘키보드는 Mac에 로그인할 때 함께 열려요. 이것도 앱 관리에서 끌 수 있어요.")
+                    .padding(.leading, 28)
                 if !ready {
                     HStack(spacing: 10) {
                         Text("시작하기를 누르면 입력기 설치·설정을 이어갈 수 있어요.")
