@@ -101,6 +101,10 @@ targets:
       path: Generated/Info.plist
       properties:
         LSUIElement: true
+        # 2026-11-06 (#163): 앱은 창 없이 뒤에 남으므로 메모리 할당기를 공간 우선으로 둔다. 설정 닫은 뒤 52MB → 32MB(검수 앱 실측, 서명·강화 런타임 포함).
+        # man malloc에 없는 설정이라 macOS 판에 따라 무시될 수 있고, 무시돼도 해는 없다. 입력기에는 넣지 않는다.
+        LSEnvironment:
+          MallocSpaceEfficient: "1"
         CFBundleIconFile: AppIcon
         CFBundleIconName: AppIcon
         CFBundleName: HaneulKeyboard
