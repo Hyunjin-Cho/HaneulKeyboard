@@ -305,6 +305,40 @@ func runDict106Tests() {
 // #109 · 2026-11-01: owner-chosen math abbreviations (A안). Two-letter vowel-first
 // words go to shortWords (R1); clean one-syllable words go to standaloneShortWords.
 /// 2026-11-06 (#154): 메뉴바 아이콘 켜고 끄기의 판단.
+/// 2026-11-06 (#162): 한국어 사전을 Set에서 파일 매핑으로 바꾸며 정렬·색인 경계를 지킨다.
+func runSortedWordTableTests() {
+    func table(_ text: String) -> SortedWordTable { SortedWordTable(data: Data(text.utf8)) }
+    func has(_ t: SortedWordTable, _ word: String) -> Bool { t.contains(Array(word.utf8)) }
+    // 색인 간격(64줄)을 몇 번 넘는 크기. 경계 앞뒤의 낱말을 빠짐없이 찾아야 한다.
+    let words = (0..<200).map { String(format: "w%03d", $0) }
+    let full = table("# count: 200\n# note\n" + words.joined(separator: "\n") + "\n")
+    expect(full.isComplete, true, "정렬 표: 정렬·개수가 맞으면 온전하다")
+    expect(words.allSatisfy { has(full, $0) }, true, "정렬 표: 모든 낱말을 찾는다(색인 경계 포함)")
+    for missing in ["", "v", "w", "w00", "w0000", "w1995", "w200", "x", "# note", "# count: 200"] {
+        expect(has(full, missing), false, "정렬 표: 없는 말 \(missing)")
+    }
+    let noNewline = table("# count: 2\n가\n나")
+    expect(noNewline.isComplete, true, "정렬 표: 마지막 줄바꿈이 없어도 온전하다")
+    expect(has(noNewline, "나"), true, "정렬 표: 마지막 줄바꿈 없는 끝 낱말")
+    expect(has(noNewline, "다"), false, "정렬 표: 끝 낱말 뒤는 없다")
+    // fail-closed: 온전하지 않으면 자동 변환이 꺼진다.
+    expect(table("# count: 2\n나\n가\n").isComplete, false, "정렬 표: 정렬이 깨지면 온전하지 않다")
+    expect(table("가\n나\n").isComplete, false, "정렬 표: 개수 머리글이 없으면 온전하지 않다")
+    expect(table("# count: 3\n가\n나\n").isComplete, false, "정렬 표: 개수가 다르면 온전하지 않다")
+    expect(table("").isComplete, false, "정렬 표: 빈 파일")
+    expect(table("# count: 0\n").isComplete, false, "정렬 표: 머리글만 있는 파일")
+    expect(has(table(""), "가"), false, "정렬 표: 빈 파일 조회")
+    expect(table("# count: 2\n가\n가\n나\n").uniqueCount, 2, "정렬 표: 이웃한 같은 줄은 하나로 센다")
+    var broken = Data("# count: 1\n가\n".utf8); broken.append(contentsOf: [0xFF, 0xFE, 0x0A])
+    expect(SortedWordTable(data: broken).uniqueCount, 1, "정렬 표: 깨진 UTF-8 줄은 세지 않는다")
+    // 구간 조회: mayContinue가 쓴다.
+    func span(_ low: String, _ high: String) -> Bool { full.hasWord(from: Array(low.utf8), below: Array(high.utf8)) }
+    expect(span("w05", "w06"), true, "정렬 표: 구간 안에 낱말이 있다")
+    expect(span("w063", "w065"), true, "정렬 표: 색인 경계를 걸친 구간")
+    expect(span("w1999", "w2"), false, "정렬 표: 끝 낱말 뒤 구간")
+    expect(span("a", "b"), false, "정렬 표: 첫 낱말 앞 구간")
+}
+
 func runLoginItemTests() {
     let app = "/Applications/HaneulKeyboard.app"
     func auto(_ done: Bool, _ tried: Bool, _ path: String) -> Bool {
@@ -494,17 +528,17 @@ struct ComposerTests {
         let dictGoodPath = NSTemporaryDirectory() + "haneul_kdict_good.txt"
         let dictNoHeaderPath = NSTemporaryDirectory() + "haneul_kdict_no_header.txt"
         let dictMismatchPath = NSTemporaryDirectory() + "haneul_kdict_mismatch.txt"
-        try? "# count: 2\n# fixture\n가\n나\n가\n".write(
+        try? "# count: 2\n# fixture\n가\n가\n나\n".write(
             toFile: dictGoodPath,
             atomically: true,
             encoding: .utf8
         )
-        try? "# fixture\n가\n나\n가\n".write(
+        try? "# fixture\n가\n가\n나\n".write(
             toFile: dictNoHeaderPath,
             atomically: true,
             encoding: .utf8
         )
-        try? "# count: 3\n# fixture\n가\n나\n가\n".write(
+        try? "# count: 3\n# fixture\n가\n가\n나\n".write(
             toFile: dictMismatchPath,
             atomically: true,
             encoding: .utf8
@@ -2747,6 +2781,7 @@ struct ComposerTests {
         runMenuBarIconTests()
         runAppBundleWatchTests()
         runLoginItemTests()
+        runSortedWordTableTests()
         print("\(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
     }

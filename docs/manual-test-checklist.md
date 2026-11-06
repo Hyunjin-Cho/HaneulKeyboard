@@ -12,6 +12,13 @@
 
 현재 합격 기준은 아래 활성 검사 절을 따른다. 맨 아래 **과거 후보별 검사 기록**은 당시 빌드·문구·수량을 보존한 참고 자료이며 현재 합격 기준과 구분한다. 2026-10-11 리뷰 F-3 반영 근거: `IMESources/PersonalDictionary.swift:normalizedForceEntry`, `Sources/WordSuggestion.swift:issueURL/emailURL`, `Sources/WordSuggestionSettingsSection.swift:open`, `PRIVACY.md` 8번.
 
+## 2026-11-06 입력기 한국어 사전 파일 조회 (#162)
+
+- [ ] 입력기 메모리: `footprint -p $(pgrep -x HaneulKeyboardIM) | grep phys_footprint`가 약 19MB 근처인가(빌드 105는 41MB). 40MB대면 실패.
+- [ ] 입력기를 새로 띄운 직후 바로 쳐도 `메ㅔㅣㄷ` → `apple`, `모든` → 그대로가 맞는가. 조금 뒤부터만 맞으면 알린다.
+- [ ] 평소 타자가 전과 같은가. 느려진 느낌이 있으면 실패.
+- [ ] 메모리가 적은 Mac에서 다른 큰 앱을 많이 띄운 뒤 첫 Space가 눈에 띄게 끊기는가. 이 맥(64GB)에서는 재현하지 못했다.
+
 ## 2026-11-06 로그인할 때 열기 (#160)
 
 처음 확인할 때 시스템 설정 → 일반 → 로그인 항목에서 손으로 넣어 둔 하늘키보드 항목을 먼저 지운다(이 맥의 `HaneulKeyboard01`). 둘 다 있으면 다시 열기 이벤트로 설정 창이 뜰 수 있다(추측).
