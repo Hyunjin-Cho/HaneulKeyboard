@@ -13,10 +13,13 @@ enum OnboardingStageArt {
     static let aspect: CGFloat = 1640.0 / 1242.0
     static let videoURL = Bundle.main.url(forResource: "OnboardingP7", withExtension: "mp4")
     /// 처음 프레임은 영상이 준비되기 전 잠깐만 보이므로 JPEG(4:4:4, 품질 90), 쉬는 화면인 끝 프레임은 무손실 PNG.
-    static let start = cgImage("OnboardingP7Start", "jpg")
-    static let end = cgImage("OnboardingP7End", "png")
+    /// 2026-11-06 (#156): 전역에 쥐지 않고 쓰는 쪽이 들고 있는다. 창이 닫히면 같이 풀린다.
+    struct Frames {
+        let start = OnboardingStageArt.cgImage("OnboardingP7Start", "jpg")
+        let end = OnboardingStageArt.cgImage("OnboardingP7End", "png")
+    }
 
-    private static func cgImage(_ name: String, _ ext: String) -> CGImage? {
+    fileprivate static func cgImage(_ name: String, _ ext: String) -> CGImage? {
         guard let url = Bundle.main.url(forResource: name, withExtension: ext),
               let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
         return CGImageSourceCreateImageAtIndex(source, 0, nil)
@@ -41,14 +44,14 @@ struct OnboardingStageVideo: NSViewRepresentable {
         /// 2026-11-03 20:57 (#116): 두루마리 무대가 7페이지 첫 프레임에 도착한 뒤 직접 재생을 시작한다(false면 창에 붙어도 기다린다).
         private let autoplay: Bool
 
-        init(animate: Bool, autoplay: Bool = true) {
+        init(animate: Bool, autoplay: Bool = true, frames: OnboardingStageArt.Frames = .init()) {
             self.animate = animate
             self.autoplay = autoplay
             super.init(frame: .zero)
             wantsLayer = true
             layer?.backgroundColor = NSColor(red: 247 / 255, green: 242 / 255, blue: 229 / 255, alpha: 1).cgColor
             layer?.masksToBounds = true
-            for (image, sub) in [(OnboardingStageArt.start, poster), (OnboardingStageArt.end, finish)] {
+            for (image, sub) in [(frames.start, poster), (frames.end, finish)] {
                 sub.contents = image
                 sub.contentsGravity = .resizeAspectFill
                 layer?.addSublayer(sub)

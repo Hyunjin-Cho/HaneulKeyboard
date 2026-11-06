@@ -19,7 +19,7 @@ struct HaneulKeyboardApp: App {
 }
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWindowDelegate {
     let core = AppCore()
     /// 2026-11-06 (#154): 설정에서 아이콘을 끄면 nil이다.
     private var statusItem: NSStatusItem?
@@ -28,6 +28,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var settingsWindow: NSWindow?
     private var supportWindow: NSWindow?
     private var updateNoticeWindow: NSWindow?
+    /// 2026-11-06 (#156): 닫으면 설정 창을 놓아주므로 다시 열 때 이어 줄 값만 따로 둔다(앱이 떠 있는 동안만).
+    private var settingsFrame: NSRect?
+    private var lastSettingsTab = SettingsTab.inputFeatures
     // deinit(nonisolated)에서 해제하므로 actor 격리에서 제외.
     nonisolated(unsafe) private var sourceObserver: NSObjectProtocol?
 
@@ -235,6 +238,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let window = UpdateNoticeWindow.make(version: update.tag, currentVersion: Updater.currentVersion) { [weak self] in
             self?.showSettings(tab: .update)
         }
+        window.delegate = self
         updateNoticeWindow = window
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
@@ -252,7 +256,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
             return
         }
-        let hosting = NSHostingController(rootView: SettingsView(core: core, initialTab: tab ?? .inputFeatures))
+        let hosting = NSHostingController(rootView: SettingsView(
+            core: core, initialTab: tab ?? lastSettingsTab,
+            onTabChange: { [weak self] in self?.lastSettingsTab = $0 }))
         let win = NSWindow(contentViewController: hosting)
         // 2026-09-21 (#60): 제목 문구는 `SettingsView.windowTitle` 한 곳에서 정한다.
         win.title = SettingsView.windowTitle
@@ -260,7 +266,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         win.styleMask = [.titled, .closable, .fullSizeContentView]
         win.titleVisibility = .hidden
         win.isReleasedWhenClosed = false
-        win.center()
+        // 위치만 옮기면 안 된다. 창 높이가 내용이 놓일 때 32pt 늘어 열 때마다 내려갔다(실측). 크기까지 통째로 되돌린다.
+        if let settingsFrame { win.setFrame(settingsFrame, display: false) } else { win.center() }
+        win.delegate = self
         settingsWindow = win
         win.makeKeyAndOrderFront(nil)
     }
@@ -272,12 +280,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return
         }
         let win = SupportWindow.make()
+        win.delegate = self
         supportWindow = win
         win.makeKeyAndOrderFront(nil)
     }
 
     @objc private func quit() {
         NSApplication.shared.terminate(nil)
+    }
+
+    /// 2026-11-06 (#156): 앱은 창 없이 뒤에 남으므로 닫은 창을 쥐고 있지 않는다. 닫는 도중에 놓지 않게 다음 차례로 미룬다.
+    func windowWillClose(_ notification: Notification) {
+        guard let closing = notification.object as? NSWindow else { return }
+        DispatchQueue.main.async { [weak self] in self?.releaseClosedWindow(closing) }
+    }
+
+    private func releaseClosedWindow(_ window: NSWindow) {
+        // 전체 제거 중이면 결과 창이 이 창에 뜨고 앱 종료도 거기서 이어지므로 놓지 않는다.
+        if window === settingsWindow, !core.isRemovingProduct {
+            settingsFrame = window.frame
+            settingsWindow = nil
+        }
+        if window === onboardingWindow { onboardingWindow = nil }
+        if window === supportWindow { supportWindow = nil }
+        if window === updateNoticeWindow { updateNoticeWindow = nil }
     }
 
     @objc private func showOnboarding() {
@@ -294,6 +320,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             onSettings: { [weak self] in self?.showSettings(tab: $0) },
             onSupport: { [weak self] in self?.openSupport() },
             onComplete: { [weak self] in self?.onboardingWindow?.close() }))
+        win.delegate = self
         onboardingWindow = win
         win.makeKeyAndOrderFront(nil)
     }

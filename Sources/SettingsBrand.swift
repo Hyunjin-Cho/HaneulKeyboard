@@ -38,11 +38,11 @@ struct SettingsBand: View {
 }
 
 private enum SettingsArtwork {
-    private static let bands: [SettingsTab: NSImage] = Dictionary(uniqueKeysWithValues: SettingsTab.allCases.map {
-        ($0, bundledImage("SettingsBand_\($0.bandName)"))
-    })
+    @MainActor private static let shelf = WindowArtShelf()
 
-    static func band(for tab: SettingsTab) -> NSImage { bands[tab] ?? NSImage(size: NSSize(width: 1, height: 1)) }
+    @MainActor static func band(for tab: SettingsTab) -> NSImage {
+        shelf.image(tab.bandName) { bundledImage("SettingsBand_\(tab.bandName)") }
+    }
 
     private static func bundledImage(_ name: String) -> NSImage {
         guard let url = Bundle.main.url(forResource: name, withExtension: "png"),
