@@ -51,9 +51,13 @@ struct SettingsView: View {
     @State private var showingUninstallConfirm = false
     @State private var uninstallResult: Uninstaller.Outcome?
 
-    /// 기본은 「입력 기능」. AppDelegate가 창을 재사용하므로 다시 열어도 마지막 선택을 유지한다.
-    init(core: AppCore, initialTab: SettingsTab = .inputFeatures) {
+    /// 2026-11-06 (#156): 닫으면 창을 놓아주므로 AppDelegate가 마지막 메뉴를 받아 두었다가 다시 열 때 넘겨준다.
+    private let onTabChange: (SettingsTab) -> Void
+
+    /// 기본은 「입력 기능」.
+    init(core: AppCore, initialTab: SettingsTab = .inputFeatures, onTabChange: @escaping (SettingsTab) -> Void = { _ in }) {
         self.core = core
+        self.onTabChange = onTabChange
         _selectedTab = State(initialValue: initialTab)
     }
 
@@ -108,6 +112,7 @@ struct SettingsView: View {
         .scrollContentBackground(.hidden)
         .tint(OnboardingRiso.actionBlue)
         .haneulWindowAppearance()
+        .onChange(of: selectedTab) { _, tab in onTabChange(tab) }
         .onReceive(NotificationCenter.default.publisher(for: .haneulSettingsTabRequested)) { notification in
             if let tab = notification.object as? SettingsTab { selectedTab = tab }
         }

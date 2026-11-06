@@ -18,8 +18,11 @@ enum OnboardingRiso {
     // 2026-11-04 오너 결정(#137): 창 바탕 = 새 한지 '또렷'. 10월 외부 생성 사진(DancheongPaper)을 창 크기로 늘려 쓰던 것을 바꿨다 —
     // 섬유가 가로로 번지고, 다크에서는 결 세기가 라이트의 1/8로 죽었다(밝기 표준편차 3.78 → 0.49).
     // 라이트·다크가 같은 결 구조를 쓰고(생성 코드: 비공개 haneul-art paper/), 늘리지 않고 1024pt 타일로 깐다.
-    static let hanjiLight = tileImage("HanjiPaperLight")
-    static let hanjiDark = tileImage("HanjiPaperDark")
+    // 2026-11-06 (#156): 앱은 창 없이 뒤에 남으므로 전역에 쥐지 않는다. 2048px 한지는 풀면 한 장에 16MB다.
+    @MainActor private static let hanjiShelf = WindowArtShelf()
+    @MainActor static func hanji(dark: Bool) -> NSImage {
+        hanjiShelf.image(dark ? "dark" : "light") { tileImage(dark ? "HanjiPaperDark" : "HanjiPaperLight") }
+    }
     // 2026-11-04 (#118): 10월 안내의 작은 풍경·인물 띠(walkers·landscape·승인 7자세)와 머리 아이콘(appIcon)은
     // 리디자인(#107 — 두루마리·새 세 사람·7페이지 영상) 뒤 쓰이지 않아 자원과 함께 지웠다(git 기록에 남는다).
 
@@ -54,13 +57,29 @@ enum OnboardingRiso {
     }
 }
 
+/// 2026-11-06 (#156): 창이 떠 있는 동안만 살아 있는 그림 선반. 그림은 보는 쪽(SwiftUI 뷰)이 쥐고 여기는 약하게만 가리킨다.
+/// 떠 있는 창끼리는 한 장을 나눠 쓰고, 창이 다 닫히면 그림이 메모리에서 빠진다.
+@MainActor final class WindowArtShelf {
+    private final class Slot { weak var image: NSImage? }
+    private var slots: [String: Slot] = [:]
+
+    func image(_ key: String, load: () -> NSImage) -> NSImage {
+        if let live = slots[key]?.image { return live }
+        let image = load()
+        let slot = Slot()
+        slot.image = image
+        slots[key] = slot
+        return image
+    }
+}
+
 struct OnboardingRisoPaper: View {
     @Environment(\.colorScheme) private var scheme
     var body: some View {
         ZStack {
             // 텍스처를 못 읽었을 때도 같은 바탕색이 남는다. 한지 텍스처 자체가 이 색을 평균으로 만든 것이다.
             scheme == .dark ? OnboardingRiso.meok : OnboardingRiso.ivory
-            Image(nsImage: scheme == .dark ? OnboardingRiso.hanjiDark : OnboardingRiso.hanjiLight)
+            Image(nsImage: OnboardingRiso.hanji(dark: scheme == .dark))
                 .resizable(resizingMode: .tile)
         }.allowsHitTesting(false).accessibilityHidden(true)
     }

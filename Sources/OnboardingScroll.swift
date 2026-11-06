@@ -53,22 +53,20 @@ enum OnboardingScrollArt {
 
     static let scroll: Scroll? = decode("OnboardingScroll")
     static let people: People? = decode("OnboardingPeople")
-    static let image: CGImage? = cgImage(Bundle.main.url(forResource: "OnboardingScroll", withExtension: "jpg"))
+    /// 2026-11-06 (#156): 앱은 창 없이 뒤에 남으므로 그림을 여기(전역)에 쥐지 않는다. 13600×960 두루마리는 풀면 52MB다.
+    /// 불러 주기만 하고, 쥐는 쪽은 무대(StageView)다. 창이 닫혀 무대가 사라지면 그림도 같이 풀린다.
+    private static let imageURL = Bundle.main.url(forResource: "OnboardingScroll", withExtension: "jpg")
+    static func loadImage() -> CGImage? { cgImage(imageURL) }
     /// 두루마리 그림이 있는 페이지 수(정거장 수). 2026-11-03 20:57: 1~7페이지(7 = 영상 첫 프레임 자리).
-    static var pageCount: Int { image == nil ? 0 : (scroll?.stations.count ?? 0) }
+    static var pageCount: Int { imageURL == nil ? 0 : (scroll?.stations.count ?? 0) }
 
-    @MainActor private static var spriteCache: [String: CGImage] = [:]
-    @MainActor static func image(named file: String) -> CGImage? {
+    static func image(named file: String) -> CGImage? {
         cgImage(Bundle.main.url(forResource: (file as NSString).deletingPathExtension, withExtension: "png"))
     }
 
-    @MainActor static func sprite(_ who: String, _ pose: String) -> CGImage? {
-        let key = "\(who)_\(pose)"
-        if let hit = spriteCache[key] { return hit }
+    static func loadSprite(key: String) -> CGImage? {
         guard let s = people?.sprites[key] else { return nil }
-        let image = cgImage(Bundle.main.url(forResource: (s.file as NSString).deletingPathExtension, withExtension: "png"))
-        spriteCache[key] = image
-        return image
+        return cgImage(Bundle.main.url(forResource: (s.file as NSString).deletingPathExtension, withExtension: "png"))
     }
 
     private static func decode<T: Decodable>(_ name: String) -> T? {
@@ -116,6 +114,9 @@ struct OnboardingScrollStage: NSViewRepresentable {
         private enum Unroll { case none, pending, scheduled, running }
         private var unroll = Unroll.none
         private var persons: [CALayer] = []
+        /// 2026-11-06 (#156): 인물 그림과 7페이지 처음·끝 그림은 이 무대가 사는 동안만 쥔다. 페이지를 오갈 때 다시 풀지 않는다.
+        private var spriteCache: [String: CGImage] = [:]
+        private lazy var stageFrames = OnboardingStageArt.Frames()
         private var props: [CALayer] = []
         private var page: Int?
         private var placedSize: CGSize = .zero
@@ -138,7 +139,7 @@ struct OnboardingScrollStage: NSViewRepresentable {
             world.anchorPoint = .zero
             world.position = .zero
             world.bounds = CGRect(x: 0, y: 0, width: art.image_pt[0], height: art.image_pt[1])
-            world.contents = OnboardingScrollArt.image
+            world.contents = OnboardingScrollArt.loadImage()
             world.contentsGravity = .resize
             reel.anchorPoint = .zero
             reel.addSublayer(world)
@@ -169,6 +170,14 @@ struct OnboardingScrollStage: NSViewRepresentable {
         }
 
         required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+        private func sprite(_ who: String, _ pose: String) -> CGImage? {
+            let key = "\(who)_\(pose)"
+            if let hit = spriteCache[key] { return hit }
+            let image = OnboardingScrollArt.loadSprite(key: key)
+            spriteCache[key] = image
+            return image
+        }
 
         override var mouseDownCanMoveWindow: Bool { true }   // 안내 창은 배경을 끌어 옮긴다
 
@@ -221,7 +230,7 @@ struct OnboardingScrollStage: NSViewRepresentable {
 
         private func enterVideo() {
             guard video == nil else { return }
-            let v = OnboardingStageVideo.StageView(animate: !reduceMotion, autoplay: false)
+            let v = OnboardingStageVideo.StageView(animate: !reduceMotion, autoplay: false, frames: stageFrames)
             v.frame = bounds
             v.autoresizingMask = [.width, .height]
             addSubview(v)
@@ -348,7 +357,7 @@ struct OnboardingScrollStage: NSViewRepresentable {
                 person.bounds = g.bounds
                 person.position = g.position
                 person.zPosition = g.depth
-                person.contents = OnboardingScrollArt.sprite(who, "p\(page + 1)")
+                person.contents = sprite(who, "p\(page + 1)")
             }
             CATransaction.commit()
         }
@@ -387,14 +396,14 @@ struct OnboardingScrollStage: NSViewRepresentable {
                     person.removeAllAnimations()
                     person.anchorPoint = g.anchor; person.position = g.position; person.bounds = g.bounds
                     person.zPosition = g.depth
-                    person.contents = OnboardingScrollArt.sprite(who, "p\(to + 1)")
+                    person.contents = sprite(who, "p\(to + 1)")
                     continue
                 }
                 if g.depth < person.zPosition { person.zPosition = g.depth } else { arrivalDepths.append((person, g.depth)) }
                 person.anchorPoint = g.anchor
                 person.position = g.position
                 person.bounds = g.bounds
-                person.contents = OnboardingScrollArt.sprite(who, "p\(to + 1)")
+                person.contents = sprite(who, "p\(to + 1)")
                 let resize = CABasicAnimation(keyPath: "bounds")
                 resize.fromValue = NSValue(rect: startBounds); resize.toValue = NSValue(rect: g.bounds)
                 resize.duration = duration; resize.timingFunction = Self.curve
@@ -409,7 +418,7 @@ struct OnboardingScrollStage: NSViewRepresentable {
                     move.duration = duration
                     person.add(move, forKey: "position")
                     let pose = CAKeyframeAnimation(keyPath: "contents")
-                    pose.values = path.frames.map { OnboardingScrollArt.sprite(who, $0.pose) as Any }
+                    pose.values = path.frames.map { sprite(who, $0.pose) as Any }
                     pose.keyTimes = (path.frames.map { $0.at / duration } + [1]).map { NSNumber(value: $0) }
                     pose.calculationMode = .discrete
                     pose.duration = duration
@@ -421,7 +430,7 @@ struct OnboardingScrollStage: NSViewRepresentable {
                 move.duration = duration; move.timingFunction = Self.curve
                 person.add(move, forKey: "position")
                 // 걷기 두 장을 번갈아(사람마다 반 박자씩 어긋나게), 도착하면 그 페이지 자세로 멈춘다.
-                let frames = [OnboardingScrollArt.sprite(who, "walkA"), OnboardingScrollArt.sprite(who, "walkB")]
+                let frames = [sprite(who, "walkA"), sprite(who, "walkB")]
                 let steps = max(2, Int((duration / Self.stride).rounded()))
                 let walk = CAKeyframeAnimation(keyPath: "contents")
                 walk.values = (0..<steps).compactMap { frames[($0 + i) % 2] }
@@ -482,7 +491,7 @@ struct OnboardingScrollStage: NSViewRepresentable {
                 CGPoint(x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u + 4 * lift * u * (1 - u))   // 레이어 좌표는 위가 +
             }
             let who = OnboardingScrollArt.people?.order[index] ?? ""
-            let crouch = OnboardingScrollArt.sprite(who, "crouch") != nil ? "crouch" : "walkB"
+            let crouch = sprite(who, "crouch") != nil ? "crouch" : "walkB"
             var points: [CGPoint] = [], times: [CFTimeInterval] = []
             var frames: [(at: CFTimeInterval, pose: String)] = []
             let samples = max(24, Int(duration * 60))
