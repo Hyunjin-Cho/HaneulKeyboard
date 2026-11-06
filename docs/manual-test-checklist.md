@@ -12,6 +12,17 @@
 
 현재 합격 기준은 아래 활성 검사 절을 따른다. 맨 아래 **과거 후보별 검사 기록**은 당시 빌드·문구·수량을 보존한 참고 자료이며 현재 합격 기준과 구분한다. 2026-10-11 리뷰 F-3 반영 근거: `IMESources/PersonalDictionary.swift:normalizedForceEntry`, `Sources/WordSuggestion.swift:issueURL/emailURL`, `Sources/WordSuggestionSettingsSection.swift:open`, `PRIVACY.md` 8번.
 
+## 2026-11-06 터미널·웹 앱 입력: 2026-11-04 리뷰의 실기기 확인 항목 (#87 #124 #167)
+
+가짜 호스트로는 통과했지만 실제 앱에서는 결과 기록이 없는 항목이다. 결과는 앱 이름과 함께 #87 #124에 남긴다. 터미널 Ctrl+C/U/J/M은 오너가 실사용 뒤 정하기로 해서 여기 넣지 않았다(#87). 터미널 항목은 일반 셸 프롬프트에서 본다. Claude Code 같은 앱 안에서 `/` 명령을 치면 그 앱의 명령이 실행될 수 있다.
+
+- [ ] Ghostty: `/abc` → Backspace 4번 → `g`를 치면 `ㅎ`이 조합되는가. `/abc` → Backspace 3번 → `d`를 치면 `/d`가 되는가. 실패: 앞 순서에서 영어가 나오거나, 뒤 순서에서 한글이 나온다. iTerm2·kitty·Warp를 쓴다면 같은 순서로 보고 앱 이름을 남긴다.
+- [ ] Terminal.app: 위와 같은 두 순서. 실패 조건도 같다.
+- [ ] VS Code·Slack·Notion 중 쓰는 앱: 위와 같은 두 순서, 그리고 `/`만 치고 Backspace 1번 → `g`가 `ㅎ`이 되는가. 실패: 한글로 안 돌아오거나, `/`가 남았는데 한글이 나온다.
+- [ ] Return 뒤 첫 키: Ghostty·Terminal.app에서 `/abc` → Return → 새 프롬프트가 뜬 뒤 바로 `g`를 치면 첫 키부터 `ㅎ`이 조합되는가. 실패: 첫 글자만 영어로 나온다.
+- [ ] 조합 중 밑줄: Ghostty·Terminal.app·Chromium 계열·Safari 입력칸에서 조합 중인 글자에 회색 밑줄이 보이는가. 밝은 화면과 어두운 화면을 둘 다 본다. 실패: 밑줄이 안 보이거나 노란 칠이 남는다. 밑줄과 꾸밈 없음 중 무엇으로 갈지는 오너가 다른 입력기와 비교해 정한다(#124).
+- [ ] 숫자 뒤 마우스 클릭: TextEdit에서 첫 줄에 `가나다` + Space 2번 → Return → 둘째 줄에 `10` → 마우스로 첫 줄 맨 끝 클릭 → Backspace 1번 → `mm` + Space. 첫 줄이 `가나다 ㅡㅡ `가 되는가. 실패: `가나다 mm `가 된다(지워진 숫자 기억이 남은 것). VS Code·Slack에서도 같은 순서로 본다.
+
 ## 2026-11-06 메모리 할당기 절약 설정 (#163)
 
 - [ ] `plutil -p /Applications/HaneulKeyboard.app/Contents/Info.plist | grep -A1 LSEnvironment`에 `MallocSpaceEfficient`가 있는가.
