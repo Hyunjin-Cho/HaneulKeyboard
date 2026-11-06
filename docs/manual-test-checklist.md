@@ -20,19 +20,26 @@
 - [ ] Terminal.app: 위와 같은 두 순서. 실패 조건도 같다.
 - [ ] VS Code·Slack·Notion 중 쓰는 앱: 위와 같은 두 순서, 그리고 `/`만 치고 Backspace 1번 → `g`가 `ㅎ`이 되는가. 실패: 한글로 안 돌아오거나, `/`가 남았는데 한글이 나온다.
 - [ ] Return 뒤 첫 키: Ghostty·Terminal.app에서 `/abc` → Return → 새 프롬프트가 뜬 뒤 바로 `g`를 치면 첫 키부터 `ㅎ`이 조합되는가. 실패: 첫 글자만 영어로 나온다.
-- [ ] 조합 중 밑줄: Ghostty·Terminal.app·Chromium 계열·Safari 입력칸에서 조합 중인 글자에 회색 밑줄이 보이는가. 밝은 화면과 어두운 화면을 둘 다 본다. 실패: 밑줄이 안 보이거나 노란 칠이 남는다. 밑줄과 꾸밈 없음 중 무엇으로 갈지는 오너가 다른 입력기와 비교해 정한다(#124).
+- [ ] 조합 중 밑줄: Ghostty·Terminal.app·Chromium 계열·Safari 입력칸에서 조합 중인 글자에 회색 밑줄이 보이는가. 밝은 화면과 어두운 화면을 둘 다 본다. 실패: 밑줄이 안 보이거나 노란 칠이 남는다. (2026-11-06 오너 재확인: 밑줄로 간다. #124)
 - [ ] 숫자 뒤 마우스 클릭: TextEdit에서 첫 줄에 `가나다` + Space 2번 → Return → 둘째 줄에 `10` → 마우스로 첫 줄 맨 끝 클릭 → Backspace 1번 → `mm` + Space. 첫 줄이 `가나다 ㅡㅡ `가 되는가. 실패: `가나다 mm `가 된다(지워진 숫자 기억이 남은 것). VS Code·Slack에서도 같은 순서로 본다.
 
 ## 2026-11-06 메모리 할당기 절약 설정 (#163)
 
 - [ ] `plutil -p /Applications/HaneulKeyboard.app/Contents/Info.plist | grep -A1 LSEnvironment`에 `MallocSpaceEfficient`가 있는가.
+- [ ] 재로그인 직후 `ps -Eww -p $(pgrep -x HaneulKeyboard) -o command= | tr ' ' '\n' | grep -c '^MallocSpaceEfficient=1'`이 1인가. 0이면 로그인 항목으로 뜰 때 설정이 안 먹은 것이니 알린다. (2026-11-06 추가: 메모리 수치보다 확실하다)
 - [ ] 재로그인 직후 창을 안 연 채 `footprint -p $(pgrep -x HaneulKeyboard) | grep phys_footprint`가 13~16MB 근처인가. 18MB 이상이면 로그인 항목으로 뜰 때 설정이 안 먹은 것이니 알린다.
 - [ ] 설정을 열고 닫은 뒤 약 32MB 근처인가(이 설정이 없으면 52MB).
 - [ ] 안내 두루마리와 7페이지 영상이 끊기지 않는가. 끊기면 실패.
 
+## 2026-11-06 입력기 할당기 절약 설정 (#169, 후보 107부터)
+
+- [ ] `ps -Eww -p $(pgrep -x HaneulKeyboardIM) -o command= | tr ' ' '\n' | grep -c '^MallocSpaceEfficient=1'`이 1인가. 재로그인 뒤에도 본다. 0이면 macOS가 입력기를 띄울 때 설정을 넘기지 않은 것이니 알린다.
+- [ ] 입력기 메모리가 약 15MB 근처인가(벤치 환산값, 설치본에서 처음 잰다). 약 19MB면 설정이 안 먹은 것이다.
+- [ ] 평소 타자가 106과 같은가. 빠르게 칠 때 글자가 늦거나 튀면 실패. 벤치에서 900만 키 중 1ms 넘는 튐이 2번(1.1·2.7ms) 있었고 원인은 못 봤다.
+
 ## 2026-11-06 입력기 한국어 사전 파일 조회 (#162)
 
-- [ ] 입력기 메모리: `footprint -p $(pgrep -x HaneulKeyboardIM) | grep phys_footprint`가 약 19MB 근처인가(빌드 105는 41MB). 40MB대면 실패.
+- [ ] 입력기 메모리: `footprint -p $(pgrep -x HaneulKeyboardIM) | grep phys_footprint`가 약 19MB 이하인가(빌드 105는 41MB). 40MB대면 실패. (2026-11-06 #169: 후보 107은 할당기 설정까지 있어 약 15MB가 기대값이다)
 - [ ] 입력기를 새로 띄운 직후 바로 쳐도 `메ㅔㅣㄷ` → `apple`, `모든` → 그대로가 맞는가. 조금 뒤부터만 맞으면 알린다.
 - [ ] 평소 타자가 전과 같은가. 느려진 느낌이 있으면 실패.
 - [ ] 메모리가 적은 Mac에서 다른 큰 앱을 많이 띄운 뒤 첫 Space가 눈에 띄게 끊기는가. 이 맥(64GB)에서는 재현하지 못했다.

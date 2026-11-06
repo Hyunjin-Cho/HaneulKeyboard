@@ -8,7 +8,7 @@ options:
 settings:
   base:
     MARKETING_VERSION: "2026.9"
-    CURRENT_PROJECT_VERSION: "106"
+    CURRENT_PROJECT_VERSION: "107"
     HANEUL_RELEASE_SUFFIX: ""
   configs:
     Debug:
@@ -102,7 +102,7 @@ targets:
       properties:
         LSUIElement: true
         # 2026-11-06 (#163): 앱은 창 없이 뒤에 남으므로 메모리 할당기를 공간 우선으로 둔다. 설정 닫은 뒤 52MB → 32MB(검수 앱 실측, 서명·강화 런타임 포함).
-        # man malloc에 없는 설정이라 macOS 판에 따라 무시될 수 있고, 무시돼도 해는 없다. 입력기에는 넣지 않는다.
+        # man malloc에 없는 설정이라 macOS 판에 따라 무시될 수 있고, 무시돼도 해는 없다. 2026-11-06 (#169): 입력기에도 넣었다.
         LSEnvironment:
           MallocSpaceEfficient: "1"
         CFBundleIconFile: AppIcon
@@ -142,6 +142,10 @@ targets:
       properties:
         LSBackgroundOnly: true
         LSUIElement: true
+        # 2026-11-06 (#169): 입력기도 메모리 할당기를 공간 우선으로 두고 후보 107에서 시험한다. 106 코드 벤치 9회(키 100만 개씩): 15.5 → 11.5MB, 키 지연 중앙값 4.38 → 4.50µs,
+        # 1ms 넘는 튐 0회 → 9회 중 2회(1.1·2.7ms, 원인 못 봄). man malloc에 없는 설정이라 macOS 판에 따라 무시될 수 있다. 타자가 느려지면 이 설정을 뺀다.
+        LSEnvironment:
+          MallocSpaceEfficient: "1"
         CFBundleName: HaneulKeyboardIM
         CFBundleShortVersionString: $(MARKETING_VERSION)
         HaneulReleaseSuffix: $(HANEUL_RELEASE_SUFFIX)
