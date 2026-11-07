@@ -29,8 +29,9 @@ private func typeQuantity(_ input: String, enabled: Bool = true) -> String {
 
 @main private enum MeasurementUnitAudit {
     static func main() {
-        EnglishDetector.wordlistPaths = ["/usr/share/dict/words"] + EnglishDetector.bundledWordlistNames.map { "Resources/IM/\($0).txt" }
-        EnglishDetector.curatedPaths = Set(EnglishDetector.curatedWordlistNames.map { "Resources/IM/\($0).txt" })
+        EnglishDetector.bundledTablePath = "Resources/IM/english_bundled.txt"
+        EnglishDetector.wordlistPaths = EnglishDetector.curatedWordlistNames.map { "Resources/IM/\($0).txt" }
+        EnglishDetector.curatedPaths = Set(EnglishDetector.wordlistPaths)
         KoreanDictionary.wordlistPath = "Resources/IM/korean_words.txt"
         guard KoreanDictionary.isLoaded else { fatalError("한국어 사전 로드 실패") }
         print("unit,hangul,korean_veto,standalone,attached,spaced,decimal")

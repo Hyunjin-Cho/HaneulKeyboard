@@ -78,12 +78,11 @@ enum InputInferenceTests {
 
     static func main() {
         let root = FileManager.default.currentDirectoryPath
-        EnglishDetector.wordlistPaths = ["/usr/share/dict/words"] + EnglishDetector.bundledWordlistNames.map {
+        EnglishDetector.bundledTablePath = "\(root)/Resources/IM/english_bundled.txt"
+        EnglishDetector.wordlistPaths = EnglishDetector.curatedWordlistNames.map {
             "\(root)/Resources/IM/\($0).txt"
         }
-        EnglishDetector.curatedPaths = Set(EnglishDetector.curatedWordlistNames.map {
-            "\(root)/Resources/IM/\($0).txt"
-        })
+        EnglishDetector.curatedPaths = Set(EnglishDetector.wordlistPaths)
         KoreanDictionary.wordlistPath = "\(root)/Resources/IM/korean_words.txt"
         check(KoreanDictionary.isLoaded, true, "real Korean veto loaded")
 

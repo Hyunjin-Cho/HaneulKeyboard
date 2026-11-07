@@ -16,6 +16,8 @@
 #
 # `/usr/share/dict/words`(web2)는 macOS 시스템 파일이라 여기 넣지 않는다 —
 # 런타임·테스트·검역 모두 항상 broad 베이스로 포함한다.
+# 2026-11-07 (#175): 이 목록의 사전을 합친 것이 Resources/IM/english_bundled.txt이고 입력기는 그 표로 찾는다. web2는 표에 넣지 않는다.
+# 사전을 고치면 scripts/build_english_table.py를 돌린다. 어긋나면 scripts/run_ime_tests.sh와 검역이 실패한다.
 #
 # name	role	min_words	sample_word
 english_supplement	curated	5100	google

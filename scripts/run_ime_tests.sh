@@ -5,6 +5,9 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# 2026-11-07 (#175): 표가 manifest와 맞는지, 입력기 리소스 설정이 맞는지, 번들 검증이 표 누락을 잡는지 본다.
+python3 scripts/test_bundle_dictionaries.py
+
 BIN="$(mktemp -d)/haneul_ime_tests"
 
 swiftc -o "$BIN" \

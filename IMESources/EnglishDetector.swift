@@ -32,12 +32,19 @@ import CoreFoundation
 /// No data is stored or learned; wordlists are read-only reference data.
 enum EnglishDetector {
     // 전체 입력 규칙과 초기 조건의 현재 반영 상태: docs/input-conversion-rules.md.
-    /// Wordlist sources, merged in order. Overridable for tests — must be
-    /// set before the first lookup (the sets load lazily once).
-    /// ALL paths together form the BROAD set (broken-as-Korean rules only);
-    /// the subset registered in `curatedPaths` additionally feeds the
-    /// CURATED set (the only source clean-Hangul rules R5/R2-clean trust).
-    /// Bundle files not shipped yet are skipped naturally (path nil).
+    /// 2026-11-07 (#175) 오너 결정: broad를 Set에 펼치지 않는다. 해시 표만 8.6MB로 입력기 메모리의 3/4을 차지했다.
+    /// 원인은 파일 위치가 아니라 전부 펼치는 방식이라, 시스템 web2는 그 자리에서 매핑해 찾고(`SystemWordFile`)
+    /// 번들 사전 6종은 정렬 표 하나로 합쳐 찾는다(`SortedWordTable`). 저장소와 앱에 web2 낱말은 들어가지 않는다.
+    /// Overridable for tests — must be set before the first lookup (loads lazily once).
+    nonisolated(unsafe) static var bundledTablePath: String? =
+        Bundle.main.path(forResource: "english_bundled", ofType: "txt")
+
+    /// 시스템 낱말 파일. 없으면 web2 없이 돈다. Overridable for tests.
+    nonisolated(unsafe) static var systemWordsPath: String? = "/usr/share/dict/words"
+
+    /// Set으로 읽는 파일들. Overridable for tests — must be set before the first lookup.
+    /// `curatedPaths`에 등록된 파일은 CURATED set(clean-Hangul 룰 R5/R2-clean이 믿는 유일한 출처)이 되고,
+    /// 나머지는 broad에 더해진다. 배포본에는 curated 둘뿐이다. 나머지는 테스트 픽스처와 검역 후보를 얹는 통로다.
     /// 번들 사전 6종 — 역할 분담:
     ///   english_supplement  : curated + broad (수작업 현대어/기술어)
     ///   english_common      : curated + broad (NGSL 고빈도 일상어)
@@ -49,9 +56,9 @@ enum EnglishDetector {
     ///                         검역 Tier A/B=0 → clean 충돌 없음, broad 전용)
     ///
     /// (review-0712 P3-5) 이 목록의 **정본은 `dict_work/dict_manifest.tsv`**다.
-    /// 런타임은 번들 리소스를 못 읽는 상황을 피하려고 이름을 그대로 들고 있고,
+    /// 2026-11-07 (#175)부터 런타임은 표(`english_bundled.txt`)와 curated 둘만 번들에서 읽고, 이 이름 목록은 테스트가 manifest와 대조하는 데 쓴다.
     /// manifest와 어긋나면 `scripts/run_ime_tests.sh`가 실패한다. 사전을
-    /// 추가·제거할 땐 manifest를 먼저 고칠 것.
+    /// 추가·제거할 땐 manifest를 먼저 고치고 scripts/build_english_table.py를 돌릴 것.
     static let bundledWordlistNames = [
         "english_supplement", "english_common", "english_modern",
         "english_names", "english_names_extra", "english_sports_geo",
@@ -60,15 +67,8 @@ enum EnglishDetector {
     /// 위 중 curated 역할(= clean-Hangul 룰이 신뢰하는) 사전 이름.
     static let curatedWordlistNames = ["english_supplement", "english_common"]
 
-    nonisolated(unsafe) static var wordlistPaths: [String] = {
-        var paths = ["/usr/share/dict/words"]
-        for name in bundledWordlistNames {
-            if let bundled = Bundle.main.path(forResource: name, ofType: "txt") {
-                paths.append(bundled)
-            }
-        }
-        return paths
-    }()
+    nonisolated(unsafe) static var wordlistPaths: [String] =
+        curatedWordlistNames.compactMap { Bundle.main.path(forResource: $0, ofType: "txt") }
 
     /// CURATED 경로 화이트리스트 — fail-safe 교체 (기존 `broadDictPath`
     /// "제외" 방식 → "명시 등록" 방식). clean-Hangul 룰(R5/R2-clean)은
@@ -556,7 +556,9 @@ enum EnglishDetector {
     /// first word boundary needs them.
     static func preload() {
         DispatchQueue.global(qos: .utility).async {
-            _ = words
+            _ = bundledTable
+            _ = systemWords
+            _ = extraBroadWords
             _ = commonWords
         }
     }
@@ -564,7 +566,7 @@ enum EnglishDetector {
     /// #14: 외부 원문은 명시 사전 전체 일치/닫힌 축약형만 문맥의 근거가 된다.
     /// inflection fallback이나 복합어 추론, 오타 유사도는 여기에 사용하지 않는다.
     static func isExplicitEnglishContextWord(_ word: String) -> Bool {
-        shortWords.contains(word) || words.contains(word) || Contractions.words.contains(word)
+        shortWords.contains(word) || isBroadWord(word) || Contractions.words.contains(word)
     }
 
     /// #24: 두 조각은 각각 4~24글자, 전체 8~48글자이며 curated에 정확히 등재돼야 한다.
@@ -671,7 +673,7 @@ enum EnglishDetector {
     /// fallback. Used only by rules already gated on broken-as-Korean
     /// evidence (MAIN/R1/R3), where false positives are structurally bounded.
     private static func matchesEnglishWord(_ w: String) -> Bool {
-        if words.contains(w) { return true }
+        if isBroadWord(w) { return true }
 
         var stems: [String] = []
         if w.hasSuffix("ies") { stems.append(String(w.dropLast(3)) + "y") }
@@ -689,7 +691,7 @@ enum EnglishDetector {
             stems.append(stem + "e")      // typing → type
             stems.append(dedoubled(stem)) // running → run
         }
-        return stems.contains { $0.count >= 3 && words.contains($0) }
+        return stems.contains { $0.count >= 3 && isBroadWord($0) }
     }
 
     /// stopp → stop, runn → run
@@ -699,9 +701,23 @@ enum EnglishDetector {
         return String(chars.dropLast())
     }
 
-    /// Broad list: web2 + all supplements. For broken-as-Korean rules only.
-    private static let words: Set<String> =
-        loadWords(from: wordlistPaths, expectedCapacity: 320_000)
+    /// Broad lookup: 번들 표 + 시스템 web2 + curated + 표 밖의 파일. For broken-as-Korean rules only.
+    /// 모든 낱말이 ASCII 소문자라 바이트 비교와 Set<String>의 유니코드 동치 비교는 답이 같다.
+    private static func isBroadWord(_ w: String) -> Bool {
+        if let bundledTable, bundledTable.contains(Array(w.utf8)) { return true }
+        if let systemWords, systemWords.contains(w) { return true }
+        return commonWords.contains(w) || extraBroadWords.contains(w)
+    }
+
+    /// 온전한 파일일 때만 쓴다. 틀어진 표로 조회가 조용히 빗나가느니 표 없이 동작하는 편이 안전하다.
+    private static let bundledTable: SortedWordTable? =
+        bundledTablePath.flatMap { SortedWordTable(path: $0) }.flatMap { $0.isComplete ? $0 : nil }
+
+    private static let systemWords: SystemWordFile? = systemWordsPath.flatMap { SystemWordFile(path: $0) }
+
+    /// wordlistPaths 중 curated가 아닌 파일. 배포본에서는 비어 있다.
+    private static let extraBroadWords: Set<String> =
+        loadWords(from: wordlistPaths.filter { !curatedPaths.contains($0) }, expectedCapacity: 0)
 
     /// Curated list: curatedPaths-registered files ONLY (web2와 인명 파일
     /// 제외). The clean-Hangul R5 rule trusts this exclusively — exact
@@ -714,38 +730,240 @@ enum EnglishDetector {
         )
 
     /// mmap + 바이트 스캔 (KoreanDictionary와 동일 이유 — 임시 버퍼가
-    /// malloc 캐시에 상주하는 것 방지). 필터는 기존과 동일: 첫 글자가
-    /// ASCII 소문자인 줄만(고유명사/주석 제외), 3자+, ASCII 알파벳만.
-    private static func loadWords(
+    /// malloc 캐시에 상주하는 것 방지). 필터는 `isWordLine` 하나다.
+    static func loadWords(
         from paths: [String],
         expectedCapacity: Int
     ) -> Set<String> {
         var set = Set<String>()
         set.reserveCapacity(expectedCapacity)
-        let newline = UInt8(ascii: "\n")
         for path in paths {
             guard let data = try? Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe) else { continue }
-            data.withUnsafeBytes { (buf: UnsafeRawBufferPointer) in
-                let bytes = buf.bindMemory(to: UInt8.self)
-                var start = 0
-                func consume(_ range: Range<Int>) {
-                    guard range.count >= 3 else { return }
-                    let first = bytes[range.lowerBound]
-                    guard first >= 0x61, first <= 0x7A else { return } // a-z
-                    for i in range where !((bytes[i] >= 0x61 && bytes[i] <= 0x7A)
-                        || (bytes[i] >= 0x41 && bytes[i] <= 0x5A)) {
-                        return // 비알파벳 포함 줄 스킵
-                    }
-                    let word = String(decoding: bytes[range], as: UTF8.self).lowercased()
-                    set.insert(word)
-                }
-                for i in 0..<bytes.count where bytes[i] == newline {
-                    consume(start..<i)
-                    start = i + 1
-                }
-                if start < bytes.count { consume(start..<bytes.count) }
-            }
+            insertWords(of: data, into: &set)
         }
         return set
+    }
+
+    /// 낱말 파일의 줄 필터: 3자 이상, 첫 글자가 ASCII 소문자(고유명사/주석 제외), ASCII 알파벳만. 비교는 소문자화해서 한다.
+    /// Set 로더와 `SystemWordFile`이 이 함수를 함께 써서 판정이 갈라지지 않게 한다.
+    @inline(__always)
+    fileprivate static func isWordLine(_ bytes: UnsafeBufferPointer<UInt8>, _ range: Range<Int>) -> Bool {
+        guard range.count >= 3 else { return false }
+        let first = bytes[range.lowerBound]
+        guard first >= 0x61, first <= 0x7A else { return false }
+        for i in range where !((bytes[i] >= 0x61 && bytes[i] <= 0x7A) || (bytes[i] >= 0x41 && bytes[i] <= 0x5A)) {
+            return false
+        }
+        return true
+    }
+
+    fileprivate static func insertWords(of data: Data, into set: inout Set<String>) {
+        let newline = UInt8(ascii: "\n")
+        data.withUnsafeBytes { (buf: UnsafeRawBufferPointer) in
+            let bytes = buf.bindMemory(to: UInt8.self)
+            var start = 0
+            func consume(_ range: Range<Int>) {
+                guard isWordLine(bytes, range) else { return }
+                set.insert(String(decoding: bytes[range], as: UTF8.self).lowercased())
+            }
+            for i in 0..<bytes.count where bytes[i] == newline {
+                consume(start..<i)
+                start = i + 1
+            }
+            if start < bytes.count { consume(start..<bytes.count) }
+        }
+    }
+}
+
+/// 2026-11-07 (#175) 오너 결정: 시스템 낱말 파일을 펼치지 않고 매핑한 채 찾는다. 답은 언제나 그 파일을 `loadWords`로 펼친 Set과 같다.
+///
+/// 파일은 대소문자 무시 순이지만 보장이 아니다(macOS 판마다 다를 수 있다). 그래서 초기화 때 한 번 훑어 직접 확인한다.
+///   - 대상은 `isWordLine`을 통과한 줄뿐이다. March처럼 대문자로 시작하는 줄은 답이 될 수 없어 순서를 따지지 않는다.
+///   - 앞줄보다 작은 대상 줄(2026-11-07 이 Mac: plies 뒤의 pliers 1곳)은 작은 Set에 따로 둔다. 나머지는 정렬돼 있으므로 성긴 색인으로 찾는다.
+///   - 어긋난 낱말이 `maxStrayWords`를 넘거나 색인 사이가 `maxGapBytes`를 넘으면 정렬 파일로 보지 않고 Set으로 펼친다.
+///     메모리만 늘고 답은 같다. 빈 파일·CRLF(모든 줄이 필터에서 탈락)·잘린 파일도 같은 필터를 타므로 답이 Set과 같다.
+///
+/// 매핑한 페이지는 깨끗한 페이지라 phys_footprint에 들지 않고, 초기화(utility 큐)에서 전부 한 번 읽어 올라와 있다.
+/// 파일은 봉인된 시스템 볼륨에 있어 입력기가 도는 동안 제자리에서 바뀌지 않는다.
+/// 메모리가 모자라 페이지가 내려간 뒤에는 조회가 파일을 다시 읽는다. 압축 파일이라 비어 있는 페이지 첫 접근이 50~800µs 걸린다(2026-11-07 실측).
+/// 그래서 색인 줄의 앞 8글자를 메모리에 두어 이진 탐색이 파일을 건드리지 않게 하고, 조회 한 번이 읽는 곳을 색인 사이 한 구간으로 줄였다.
+final class SystemWordFile {
+    /// 대상 줄 몇 개마다 색인을 둘지. 이 Mac의 web2에서 색인 약 6,600개(26KB), 간격 평균 약 380B다.
+    private static let anchorStride = 32
+    /// 어긋난 낱말 상한. Set<String> 4,096칸은 약 0.13MB로 펼친 Set(8.6MB)에 견줘 작다.
+    /// 이보다 많으면 파일이 정렬돼 있다고 보기 어렵고, 펼쳐도 답은 같으니 더 버틸 이유가 없다.
+    static let maxStrayWords = 4_096
+    /// 조회 한 번이 훑는 길이의 상한. 키 입력 경로라 대상이 아닌 줄이 길게 이어지는 파일은 받지 않는다.
+    static let maxGapBytes = 64 * 1024
+
+    private let data: Data
+    private let anchors: [UInt32]
+    /// `anchors`와 같은 순서의 앞 8글자(소문자, 큰 자리부터, 모자라면 0). 낱말 순서와 대소 관계가 같다.
+    private let anchorPrefixes: [UInt64]
+    private let strayWords: Set<String>
+    private let expanded: Set<String>?
+    /// 정렬 파일로 쓰지 못해 Set으로 펼쳤는가.
+    var isExpanded: Bool { expanded != nil }
+    var strayCount: Int { strayWords.count }
+
+    convenience init?(path: String) {
+        guard let mapped = try? Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe) else { return nil }
+        self.init(data: mapped)
+    }
+
+    init(data given: Data) {
+        var marks: [UInt32] = []
+        var prefixes: [UInt64] = []
+        var stray = Set<String>()
+        var usable = given.count < Int(UInt32.max)
+        if usable {
+            marks.reserveCapacity(given.count / (Self.anchorStride * 8) + 16)
+            prefixes.reserveCapacity(marks.capacity)
+            given.withUnsafeBytes { (raw: UnsafeRawBufferPointer) in
+                let bytes = raw.bindMemory(to: UInt8.self)
+                let newline = UInt8(ascii: "\n")
+                var cursor = 0
+                var ordered = 0
+                var previous: Range<Int>? = nil
+                scan: while cursor < bytes.count {
+                    var end = cursor
+                    while end < bytes.count, bytes[end] != newline { end += 1 }
+                    let line = cursor..<end
+                    if EnglishDetector.isWordLine(bytes, line) {
+                        if let previous, Self.compareLowered(bytes, line, previous) < 0 {
+                            stray.insert(String(decoding: bytes[line], as: UTF8.self).lowercased())
+                            if stray.count > Self.maxStrayWords { usable = false; break scan }
+                        } else {
+                            if ordered % Self.anchorStride == 0 {
+                                if let last = marks.last, cursor - Int(last) > Self.maxGapBytes { usable = false; break scan }
+                                marks.append(UInt32(cursor))
+                                prefixes.append(Self.prefix(bytes[line]))
+                            }
+                            ordered += 1
+                            previous = line
+                        }
+                    }
+                    cursor = end + 1
+                }
+                if let last = marks.last, bytes.count - Int(last) > Self.maxGapBytes { usable = false }
+            }
+        }
+        if usable {
+            data = given
+            anchors = marks
+            anchorPrefixes = prefixes
+            strayWords = stray
+            expanded = nil
+        } else {
+            var set = Set<String>()
+            EnglishDetector.insertWords(of: given, into: &set)
+            data = Data()
+            anchors = []
+            anchorPrefixes = []
+            strayWords = []
+            expanded = set
+        }
+    }
+
+    func contains(_ word: String) -> Bool {
+        if let expanded { return expanded.contains(word) }
+        if strayWords.contains(word) { return true }
+        var key = word
+        return key.withUTF8 { key in
+            // 파일의 대상 줄은 소문자화하면 전부 a-z다. 그 밖의 글자가 든 말은 답이 될 수 없다.
+            guard key.count >= 3, key.allSatisfy({ $0 >= 0x61 && $0 <= 0x7A }) else { return false }
+            return data.withUnsafeBytes { (raw: UnsafeRawBufferPointer) -> Bool in
+                lookup(raw.bindMemory(to: UInt8.self), key)
+            }
+        }
+    }
+
+    private func lookup(_ bytes: UnsafeBufferPointer<UInt8>, _ key: UnsafeBufferPointer<UInt8>) -> Bool {
+        let newline = UInt8(ascii: "\n")
+        func lineEnd(_ start: Int) -> Int {
+            var end = start
+            while end < bytes.count, bytes[end] != newline { end += 1 }
+            return end
+        }
+        // anchors[lo]는 key 이상인 첫 색인이다. 답은 그 줄이거나 바로 앞 색인과의 사이에 있다.
+        // 앞 8글자가 다르면 파일을 읽지 않고 정한다.
+        let keyPrefix = Self.prefix(key[...])
+        var lo = 0, hi = anchors.count
+        while lo < hi {
+            let mid = (lo + hi) / 2
+            let order: Int
+            if anchorPrefixes[mid] != keyPrefix {
+                order = anchorPrefixes[mid] < keyPrefix ? -1 : 1
+            } else {
+                let start = Int(anchors[mid])
+                order = Self.compareLowered(bytes, start..<lineEnd(start), key)
+            }
+            if order < 0 { lo = mid + 1 } else { hi = mid }
+        }
+        if lo < anchors.count, anchorPrefixes[lo] == keyPrefix {
+            let start = Int(anchors[lo])
+            if Self.compareLowered(bytes, start..<lineEnd(start), key) == 0 { return true }
+        }
+        guard lo > 0 else { return false }
+        var cursor = Int(anchors[lo - 1])
+        let stop = lo < anchors.count ? Int(anchors[lo]) : bytes.count
+        while cursor < stop {
+            let end = lineEnd(cursor)
+            if Self.matches(bytes, cursor..<end, key) { return true }
+            cursor = end + 1
+        }
+        return false
+    }
+
+    /// 앞 8글자를 큰 자리부터 담는다. 대상 줄은 알파벳뿐이라 0x20을 켜면 소문자가 되고, key는 이미 소문자다.
+    @inline(__always)
+    private static func prefix(_ text: Slice<UnsafeBufferPointer<UInt8>>) -> UInt64 {
+        var value: UInt64 = 0
+        var taken = 0
+        for byte in text.prefix(8) {
+            value = value << 8 | UInt64(byte | 0x20)
+            taken += 1
+        }
+        return taken == 8 ? value : value << UInt64((8 - taken) * 8)
+    }
+
+    /// 대상 줄과 key가 같은가. March는 첫 글자가 대문자라 march의 답이 아니다(loadWords가 건너뛴다). marCh는 답이다.
+    @inline(__always)
+    private static func matches(_ bytes: UnsafeBufferPointer<UInt8>, _ line: Range<Int>, _ key: UnsafeBufferPointer<UInt8>) -> Bool {
+        guard line.count == key.count, bytes[line.lowerBound] == key[0] else { return false }
+        var k = 1
+        var i = line.lowerBound + 1
+        while i < line.upperBound {
+            let b = bytes[i]
+            guard b == key[k] || b == key[k] - 0x20 else { return false }
+            i += 1
+            k += 1
+        }
+        return true
+    }
+
+    /// 대상 줄끼리, 또는 대상 줄과 소문자 key의 사전순 비교. 대상 줄은 알파벳뿐이라 0x20을 켜면 소문자가 된다.
+    @inline(__always)
+    private static func compareLowered(_ bytes: UnsafeBufferPointer<UInt8>, _ a: Range<Int>, _ b: Range<Int>) -> Int {
+        let n = min(a.count, b.count)
+        var i = 0
+        while i < n {
+            let x = bytes[a.lowerBound + i] | 0x20, y = bytes[b.lowerBound + i] | 0x20
+            if x != y { return x < y ? -1 : 1 }
+            i += 1
+        }
+        return a.count == b.count ? 0 : (a.count < b.count ? -1 : 1)
+    }
+
+    @inline(__always)
+    private static func compareLowered(_ bytes: UnsafeBufferPointer<UInt8>, _ a: Range<Int>, _ key: UnsafeBufferPointer<UInt8>) -> Int {
+        let n = min(a.count, key.count)
+        var i = 0
+        while i < n {
+            let x = bytes[a.lowerBound + i] | 0x20, y = key[i]
+            if x != y { return x < y ? -1 : 1 }
+            i += 1
+        }
+        return a.count == key.count ? 0 : (a.count < key.count ? -1 : 1)
     }
 }

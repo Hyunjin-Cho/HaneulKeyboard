@@ -50,16 +50,14 @@ private struct VocabularyExtensionTests {
 
     static func main() throws {
         let manifest = try words("dict_work/dict_manifest.tsv")
-        var paths = ["/usr/share/dict/words"]
-        var curated = Set<String>()
+        var curated = [String]()
         for line in manifest {
             let fields = line.split(separator: "\t").map(String.init)
-            let path = "Resources/IM/\(fields[0]).txt"
-            paths.append(path)
-            if fields[1] == "curated" { curated.insert(path) }
+            if fields[1] == "curated" { curated.append("Resources/IM/\(fields[0]).txt") }
         }
-        EnglishDetector.wordlistPaths = paths
-        EnglishDetector.curatedPaths = curated
+        EnglishDetector.bundledTablePath = "Resources/IM/english_bundled.txt"
+        EnglishDetector.wordlistPaths = curated
+        EnglishDetector.curatedPaths = Set(curated)
         KoreanDictionary.wordlistPath = "Resources/IM/korean_words.txt"
         expect(KoreanDictionary.isLoaded, "실제 한국어 보호 사전 온전한 로드")
 
