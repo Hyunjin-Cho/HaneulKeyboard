@@ -35,6 +35,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     private var lastSettingsTab = SettingsTab.inputFeatures
     // deinit(nonisolated)에서 해제하므로 actor 격리에서 제외.
     nonisolated(unsafe) private var sourceObserver: NSObjectProtocol?
+    nonisolated(unsafe) private var enabledSourcesObserver: NSObjectProtocol?
+    /// 2026-11-07 (#177, 리뷰 app-ui-F-1): 지금 열려 있는 상태 아이콘 메뉴와 그 안의 입력기 상태 칸. 열린 동안 상태 읽기가 끝나면 칸만 고친다.
+    private weak var openMenu: NSMenu?
+    private var imeStatusItem: NSMenuItem?
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         // 응용 프로그램 폴더 밖이면 옮긴다(App Translocation 방지) — 메뉴바 생성보다 먼저.
@@ -71,7 +75,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
             self.applyMenuBarIconPreference()
             self.registerLoginItemIfNeeded()
             switch MenuBarIconDecision.launchWindow(
-                onboardingDone: UserDefaults.standard.bool(forKey: "haneul.hasCompletedOnboarding"),
+                onboardingDone: UserDefaults.standard.bool(forKey: HaneulDefaultsKey.hasCompletedOnboarding),
                 iconVisible: self.menuBarIconVisible,
                 launchedAsLoginItem: self.launchedAsLoginItem) {
             case .onboarding: self.showOnboarding()
@@ -100,10 +104,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         ) { [weak self] _ in
             // queue: .main이라 항상 메인 스레드에서 실행 — main actor로 안전하게 진입.
             MainActor.assumeIsolated {
-                self?.core.refreshLanguage()
                 self?.updateButtonDescription()
             }
         }
+        // 2026-11-07 (#177, 리뷰 app-ui-F-1): 시스템 설정에서 하늘키보드를 켜고 끄는 알림과 앱 활성화는 안내 창에만 있었다.
+        // 앱 전체가 받아 입력기 상태를 갱신한다 — 메뉴·설정(앱 관리)이 갱신 전 값으로 "미설치"를 말하지 않게.
+        enabledSourcesObserver = DistributedNotificationCenter.default.addObserver(
+            forName: NSNotification.Name(kTISNotifyEnabledKeyboardInputSourcesChanged as String),
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.core.refreshIMEStatus()
+            }
+        }
+        NotificationCenter.default.addObserver(self, selector: #selector(appDidBecomeActive),
+                                               name: NSApplication.didBecomeActiveNotification, object: nil)
+    }
+
+    @objc private func appDidBecomeActive() {
+        core.refreshIMEStatus()
     }
 
     /// 2026-11-05 (#142): 메뉴바 아이콘에 기대지 않는다(HIG "Avoid relying on the presence of menu bar extras").
@@ -128,7 +147,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     private func registerLoginItemIfNeeded() {
         let defaults = UserDefaults.standard
         guard LoginItemDecision.shouldAutoRegister(
-            onboardingDone: defaults.bool(forKey: "haneul.hasCompletedOnboarding"),
+            onboardingDone: defaults.bool(forKey: HaneulDefaultsKey.hasCompletedOnboarding),
             alreadyTried: defaults.bool(forKey: LoginItemDecision.autoRegisteredKey),
             bundlePath: Bundle.main.bundlePath) else { return }
         defaults.set(true, forKey: LoginItemDecision.autoRegisteredKey)
@@ -170,25 +189,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         if let sourceObserver {
             DistributedNotificationCenter.default.removeObserver(sourceObserver)
         }
+        if let enabledSourcesObserver {
+            DistributedNotificationCenter.default.removeObserver(enabledSourcesObserver)
+        }
     }
 
+    /// 2026-11-07 (#177, 리뷰 app-ui-F-7): 한국어/영어로만 말하지 않는다. 하늘키보드인지, 아니면 어떤 입력 소스인지를 사실대로 적는다.
     private func updateButtonDescription() {
-        let language = InputSwitcher.isKoreanActive() ? "한국어" : "영어"
-        statusItem?.button?.toolTip = "하늘키보드 · 현재 \(language)"
-        statusItem?.button?.setAccessibilityLabel("하늘키보드, 현재 \(language)")
+        core.refreshInputSource()
+        statusItem?.button?.toolTip = core.inputSource.toolTip
+        statusItem?.button?.setAccessibilityLabel(core.inputSource.accessibilityLabel)
     }
 
     // MARK: - NSMenuDelegate (메뉴 열 때마다 현재 상태로 재구성)
 
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
-        core.refreshLanguage()
-        core.refreshIMEStatus()
-        let hasCompleted = UserDefaults.standard.bool(forKey: "haneul.hasCompletedOnboarding")
+        core.refreshInputSource()
+        let hasCompleted = UserDefaults.standard.bool(forKey: HaneulDefaultsKey.hasCompletedOnboarding)
         let version = Updater.currentVersion
 
         addDisabled(menu, "하늘키보드 \(version)")
-        addDisabled(menu, core.isKoreanActive ? "현재: 한국어" : "현재: 영어")
+        addDisabled(menu, core.inputSource.menuLine)
         menu.addItem(.separator())
 
         if !hasCompleted {
@@ -197,12 +219,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         }
 
         // 2026-11-05 오너(#142): "영어로 전환"을 뺐다. 한영 전환은 Caps Lock과 시스템 입력 메뉴가 맡는다.
-        if core.imeDisabled {
-            // (#32) 번들은 있는데 시스템 설정에서 입력 소스를 뺀 상태 — 한 번에 되살린다.
-            add(menu, "한글 입력기가 꺼져 있음 — 다시 켜기", #selector(reenableIME))
-        } else if !core.imeInstalled {
-            addDisabled(menu, "한글 입력기(IME) 미설치 — 설정에서 설치 권장")
-        }
+        // 2026-11-07 (#177, 리뷰 app-ui-F-1): 입력기 상태는 비동기로 읽는다. 예전엔 여기서 읽기를 시작하고 바로 뒤에 직전 값을 그려서,
+        // 시스템 설정에서 바꾼 뒤 메뉴를 한 번 더 열어야 맞았고 로그인 직후엔 설치된 입력기가 "미설치"로 보였다.
+        // 이제 칸을 하나 만들어 두고(`applyIMEStatus`), 메뉴가 열린 뒤 읽기가 끝나면 칸만 다시 채운다(`menuWillOpen`).
+        // 읽기 전·작업 중에는 "확인 중"이라고 말한다. (#32) 꺼진 상태는 한 번에 되살린다.
+        let imeItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        imeItem.target = self
+        menu.addItem(imeItem)
+        imeStatusItem = imeItem
+        applyIMEStatus(to: imeItem)
 
         // 2026-10-24: 메뉴와 알림 모두 기존 버전·업데이트 화면으로 안내한다.
         if case .available(let update) = core.updater.phase {
@@ -218,7 +243,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         }
         // 2026-11-05 오너(#142): 종료의 뜻을 분명히 한다 — 메뉴바 앱만 꺼진다. 입력기는 별도 프로세스라 계속 동작한다.
         let quitItem = add(menu, "메뉴바 앱 종료", #selector(quit), key: "q")
+        // 2026-11-07 (#177, 리뷰 app-ui-F-4): 제거가 메인 스레드 밖에서 도는 동안 앱을 끝내면 반쯤 지워진 채 남는다.
+        quitItem.isEnabled = !core.isRemovalInProgress
         quitItem.toolTip = "메뉴바 아이콘만 사라져요. 한글 입력과 영타 변환은 그대로 동작해요. 응용 프로그램 폴더에서 다시 열 수 있어요."
+    }
+
+    func menuWillOpen(_ menu: NSMenu) {
+        openMenu = menu
+        Task { [weak self] in
+            guard let self else { return }
+            await core.refreshIMEStatusAndWait()
+            guard openMenu === menu, let item = imeStatusItem else { return }
+            applyIMEStatus(to: item)
+        }
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        if openMenu === menu { openMenu = nil }
+    }
+
+    /// 입력기 상태 칸의 모양을 지금 상태에 맞춘다. 칸을 지우고 다시 넣지 않고 숨김·제목·동작만 바꿔, 열려 있는 메뉴에서도 안전하다.
+    private func applyIMEStatus(to item: NSMenuItem) {
+        let presentation = IMEStatusPresentation.resolve(
+            statusKnown: core.imeStatusKnown, busy: core.isPreparingIME,
+            installed: core.imeInstalled, disabled: core.imeDisabled)
+        guard let title = presentation.menuTitle else { item.isHidden = true; return }
+        item.isHidden = false
+        item.title = title
+        item.action = presentation == .disabled ? #selector(reenableIME) : nil
+        item.isEnabled = presentation == .disabled
     }
 
     @discardableResult
@@ -268,8 +321,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         }
         window.delegate = self
         updateNoticeWindow = window
-        NSApp.activate(ignoringOtherApps: true)
-        window.makeKeyAndOrderFront(nil)
+        // 2026-11-07 (#177, 리뷰 app-ui-F-2): 이 알림은 자동 확인(실행 시·1시간 틱)이 띄우므로 사용자가 다른 앱에 글을 치는 도중에 뜨기 쉽다.
+        // 앱을 활성화하고 키 창으로 만들면 치던 글자가 이 창으로 새고 Return이 기본 버튼(‘버전·업데이트 열기’)을 눌러 설정 창이 뜬다.
+        // 입력기 제품이라 글자가 다른 창으로 새는 쪽을 더 위험하게 본다 — 활성화하지 않고 창만 앞에 올린다.
+        // 사용자가 직접 누르는 길(메뉴의 ‘새 버전’·창의 ‘버전·업데이트 열기’ 버튼)은 `showSettings`가 지금처럼 앞으로 가져온다.
+        // 알림을 놓치지 않는지는 실기기로 본다(#177 — docs/manual-test-checklist.md의 「새 버전 안내창」 절).
+        window.orderFrontRegardless()
     }
 
     private func showSettings(tab: SettingsTab?) {
@@ -277,6 +334,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         // macOS 26에서 동작하지 않아(메뉴 클릭 무반응), 설정도 onboarding과 동일하게
         // NSWindow + NSHostingController로 직접 띄운다.
         NSApp.activate(ignoringOtherApps: true)
+        // 2026-11-07 (#177, 리뷰 app-ui-F-1): 이미 활성화된 앱에서 창을 열면 활성화 알림이 없다 — 앱 관리 탭이 최신 상태를 그리게 직접 읽는다.
+        core.refreshIMEStatus()
         if let win = settingsWindow {
             win.makeKeyAndOrderFront(nil)
             if let tab {

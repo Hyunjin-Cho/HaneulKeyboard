@@ -8,7 +8,8 @@ import Foundation
 enum InputSourceSettingsCache {
     static let directoryName = "com.apple.Keyboard-Settings.extension"
     static let fileName = "com.apple.IntlDataCache.le.kbdx"
-    static let inputMethodID = "com.hyunjincho.inputmethod.haneul"
+    // 2026-11-07 (#177, 리뷰 app-ui-F-8): 입력기 번들 ID는 `IMEInstaller.imeBundleID` 한 곳에서 정한다(값은 그대로).
+    static let inputMethodID = IMEInstaller.imeBundleID
     enum State: Sendable { case absent, current, stale }
     private struct Identity: Equatable {
         let inode: UInt64, device: UInt64, size: Int

@@ -9,9 +9,13 @@ enum InputSwitcher {
         return sourceID(of: source)
     }
 
-    static func isKoreanActive() -> Bool {
-        guard let id = currentSourceID() else { return false }
-        return looksKorean(id)
+    /// 2026-11-07 (#177, 리뷰 app-ui-F-7): 시스템이 지역화한 현재 입력 소스 이름(예: "ABC", "두벌식").
+    /// 예전의 `isKoreanActive()`는 ID에 korean·hangul이 들었는지만 보고 나머지를 전부 "영어"라 말해서 지웠다 — 분류는
+    /// `InputSourceDescription.classify`가 한다.
+    static func currentSourceLocalizedName() -> String? {
+        guard let source = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue(),
+              let ptr = TISGetInputSourceProperty(source, kTISPropertyLocalizedName) else { return nil }
+        return Unmanaged<CFString>.fromOpaque(ptr).takeUnretainedValue() as String
     }
 
     @discardableResult
@@ -43,10 +47,5 @@ enum InputSwitcher {
     private static func sourceID(of source: TISInputSource) -> String? {
         guard let ptr = TISGetInputSourceProperty(source, kTISPropertyInputSourceID) else { return nil }
         return Unmanaged<CFString>.fromOpaque(ptr).takeUnretainedValue() as String
-    }
-
-    private static func looksKorean(_ id: String) -> Bool {
-        let lower = id.lowercased()
-        return lower.contains("korean") || lower.contains("hangul")
     }
 }

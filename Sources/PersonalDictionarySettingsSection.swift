@@ -25,7 +25,7 @@ struct PersonalDictionarySettingsSection: View {
     }
 
     /// IME 도메인 — 이유는 `EnglishConversionSettingsTab.imeDefaults` 주석 참조.
-    private static let imeDefaults = UserDefaults(suiteName: "com.hyunjincho.inputmethod.haneul")
+    private static let imeDefaults = UserDefaults(suiteName: IMEInstaller.imeBundleID)
 
     @State private var listKind: ListKind = .force
     @State private var force: [String] = []

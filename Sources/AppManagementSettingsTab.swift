@@ -12,6 +12,12 @@ struct AppManagementSettingsTab: View {
     @State private var loginItem = LoginItem.state
     @State private var loginItemError: String?
 
+    /// 2026-11-07 (#177, 리뷰 app-ui-F-1): 읽기 전·작업 중에는 캐시된 false를 "설치되어 있지 않습니다"로 말하지 않는다.
+    private var imeStatus: IMEStatusPresentation {
+        .resolve(statusKnown: core.imeStatusKnown, busy: core.isPreparingIME,
+                 installed: core.imeInstalled, disabled: core.imeDisabled)
+    }
+
     private var isBusy: Bool {
         if core.isPreparingIME { return true }
         switch core.updater.phase {
@@ -33,6 +39,9 @@ struct AppManagementSettingsTab: View {
                             .font(SettingsTypography.body)
                             .foregroundStyle(.secondary)
                     }
+                } else if imeStatus == .checking {
+                    Label("한글 입력기 상태를 확인하고 있습니다.", systemImage: "hourglass")
+                        .foregroundStyle(.secondary)
                 } else {
                     Label(core.imeDisabled
                         ? "시스템 입력 소스에서 하늘키보드가 꺼져 있습니다."
@@ -52,6 +61,18 @@ struct AppManagementSettingsTab: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(isBusy)
+                }
+
+                // 2026-11-07 (#177, 리뷰 app-ui-F-3): 시스템 영역의 낡은 입력기는 앱이 직접 바꿀 수 없다. 안내 1단계와 버전·업데이트 화면이
+                // 가리키는 해결 자리가 여기다 — 무엇을 눌러야 하는지 같은 말로 적는다.
+                if core.imeRefreshBlockedBySystemInstall {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Label("시스템 영역의 입력기가 이전 버전입니다.", systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                        Text("이 Mac의 /Library/Input Methods에 이전 빌드 입력기가 있어 앱이 직접 새 버전으로 바꿀 수 없습니다. 아래 ‘입력기 제거’(관리자 암호가 필요합니다)로 지운 뒤 ‘입력기 설치’를 눌러 주세요.")
+                            .font(SettingsTypography.body)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 if let message = operationError ?? core.imeActivationError.map({ "입력기를 준비하지 못했습니다: \($0.localizedDescription)" }) {

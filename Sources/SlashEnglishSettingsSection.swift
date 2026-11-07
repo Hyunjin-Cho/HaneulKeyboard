@@ -3,7 +3,7 @@ import SwiftUI
 /// #87 · 2026-10-12: IME와 저장 키·기본값을 공유하는 독립 입력 기능.
 struct SlashEnglishSettingsSection: View {
     // 저장 도메인은 EnglishConversionSettingsTab.imeDefaults 주석 참조.
-    private static let imeDefaults = UserDefaults(suiteName: "com.hyunjincho.inputmethod.haneul")
+    private static let imeDefaults = UserDefaults(suiteName: IMEInstaller.imeBundleID)
     @State private var enabled = SlashEnglishSettingsSection.imeDefaults.map { SlashEnglishSession.isEnabled(in: $0) }
         ?? SlashEnglishSession.defaultEnabled
 
