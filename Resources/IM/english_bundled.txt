@@ -4,7 +4,7 @@
 # Format: UTF-8 byte order, LF only, one word per line. The IME maps this file and binary-searches it.
 # Sources: NGSL (CC BY-SA 4.0); SCOWL/ESDB (MIT-like); US Census and SSA names (public domain);
 #   GeoNames (CC BY 4.0); Wikidata (CC0); lists curated by this project. Attribution: ACKNOWLEDGEMENTS.md.
-# count: 130317
+# count: 130412
 aaa
 aac
 aachen
@@ -690,6 +690,7 @@ accruals
 accrued
 accrues
 accruing
+acct
 acculturated
 acculturates
 acculturating
@@ -1369,6 +1370,7 @@ adroiter
 adroitest
 adrualdo
 adryan
+ads
 adscriptions
 adsense
 adshead
@@ -6835,6 +6837,7 @@ assorts
 assoumani
 assoumou
 assous
+asst
 assuaged
 assuagements
 assuages
@@ -7682,6 +7685,7 @@ avetisyan
 avey
 aveyard
 aveyron
+avg
 avi
 avia
 aviana
@@ -10141,6 +10145,7 @@ bazzi
 bazzoffia
 bazzoni
 bbb
+bbc
 bbq
 bbs
 bca
@@ -11890,6 +11895,7 @@ bezoars
 bezzati
 bezzecchi
 bezziccheri
+bff
 bgm
 bhagwan
 bhai
@@ -13001,6 +13007,7 @@ blazoned
 blazonries
 blazons
 bldc
+bldg
 ble
 bleachers
 bleaches
@@ -13352,6 +13359,7 @@ blushes
 blustered
 blusterers
 blusters
+blvd
 blyndu
 blystone
 blyth
@@ -13365,6 +13373,7 @@ bmi
 bmr
 bms
 bmw
+bmx
 bmxing
 bnpl
 boadicea
@@ -14808,6 +14817,7 @@ bozzi
 bozzo
 bozzolo
 bozzoni
+bpm
 bps
 braafheid
 braai
@@ -17388,6 +17398,7 @@ byssinoses
 byssuses
 bystanders
 bystreets
+byte
 bytecode
 bytes
 bytheway
@@ -17608,6 +17619,7 @@ cafard
 cafards
 cafaro
 cafasso
+cafe
 cafelatte
 cafelayered
 cafemocha
@@ -20611,6 +20623,7 @@ cerritos
 cerrone
 cerroni
 cerros
+cert
 certain
 certainer
 certainest
@@ -27647,6 +27660,7 @@ crecco
 crecelius
 creches
 crecy
+cred
 credendum
 credentialed
 credentialing
@@ -30326,6 +30340,7 @@ debutants
 debuted
 debuting
 debuts
+dec
 decacorn
 decade
 decadents
@@ -36636,6 +36651,8 @@ duwayne
 duxbury
 duxes
 dvandvas
+dvd
+dvds
 dvi
 dvina
 dvinson
@@ -40202,6 +40219,7 @@ etageres
 etalons
 etamines
 etas
+etc
 etcd
 etched
 etchepare
@@ -41187,6 +41205,7 @@ exserts
 exsiccated
 exsiccates
 exsiccating
+ext
 extemporaneities
 extemporarinesses
 extemporized
@@ -42199,6 +42218,7 @@ favaron
 favas
 favasuli
 favati
+fave
 favela
 favelas
 favero
@@ -42229,6 +42249,7 @@ fawners
 fawnest
 fawns
 fawunmi
+fax
 faxed
 faxes
 faxing
@@ -53422,6 +53443,7 @@ hba
 hbar
 hbase
 hbm
+hbo
 hbomax
 hbv
 hctor
@@ -53435,6 +53457,7 @@ hdoire
 hdqrs
 hdr
 hdri
+hdtv
 heacock
 head
 headaches
@@ -55099,6 +55122,7 @@ hiwula
 hixenbaugh
 hixon
 hixson
+hiya
 hiyas
 hjalgrm
 hjalmar
@@ -56263,6 +56287,7 @@ hrivk
 hrm
 hrotk
 hrouard
+hrs
 hrson
 hrsti
 hruby
@@ -56698,6 +56723,7 @@ huzzah
 huzzahed
 huzzahing
 huzzahs
+hvac
 hwan
 hwang
 hwy
@@ -57093,6 +57119,7 @@ ibises
 ibit
 ibiza
 iblis
+ibm
 ibourahima
 ibouzidne
 ibragimov
@@ -57306,6 +57333,7 @@ idyllist
 idyllists
 idyllize
 idylls
+ieee
 ielpo
 ielsch
 ielts
@@ -57545,6 +57573,7 @@ imants
 imap
 imarets
 imari
+imax
 imba
 imbalanced
 imbalances
@@ -58017,6 +58046,7 @@ inbreeder
 inbreeders
 inbreeding
 inbreeds
+inc
 incalculabilities
 incalza
 incandesced
@@ -59722,6 +59752,7 @@ iot
 iotacisms
 iotas
 iotti
+iou
 iovan
 iovino
 iowans
@@ -59745,6 +59776,7 @@ iphonepro
 ipl
 ipo
 ipock
+ipod
 ipods
 ippoliti
 ippolito
@@ -59794,6 +59826,7 @@ irb
 irbid
 irbil
 irby
+irc
 irelan
 ireland
 irelia
@@ -60747,6 +60780,7 @@ jampans
 jams
 jamshedpur
 jamya
+jan
 jana
 janacek
 janae
@@ -61183,6 +61217,7 @@ jeered
 jeerers
 jeers
 jeeves
+jeez
 jeferson
 jefes
 jeffcoat
@@ -62015,6 +62050,7 @@ jpa
 jpeg
 jpegs
 jpg
+jpn
 jpop
 jpt
 jpy
@@ -62157,6 +62193,7 @@ jukeboxes
 juked
 jukes
 juking
+jul
 julan
 julen
 julene
@@ -62202,6 +62239,7 @@ jumpit
 jumps
 jumpsuit
 jumpsuits
+jun
 junaid
 juncal
 junco
@@ -62996,6 +63034,7 @@ karstify
 karstifying
 karsts
 karsyn
+kart
 kartalija
 kartchner
 karthik
@@ -68381,6 +68420,7 @@ liards
 liars
 liassine
 liazid
+lib
 liban
 libations
 libbers
@@ -69281,6 +69321,7 @@ lmao
 lmguide
 lms
 lmstudio
+lng
 lnstrup
 loach
 loaches
@@ -70120,6 +70161,7 @@ lozier
 lozoya
 lozzi
 lpddr
+lpg
 lpga
 lpl
 lqr
@@ -70132,6 +70174,7 @@ lsof
 lsp
 ltang
 ltc
+ltd
 lte
 ltv
 lua
@@ -74904,6 +74947,7 @@ meck
 mecklenburg
 meckley
 mecozzi
+med
 medaci
 medaillon
 medaling
@@ -74993,6 +75037,7 @@ medrano
 medri
 medrn
 medrxiv
+meds
 medtronic
 medullas
 medunjanin
@@ -75022,6 +75067,7 @@ meets
 meetup
 meetups
 mefford
+mega
 megabit
 megabits
 megabox
@@ -76168,6 +76214,7 @@ mghoghi
 mgica
 mgico
 mgm
+mgr
 mguez
 mhanni
 mhedhebi
@@ -76178,6 +76225,7 @@ mhren
 mhrise
 mhwilds
 mhworld
+mia
 miabella
 miah
 mialich
@@ -76195,6 +76243,7 @@ miasmically
 miata
 miazek
 miband
+mic
 micael
 micaela
 micah
@@ -76454,6 +76503,7 @@ microwaveable
 microwaved
 microwaves
 microwaving
+mics
 micturated
 micturates
 micturating
@@ -77256,6 +77306,7 @@ misbelieving
 misbranded
 misbranding
 misbrands
+misc
 miscalculated
 miscalculates
 miscalculating
@@ -77749,6 +77800,7 @@ mkdir
 mkhitaryan
 mkr
 mkrtchyan
+mkt
 mla
 mlaab
 mladen
@@ -79210,12 +79262,14 @@ mozzies
 mozzini
 mpassi
 mpc
+mpeg
 mpenza
 mpg
 mph
 mphela
 mpi
 mppi
+mps
 mpv
 mql
 mqtt
@@ -79249,6 +79303,7 @@ msata
 msc
 msd
 msft
+msg
 msi
 msit
 msm
@@ -79269,6 +79324,7 @@ mtiliga
 mtls
 mts
 mttr
+mtv
 mtzell
 muamba
 muamer
@@ -80549,6 +80605,7 @@ narvik
 narwal
 narwhals
 nas
+nasa
 nasalized
 nasalizes
 nasalizing
@@ -80789,7 +80846,10 @@ nazon
 nazzani
 nazzareno
 nazzaro
+nba
+nbc
 nca
+ncaa
 nchama
 nchobi
 nclex
@@ -81180,6 +81240,7 @@ nepotists
 neqrouz
 neral
 nerals
+nerd
 nerdier
 nerdiest
 nerdiness
@@ -81584,6 +81645,7 @@ nguyen
 nguyn
 ngwee
 nhis
+nhl
 niacinamide
 niagaras
 niah
@@ -81834,6 +81896,7 @@ niihau
 nijah
 nijinsky
 nijisanji
+nike
 nikezi
 niki
 nikiforov
@@ -82630,6 +82693,7 @@ nourished
 nourishes
 nouses
 nouveau
+nov
 novacek
 novack
 novacki
@@ -82724,12 +82788,14 @@ npx
 nri
 nrr
 nrt
+nsa
 nsafu
 nsakala
 nsaliwa
 nsame
 nscc
 nsereko
+nsfw
 nsiabamfumu
 nsiala
 nsikulu
@@ -82749,6 +82815,7 @@ ntlhe
 ntolla
 ntounou
 ntoya
+ntsc
 ntu
 ntuka
 ntumba
@@ -82971,6 +83038,7 @@ nyasaland
 nyasia
 nyatanga
 nyathi
+nyc
 nyctalopias
 nyctophobias
 nydam
@@ -83190,6 +83258,7 @@ obriant
 obrien
 obryan
 obryant
+obs
 obscener
 obscenest
 obscenities
@@ -83379,9 +83448,11 @@ oconner
 oconnor
 ocotillos
 ocotlan
+ocr
 ocran
 ocreae
 ocs
+oct
 octachords
 octads
 octagons
@@ -83699,6 +83770,7 @@ oilmen
 oils
 oilskins
 oilstones
+oink
 oinked
 oinking
 oinks
@@ -84155,6 +84227,7 @@ opcua
 opd
 opdivo
 opdyke
+opec
 oped
 opel
 open
@@ -84275,6 +84348,7 @@ oppugned
 oppugning
 oppugns
 oprah
+ops
 opsahl
 opsonins
 opsonized
@@ -87926,7 +88000,9 @@ pcmcia
 pcout
 pcp
 pcr
+pct
 pcu
+pda
 pdemonte
 pdf
 pdfs
@@ -92207,6 +92283,7 @@ ppito
 ppo
 ppomppu
 ppt
+ppv
 practicabilities
 practical
 practicalities
@@ -92302,6 +92379,7 @@ pray
 prayed
 prayers
 prays
+pre
 preached
 preachers
 preaches
@@ -94545,6 +94623,7 @@ puzone
 puzzleanddragons
 puzzlers
 puzzles
+pvc
 pve
 pvels
 pvg
@@ -96657,6 +96736,7 @@ rebutted
 rebutters
 rebutting
 rebuzzi
+rec
 recagni
 recagno
 recalcati
@@ -101564,6 +101644,7 @@ rsa
 rsfsr
 rsi
 rspa
+rss
 rsu
 rsv
 rsvp
@@ -111676,6 +111757,7 @@ stassievitch
 stassin
 stastny
 staszak
+stat
 state
 statefulset
 statehouses
@@ -121396,6 +121478,7 @@ ugrics
 uguzne
 ugv
 uhd
+uhf
 uhland
 uhlans
 uhlenbeek
@@ -122094,6 +122177,7 @@ unitizes
 unitizing
 unitree
 units
+univ
 univalences
 univalves
 univariate
@@ -122111,6 +122195,7 @@ universes
 universities
 university
 univocals
+unix
 unjuster
 unjustest
 unkemptnesses
@@ -122499,6 +122584,7 @@ uproots
 uprushed
 uprushes
 uprushing
+ups
 upsell
 upselling
 upset
@@ -122717,6 +122803,7 @@ urwin
 urzaiz
 urzelai
 urzua
+usa
 usabilitytest
 usably
 usages
@@ -122729,6 +122816,7 @@ usbmic
 usbs
 uscpa
 usd
+usda
 usdc
 usdt
 use
@@ -122770,6 +122858,7 @@ usrey
 usry
 ussello
 ussery
+ussr
 ustari
 ustaritz
 ustinov
@@ -122794,6 +122883,7 @@ utahn
 utahns
 utahraptor
 utaka
+utc
 utecht
 utensils
 utf
@@ -124181,6 +124271,7 @@ vezzani
 vezzoso
 vfd
 vfx
+vga
 vgt
 vhf
 vhs
@@ -129130,6 +129221,7 @@ yldrm
 ylem
 ylems
 yllana
+ymca
 yml
 yncln
 yniguez
@@ -129288,6 +129380,7 @@ ypsilanti
 yremy
 yriarte
 yrondu
+yrs
 ysabel
 ysabella
 yseult
@@ -129330,12 +129423,14 @@ yuletides
 yuliana
 yulianna
 yulianto
+yum
 yumas
 yummier
 yummiest
 yuna
 yunjin
 yunnan
+yup
 yupik
 yupiks
 yuppie

@@ -238,6 +238,7 @@ zymurgy
 재다운로드 가능한 원본+재생성 가능한 검역 CSV뿐이므로 통째로 지워도 된다.
 - `dict_work/exclusions.txt` — theory(소대교 충돌) + 인명 전부-자모 2,685
 - `dict_work/scowl_exclusions_alljamo4.txt` — SCOWL ≤4자모 전부-자모 826 (btw·lol류)
+  - 2026-11-08 (#194): 오너 요청으로 bio와 쓰는 말 93개를 수작업 사전에 다시 넣었다. 재생성해도 제외 목록은 SCOWL diff에만 적용되므로 그대로 남는다. 기록: `dict_work/2026-11-08-shortwords-registration.tsv`, `exclusion_overlap_baseline.tsv`.
 재생성 시: `build_english_wordlists.py --exclude dict_work/exclusions.txt`,
 SCOWL diff에는 `comm -23 ... dict_work/scowl_exclusions_alljamo4.txt` (위 §4 레시피).
 
