@@ -160,6 +160,10 @@ final class KoreanComposer {
         lastConversionOrigin = conversionOrigin
     }
 
+    /// 2026-11-07 (#173, 독립 리뷰 A-P2-1): 되돌리기가 화면에 반영되지 않았다고 확인되면 끊어 둔 문맥을 끊기 전 값으로 되돌린다.
+    /// `applyToggle(toEnglish: true)`를 쓰면 원래 문맥을 넘기지 않던 단어(`apple'`·문맥 전용 동형어)에도 문맥이 생긴다.
+    func restoreEnglishContext(_ word: String?) { lastEnglishWord = word }
+
     /// 2026-10-06 (#76): 숫자·NFD 자모도 단어의 일부다. 아포스트로피는
     /// 양쪽에 단어 문자가 있을 때만 내부 연결자로 취급한다(여는 따옴표 보호).
     static func isWordChar(_ c: unichar) -> Bool {
@@ -184,9 +188,11 @@ final class KoreanComposer {
     /// 2026-11-07 (#173, 리뷰 F-3 오너 결정): 되돌리기가 커서 뒤로 건너뛰는 글자는 같은 줄의 공백과 닫는 기호·따옴표뿐이다.
     /// 예전엔 단어 글자가 아니면 전부 건너뛰어 다음 줄 들여쓰기·이모지·한자 뒤에서 앞 단어가 조용히 바뀌었다.
     /// 그 밖의 글자(줄바꿈 포함)를 만나면 바꾸지 않고 스페이스를 앱에 넘긴다.
+    /// 같은 날 루트 판단: "공백"에 NBSP도 넣는다 — 크롬 계열 contenteditable이 줄 끝 공백을 NBSP로 줄 수 있어
+    /// 안 넣으면 변환 직후 되돌리기가 깨질 수 있다(실기기 미확인).
     private static func isSkippableTrailing(_ c: unichar) -> Bool {
         switch c {
-        case 0x20, 0x09,                 // 스페이스·탭
+        case 0x20, 0x09, 0xA0,           // 스페이스·탭·NBSP
              0x21, 0x3F, 0x2E, 0x2C,     // ! ? . ,
              0x29, 0x5D, 0x7D,           // ) ] }
              0x27, 0x22, 0x2019, 0x201D: // ' " ’ ”

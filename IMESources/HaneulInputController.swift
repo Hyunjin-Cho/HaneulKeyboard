@@ -81,6 +81,7 @@ final class HaneulInputController: IMKInputController {
         let english: String
         let toEnglish: Bool
         let origin: KoreanComposer.ConversionOrigin
+        let previousEnglishWord: String?
     }
     private var deferredPairToggle: DeferredPairToggle?
 
@@ -415,15 +416,18 @@ final class HaneulInputController: IMKInputController {
                     #endif
                     if rejected {
                         // 2026-11-07 (#173, 리뷰 F-2): 늦은 읽기 호스트(노션 기록)는 화면이 바뀌었어도 옛 글자를 돌려준다.
-                        // 한글로 되돌리는 쪽은 영어 문맥을 바로 끊는다 — 진짜 거부여도 안전한 실패다. 기록과 영어 쪽 전이는 다음 키의 확인 뒤에 한다.
+                        // 한글로 되돌리는 쪽은 영어 문맥을 바로 끊고, 기록과 영어 쪽 전이는 다음 키의 확인 뒤에 한다.
+                        // 같은 날 독립 리뷰 A-P2-1: 진짜 거부(Terminal.app형)는 다음 키에서 옛 영어가 읽힌다 — 그때 끊기 전 문맥으로 되돌린다.
                         guard eventSequence == inputSequence else { return true }
                         let toEnglish = r.text == conv.english
+                        let previousEnglishWord = composer.lastEnglishWord
                         if !toEnglish {
                             composer.applyToggle(toEnglish: false, hangul: conv.hangul,
                                                  english: conv.english, origin: origin)
                         }
                         deferredPairToggle = DeferredPairToggle(start: start, hangul: conv.hangul,
-                            english: conv.english, toEnglish: toEnglish, origin: origin)
+                            english: conv.english, toEnglish: toEnglish, origin: origin,
+                            previousEnglishWord: previousEnglishWord)
                         roundTripTrace.record(.deferredStored, composer: composer)
                         return true
                     }
@@ -618,23 +622,37 @@ final class HaneulInputController: IMKInputController {
     }
 
     /// 앞 키의 저장 쌍 교체가 거부로 읽혔을 때, 이번 키에서 그 자리를 다시 읽어 확정한다. 후보는 한 번만 쓰고 버린다.
-    /// 끝까지 옛 글자면 진짜 거부(Terminal.app형)다 — 되돌린 적이 없으니 기록하지 않는다.
+    /// 옛 글자가 그대로면 진짜 거부(Terminal.app형)다 — 되돌린 적이 없으니 기록하지 않고 끊어 둔 영어 문맥을 되돌린다.
+    /// 둘 다 아니면(읽기 실패·다른 글자) 어느 쪽인지 모르니 끊어 둔 채로 둔다(안전한 실패).
     private func settleDeferredPairToggle(client: IMKTextInput, generation: UInt, inputSequence eventSequence: UInt) {
         guard let candidate = deferredPairToggle else { return }
         deferredPairToggle = nil
-        let expected = candidate.toEnglish ? candidate.english : candidate.hangul
-        let surface = tracedSubstring(client, stage: .readback,
-            from: NSRange(location: candidate.start, length: (expected as NSString).length))?.string
-        guard generation == sessionGeneration, eventSequence == inputSequence, surface == expected,
-              composer.lastConversion?.hangul == candidate.hangul,
-              composer.lastConversion?.english == candidate.english else { return }
-        composer.applyToggle(toEnglish: candidate.toEnglish, hangul: candidate.hangul,
-                             english: candidate.english, origin: candidate.origin)
-        externalContextPending = false
-        roundTripTrace.record(.deferredConfirmed, composer: composer)
-        if !candidate.toEnglish, composer.shouldRecordAutomaticRevert {
-            recordRevert(hangul: candidate.hangul, english: candidate.english)
+        func isCurrent() -> Bool {
+            generation == sessionGeneration && eventSequence == inputSequence
+                && composer.lastConversion?.hangul == candidate.hangul
+                && composer.lastConversion?.english == candidate.english
         }
+        func surface(_ text: String) -> String? {
+            tracedSubstring(client, stage: .readback,
+                from: NSRange(location: candidate.start, length: (text as NSString).length))?.string
+        }
+        let expected = candidate.toEnglish ? candidate.english : candidate.hangul
+        let surfaceNow = surface(expected)
+        guard isCurrent() else { return }
+        if surfaceNow == expected {
+            composer.applyToggle(toEnglish: candidate.toEnglish, hangul: candidate.hangul,
+                                 english: candidate.english, origin: candidate.origin)
+            externalContextPending = false
+            roundTripTrace.record(.deferredConfirmed, composer: composer)
+            if !candidate.toEnglish, composer.shouldRecordAutomaticRevert {
+                recordRevert(hangul: candidate.hangul, english: candidate.english)
+            }
+            return
+        }
+        guard !candidate.toEnglish else { return }   // 영어 방향은 끊은 적이 없어 되돌릴 것이 없다
+        let oldSurface = surface(candidate.english)
+        guard isCurrent(), oldSurface == candidate.english else { return }
+        composer.restoreEnglishContext(candidate.previousEnglishWord)
     }
 
     /// Verify a previous replacement on the next explicit shortcut, never on a timer.

@@ -751,10 +751,47 @@ final class ProbeClient: NSObject, IMKTextInput {
             check(c.probeComposer.lastEnglishWord == nil,"auto_revert_cuts_english_context_\(host)")
             check(c.probeComposer.lastConversion?.english == "want","auto_revert_keeps_pair_\(host)")
             typeKeys("to",c,h); press(c,h," ",code:49)
-            check(h.text == surface + "새 ","auto_revert_next_word_not_converted_\(host)")
-            // 진짜 거부(Terminal.app형)는 되돌린 적이 없으니 기록하지 않는다.
+            // 2026-11-07 (#173, 독립 리뷰 A-P2-1): 진짜 거부(Terminal.app형)는 화면이 영어 그대로라 문맥도 돌아와야 한다.
+            // 처음엔 `want 새 `를 정답으로 적었는데 예전 동작을 깨는 회귀였다. 기록도 하지 않는다.
+            check(h.text == (host == "rejected" ? "want to " : surface + "새 "),"auto_revert_next_word_\(host)")
             check(recentReverts() == (host == "rejected" ? 0 : 1),"auto_revert_recorded_\(host)")
             result("auto_revert_\(host)",c,h)
+        }
+        for (first, second) in [("git","is"),("cd","ls")] { // 대조: 문맥과 무관하게 변환되는 단어는 거부 호스트에서도 같다.
+            let (c,h) = fresh(); h.rejectReplacement = true; h.preserveTrailingCaret = true
+            typeKeys(first,c,h); press(c,h," ",code:49)
+            _ = shift(c,h)
+            typeKeys(second,c,h); press(c,h," ",code:49)
+            check(h.text == first + " " + second + " ","auto_revert_rejected_context_free_\(first)")
+            result("auto_revert_rejected_context_free_\(first)",c,h)
+        }
+        do { // 거부 호스트에서 여러 번 눌러도 문맥은 처음 그대로다.
+            let (c,h) = fresh(); h.rejectReplacement = true; h.preserveTrailingCaret = true
+            typeKeys("want",c,h); press(c,h," ",code:49)
+            for _ in 0..<3 { _ = shift(c,h) }
+            typeKeys("to",c,h); press(c,h," ",code:49)
+            check(h.text == "want to " && recentReverts() == 0,"auto_revert_rejected_repeat")
+            result("auto_revert_rejected_repeat",c,h)
+        }
+        do { // 되돌리는 값은 쌍의 영어가 아니라 끊기 전 문맥이다 — `apple'`은 원래 문맥을 넘기지 않는다.
+            let (c,h) = fresh(); h.rejectReplacement = true; h.preserveTrailingCaret = true
+            typeKeys("apple",c,h)
+            check(press(c,h,"'",code:39),"auto_revert_rejected_apostrophe_absorbed")
+            press(c,h," ",code:49)
+            check(c.probeComposer.lastConversion?.english == "apple'" && c.probeComposer.lastEnglishWord == nil,"auto_revert_rejected_apostrophe_precondition")
+            _ = shift(c,h)
+            typeKeys("t",c,h)
+            check(c.probeComposer.lastEnglishWord == nil,"auto_revert_rejected_restores_previous_context_only")
+            result("auto_revert_rejected_apostrophe",c,h)
+        }
+        do { // 대조: 다음 키에서 읽기가 안 되면 무엇이 맞는지 모른다 — 끊어 둔 채로 둔다(안전한 실패).
+            let (c,h) = fresh(); h.rejectReplacement = true; h.preserveTrailingCaret = true
+            typeKeys("want",c,h); press(c,h," ",code:49)
+            _ = shift(c,h)
+            h.unreadable = true
+            typeKeys("to",c,h); press(c,h," ",code:49)
+            check(h.text == "want 새 ","auto_revert_rejected_unknown_stays_cut")
+            result("auto_revert_rejected_unknown",c,h)
         }
         do { // 지연 호스트의 재토글: 다음 키에서 영어로 확인되면 문맥이 돌아오고, 기록은 한글로 되돌린 한 번뿐이다.
             let (c,h) = fresh(); typeKeys("want",c,h); press(c,h," ",code:49)
@@ -791,7 +828,7 @@ final class ProbeClient: NSObject, IMKTextInput {
         }
 
         // F-3 (오너 결정 2026-11-07): 같은 줄의 공백·닫는 기호·따옴표만 건너뛴다. 그 밖의 글자를 만나면 바꾸지 않고 스페이스를 넘긴다.
-        let blocked = ["hello\n\n", "안녕\n", "안녕\r\n", "func foo() {\n    ", "안녕 🎬", "안녕 漢字", "résumé", "안녕(", "안녕[", "안녕{", "안녕:", "안녕\u{a0}"]
+        let blocked = ["hello\n\n", "안녕\n", "안녕\r\n", "func foo() {\n    ", "안녕 🎬", "안녕 漢字", "résumé", "안녕(", "안녕[", "안녕{", "안녕:", "안녕\u{3000}"]
         for (index, before) in blocked.enumerated() {
             let (c,h) = fresh(); h.setField(0,text:before)
             check(!shift(c,h),"manual_skip_blocked_passes_key_\(index)")
@@ -802,7 +839,7 @@ final class ProbeClient: NSObject, IMKTextInput {
 
         // F-15: 건너뛸 수 있는 뒤 경계가 길어도 두 번째 입력으로 돌아온다(스페이스가 쌓이지 않는다).
         for prefix in ["", "앞말 ", "😀 "] {
-            for trailing in [" ", "   ", "    ", "... ", "!!! ", ", ", "\t\t\t\t", "\"')] ", "’”", String(repeating: " ", count: 40)] {
+            for trailing in [" ", "   ", "    ", "... ", "!!! ", ", ", "\t\t\t\t", "\"')] ", "’”", String(repeating: " ", count: 40), "\u{a0}", "\u{a0}\u{a0}\u{a0}\u{a0}", ",\u{a0}"] {
                 for caret in [false, true] {
                     let (c,h) = fresh(); h.setField(0,text:prefix + "안녕" + trailing); h.preserveTrailingCaret = caret
                     for (step, expected) in ["dkssud","안녕","dkssud","안녕"].enumerated() {
@@ -813,6 +850,14 @@ final class ProbeClient: NSObject, IMKTextInput {
                     result("manual_roundtrip_\(prefix.count)_\(trailing.count)_\(caret)",c,h)
                 }
             }
+        }
+        // 2026-11-07 (#173, 루트 판단): 크롬 계열 contenteditable은 줄 끝 공백을 NBSP로 줄 수 있다(실기기 미확인) — 변환 직후 되돌리기가 깨지면 안 된다.
+        do {
+            let (c,h) = fresh(); typeKeys("apple",c,h); press(c,h," ",code:49)
+            h.text = "apple\u{a0}"; moveCaretToEnd(h)
+            for expected in ["메ㅔㅣㄷ\u{a0}","apple\u{a0}","메ㅔㅣㄷ\u{a0}"] { check(shift(c,h) && h.text == expected,"nbsp_pair_roundtrip") }
+            check(c.probeComposer.lastConversionOrigin == .automatic,"nbsp_pair_keeps_saved_pair")
+            result("nbsp_pair_roundtrip",c,h)
         }
         // 첫 교체를 호스트가 늦게 보여 줘도(노션형) 긴 뒤 경계에서 저장 쌍으로 돌아온다 — 자판 역변환(메ㅔㅣㄷ)으로 새지 않는다.
         for prefix in ["", "앞말 "] {
@@ -951,6 +996,68 @@ final class ProbeClient: NSObject, IMKTextInput {
             let (c,h) = fresh(); h.setField(0,text:"재가 "); h.reportMissingSelectionRange = true
             check(!shift(c,h) && h.text == "재가  ","manual_missing_selection_control")
             result("manual_missing_selection_control",c,h)
+        }
+
+        // F-14 ④: 조합 중 Return·Tab·Esc는 조합을 활성 경계로 확정하고 키를 앱에 한 번 넘긴다. 문맥은 끊긴다.
+        for (text, code, flags, label): (String, UInt16, NSEvent.ModifierFlags, String) in [
+            ("\r",36,[],"return"), ("\r",36,.shift,"shift_return"), ("\u{3}",76,.numericPad,"keypad_enter"),
+            ("\t",48,[],"tab"), ("\u{1b}",53,[],"escape"),
+        ] {
+            for (keys, committed) in [("rk","가"),("dkssud","안녕"),("apple","apple"),("githubdp","github에")] {
+                let (c,h) = fresh(); typeKeys(keys,c,h)
+                check(h.marked.location != NSNotFound,"composing_key_precondition_\(label)")
+                check(!press(c,h,text,code:code,flags:flags,deliver:false),"composing_key_forwarded_\(label)_\(keys)")
+                check(h.text == committed,"composing_key_commits_active_\(label)_\(keys)")
+                check(h.marked.location == NSNotFound && !c.probeComposer.hasPendingComposition,"composing_key_ends_composition_\(label)_\(keys)")
+                check(c.probeComposer.lastConversion == nil && c.probeComposer.lastEnglishWord == nil,"composing_key_breaks_context_\(label)_\(keys)")
+                typeKeys("to",c,h); press(c,h," ",code:49)
+                check(h.text == committed + "새 ","composing_key_next_word_korean_\(label)_\(keys)")
+                result("composing_key_\(label)_\(keys)",c,h)
+            }
+        }
+        for (text, code, flags, label): (String, UInt16, NSEvent.ModifierFlags, String) in [
+            ("\r",36,.command,"cmd_return"), ("\r",36,.option,"option_return"), ("\t",48,.control,"ctrl_tab"), ("\u{1b}",53,.command,"cmd_escape"),
+        ] { // 대조: 수정키가 붙으면 앱 단축키다 — 화면에 보이던 글자 그대로 확정한다(영타 변환 없음).
+            let (c,h) = fresh(); typeKeys("apple",c,h)
+            check(!press(c,h,text,code:code,flags:flags,deliver:false),"composing_shortcut_forwarded_\(label)")
+            check(h.text == "메ㅔㅣㄷ" && !c.probeComposer.hasPendingComposition,"composing_shortcut_passive_\(label)")
+            result("composing_shortcut_\(label)",c,h)
+        }
+
+        // 2026-11-07 (#173, 독립 리뷰 A-P3-2): 대문자가 두 글자가 되는 문자는 자모가 아니다 — 활성 경계로 넘기고 Debug에서도 죽지 않는다.
+        do {
+            let (c,h) = fresh(); typeKeys("rk",c,h)
+            check(!press(c,h,"ß",code:27,flags:.shift),"sharp_s_shift_forwarded")
+            check(h.text == "가ß" && !c.probeComposer.hasPendingComposition,"sharp_s_shift_boundary")
+            result("sharp_s_shift",c,h)
+        }
+
+        // F-14 ④: 조합이 없으면 세션 콜백·단축키가 호스트의 선택 범위를 건드리지 않는다(#93 — 빈 marked text가 선택을 지운다).
+        for action in ["commit", "deactivate", "deactivate_activate", "cmd_backspace", "arrow"] {
+            let (c,h) = fresh(); h.setField(0,text:"keep selected text")
+            let selection = NSRange(location:5,length:8)
+            h.selection = selection
+            var hostWrites = 0
+            h.afterInsert = { hostWrites += 1 }; h.afterMark = { hostWrites += 1 }
+            switch action {
+            case "commit": c.commitComposition(h)
+            case "deactivate": c.deactivateServer(h)
+            case "deactivate_activate": c.deactivateServer(h); c.activateServer(h)
+            case "cmd_backspace": check(!press(c,h,"\u{7f}",code:51,flags:.command,deliver:false),"selection_keep_forwarded_\(action)")
+            default: check(!press(c,h,"\u{f702}",code:123,flags:.function,deliver:false),"selection_keep_forwarded_\(action)")
+            }
+            check(h.text == "keep selected text" && h.selection == selection,"selection_keep_surface_\(action)")
+            check(hostWrites == 0,"selection_keep_no_host_write_\(action)")
+            result("selection_keep_\(action)",c,h)
+        }
+        for action in ["commit", "deactivate"] { // 대조: 조합 중이면 보이던 글자를 확정하고 캐럿은 그 뒤다.
+            let (c,h) = fresh(); h.setField(0,text:"앞 ")
+            typeKeys("apple",c,h)
+            if action == "commit" { c.commitComposition(h) } else { c.deactivateServer(h) }
+            check(h.text == "앞 메ㅔㅣㄷ" && h.marked.location == NSNotFound,"selection_commit_visible_\(action)")
+            check(h.selection == NSRange(location:6,length:0),"selection_commit_caret_\(action)")
+            check(!c.probeComposer.hasPendingComposition,"selection_commit_no_pending_\(action)")
+            result("selection_commit_\(action)",c,h)
         }
 
         // F-12·F-13: 실제 키 분배로 확인한다(조합 규칙 자체는 ComposerTests).
