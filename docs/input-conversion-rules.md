@@ -90,14 +90,14 @@
 | 8 | MAIN 낱자모 + 길이 + 모음 키 + 영어 사전 | `메ㅔㅣㄷ`→`apple`; 구조만 보고 임의 영어로 만들지 않음 |
 | 9 | 자음만 있는 키열 | 길이에 따라 broad/curated/명시 두 글자 목록을 구분 |
 | 10 | 미등재 ㅑ 한 음절 + 영어 사전 | 한글 사전·슬랭 보호 이후에만 |
-| 11 | R1 모음 낱자 시작 + 영어 근거 | `ㅑ`→`i`; 일부 짧은 단어는 문맥 전용 |
+| 11 | R1 모음 낱자 시작 + 영어 근거 | `ㅑ`→`i`, `ㅐㅏ`→`ok`(2026-11-07 #194부터 단독) |
 | 12 | R3 KS X 1001 밖 음절 + 영어 근거 | 희귀 음절은 의심 신호이며 한국어가 아니라는 증명은 아님 |
 | 13 | R5 한글 두 음절 이상 + curated 정확 일치 | 의미 있는 내부 Shift 제한. 무작위 인명·옛 영어 broad 목록은 쓰지 않음 |
 | 14 | R2 추가 문맥 판정 | 직전 영어 + 대문자/단음절/사전 등급 제한 |
 
 2026-10-28 보완(#104): 사용자 지정 `spark`를 `Resources/IM/english_supplement.txt`에 추가했다. `넴가`는 완성 한글 두 음절로 조합되지만 번들 한국어 표제어에 없고, 기존 broad 영어 사전에는 `spark`가 있었다. 검토 목록에 정확한 영어 한 단어를 추가해 기존 R5를 통과시키며, 한국어 보호나 Shift 판정은 바꾸지 않는다. 후보 검역의 Tier A·`넴` 표제어 경고는 [검역 결과](../dict_work/2026-10-28-spark-audit.csv)와 [등록 근거](../dict_work/2026-10-28-spark-registration.tsv)에 남긴다. 일반 Space 확정 시 `넴가 → spark`, 자동 변환 OFF·개인 금지 시 원문 보존, 변환 단축키로 저장 원문 왕복을 검사한다.
 
-실행 목록: `shortWords`, `contextOnlyShortWords`, `standaloneShortWords`, `consonantPairShortWords`, `standaloneOverrideEnglish`, `contextOverrideEnglish`, `triggerOverrideEnglish`, `protectedSlang`. 숫자나 사전 전체를 이 문서에 복사하지 않는다. 사전 원본 목록은 [`dict_manifest.tsv`](../dict_work/dict_manifest.tsv)를 확인한다.
+실행 목록: `shortWords`, `standaloneShortWords`, `consonantPairShortWords`, `standaloneOverrideEnglish`, `contextOverrideEnglish`, `triggerOverrideEnglish`, `protectedSlang`. 숫자나 사전 전체를 이 문서에 복사하지 않는다. 사전 원본 목록은 [`dict_manifest.tsv`](../dict_work/dict_manifest.tsv)를 확인한다.
 
 ## 특수 입력과 되돌리기
 

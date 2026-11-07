@@ -282,7 +282,7 @@ func runDict106Tests() {
         expect(type(keys).committedText, hangul, "#106 not added: \(keys)")
     }
 
-    // Standalone ml (ㅢ) converts; ok(ㅐㅏ) stays context-only; mm(ㅡㅡ) stays an emoticon.
+    // Standalone ml (ㅢ) converts; mm(ㅡㅡ) stays an emoticon. ok(ㅐㅏ)도 2026-11-07 #194부터 단독 변환한다.
     for keys in ["ml", "mL"] {
         expect(type(keys).committedText, keys, "#106 standalone \(keys)")
         expect(typeViaController(keys + " ").committedText, keys + " ", "#106 standalone \(keys) Space")
@@ -295,7 +295,6 @@ func runDict106Tests() {
     }
     expect(KoreanComposer.resolveToggle(before: "ml ", english: "ml", hangul: "ㅢ", atDocStart: true)?.text ?? "",
            "ㅢ", "#106 ml Shift+Space restores ㅢ")
-    expect(type("ok").committedText, "ㅐㅏ", "#106 ok stays context-only")
     expect(type("mm").committedText, "ㅡㅡ", "#106 mm emoticon stays")
     expect(type("dml").committedText, "의", "#106 의 stays Korean")
     expect(typeWords(["ml", ManualToggle.hangulToKeys("우유")!]).last ?? "", "우유", "#106 Korean after ml stays Korean")
@@ -1065,10 +1064,36 @@ struct ComposerTests {
         expect(type("gee").committedText, "ㅎㄷㄷ", "consonant-only slang ㅎㄷㄷ untouched")
         expect(type("aw").committedText, "ㅁㅈ", "2-key slang ㅁㅈ untouched")
         expect(type("hi").committedText, "ㅗㅑ", "2-key vowel slang ㅗㅑ untouched")
-        // ㅐㅏ(ok)는 흔한 자모 슬랭 → 무맥락 유지, 영어 문맥서만 변환.
         // 2026-11-01 (#106): ㅢ(ml)은 오너 결정으로 단독에서도 변환한다.
         expect(type("ml").committedText, "ml", "ml: 단독 ㅢ도 변환 (#106)")
-        expect(type("ok").committedText, "ㅐㅏ", "ok: 무맥락 슬랭 ㅐㅏ 보호")
+        // 2026-11-07 오너 결정(#194): ok(ㅐㅏ)·am(므)도 단독 변환. so(내)는 멀쩡한 한글이라 앞이 영어일 때만이다.
+        for keys in ["ok", "OK", "Ok", "am", "AM", "Am", "pm", "PM", "Pm"] {
+            expect(type(keys).committedText, keys, "#194 단독 \(keys)")
+            expect(typeViaController(keys + " ").committedText, keys + " ", "#194 단독 \(keys) Space")
+        }
+        expect(type("so").committedText, "내", "#194 so(내)는 단독 변환 안 함")
+        expect(typeWords(["apple", "so"]).last ?? "", "so", "#194 앞 영어 뒤 so")
+        expect(type("ok", autoEnglish: false).committedText, "ㅐㅏ", "#194 ok 자동 변환 OFF")
+        expect(type("am", autoEnglish: false).committedText, "므", "#194 am 자동 변환 OFF")
+        expect(typePassive("ok").committedText, "ㅐㅏ", "#194 ok 클릭 확정은 그대로")
+        expect(typePassive("am").committedText, "므", "#194 am 클릭 확정은 그대로")
+        for (keys, hangul) in [("ok", "ㅐㅏ"), ("am", "므")] {
+            for blocked in [keys, hangul] {
+                expect(typeWithPersonalDictionary(keys, PersonalDictionary(block: [blocked])).client.committedText,
+                       hangul, "#194 \(keys) 개인 금지: \(blocked)")
+            }
+            expect(KoreanComposer.resolveToggle(before: keys + " ", english: keys, hangul: hangul, atDocStart: true)?.text ?? "",
+                   hangul, "#194 \(keys) 되돌리기")
+        }
+        // 조사가 붙어도 앞말로 인정한다.
+        expect(type("okdms").committedText, "ok은", "#194 ok + 조사")
+        expect(type("amdms").committedText, "am은", "#194 am + 조사")
+        expect(type("pmdms").committedText, "pm은", "#194 pm + 조사")
+        // 다른 영어 단어와 같은 규칙이다: 영어 뒤의 짧은 단어(내·새)는 영어 문맥으로 본다. 되돌리기가 안전망이다.
+        expect(typeWords(["ok", "so"]).last ?? "", "so", "#194 ok 뒤 so: 일반 영어 문맥과 같다")
+        // 므가 들어간 실제 말은 지킨다.
+        expect(type("amfh").committedText, "므로", "#194 표제어 므로 보호")
+        expect(type("amgma").committedText, "므흠", "#194 조합이 이어지면 단독 판정이 아니다")
         expect(typeWords(["want", "ml"]).last ?? "", "ml", "ml: 영어 문맥서만 변환")
         // (the composer assembles these as ㅡ므/ㅜ무/ㅠ뮤 — same as Apple's
         // IME; the point is the V-C-V palindrome guard blocks conversion)
@@ -1941,7 +1966,7 @@ struct ComposerTests {
         // 영어 문맥이 축약형을 통해 이어진다
         expect(
             typeWordsViaController(["i'm", "ok"]).joined(separator: " "), "i'm ok",
-            "축약형 문맥: i'm 뒤 ㅐㅏ(ok, contextOnly)가 영어로"
+            "축약형 문맥: i'm 뒤 ㅐㅏ(ok)가 영어로"
         )
         expect(
             typeWordsViaController(["apple", "don't", "go"]).joined(separator: " "),
