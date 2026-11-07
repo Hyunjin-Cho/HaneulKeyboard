@@ -1096,6 +1096,8 @@ struct ComposerTests {
                 expect(type(keys).committedText, keys, "#194 단독 \(keys)")
             }
         }
+        // 2026-11-08 오너 요청(#194): bio(ㅠㅑㅐ)는 어느 사전에도 없어 어떤 규칙으로도 안 바뀌었다.
+        for keys in ["bio", "BIO", "Bio"] { expect(type(keys).committedText, keys, "#194 사전 추가 \(keys)") }
         // 넣지 않은 것은 그대로다: 초성체, 우는 표정, 멀쩡한 한글.
         for (keys, hangul) in [("rc", "ㄱㅊ"), ("da", "ㅇㅁ"), ("re", "ㄱㄷ"), ("ac", "ㅁㅊ"), ("de", "ㅇㄷ"), ("qr", "ㅂㄱ"), ("qt", "ㅂㅅ"),
                                ("mb", "ㅡㅠ"), ("hk", "ㅘ"), ("dm", "으"), ("gb", "휴"), ("tb", "슈"), ("sk", "나")] {
@@ -3140,6 +3142,15 @@ struct ComposerTests {
         }
         // 2026-11-01 (#106): 오너 결정으로 단독 ml/mL(ㅢ)은 변환한다. 숫자 뒤가 아닌
         // 경계(두 칸 공백·줄바꿈·쉼표·`1.`) 뒤의 ml도 단독 ml과 같이 변환된다.
+        // 2026-11-08 오너 결정(#194): nm은 숫자가 붙을 때만 바꾼다. 단독 ㅜㅡ와 얼굴 ㅜㅡㅜ는 그대로다.
+        for value in ["10nm", "10 nm", "1.5nm", "1.5 nm"] {
+            expect(typeViaController(value).committedText, value, "#194 숫자 뒤 nm: \(value)")
+        }
+        expect(type("nm").committedText, "ㅜㅡ", "#194 단독 nm은 ㅜㅡ 그대로")
+        expect(typeViaController("nm ").committedText, "ㅜㅡ ", "#194 단독 nm Space")
+        expect(typeWords(["apple", "nm"]).last ?? "", "ㅜㅡ", "#194 영어 뒤 nm도 그대로")
+        expect(type("nmn").committedText, "ㅜㅡㅜ", "#194 얼굴 ㅜㅡㅜ 그대로")
+        expect(type("um").committedText, "um", "#194 같은 단위 경로의 um은 그대로 변환")
         for value in ["ml", "mL", "100  ml", "100\nml", "100,ml", "1.ml"] {
             expect(typeViaController(value).committedText, value, "단위: 단독 ml 변환 (#106) \(value)")
         }
