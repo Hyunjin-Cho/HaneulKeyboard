@@ -38,7 +38,7 @@ import Foundation
         do {
             try fm.createDirectory(at: root, withIntermediateDirectories: true)
             defer { try? fm.removeItem(at: root) }
-            for step in ["real", "modes", "copy", "backup", "place", "restore", "occupied", "cleanup"] + rejections.sorted() {
+            for step in ["real", "modes", "acl", "copy", "backup", "place", "restore", "occupied", "cleanup"] + rejections.sorted() {
                 let directory = root.appendingPathComponent(step)
                 try fm.createDirectory(at: directory, withIntermediateDirectories: true)
                 let name = "하늘 ' \" $HOME $(touch injected) `touch injected2`\n.app"
@@ -58,6 +58,32 @@ import Foundation
                 default: break
                 }
                 try writeBundle(replacement.source, version: "new", identity: incoming)
+                // 리뷰 B-P3-1: 인증창이 떠 있는 동안 사본에 ACL을 붙이면 권한 비트를 정리해도 그 사용자가 계속 쓸 수 있다.
+                // 소유자 맞춤(chown)은 이 시험이 root가 아니라 실제로 못 본다. 스크립트 순서만 아래에서 본다.
+                let aclCode = replacement.source.appendingPathComponent("Contents/MacOS/app")
+                if step == "acl" {
+                    let user = NSUserName()
+                    for (path, rights) in [(aclCode.path, "write,delete,append,writeattr,writeextattr"),
+                                           (aclCode.deletingLastPathComponent().path, "add_file,add_subdirectory,delete_child"),
+                                           (replacement.source.path, "add_file,add_subdirectory,delete_child")] {
+                        let acl = Process()
+                        acl.executableURL = URL(fileURLWithPath: "/bin/chmod")
+                        acl.arguments = ["+a", "user:\(user) allow \(rights)", path]
+                        try acl.run(); acl.waitUntilExit()
+                        check(acl.terminationStatus == 0, "교체 acl: fixture에 ACL 붙임")
+                    }
+                }
+                func aclListing(_ url: URL) -> String {
+                    let list = Process(); let listOut = Pipe()
+                    list.executableURL = URL(fileURLWithPath: "/bin/ls")
+                    list.arguments = ["-ledR", url.path, url.appendingPathComponent("Contents").path,
+                                      url.appendingPathComponent("Contents/MacOS").path, url.appendingPathComponent("Contents/MacOS/app").path]
+                    list.standardOutput = listOut; list.standardError = FileHandle.nullDevice
+                    guard (try? list.run()) != nil else { return "" }
+                    let data = listOut.fileHandleForReading.readDataToEndOfFile()
+                    list.waitUntilExit()
+                    return String(decoding: data, as: UTF8.self)
+                }
                 if step == "linked-destination" {
                     let target = directory.appendingPathComponent("linked-target.app")
                     try writeBundle(target, version: "old", identity: identity)
@@ -125,7 +151,7 @@ import Foundation
                 }
                 let commands: UpdateReplacementScript.Commands
                 switch step {
-                case "real": commands = .init(codesign: codesign.path)
+                case "real", "acl": commands = .init(codesign: codesign.path)
                 case "real-codesign": commands = .init()
                 default: commands = .init(copy: copy.path, move: move.path, remove: remove.path, codesign: codesign.path)
                 }
@@ -162,13 +188,16 @@ import Foundation
                     if step == "linked-destination" {
                         check((try? fm.destinationOfSymbolicLink(atPath: replacement.destination.path)) != nil, "교체: 링크인 목적지를 따라가지 않음")
                     }
-                } else if step == "real" || step == "cleanup" || step == "modes" {
+                } else if step == "real" || step == "cleanup" || step == "modes" || step == "acl" {
                     check(task.terminationStatus == 0 && version(replacement.destination) == "new",
                           "교체 \(step): 새 앱 정상 배치")
                     check(!exists(replacement.staging), "교체 \(step): staging 없음")
                     if step == "cleanup" {
                         check(version(replacement.backup) == "old" && output.contains("정리하지 못했어요"),
                               "교체: 백업 정리 실패는 새 앱 설치 성공과 구분")
+                    } else if step == "acl" {
+                        check(aclListing(replacement.source).contains(" allow "), "교체 acl: 원본에 ACL이 있음(시험 전제)")
+                        check(!aclListing(replacement.destination).contains(" allow "), "교체: 배치된 앱에 ACL이 남지 않음")
                     } else if step == "modes" {
                         check(!exists(replacement.backup), "교체: 성공 뒤 옛 백업 제거")
                         check((try? String(contentsOf: modeLog, encoding: .utf8))?.hasPrefix("700") == true,
@@ -193,7 +222,7 @@ import Foundation
                         check(script?.compileAndReturnError(&error) == true && error == nil,
                               "교체: 실제 관리자 AppleScript 구문 컴파일")
                         let realCommand = replacement.shellCommand()
-                        let order = ["/usr/bin/codesign", "/bin/chmod -R u-s,g-s,go-w", "/usr/sbin/chown -hR", "\"$destination\" \"$backup\""]
+                        let order = ["/usr/bin/codesign", "/bin/chmod -R u-s,g-s,go-w", "/bin/chmod -RN", "/usr/sbin/chown -hR", "\"$destination\" \"$backup\""]
                             .map { realCommand.range(of: $0)?.lowerBound }
                         check(!order.contains(nil) && zip(order, order.dropFirst()).allSatisfy { $0! < $1! },
                               "교체: 검증 → 권한 정리 → 소유자 맞춤 → 교체 순서")

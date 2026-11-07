@@ -8,8 +8,9 @@ import Foundation
 /// 일반 계정이 스스로는 못 쓰는 /Applications에 검증 안 된 코드가 들어갔다. 그래서:
 /// - 소유자 전용(0700) staging 폴더를 먼저 만들고 그 안으로 복사한다. 복사 중에도 일반 사용자는 들어올 수 없어 검증 뒤에 못 바꾼다.
 /// - 복사본의 번들 ID·버전·빌드(사용자 권한 검증 때 읽은 값과 일치)와 서명(Apple 인증서 사슬·번들 ID·Team)을 본다.
-/// - setuid·setgid·그룹/다른 사용자 쓰기 권한을 벗기고 소유자를 옛 번들과 맞춘 뒤 옮긴다. ditto는 root로 돌 때 원본 소유자를 유지해, 그대로 두면
+/// - setuid·setgid·그룹/다른 사용자 쓰기 권한과 ACL을 벗기고 소유자를 옛 번들과 맞춘 뒤 옮긴다. ditto는 root로 돌 때 원본 소유자를 유지해, 그대로 두면
 ///   /Applications의 앱이 그 사용자 소유가 되어 나중에 그 권한으로 고칠 수 있다. 서명은 파일 권한을 다루지 않으므로 권한을 먼저 벗기고 root로 넘긴다.
+///   ACL도 ditto가 그대로 복사하고 서명 검사에 걸리지 않아, 남기면 root 소유로 바뀐 뒤에도 그 사용자가 실행 파일을 덮어쓸 수 있다(독립 리뷰 B-P3-1, 2026-11-07).
 struct UpdateReplacementScript {
     struct Commands {
         var copy = "/usr/bin/ditto"
@@ -75,6 +76,7 @@ struct UpdateReplacementScript {
         \(codesign) --verify --deep --strict --all-architectures \(Self.shellQuote("-R=" + codesignRequirement)) "$staged" || reject
         owner="$(/usr/bin/stat -f '%u:%g' "$destination")" || reject
         /bin/chmod -R u-s,g-s,go-w "$staged" || reject
+        /bin/chmod -RN "$staged" || reject
         /usr/sbin/chown -hR "$owner" "$staged" || reject
         if ! \(move) "$destination" "$backup"; then
             \(remove) -rf "$staging"
