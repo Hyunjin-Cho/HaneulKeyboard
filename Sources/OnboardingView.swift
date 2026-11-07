@@ -47,9 +47,9 @@ struct OnboardingView: View {
         }
         var accessibilityName: String {
             switch self {
-            case .automatic: "영타 자동 변환 연습"
-            case .reversal: "한영 되돌리기 연습"
-            case .registeredWord: "등록 한글 단어 변환 연습"
+            case .automatic: "영어 자동 변환 연습"
+            case .reversal: "되돌리기 연습"
+            case .registeredWord: "한글 단어를 영어로 바꾸기 연습"
             case .slash: "슬래시 영어 입력 연습"
             }
         }
@@ -57,7 +57,7 @@ struct OnboardingView: View {
 
     private let titles = ["한글 모드 그대로 영어까지", "Mac에서 하늘키보드를 선택", "이번엔 직접 쳐봐요",
                           "단축키로 되돌려요", "한글 단어도 영어로", "슬래시 뒤에는 바로 영어", "메뉴바에서 만나요"]
-    private let sections = ["만나보기와 설치", "입력 소스", "영타 자동 변환", "한영 되돌리기", "등록 단어 변환", "슬래시 영어 입력", "메뉴바와 후원"]
+    private let sections = ["만나보기와 설치", "입력 소스", "영어 자동 변환", "되돌리기", "한글 단어를 영어로", "슬래시 영어 입력", "메뉴바와 응원하기"]
     private var ready: Bool { core.imeInstalled && !core.imeRefreshNeeded && !core.isPreparingIME }
 
     init(core: AppCore, initialStep: Int = 0,
@@ -203,8 +203,8 @@ struct OnboardingView: View {
     private var menuBarStep: some View {
         VStack(alignment: .leading, spacing: compact ? 10 : 14) {
             HStack(spacing: 12) {
-                menuTile("하늘키보드 설정", detail: "입력 기능과 개인 사전을\n내 손에 맞게 바꿔요",
-                         symbol: "slider.horizontal.3", tint: OnboardingRiso.cyan) { onSettings(.inputFeatures) }
+                menuTile("하늘키보드 설정", detail: "자동 변환과 개인 사전을\n내 손에 맞게 바꿔요",
+                         symbol: "slider.horizontal.3", tint: OnboardingRiso.cyan) { onSettings(.automatic) }
                 menuTile("시작하기 다시 보기", detail: "이 안내를 처음부터\n다시 볼 수 있어요",
                          symbol: "play.circle", tint: OnboardingRiso.yellow) { go(to: 0) }
                 menuTile("응원하기", detail: "영원히 무료예요\n후원은 자유롭게 선택해 주세요",
@@ -315,7 +315,7 @@ struct OnboardingView: View {
                     if core.imeRefreshBlockedBySystemInstall && !core.isPreparingIME {
                         // 2026-11-07 (#177, 리뷰 app-ui-F-3): 설치 버튼은 시스템 영역 입력기를 바꾸지 못하고 재등록만 한다 — 눌러도 그대로라
                         // 막다른 길이었다. 해결이 있는 앱 관리로 바로 보낸다.
-                        OnboardingButton("앱 관리 열기") { onSettings(.appManagement) }.fixedSize()
+                        OnboardingButton("설치·업데이트 열기") { onSettings(.update) }.fixedSize()
                     } else {
                         // 2026-11-07 오너(#187): 이 페이지에서 사용자가 꼭 눌러야 하는 버튼이라 주 버튼 잉크로 칠한다.
                         OnboardingButton(core.isPreparingIME ? "확인·설치 중…" : "하늘키보드 설치", navigation: true) {
@@ -349,7 +349,7 @@ struct OnboardingView: View {
     /// 왜 안 되는지와 무엇을 할지를 함께 적는다. 이전엔 이 해결법이 설정 → 버전·업데이트에만 있었다.
     private var systemInstallNotice: String? {
         guard core.imeRefreshBlockedBySystemInstall, !core.isPreparingIME else { return nil }
-        return "이 Mac의 시스템 영역(/Library/Input Methods)에 이전 버전 입력기가 있어서 앱이 직접 바꿀 수 없어요. ‘앱 관리 열기’에서 ‘입력기 제거’를 누른 뒤 ‘하늘키보드 설치’를 눌러 주세요."
+        return "이 Mac의 시스템 영역(/Library/Input Methods)에 이전 버전 입력기가 있어서 앱이 직접 바꿀 수 없어요. ‘설치·업데이트 열기’에서 ‘입력기 제거’를 누른 뒤 ‘하늘키보드 설치’를 눌러 주세요."
     }
     private var installPanel: OnboardingInstallPanel {
         .resolve(statusKnown: core.imeStatusKnown, busy: core.isPreparingIME,
@@ -458,7 +458,7 @@ struct OnboardingView: View {
                     .font(.system(size: adviceTitleSize - 1, weight: .medium))
                 HStack(alignment: .bottom, spacing: 16) {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("등록된 표기만 바꿔요. 일반 Space에서는 한글 그대로예요.")
+                        Text("앱에 준비된 단어만 바꿔요. 그냥 Space로는 한글 그대로예요.")
                             .font(.system(size: adviceBodySize))
                         HStack(spacing: 10) {
                             // 2026-11-07 (#187): 개인 사전에는 한글 → 영어 규칙을 넣을 수 없다(`PersonalDictionary.isEnglishEntry`는 영문만 받는다).
@@ -487,7 +487,7 @@ struct OnboardingView: View {
                     Text("기본으로 켜져 있어요. 설정에서 끌 수 있어요.")
                         .font(.system(size: adviceNoteSize))
                     Spacer(minLength: 4)
-                    Button("입력 기능 설정") { onSettings(.inputFeatures) }
+                    Button("슬래시 설정") { onSettings(.shortcuts) }
                         .font(.system(size: adviceNoteSize))
                 }
             }.feedbackPanel(.advice, fills: true)
@@ -602,10 +602,10 @@ struct OnboardingView: View {
                         Text("현재 이 앱의 자동 변환이 꺼져 있어요.")
                     }
                     if lesson == .reversal && !allWordsEnabled {
-                        Text("영어 글자를 한글 자판 글자로 바꾸는 기능이 꺼져 있어요. 직전 자동 변환은 되돌릴 수 있어요.")
+                        Text("‘쳐 놓은 단어 한/영 바꾸기’가 꺼져 있어요. 방금 자동으로 바뀐 단어는 그래도 되돌릴 수 있어요.")
                     }
                     if lesson == .registeredWord && !phoneticEnabled {
-                        Text("카메라를 camera로 바꾸는 기능이 꺼져 있어요. 설정에서 ‘등록 단어 변환’을 켜 주세요.")
+                        Text("카메라를 camera로 바꾸는 기능이 꺼져 있어요. 설정에서 ‘한글 단어를 영어로 바꾸기’를 켜 주세요.")
                     }
                     if lesson == .slash && !slashEnabled {
                         Text("슬래시 영어 입력이 꺼져 있어요. 설정에서 켜고 연습해 주세요.")
@@ -614,7 +614,8 @@ struct OnboardingView: View {
                         Text(sourceError).foregroundStyle(FeedbackStatus.warning.color(in: colorScheme))
                     }
                     if lessonDisabled(lesson) {
-                        Button("입력 기능 설정 열기") { onSettings(.inputFeatures) }
+                        // 2026-11-07 (#189): 꺼진 항목이 있는 메뉴로 바로 보낸다. 자동 변환이 꺼진 게 먼저다(되돌리기 연습은 둘 다 꺼질 수 있다).
+                        Button("설정 열기") { onSettings((lesson == .automatic || lesson == .reversal) && !autoEnabled ? .automatic : .shortcuts) }
                     }
                 }.font(.system(size: 14)).feedbackPanel(.warning)
                     .fixedSize(horizontal: false, vertical: true)

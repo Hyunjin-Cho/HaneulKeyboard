@@ -7,9 +7,11 @@ extension Notification.Name {
     static let haneulOnboardingRequested = Notification.Name("haneul.onboardingRequested")
 }
 
-/// 2026-10-11 (#88): 일반을 정리한 네 메뉴. 응원하기는 본문 선택과 별도인 버튼이다.
+/// 2026-10-11 (#88): 일반을 정리한 메뉴. 응원하기는 본문 선택과 별도인 버튼이다.
+/// 2026-11-07 오너(#189): 「입력 기능」을 자동 변환과 단축키·슬래시로 나눠 다섯 메뉴가 됐다. 저장 값은 그대로다.
 enum SettingsTab: Hashable, CaseIterable, Identifiable {
-    case inputFeatures
+    case automatic
+    case shortcuts
     case personalDictionary
     case update
     case appManagement
@@ -18,16 +20,18 @@ enum SettingsTab: Hashable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .inputFeatures: return "입력 기능"
+        case .automatic: return "자동 변환"
+        case .shortcuts: return "단축키·슬래시"
         case .personalDictionary: return "개인 사전"
-        case .update: return "버전·업데이트"
+        case .update: return "설치·업데이트"
         case .appManagement: return "앱 관리"
         }
     }
 
     var symbol: String {
         switch self {
-        case .inputFeatures: return "textformat.abc"
+        case .automatic: return "wand.and.stars"
+        case .shortcuts: return "command"
         case .personalDictionary: return "character.book.closed"
         case .update: return "arrow.down.circle"
         case .appManagement: return "wrench.and.screwdriver"
@@ -55,7 +59,7 @@ struct SettingsView: View {
     private let onTabChange: (SettingsTab) -> Void
 
     /// 기본은 「입력 기능」.
-    init(core: AppCore, initialTab: SettingsTab = .inputFeatures, onTabChange: @escaping (SettingsTab) -> Void = { _ in }) {
+    init(core: AppCore, initialTab: SettingsTab = .automatic, onTabChange: @escaping (SettingsTab) -> Void = { _ in }) {
         self.core = core
         self.onTabChange = onTabChange
         _selectedTab = State(initialValue: initialTab)
@@ -78,6 +82,7 @@ struct SettingsView: View {
                     Spacer(minLength: 0)
                 }
                 .padding(.horizontal, 10).padding(.top, 12)
+                .background(alignment: .bottomLeading) { SettingsFoot() }
                 .focusable()
                 .focusEffectDisabled()
                 .onKeyPress(.upArrow) { moveMenu(by: -1) }
@@ -90,13 +95,17 @@ struct SettingsView: View {
 
                 // 메뉴 전환으로 뷰를 없애지 않아 입력 중인 사전·시트·오류 상태를 보존한다.
                 ZStack {
-                    panel(.inputFeatures) { EnglishConversionSettingsTab() }
+                    panel(.automatic) { EnglishConversionSettingsTab() }
+                    panel(.shortcuts) { ShortcutSettingsTab() }
                     panel(.personalDictionary) {
                         PersonalDictionaryTab(isSelected: selectedTab == .personalDictionary)
                     }
                     panel(.update) {
-                        Form { UpdateSettingsSection(core: core) }
-                            .formStyle(.grouped)
+                        Form {
+                            InputMethodSettingsSection(core: core)
+                            UpdateSettingsSection(core: core)
+                        }
+                        .formStyle(.grouped)
                     }
                     panel(.appManagement) {
                         AppManagementSettingsTab(core: core,
@@ -107,8 +116,11 @@ struct SettingsView: View {
             }
         }
         .disabled(core.isRemovingProduct)
-        .frame(width: 800, height: 688)
+        // 2026-11-07 (#189): 제목 막대 겹침으로 창이 688 + 안전 영역 32 = 720pt가 되는데, 예전엔 내용을 688로 묶은 뒤 위로 붙여
+        // 아래 32pt가 빈 종이로 남고 글이 창 중간에서 잘렸다(오너 스크린샷 실측: 창 719, 구분선 끝 686). 안전 영역을 먼저 무시해 바닥까지 채운다.
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea()
+        .frame(width: 800, height: 688)
         .scrollContentBackground(.hidden)
         .tint(OnboardingRiso.actionBlue)
         .haneulWindowAppearance()
@@ -125,7 +137,7 @@ struct SettingsView: View {
                 Task { uninstallResult = await core.removeFullProduct() }
             }
         } message: {
-            Text("메인 앱·입력기 번들·시스템 등록·사용자 설정을 모두 지웁니다. 되돌릴 수 없습니다. 입력기 제거에 실패하거나 그 단계의 관리자 암호창을 취소하면 개인 사전과 설정은 보존합니다.")
+            Text("앱·입력기·설정·개인 사전을 모두 지워요. 되돌릴 수 없어요. 입력기를 지우지 못했거나 관리자 암호 창을 취소하면 개인 사전과 설정은 그대로 남아요.")
         }
         .alert("제거 결과", isPresented: Binding(
             get: { uninstallResult != nil },

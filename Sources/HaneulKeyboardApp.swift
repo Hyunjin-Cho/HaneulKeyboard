@@ -32,7 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     private var updateNoticeWindow: NSWindow?
     /// 2026-11-06 (#156): 닫으면 설정 창을 놓아주므로 다시 열 때 이어 줄 값만 따로 둔다(앱이 떠 있는 동안만).
     private var settingsFrame: NSRect?
-    private var lastSettingsTab = SettingsTab.inputFeatures
+    private var lastSettingsTab = SettingsTab.automatic
     // deinit(nonisolated)에서 해제하므로 actor 격리에서 제외.
     nonisolated(unsafe) private var sourceObserver: NSObjectProtocol?
     nonisolated(unsafe) private var enabledSourcesObserver: NSObjectProtocol?
@@ -245,7 +245,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         let quitItem = add(menu, "메뉴바 앱 종료", #selector(quit), key: "q")
         // 2026-11-07 (#177, 리뷰 app-ui-F-4): 제거가 메인 스레드 밖에서 도는 동안 앱을 끝내면 반쯤 지워진 채 남는다.
         quitItem.isEnabled = !core.isRemovalInProgress
-        quitItem.toolTip = "메뉴바 아이콘만 사라져요. 한글 입력과 영타 변환은 그대로 동작해요. 응용 프로그램 폴더에서 다시 열 수 있어요."
+        quitItem.toolTip = "메뉴바 아이콘만 사라져요. 한글 입력과 영어 자동 변환은 그대로 돼요. 응용 프로그램 폴더에서 다시 열 수 있어요."
     }
 
     func menuWillOpen(_ menu: NSMenu) {

@@ -20,7 +20,7 @@ _최종 수정: 2026-11-07_ (코드와 대조해 호스트 앱에서 읽는 범�
 
 하늘키보드 입력기는 한글 자모를 음절로 조합하기 위해, **입력 소스로 선택되어 활성화된 동안** 키 입력을 받습니다. 이것은 macOS 입력기(IMKit) 구조상 모든 IME가 동일하게 동작하는 방식입니다. 영어(ABC) 모드로 전환된 동안에는 시스템 기본 입력기가 처리하며 하늘키보드를 거치지 않습니다.
 
-**다른 입력기로 친 영어 문맥 사용**이 켜져 있으면(기본 켜짐), 하늘키보드로 새 단어를 입력하기 직전에 커서 앞 **최대 128 UTF-16 단위**를 호스트 앱에 한 번 요청합니다. 이미 확정된 영어 단어 하나가 정확히 사전에 있을 때만 이번 단어의 변환 판단에 사용합니다. 선택 영역·다른 조합이 있거나 보안 입력이 켜져 있거나 호스트가 요청을 지원하지 않으면 사용하지 않습니다. 원문은 읽는 동안에만, 영어 단어는 이번 조합 동안에만 메모리에 유지하며 파일·개인 사전·로그·네트워크에 남기지 않습니다. 설정 → 입력 기능 → 자동 변환에서 끌 수 있습니다. 구현: [`ExternalEnglishContext.capture`](./IMESources/ExternalEnglishContext.swift), [`HaneulInputController.prepareExternalEnglishContext`](./IMESources/HaneulInputController.swift), [`InputInferencePolicy`](./Shared/InputInferencePolicy.swift).
+**ABC로 친 영어 뒤에 이어 칠 때**이 켜져 있으면(기본 켜짐), 하늘키보드로 새 단어를 입력하기 직전에 커서 앞 **최대 128 UTF-16 단위**를 호스트 앱에 한 번 요청합니다. 이미 확정된 영어 단어 하나가 정확히 사전에 있을 때만 이번 단어의 변환 판단에 사용합니다. 선택 영역·다른 조합이 있거나 보안 입력이 켜져 있거나 호스트가 요청을 지원하지 않으면 사용하지 않습니다. 원문은 읽는 동안에만, 영어 단어는 이번 조합 동안에만 메모리에 유지하며 파일·개인 사전·로그·네트워크에 남기지 않습니다. 설정 → 자동 변환에서 끌 수 있습니다. 구현: [`ExternalEnglishContext.capture`](./IMESources/ExternalEnglishContext.swift), [`HaneulInputController.prepareExternalEnglishContext`](./IMESources/HaneulInputController.swift), [`InputInferencePolicy`](./Shared/InputInferencePolicy.swift).
 
 **입력기가 호스트 앱에 글자를 요청하는 곳은 위 영어 문맥과 아래 둘이 전부입니다**(2026-11-07 `IMESources/`의 호스트 글자 요청 호출을 하나씩 대조해 확인했습니다). 요청한 순간의 판정에만 쓰고 메모리에서만 다루며, 파일·개인 사전·로그·네트워크에 남기지 않습니다. 보안 입력이 켜진 필드에서는 요청하지 않습니다.
 
@@ -44,12 +44,12 @@ _최종 수정: 2026-11-07_ (코드와 대조해 호스트 앱에서 읽는 범�
 
 *(2026-11-07 범위 정정)* 메뉴바 앱 자신의 입력칸 — 시작하기의 연습칸, 개인 사전과 단어 제안의 입력칸 — 에서는 입력기를 거친 글자를 앱이 받습니다. 설정 화면은 입력기가 남긴 최근 되돌림 기록(7번)을 읽습니다. 이 글자들이 앱 바깥으로 나가는 경우는 사용자가 단어 제안의 작성창 열기 버튼을 눌렀을 때뿐이며 8번을 따릅니다.
 
-### 3. 영타 자동 변환 (메ㅔㅣㄷ → apple)
+### 3. 영어 자동 변환 (메ㅔㅣㄷ → apple)
 
 - 판정은 단어 확정 시점에 **메모리에서만** 일어나며, 입력 내용을 어디에도 저장하거나 학습하지 않습니다.
 - 판정에는 **읽기 전용 사전**만 사용합니다: macOS의 `/usr/share/dict/words`(시스템 파일을 복사하지 않고 그 자리에서 읽습니다), 앱에 들어 있는 영어 사전 표 `english_bundled.txt`(영어 단어·인명·지명 목록 여섯 개를 합쳐 정렬한 것), 보충 목록 `english_supplement.txt`·`english_common.txt`, 우리말샘 표제어 목록입니다. Census 원천은 성씨 약 162,000개, SCOWL 원천은 약 167,000단어이지만, 가공 후 실제 규모는 `english_names.txt` 28,378개(Census/SSA)와 `english_modern.txt` 71,348개(SCOWL)이고, 이 둘은 2026-11-07부터 입력기 번들에 따로 들어 있지 않고 `english_bundled.txt` 표 안에 합쳐져 들어갑니다. `english_names_extra.txt`는 Census/SSA 데이터가 아닌 **수작업으로 선별한 이름·생명체·제품·기술 보충 목록**입니다. 기타 번들 목록은 NGSL(CC BY-SA 4.0), SCOWL(MIT-like), Census/SSA(public domain), GeoNames(CC BY 4.0), Wikidata(CC0), 우리말샘(CC-BY-SA 2.0 KR)에서 출처를 밝혔습니다. **모든 사전 파일은 앱에 정적으로 번들된 읽기 전용 데이터**로, 입력을 기록하지 않고 네트워크를 사용하지 않습니다.
 - 구현: [`IMESources/EnglishDetector.swift`](./IMESources/EnglishDetector.swift), [`IMESources/KoreanDictionary.swift`](./IMESources/KoreanDictionary.swift)
-- *(2026-09-21 추가, 2026-11-07 코드와 대조해 정정)* **설정값**은 macOS 사용자 기본값(`UserDefaults`)에 **기기 안에만** 저장됩니다. 입력기 도메인 `com.hyunjincho.inputmethod.haneul`에는 기능 켜기/끄기 값(영타 자동 변환 `haneul.autoEnglishEnabled`, 모든 단어 되돌리기 `haneul.manualToggleAllWords`, 등록 단어 변환 `haneul.phoneticConversionEnabled`, 슬래시 영어 입력 `haneul.slashEnglishEnabled`, 다른 입력기 영어 문맥 `haneul.externalEnglishContextEnabled`, 등록 단어 조합 인식 `haneul.dictionaryCompoundEnabled`), 되돌리기 키 선택(`haneul.revertKey`), 자동 변환을 끌 앱 목록(`haneul.disabledAppBundleIDs` — 사용자가 고른 앱의 bundle ID 문자열만), 개인 사전(7번), 그리고 **메인 앱의 설치 위치 기록**(`haneul.mainAppPath`, `haneul.mainAppFileID`)이 들어갑니다. 설치 위치 기록은 메인 앱이 실행할 때마다 자기 파일 경로와 파일 번호(inode)를 남기는 것으로, 입력기가 메인 앱이 지워졌는지 알아보고 스스로 정리할 때 씁니다. 경로에 macOS 사용자 계정 이름이 들어갈 수 있습니다. 메인 앱 도메인 `com.hyunjincho.haneulkeyboard`에는 안내를 마쳤는지, 메뉴바 아이콘을 보일지(`haneul.showsMenuBarIcon`), 로그인 항목 자동 등록을 이미 시도했는지(`haneul.loginItemAutoRegistered`), 시스템 설정 목록을 다시 열어야 하는지(`haneul.inputSourceSettingsNeedsReload`), 업데이트 관련 값(9번) 같은 앱 상태가 들어갑니다. 입력한 내용은 어느 값에도 담기지 않고, 어디로도 전송되지 않으며, "전체 제거" 시 함께 지워집니다. 앱별 끄기를 위해 입력기는 변환 시점에 **현재 앱의 bundle ID만** 확인하고(목록이 비어 있으면 그마저 하지 않음) 기록하지 않습니다.
+- *(2026-09-21 추가, 2026-11-07 코드와 대조해 정정)* **설정값**은 macOS 사용자 기본값(`UserDefaults`)에 **기기 안에만** 저장됩니다. 입력기 도메인 `com.hyunjincho.inputmethod.haneul`에는 기능 켜기/끄기 값(영어 자동 변환 `haneul.autoEnglishEnabled`, 모든 단어 되돌리기 `haneul.manualToggleAllWords`, 등록 단어 변환 `haneul.phoneticConversionEnabled`, 슬래시 영어 입력 `haneul.slashEnglishEnabled`, 다른 입력기 영어 문맥 `haneul.externalEnglishContextEnabled`, 등록 단어 조합 인식 `haneul.dictionaryCompoundEnabled`), 되돌리기 키 선택(`haneul.revertKey`), 자동 변환을 끌 앱 목록(`haneul.disabledAppBundleIDs` — 사용자가 고른 앱의 bundle ID 문자열만), 개인 사전(7번), 그리고 **메인 앱의 설치 위치 기록**(`haneul.mainAppPath`, `haneul.mainAppFileID`)이 들어갑니다. 설치 위치 기록은 메인 앱이 실행할 때마다 자기 파일 경로와 파일 번호(inode)를 남기는 것으로, 입력기가 메인 앱이 지워졌는지 알아보고 스스로 정리할 때 씁니다. 경로에 macOS 사용자 계정 이름이 들어갈 수 있습니다. 메인 앱 도메인 `com.hyunjincho.haneulkeyboard`에는 안내를 마쳤는지, 메뉴바 아이콘을 보일지(`haneul.showsMenuBarIcon`), 로그인 항목 자동 등록을 이미 시도했는지(`haneul.loginItemAutoRegistered`), 시스템 설정 목록을 다시 열어야 하는지(`haneul.inputSourceSettingsNeedsReload`), 업데이트 관련 값(9번) 같은 앱 상태가 들어갑니다. 입력한 내용은 어느 값에도 담기지 않고, 어디로도 전송되지 않으며, "전체 제거" 시 함께 지워집니다. 앱별 끄기를 위해 입력기는 변환 시점에 **현재 앱의 bundle ID만** 확인하고(목록이 비어 있으면 그마저 하지 않음) 기록하지 않습니다.
 
 ### 3-1. 등록된 한글 표기 변환 (레스토랑 → restaurant, 축구 → football)
 
@@ -77,7 +77,7 @@ macOS와 호스트 앱이 보안 입력(secure event input)을 올바르게 활�
 
 ### 7. 개인 사전 (2026-09-21 추가)
 
-설정 창의 **개인 사전** 절에서 영타 자동 변환을 사용자가 직접 고칠 수 있습니다. 여기서 다루는 데이터는 세 가지이며, **전부 이 기기 안에만** 있습니다.
+설정 창의 **개인 사전** 절에서 영어 자동 변환을 사용자가 직접 고칠 수 있습니다. 여기서 다루는 데이터는 세 가지이며, **전부 이 기기 안에만** 있습니다.
 
 | 목록 | 무엇이 저장되나 | 누가 쓰나 |
 |---|---|---|
@@ -103,7 +103,7 @@ macOS와 호스트 앱이 보안 입력(secure event input)을 올바르게 활�
 
 ### 9. 새 버전 알림과 설치 (2026-10-24 갱신)
 
-앱이 **처음으로 인터넷에 접속하는** 기능이라 따로 적습니다. 설정 창의 **버전·업데이트**에서 **새 버전 알림**을 켜고 끌 수 있습니다.
+앱이 **처음으로 인터넷에 접속하는** 기능이라 따로 적습니다. 설정 창의 **설치·업데이트**에서 **새 버전 알림**을 켜고 끌 수 있습니다.
 
 **나가는 요청은 두 가지뿐입니다.**
 
