@@ -18,9 +18,14 @@ private func typeQuantity(_ input: String, enabled: Bool = true) -> String {
         if KeyboardLayout2Set.jamo(for: key) != nil {
             _ = composer.handleInput(String(key), client: client)
         } else {
+            // 2026-11-07 (#178): 2026-11-04 컨트롤러 변경(붙잡지 않은 숫자·소수점은 앱에 바로 보내고 보낸 숫자열만 기억)을
+            // 따라가지 않아 수량 열 결과가 실제와 달라졌다. Tests/ComposerTests.swift의 typeKeyViaController와 같은 분배로 맞춘다.
+            let run: String? = AlphanumericWords.isDigit(key) ? composer.digitRunAfterSending(key)
+                : key == "." ? composer.pointRunAfterSending() : nil
             composer.commit(to: client, convertEnglish: true)
             client.insertText(String(key))
             composer.completeBoundary(key)
+            if AlphanumericWords.isDigit(key) || key == "." { composer.setSentDigits(run) }
         }
     }
     composer.commit(to: client, convertEnglish: true)

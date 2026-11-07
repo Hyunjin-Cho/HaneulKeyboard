@@ -5,9 +5,11 @@
 2. project.yml의 입력기 리소스와 제외 목록이 dict_work/dict_manifest.tsv와 맞는가.
    표가 번들에서 빠지면 오류 없이 번들 사전 낱말이 변환되지 않는다.
 3. scripts/verify_license_resources.py가 표 누락·낡은 사본을 거부하는가(가짜 번들로 확인한다).
+   2026-11-07 (#178): 가짜 입력기에도 실제로 컴파일한 작은 실행 파일을 넣는다 — 검증기가 입력기 바이너리의 네트워크 심볼도 보기 때문이다.
 scripts/run_ime_tests.sh가 함께 돌린다.
 """
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -19,6 +21,7 @@ VERIFY = ROOT / "scripts/verify_license_resources.py"
 sys.path.insert(0, str(ROOT / "scripts"))
 from build_english_table import TABLE, bundled_words  # noqa: E402
 from verify_license_resources import FILES, IME_DICTIONARIES  # noqa: E402
+from test_ime_no_network import compile_benign, swiftc  # noqa: E402
 
 failures = 0
 checks = 0
@@ -88,9 +91,12 @@ def check_project():
     check("Resources/IM\n" not in app_target and "english_bundled" not in app_target, "project.yml: 메인 앱에 영어 표를 넣지 않는다")
 
 
-def fake_ime(root, drop=None, stale=None):
+def fake_ime(root, executable, drop=None, stale=None):
     resources = root / "HaneulKeyboardIM.app/Contents/Resources"
     resources.mkdir(parents=True)
+    macos = root / "HaneulKeyboardIM.app/Contents/MacOS"
+    macos.mkdir(parents=True)
+    shutil.copy2(executable, macos / "HaneulKeyboardIM")
     for name, source in FILES.items():
         (resources / name).write_bytes(source.read_bytes())
     for name in IME_DICTIONARIES:
@@ -101,7 +107,7 @@ def fake_ime(root, drop=None, stale=None):
     return root / "HaneulKeyboardIM.app"
 
 
-def fake_app(root, **ime):
+def fake_app(root, executable, **ime):
     app = root / "HaneulKeyboard.app"
     resources = app / "Contents/Resources"
     resources.mkdir(parents=True)
@@ -109,7 +115,7 @@ def fake_app(root, **ime):
         (resources / name).write_bytes(source.read_bytes())
     helpers = app / "Contents/Helpers"
     helpers.mkdir()
-    fake_ime(helpers, **ime)
+    fake_ime(helpers, executable, **ime)
     return app
 
 
@@ -126,12 +132,20 @@ def check_verifier():
             path.mkdir()
             return path
 
-        check(verifies(fake_ime(fresh("ok-ime"))), "검증: 온전한 입력기 통과")
-        check(verifies(fake_app(fresh("ok-app"))), "검증: 온전한 앱 + 내장 입력기 통과")
-        check(not verifies(fake_ime(fresh("no-table"), drop="english_bundled.txt")), "검증: 입력기에 표가 없으면 실패")
-        check(not verifies(fake_app(fresh("no-table-app"), drop="english_bundled.txt")), "검증: 내장 입력기에 표가 없으면 실패")
-        check(not verifies(fake_ime(fresh("stale"), stale="english_bundled.txt")), "검증: 낡은 표면 실패")
-        check(not verifies(fake_ime(fresh("no-curated"), drop="english_common.txt")), "검증: curated 사전이 없으면 실패")
+        benign = compile_benign(base)
+        networked = swiftc(base, "socket-binary", "import Darwin\nlet fd = socket(AF_INET, SOCK_STREAM, 0)\nprint(fd)\n")
+
+        check(verifies(fake_ime(fresh("ok-ime"), benign)), "검증: 온전한 입력기 통과")
+        check(verifies(fake_app(fresh("ok-app"), benign)), "검증: 온전한 앱 + 내장 입력기 통과")
+        check(not verifies(fake_ime(fresh("no-table"), benign, drop="english_bundled.txt")), "검증: 입력기에 표가 없으면 실패")
+        check(not verifies(fake_app(fresh("no-table-app"), benign, drop="english_bundled.txt")), "검증: 내장 입력기에 표가 없으면 실패")
+        check(not verifies(fake_ime(fresh("stale"), benign, stale="english_bundled.txt")), "검증: 낡은 표면 실패")
+        check(not verifies(fake_ime(fresh("no-curated"), benign, drop="english_common.txt")), "검증: curated 사전이 없으면 실패")
+        check(not verifies(fake_ime(fresh("networked"), networked)), "검증: 입력기 바이너리가 네트워크 심볼을 쓰면 실패")
+        check(not verifies(fake_app(fresh("networked-app"), networked)), "검증: 내장 입력기 바이너리가 네트워크 심볼을 쓰면 실패")
+        no_exe = fresh("no-exe")
+        shutil.rmtree(fake_ime(no_exe, benign) / "Contents/MacOS")
+        check(not verifies(no_exe / "HaneulKeyboardIM.app"), "검증: 입력기 실행 파일이 없으면 실패")
 
 
 check_table()

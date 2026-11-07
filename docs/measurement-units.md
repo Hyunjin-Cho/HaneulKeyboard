@@ -1,6 +1,6 @@
 # 단위 표기 지원 — 2026.9(55)
 
-기준일: **2026-10-08** (2026-11-01 단독 `ml` 갱신) · 티켓 [#82](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/82) · [#106](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/106) · **테스트 후보, 설치본 실기 확인 대기**.
+기준일: **2026-10-08** (2026-11-01 단독 `ml` 갱신 · 2026-11-07 단독 목록 갱신 #174 #178) · 티켓 [#82](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/82) · [#106](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/106) · **테스트 후보, 설치본 실기 확인 대기**.
 
 ## 사용 방법
 
@@ -50,9 +50,15 @@
 - 전체 수량 또는 단위 자체의 개인 사전 금지가 우선이다. `ml`이나 `ㅢ`를 금지하면 `100ml`도 변환하지 않는다. `1.5ml`을 되돌린 뒤 전체 항목으로 금지할 수도 있다.
 - 자동 변환 OFF/앱별 OFF/한국어 사전 로드 실패/포커스 이동에서는 자동 변환하지 않는다. 수량 다음의 단위가 다음 한글 단어에 영어 문맥을 넘기지 않는다. 되돌렸다 다시 바꿀 때도 동일하다.
 
+### 2026-11-07: 단독 `sr`·`ton` 제외, `GPa` 유지 (#174, 오너 결정)
+
+- `sr`(ㄴㄱ)은 초성체 보호(`protectedSlang`), `ton`(새ㅜ)은 끝 모음 보호(`해ㅠ`류)에 걸려 **단독으로는 변환하지 않는다.** 숫자 뒤(`100sr`·`10 ton`)는 종전대로 변환된다.
+- `GPa`는 단독 변환을 유지한다. 두벌식에서 다른 자모를 내는 Shift 키(Q W E R T O P)가 섞인 혼합 대문자를 영어 경로에서 막는 새 규칙(`englishCasing`)이 있지만, 등록된 단위 기호와 대소문자까지 같으면 이 차단을 건너뛴다.
+- 단독 목록은 그 날짜의 `bash scripts/audit_units.sh` 출력(`standalone` 열)으로 만들었다. 이 도구는 2026-11-04 컨트롤러 변경(붙잡지 않은 숫자·소수점을 앱에 바로 보내고 보낸 숫자열만 기억)을 따라가지 않아 수량 열이 실제와 달랐고, 2026-11-07(#178)에 `Tests/ComposerTests.swift`의 `typeKeyViaController`와 같은 분배로 고쳤다. 고친 뒤 수량 열(`attached`·`spaced`·`decimal`)은 각각 172개로 2026-10-08 표본과 같다. 규칙은 [입력 변환 규칙 모음](input-conversion-rules.md).
+
 ## 지원 목록
 
-단독 입력에서도 변환되는 132개(공식 기호와 실용 표기/별칭을 합한 입력 목록):
+단독 입력에서도 변환되는 132개(공식 기호와 실용 표기/별칭을 합한 입력 목록. 2026-11-07 기준 — `sr`·`ton`은 빠지고 `mL`·`ml`이 들어왔다):
 
 ```text
 Bq GHz GPa GW Gbps GeV GiB Hz KB KiB MB MBq
@@ -61,21 +67,21 @@ PiB Sv TiB Torr acre angstrom atm bar bit bps cal cd
 cm dpi eV floz fps ft gal gbps ghz hPa ha hr
 hz in kBq kHz kJ kL kN kPa kV kW kWh kat
 kbps kcal keV kg khz kl km kohm lb lbs lm lx
-mA mAh mGy mH mJ mN mS mSv mT mV mW mWh
-mbar mbps mg mhz mi mil min mmol mol ms nA nF
-ng nm nmi nmol ns ohm oz pF pm ppb ppi ppm
-ppt ps psi pt px rad rem rpm sr ton torr uA
+mA mAh mGy mH mJ mL mN mS mSv mT mV mW
+mWh mbar mbps mg mhz mi mil min ml mmol mol ms
+nA nF ng nm nmi nmol ns ohm oz pF pm ppb
+ppi ppm ppt ps psi pt px rad rem rpm torr uA
 uF uL uSv ug ul um umol us yd
 mp MP Mp
 ```
 
-숫자 조건에서 추가로 변환되는 40개:
+숫자 조건에서만 변환되는 40개(단독으로는 변환되지 않는다. 2026-11-07 기준 — `sr`·`ton`이 여기로 옮겨 왔고 `mL`·`ml`은 위 단독 목록으로 갔다):
 
 ```text
 A Ah B C F GB GJ Gy H J K L
 N S T TB THz V W Wb Wh cL cc d
-dB dBA dL g h hL hl l m mL ml mm
-qt s t thz
+dB dBA dL g h hL hl l m mm qt s
+sr t thz ton
 ```
 
 기본 자동 변환을 보류한 5개: `cl`, `dl`, `dm`, `em`, `wk`. 의도적인 변환은 기존 수동 단축키 또는 개인 사전으로 지정할 수 있다.
@@ -95,7 +101,7 @@ qt s t thz
 - `PersonalDictionary`: `1.5ml` 형식의 추가/금지 입력 검증. 임의 점 포함 이름은 허용하지 않음.
 - `bash scripts/run_ime_tests.sh`: 2026-10-08 코어 **3,147 passed, 0 failed**. 기존 한글·숫자 제품명 회귀, 전체 단위의 수량/소수/OFF/금지, 메가픽셀 약어, 오류 사전, 편집·되돌리기와 아트 용어 검사.
 - `bash scripts/run_onboarding_tests.sh`: 실제 NSTextView와 코어 연결 **49 passed, 0 failed**. OS의 IMK 연결 실기는 별도.
-- `bash scripts/audit_units.sh > /tmp/haneul-unit-audit.csv`: 동일 목록 전수 검사 재생성. `audit_wordlist.sh --smoke`도 통과.
+- `bash scripts/audit_units.sh > /tmp/haneul-unit-audit.csv`: 동일 목록 전수 검사 재생성. `audit_wordlist.sh --smoke`도 통과. (2026-11-07 #178: 이 도구의 키 분배를 현재 컨트롤러에 맞췄다 — 위 2026-11-07 절.)
 
 ## 단위 표기의 근거
 

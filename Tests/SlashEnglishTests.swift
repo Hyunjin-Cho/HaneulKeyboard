@@ -37,7 +37,12 @@ private final class SlashTextClient: ComposerClient {
             check(session.triggerRange == NSRange(location: location, length: 1), "UTF16 한 글자만 추적")
         }
 
-        let suiteName = "com.hyunjincho.haneulkeyboard.slash-tests.\(UUID().uuidString)"
+        // 2026-11-07 (#178, 리뷰 docs-license-F-10): 실행마다 새 UUID 이름을 쓰면 macOS가 removePersistentDomain 뒤에도 빈 plist(42바이트)를
+        // ~/Library/Preferences에 남겨 실행 횟수만큼 쌓였다(이 Mac에서 71개 — 그중 7개는 검사 실패로 defer가 안 돌아 값이 든 채 남았다).
+        // 고정 이름을 쓰면 파일이 하나로 고정된다. 시작할 때도 비워, 앞서 중단된 실행이 남긴 값이 섞이지 않게 한다.
+        // 같은 Mac에서 이 스크립트를 동시에 두 번 돌리지 않는다(두 실행이 같은 도메인을 쓴다).
+        let suiteName = "com.hyunjincho.haneulkeyboard.slash-tests"
+        UserDefaults(suiteName: suiteName)?.removePersistentDomain(forName: suiteName)
         let defaults = UserDefaults(suiteName: suiteName)!
         defer { defaults.removePersistentDomain(forName: suiteName) }
         check(SlashEnglishSession.defaultEnabled, "사용자 승인 기본 ON")

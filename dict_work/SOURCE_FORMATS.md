@@ -4,6 +4,7 @@
 > `scripts/build_english_wordlists.py`(코더 작성)가 이 명세를 참조해 파서를 맞춘다.
 > 원본 저장 위치: `~/Downloads/HaneulDictSources/` (레포 밖 — 가공 결과만 리뷰 후 번들).
 > 다운로드 일자: 2026-06-10. SHA-256은 아래 각 절에 기재.
+> 2026-11-07 (#178): 사전을 고친 뒤 번들 표를 다시 만드는 절차를 아래 「사전을 고친 뒤 번들 표 다시 만들기」에 추가했다.
 
 ## 공통 주의
 
@@ -160,6 +161,7 @@ Charlotte,F,13400
 - 라이선스: **MIT-like** (동봉 README에 전문 수록) — `Copyright 2000-2026 by Kevin Atkinson`.
   "Permission to use, copy, modify, distribute, and sell ... provided that the above copyright
   notice appears in all copies ..." — 저작권 고지 유지 조건의 퍼미시브.
+  - 2026-11-07: 허가 고지 원문은 공개 저장소 `Copyright` 파일에서 그대로 옮겨 `ACKNOWLEDGEMENTS.md`에 실었다(위 README 요약 대신).
   - 데이터 출처 고지: 대부분 Public Domain(12dicts·ENABLE2K 등) + **COCA 3-gram 파생 데이터
     포함**(원본 비공개지만 작성자 NDA 권리 내 사용 — 결과 wordlist 재배포는 위 라이선스로 허용 명시).
 - tar.gz SHA-256: `a960df7ac6c3b80421b04c68a606604807beeb5efb724032bb4b5c1baa7cfdc9` (458,919 bytes,
@@ -215,6 +217,20 @@ zymurgy
 - Census는 대문자, SSA는 Capitalized → 양쪽 다 소문자 정규화 필요.
 - `Resources/IM/english_names_extra.txt`: 위 두 소스(미국 중심)가 못 덮는 국제 유명인 단어 시드 50개 — 검역(전원 Tier C) 후 머지된 최종본 (초안 파일은 정리됨).
 - 2026-11-07 (#174) 오너 결정: 수작업 약어 `ansi`·`goty`·`emtek`·`totp`·`algo`·`rhel`·`gorm`을 `english_supplement`(curated)에서 `english_names_extra`(broad)로 내렸다. 멀쩡한 한글형이 구어·이름과 겹쳤다. 기록: `2026-11-07-demote174-registration.tsv`, 도달성 전·후 `2026-11-07-demote174-reach-before.csv`·`-after.csv`.
+
+## 사전을 고친 뒤 번들 표 다시 만들기 (2026-11-07, #175 · #178)
+
+입력기는 번들 영어 사전 여섯 개(`dict_manifest.tsv`의 목록)를 하나씩 읽지 않고, 그것을 합쳐 정렬한 표 `Resources/IM/english_bundled.txt` 하나로 찾는다. 표는 **생성 파일**이라 손으로 고치지 않는다. 입력은 manifest에 적힌 번들 사전뿐이고, web2(`/usr/share/dict/words`)는 넣지 않는다(오너 결정 2026-11-07 — 입력기가 시스템 파일을 그 자리에서 매핑한다).
+
+사전을 추가·삭제하거나 `build_english_wordlists.py`로 재생성해 머지한 **뒤에는 반드시** 이 순서로 한다.
+
+1. 사전 `Resources/IM/<이름>.txt`를 고친다. 사전 목록 자체를 바꾸면 `dict_work/dict_manifest.tsv`부터 고친다(정본).
+2. `python3 scripts/build_english_table.py` — 표를 다시 쓴다. 필터는 `EnglishDetector.isWordLine`과 같다(첫 글자 a-z, 3자 이상, ASCII 알파벳만, 소문자화). 머리말의 `# count:`는 낱말 수와 맞아야 한다.
+3. `python3 scripts/build_english_table.py --check` — 표가 번들 사전 합집합과 다르면 실패한다(파일을 쓰지 않는다).
+4. `bash scripts/run_ime_tests.sh`와 `bash scripts/audit_wordlist.sh --smoke` — 표가 어긋나거나 번들 설정이 어긋나면 둘 다 실패한다. `scripts/test_bundle_dictionaries.py`가 표 ⊆ 합집합과 합집합 ⊆ 표, `project.yml` 입력기 리소스의 제외 목록(= manifest의 broad 전용 사전)을 대조한다.
+5. 빌드한 번들은 `python3 scripts/verify_license_resources.py <앱 경로>`로 확인한다. 표가 번들에서 빠지면 오류 없이 번들 사전 낱말이 변환되지 않는다.
+
+표를 다시 만들지 않고 사전만 고쳐 커밋하면 변환이 조용히 옛 낱말로 남는다 — 그래서 시험이 막는다.
 
 ## 부록: exclusions 정본 위치 (2026-06-10)
 
