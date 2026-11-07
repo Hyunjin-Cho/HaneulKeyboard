@@ -5,9 +5,10 @@
 #106에서 결정 대기로 남긴 12개 중 오너가 **A안(7개)**을 골랐다. 사전 파일로는 넣을 수 없는 길이·모양이라 `EnglishDetector`의 명시 목록에 넣었다.
 
 - `shortWords`(R1, 모음 시작 2글자): ln=ㅣㅜ, pi=ㅔㅑ, mu=ㅡㅕ, nu=ㅜㅕ
-- `standaloneShortWords`(veto 뒤, 멀쩡한 1음절): cos=챈, abs=뮨, xi=탸 — gpt=헷·dmg=읗과 같은 방식
+- `standaloneShortWords`(veto 뒤, 멀쩡한 1음절): abs=뮨, xi=탸 — gpt=헷·dmg=읗과 같은 방식
+- **2026-11-07 오너 결정(#174):** cos=챈은 단독 변환에서 뺐다. 챈은 채다의 활용형이라 "눈치 챈 사람"이 "눈치 cos 사람"이 됐다. 영어 문맥(`the cos`)과 `Cos`·`COS`, 개인 사전으로는 계속 쓸 수 있다.
 - **넣지 않음:** 자음 3개 초성형 gcd·det·arg·std·csc(초성체와 겹칠 수 있어 오너 제외), 실존 한국어 cot·cosh·dy·rho, 자음 2개 dx·dt(2글자 정책 대기).
-- **수학 용어 130개 표본 도달:** 112 → 119. 근거: [후](../dict_work/2026-11-01-math109-reach-after.csv).
+- **수학 용어 130개 표본 도달:** 112 → 119(그날 기준, cos 포함). 근거: [후](../dict_work/2026-11-01-math109-reach-after.csv).
 
 ## 2026-11-01 영타 사전: 이름·대중어·수학 용어 (#106)
 

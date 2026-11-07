@@ -11,8 +11,9 @@ import Combine
 ///
 /// 저장 규약(정본은 `IMESources/PersonalDictionary.swift` — 이 파일은 메인 앱 타겟에도
 /// 컴파일돼 키 이름·정규화 규칙을 공유한다):
-///   - force/block: 설정 앱이 쓰고 IME가 활성 경계마다 읽는다(`haneul.autoEnglishEnabled`
-///     패턴). 저장 즉시 IME의 다음 단어부터 반영 — 재시작 불필요.
+///   - force/block: 설정 앱이 쓰고 IME가 글자·경계 키마다 읽는다(`haneul.autoEnglishEnabled`
+///     패턴). 저장 즉시 IME의 다음 키부터 반영 — 재시작 불필요.
+///     2026-11-07 (#174) 오너 결정: force는 사용자가 적은 대소문자 그대로 저장하고 표시한다(QuickTime).
 ///   - recentReverts: **IME가 쓴다.** 설정 앱은 읽기와 삭제만 — "금지" 버튼의 항목 제거와
 ///     "최근 기록 지우기". "금지" 버튼이 두 프로세스가 같은 키를 쓰는 유일한 경우인데,
 ///     그 순간 IME가 새 기록을 얹으면 한쪽이 덮인다. 잃는 것은 설정값이 아니라 참고 기록
@@ -86,7 +87,7 @@ struct PersonalDictionarySettingsSection: View {
             .foregroundStyle(.secondary)
             .lineLimit(Self.captionLines, reservesSpace: true)
         addRow(
-            text: $forceInput, prompt: "영어 단어·제품명 (예: apple, banana)", error: forceError,
+            text: $forceInput, prompt: "영어 단어·제품명 (예: apple, QuickTime)", error: forceError,
             fieldLabel: "변환 추가할 영어 단어",
             addLabel: "변환 추가 목록에 단어 추가", action: addForce)
         wordList(force, emptyText: "추가한 단어가 없습니다.", remove: removeForce)
@@ -220,28 +221,27 @@ struct PersonalDictionarySettingsSection: View {
 
     private func load() {
         guard let defaults = Self.imeDefaults else { return }
-        let dict = PersonalDictionary.load(from: defaults)
-        force = dict.force.sorted()
-        block = dict.block.sorted()
+        force = PersonalDictionary.storedForceEntries(in: defaults)
+        block = PersonalDictionary.load(from: defaults).block.sorted()
         recent = RecentReverts.load(from: defaults).entries
     }
 
     // MARK: - 변환 추가
 
     private func addForce() {
-        guard let word = PersonalDictionary.normalizedForceEntry(forceInput) else {
+        guard let updated = PersonalDictionary.addingForceEntry(forceInput, to: force) else {
             forceError = "영문이 포함된 단어 하나를 적어 주세요. 숫자도 가능하며, 아포스트로피(')는 단어 안이나 끝에 한 번만 쓸 수 있습니다."
             return
         }
         forceError = nil
         forceInput = ""
-        guard !force.contains(word) else { return }
-        force = (force + [word]).sorted()
+        guard updated != force else { return }
+        force = updated
         Self.imeDefaults?.set(force, forKey: PersonalDictionary.Keys.force)
     }
 
     private func removeForce(_ word: String) {
-        force.removeAll { $0 == word }
+        force = PersonalDictionary.removingForceEntry(word, from: force)
         Self.imeDefaults?.set(force, forKey: PersonalDictionary.Keys.force)
     }
 

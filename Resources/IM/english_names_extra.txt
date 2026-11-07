@@ -172,3 +172,14 @@ arcsin
 arccos
 arctan
 laplacian
+# 2026-11-07 (#174): owner decision, review english-dict-F-7. Abbreviations moved
+# down from english_supplement (curated) to broad only: their clean Hangul forms
+# look like Korean (ansi=무냐, goty=해쇼, emtek=듯다, totp=새세, algo=미해, rhel=고디,
+# gorm=해그) and are not everyday English. Record: dict_work/2026-11-07-demote174-*.
+ansi
+goty
+emtek
+totp
+algo
+rhel
+gorm

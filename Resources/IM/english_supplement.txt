@@ -516,7 +516,6 @@ gitops
 gitpod
 gke
 golang
-gorm
 goroutine
 graalvm
 gradle
@@ -727,7 +726,6 @@ reactnative
 regexp
 replicaset
 rfc
-rhel
 ripgrep
 rmdir
 rpc
@@ -811,7 +809,6 @@ tmpfs
 tmux
 tokio
 toml
-totp
 traceroute
 traefik
 transpile
@@ -895,7 +892,6 @@ abcp
 ada
 adyen
 aicpa
-algo
 alipay
 allowlist
 altcoin
@@ -1341,7 +1337,6 @@ genshin
 ggwp
 gitgud
 glhf
-goty
 granblue
 gstar
 gta
@@ -4424,7 +4419,6 @@ amat
 analogdevices
 anc
 androidtv
-ansi
 anycubic
 aorus
 apn
@@ -4513,7 +4507,6 @@ elgato
 elitebook
 emby
 emmc
-emtek
 epyc
 ereader
 espressif

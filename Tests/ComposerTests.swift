@@ -223,9 +223,8 @@ func runSparkRegistrationTests() {
         expect(result.client.committedText, "넴가", "spark personal block wins: \(blocked)")
         expect(result.composer.lastConversion == nil, true, "spark blocked conversion has no pair")
     }
-    // sPark already converts through the existing implausible-syllable path.
-    expect(type("sPark").committedText, "sPark", "spark preserves existing sPark handling")
-    for shifted in ["spaRk"] {
+    // 2026-11-07 (#174) 오너 결정: 비완성형 음절 경로(R3)도 혼합 Shift를 막는다. sPark는 이제 녬가로 남는다.
+    for shifted in ["spaRk", "sPark"] {
         expect(type(shifted).committedText, ManualToggle.keysToHangul(shifted)!, "spark meaningful internal Shift protects Korean")
     }
     for word in ["학교", "사과", "선반", "세제", "장갑", "넥타이"] {
@@ -650,7 +649,9 @@ func runReferenceAutomatonFuzzTests() {
                 keyComposer.autoEnglishEnabled = false
                 for step in steps { _ = apply(step, to: keyComposer, keySink) }
                 keyComposer.autoEnglishEnabled = true
-                keyComposer.personalDictionary = PersonalDictionary(force: [Contractions.normalizedKey(reference.keys)])
+                // 2026-11-07 (#174): 혼합 대소문자는 등록한 표기와 정확히 같아야 force다. 참조 키열 자체를 등록 표기로 넣어 키열이 같은지 본다.
+                keyComposer.personalDictionary = PersonalDictionary(force: [Contractions.normalizedKey(reference.keys)],
+                                                                    registeredSpellings: [keys])
                 let converted = keyComposer.commit(to: keySink, convertEnglish: true)
                 if converted != keys {
                     keyMismatch += 1
@@ -780,9 +781,10 @@ func runMenuBarIconTests() {
 }
 
 func runMath109Tests() {
+    // 2026-11-07 (#174) 오너 결정: cos=챈은 단독 변환에서 뺐다. 검사는 Tests/EnglishRulesTests.swift의 F-8.
     let words: [(String, String)] = [
         ("ln", "ㅣㅜ"), ("pi", "ㅔㅑ"), ("mu", "ㅡㅕ"), ("nu", "ㅜㅕ"),
-        ("cos", "챈"), ("abs", "뮨"), ("xi", "탸"),
+        ("abs", "뮨"), ("xi", "탸"),
     ]
     for (word, hangul) in words {
         expect(ManualToggle.keysToHangul(word) ?? "", hangul, "#109 two-set composition: \(word)")
@@ -812,7 +814,7 @@ func runMath109Tests() {
     }
     expect(type("cot").committedText, "챗", "#109 cot stays Korean (veto)")
     // A Korean word after the new abbreviations stays Korean.
-    expect(typeWords(["cos", ManualToggle.hangulToKeys("학교")!]).last ?? "", "학교", "#109 Korean after cos stays Korean")
+    expect(typeWords(["abs", ManualToggle.hangulToKeys("학교")!]).last ?? "", "학교", "#109 Korean after abs stays Korean")
 }
 
 // MARK: - 사전 manifest (review-0712 P3-5)
