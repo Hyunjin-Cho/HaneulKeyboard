@@ -120,7 +120,8 @@ struct OnboardingConversionDemo: View {
                     .lineLimit(1).minimumScaleFactor(0.7)
                 Label("한글 모드 유지", systemImage: "checkmark.circle").font(.system(size: 14))
             }.frame(maxWidth: .infinity, alignment: .leading)
-            VStack(alignment: .trailing, spacing: 10) {
+            // 2026-11-07 오너(#187): 다시 보기를 Space 키와 같은 세로축에 놓는다. 오른쪽 맞춤이면 폭이 달라 어긋나 보였다.
+            VStack(alignment: .center, spacing: 10) {
                 Text("Space").font(.system(size: 15, weight: .medium))
                     .frame(width: 124, height: 32)
                     .background(OnboardingRiso.yellow.opacity(frame == 5 ? 0.6 : 0.2), in: RoundedRectangle(cornerRadius: 7))
