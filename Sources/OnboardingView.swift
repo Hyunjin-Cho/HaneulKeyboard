@@ -262,11 +262,11 @@ struct OnboardingView: View {
         let ink = OnboardingRiso.ink(for: colorScheme)
         return HStack(spacing: 14) {
             Image(systemName: "wifi").font(.system(size: 14, weight: .medium)).accessibilityHidden(true)
-            // 2026-11-04: 메뉴바 아이콘(G5b)은 22pt 화소 격자에 맞춰 그렸다. 20pt로 줄이면 2배 화면에서
-            // 마구리 점이 회색으로 뭉개져서, 실제 메뉴바와 같은 22pt로 그린다. 연필 동그라미 틀(40×36)은 그대로다.
+            // 2026-11-07 (#188): 메뉴바 아이콘(G6)은 18pt 화소 격자에 맞춰 그렸다. 다른 크기로 늘이면 2배 화면에서
+            // 마구리 점이 회색으로 뭉개져서, 실제 메뉴바와 같은 18pt로 그린다. 연필 동그라미 틀(40×36)은 그대로다.
             Image(nsImage: HaneulStatusIcon.image)
-                .resizable().renderingMode(.template).scaledToFit().frame(width: 22, height: 22)
-                .padding(.horizontal, 9).padding(.vertical, 7)
+                .resizable().renderingMode(.template).scaledToFit().frame(width: 18, height: 18)
+                .padding(.horizontal, 11).padding(.vertical, 9)
                 .accessibilityLabel("하늘키보드 메뉴바 아이콘")
                 .overlay {
                     OnboardingPencilRing().stroke(ink, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
@@ -301,13 +301,14 @@ struct OnboardingView: View {
             // 2026-11-05 (#145): 시연이 이 페이지의 주인공이라 남는 높이를 받는다.
             OnboardingConversionDemo(compact: compact)
             HStack(spacing: 14) {
-                Image(systemName: ready ? "checkmark.circle" : "keyboard").font(.system(size: 25))
-                    .foregroundStyle((ready ? FeedbackStatus.success : .pending).color(in: colorScheme))
+                Image(systemName: installPanel.symbol).font(.system(size: 25))
+                    .foregroundStyle(installPanel.iconStatus.color(in: colorScheme))
                 VStack(alignment: .leading, spacing: 5) {
                     Text("하늘키보드 두벌식").font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(.primary)
-                    Text(installStatus).font(.system(size: 14))
-                        .foregroundStyle((ready ? FeedbackStatus.success : .pending).color(in: colorScheme))
+                    // 2026-11-07 (#187): 빨간 칸 위에서는 빨간 글자가 안 읽힌다. 설치가 필요하면 본문색으로 또렷하게 쓴다.
+                    Text(installStatus).font(.system(size: 14, weight: installPanel == .actionNeeded ? .semibold : .regular))
+                        .foregroundStyle(installPanel == .actionNeeded ? Color.primary : installPanel.iconStatus.color(in: colorScheme))
                 }
                 Spacer(minLength: 0)
                 if !ready {
@@ -316,7 +317,8 @@ struct OnboardingView: View {
                         // 막다른 길이었다. 해결이 있는 앱 관리로 바로 보낸다.
                         OnboardingButton("앱 관리 열기") { onSettings(.appManagement) }.fixedSize()
                     } else {
-                        OnboardingButton(core.isPreparingIME ? "확인·설치 중…" : "하늘키보드 설치") {
+                        // 2026-11-07 오너(#187): 이 페이지에서 사용자가 꼭 눌러야 하는 버튼이라 주 버튼 잉크로 칠한다.
+                        OnboardingButton(core.isPreparingIME ? "확인·설치 중…" : "하늘키보드 설치", navigation: true) {
                             Task {
                                 installError = nil
                                 if let error = await core.installIME() { installError = error.localizedDescription }
@@ -324,7 +326,7 @@ struct OnboardingView: View {
                         }.disabled(core.isPreparingIME).fixedSize()
                     }
                 }
-            }.feedbackPanel(.information).fixedSize(horizontal: false, vertical: true)
+            }.feedbackPanel(installPanel == .actionNeeded ? .actionNeeded : .information).fixedSize(horizontal: false, vertical: true)
             if let message = installError ?? systemInstallNotice ?? core.imeActivationError?.localizedDescription
                 ?? core.imeSettingsRefreshWarning {
                 Text(message).font(.system(size: 14))
@@ -349,13 +351,21 @@ struct OnboardingView: View {
         guard core.imeRefreshBlockedBySystemInstall, !core.isPreparingIME else { return nil }
         return "이 Mac의 시스템 영역(/Library/Input Methods)에 이전 버전 입력기가 있어서 앱이 직접 바꿀 수 없어요. ‘앱 관리 열기’에서 ‘입력기 제거’를 누른 뒤 ‘하늘키보드 설치’를 눌러 주세요."
     }
+    private var installPanel: OnboardingInstallPanel {
+        .resolve(statusKnown: core.imeStatusKnown, busy: core.isPreparingIME,
+                 installed: core.imeInstalled, refreshNeeded: core.imeRefreshNeeded)
+    }
     private var installStatus: String {
-        if core.isPreparingIME { return "설치 상태를 확인하고 있어요" }
-        if core.imeRefreshBlockedBySystemInstall { return "이전 버전 입력기를 지우고 다시 설치해 주세요" }
-        if core.imeRefreshNeeded { return "입력기를 새 버전으로 업데이트해 주세요" }
-        if core.imeInstalled { return "설치 완료" }
-        if core.imeDisabled { return "설치되어 있어요 · 입력 소스를 다시 켜 주세요" }
-        return "아직 설치되지 않았어요"
+        switch installPanel {
+        case .checking: return "설치 상태를 확인하고 있어요"
+        case .ready: return "설치 완료"
+        case .actionNeeded:
+            if core.imeRefreshBlockedBySystemInstall { return "이전 버전 입력기를 지우고 다시 설치해 주세요" }
+            if core.imeRefreshNeeded { return "입력기를 새 버전으로 업데이트해 주세요" }
+            if core.imeDisabled { return "설치되어 있어요 · 입력 소스를 다시 켜 주세요" }
+            // 2026-11-07 오너(#187): 무엇을 눌러야 하는지 칸 안에서 바로 말한다.
+            return "아직 설치되지 않았어요. 오른쪽 버튼을 눌러 설치해 주세요."
+        }
     }
     private var sourceStep: some View {
         VStack(alignment: .leading, spacing: compact ? 10 : 14) {
@@ -388,6 +398,8 @@ struct OnboardingView: View {
                 Label("기존 Apple ‘두벌식’은 빼고, ‘ABC’는 남겨 주세요.", systemImage: "keyboard")
                 Text("Caps Lock을 짧게 누르면 한글과 영어가 바뀌어요.\n키보드 설정의 ‘Caps Lock 키로 ABC 입력 소스 전환’도 확인해 주세요.")
                     .lineSpacing(4)
+                // 2026-11-07 (#187): 입력기라 가장 정직해야 하는 대목이다. 근거는 PRIVACY.md 4번과 README 알려진 한계.
+                Label("비밀번호는 ABC로 쳐 주세요. 일부 웹사이트의 비밀번호 칸에서는 한글이 입력될 수 있어요.", systemImage: "lock")
                 if let message = sourceError ?? core.imeSettingsRefreshWarning {
                     Text(message).foregroundStyle(FeedbackStatus.warning.color(in: colorScheme))
                         .textSelection(.enabled)
@@ -426,15 +438,14 @@ struct OnboardingView: View {
 
     private var reversalStep: some View {
         practiceBands(.reversal) {
-            HStack(alignment: .bottom, spacing: 16) {
+            VStack(alignment: .leading, spacing: compact ? 8 : 12) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("방금 변환한 단어를 다시 한글로")
                         .font(.system(size: adviceTitleSize, weight: .semibold))
                     Text("apple을 친 뒤 Space → \(shortcut.displayName)를 눌러보세요.\n같은 단축키를 한 번 더 누르면 영어로 돌아와요.")
                         .font(.system(size: adviceBodySize)).lineSpacing(3)
                 }
-                Spacer(minLength: 0)
-                terminalShortcutNote
+                terminalLimitNote
             }.feedbackPanel(.advice, fills: true)
         }
     }
@@ -450,7 +461,9 @@ struct OnboardingView: View {
                         Text("등록된 표기만 바꿔요. 일반 Space에서는 한글 그대로예요.")
                             .font(.system(size: adviceBodySize))
                         HStack(spacing: 10) {
-                            Text("나만의 변환 규칙은 설정 → 개인 사전에서")
+                            // 2026-11-07 (#187): 개인 사전에는 한글 → 영어 규칙을 넣을 수 없다(`PersonalDictionary.isEnglishEntry`는 영문만 받는다).
+                            // 예전 문구 "나만의 변환 규칙은…"은 넣을 수 있는 것처럼 읽혔다. 단어 제안이 같은 탭 아래에 있다.
+                            Text("없는 단어는 개인 사전에서 제안해 주세요")
                                 .font(.system(size: adviceNoteSize))
                             Button("개인 사전 열기") { onSettings(.personalDictionary) }
                                 .font(.system(size: adviceNoteSize))
@@ -468,7 +481,7 @@ struct OnboardingView: View {
             VStack(alignment: .leading, spacing: 7) {
                 Text("/help → Space → 다시 한글 입력")
                     .font(.system(size: adviceTitleSize, weight: .semibold))
-                Text("/는 그대로 남고, 뒤에는 즉시 영어가 나와요.\nSpace·슬래시 삭제·닫는 괄호 뒤에는 한글로 돌아와요.")
+                Text("/는 그대로 남고, 뒤에는 즉시 영어가 나와요.\nSpace·Return을 누르거나, /를 지우거나, 닫는 괄호를 치면 한글로 돌아와요.")
                     .font(.system(size: adviceBodySize)).lineSpacing(3)
                 HStack {
                     Text("기본으로 켜져 있어요. 설정에서 끌 수 있어요.")
@@ -488,7 +501,29 @@ struct OnboardingView: View {
 
     private var terminalShortcutNote: some View {
         Label("터미널에서는 \(shortcut.displayName)로 되돌릴 수 없어요.", systemImage: "terminal")
-            .font(.system(size: adviceNoteSize)).foregroundStyle(.secondary).padding(.horizontal, 8)
+            .font(.system(size: adviceNoteSize)).padding(.horizontal, 8)
+    }
+
+    /// 2026-11-07 오너(#187): 안 되는 곳을 정직하게 알린다. 터미널은 입력기를 못 받는 곳이 아니라 이미 들어간 글자를 바꿀 수 없는 곳이다
+    /// (2026-07-28 실측, #30). 자동 변환과 슬래시는 되므로 그것도 같이 적는다. 작은 창은 띠 높이가 모자라 한 줄로 줄인다.
+    private var terminalLimitNote: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Image(systemName: "terminal")
+                .foregroundStyle(FeedbackStatus.warning.color(in: colorScheme))
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 4) {
+                if compact {
+                    Text("터미널 앱에서는 \(shortcut.displayName)로 되돌릴 수 없어요. 자동 변환과 슬래시 입력은 돼요.")
+                        .fontWeight(.medium)
+                } else {
+                    Text("터미널 앱(Terminal, Ghostty 등)은 이미 들어간 글자를 바꿀 수 없어요. \(shortcut.displayName)를 눌러도 그대로예요.")
+                        .fontWeight(.medium)
+                    Text("자동 변환과 슬래시 입력은 돼요. 잘못 바뀌는 일이 잦으면 설정에서 그 앱의 자동 변환만 꺼 주세요.")
+                }
+            }
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        .font(.system(size: adviceNoteSize))
     }
 
     private func lessonDisabled(_ lesson: PracticeLesson) -> Bool {
@@ -743,6 +778,23 @@ struct OnboardingView: View {
         refreshSelection()
         sourceError = success || selectedHaneul ? nil : "하늘키보드를 선택하지 못했어요. 키보드 설정에서 입력 소스를 추가해 주세요."
         return success || selectedHaneul
+    }
+}
+
+private extension OnboardingInstallPanel {
+    var symbol: String {
+        switch self {
+        case .checking: "keyboard"
+        case .ready: "checkmark.circle"
+        case .actionNeeded: "exclamationmark.triangle.fill"
+        }
+    }
+    var iconStatus: FeedbackStatus {
+        switch self {
+        case .checking: .pending
+        case .ready: .success
+        case .actionNeeded: .warning
+        }
     }
 }
 

@@ -21,6 +21,19 @@ func readSource(_ path: String) -> String? {
     try? String(contentsOf: root.appendingPathComponent(path), encoding: .utf8)
 }
 
+// MARK: - 안내 1페이지 설치 칸 강조 (#187)
+
+func runOnboardingInstallPanelTests() {
+    typealias P = OnboardingInstallPanel
+    expectEqual(P.resolve(statusKnown: false, busy: false, installed: false, refreshNeeded: false), .checking, "읽기 전에는 빨갛게 하지 않는다")
+    expectEqual(P.resolve(statusKnown: true, busy: true, installed: false, refreshNeeded: false), .checking, "설치 중에는 빨갛게 하지 않는다")
+    expectEqual(P.resolve(statusKnown: true, busy: false, installed: false, refreshNeeded: false), .actionNeeded, "읽었고 없음 = 강조")
+    expectEqual(P.resolve(statusKnown: true, busy: false, installed: true, refreshNeeded: true), .actionNeeded, "입력기가 낡음 = 강조")
+    expectEqual(P.resolve(statusKnown: false, busy: false, installed: true, refreshNeeded: true), .checking, "낡음도 읽기 전에는 강조하지 않는다")
+    expectEqual(P.resolve(statusKnown: true, busy: false, installed: true, refreshNeeded: false), .ready, "설치 완료")
+    expectEqual(P.resolve(statusKnown: true, busy: true, installed: true, refreshNeeded: false), .checking, "업데이트 교체 중 = 확인 중")
+}
+
 // MARK: - 입력기 상태 표시 (리뷰 app-ui-F-1)
 
 func runIMEStatusTests() {
@@ -180,6 +193,7 @@ func runScrollResourceTests() {
 @main
 struct AppUITests {
     static func main() {
+        runOnboardingInstallPanelTests()
         runIMEStatusTests()
         runInputSourceTests()
         runDefaultsKeyTests()

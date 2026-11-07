@@ -32,6 +32,21 @@ enum IMEStatusPresentation: Equatable {
     }
 }
 
+/// 2026-11-07 오너(#187): 안내 1페이지 설치 칸의 상태. 첫 화면에서 어떻게 설치하는지 모를 수 있어 설치가 필요하면 빨갛게 강조한다.
+/// 읽기 전·작업 중에는 강조하지 않는다. 이미 설치된 Mac에서 창을 열 때 잠깐 빨갛게 번쩍이면 고장처럼 보인다.
+enum OnboardingInstallPanel: Equatable {
+    case checking
+    case ready
+    case actionNeeded
+
+    /// - refreshNeeded: 입력기가 앱보다 낡아 다시 설치해야 한다(`AppCore.imeRefreshNeeded`).
+    static func resolve(statusKnown: Bool, busy: Bool, installed: Bool, refreshNeeded: Bool) -> Self {
+        if busy { return .checking }
+        if installed && !refreshNeeded { return .ready }
+        return statusKnown ? .actionNeeded : .checking
+    }
+}
+
 /// 지금 쓰는 입력 소스를 사실대로 말하기 위한 분류. (리뷰 app-ui-F-7)
 /// 예전엔 입력 소스 ID에 korean·hangul이 있으면 "한국어", 아니면 전부 "영어"라고 했다 — 일본어·중국어·프랑스어 자판도 "영어"가 되고,
 /// Apple 두벌식이 "한국어"로 보여 하늘키보드를 고르지 않았다는 사실도 가려졌다. 안내 창은 처음부터 정확한 ID 비교를 쓴다.

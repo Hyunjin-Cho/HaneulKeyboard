@@ -2,14 +2,20 @@ import SwiftUI
 
 /// 2026-10-18: 배경은 설명의 역할, 글자색은 상태를 나타낸다.
 enum FeedbackTone {
-    case information, advice, warning
+    /// 2026-11-07 오너(#187): `actionNeeded`는 사용자가 지금 눌러야 하는 칸이다. 경고 띠(옅은 분홍)보다 진하게 칠한다.
+    case information, advice, warning, actionNeeded
     var tint: Color {
         switch self {
         case .information: OnboardingRiso.cyan
         case .advice: OnboardingRiso.yellow
-        case .warning: Color(red: 0.85, green: 0.16, blue: 0.20)
+        case .warning, .actionNeeded: Color(red: 0.85, green: 0.16, blue: 0.20)
         }
     }
+    func fillOpacity(in scheme: ColorScheme) -> Double {
+        if self == .actionNeeded { return scheme == .dark ? 0.48 : 0.36 }
+        return scheme == .dark ? 0.16 : 0.10
+    }
+    var strokeOpacity: Double { self == .actionNeeded ? 0.85 : 0.40 }
 }
 
 enum FeedbackStatus {
@@ -39,8 +45,8 @@ private struct FeedbackPanel: ViewModifier {
             .frame(maxWidth: .infinity, maxHeight: fills ? .infinity : nil, alignment: .leading)
             .padding(14)
             .foregroundStyle(scheme == .dark ? Color(white: 0.94) : Color(white: 0.10))
-            .background(tone.tint.opacity(scheme == .dark ? 0.16 : 0.10), in: RoundedRectangle(cornerRadius: 15))
-            .overlay(RoundedRectangle(cornerRadius: 15).strokeBorder(tone.tint.opacity(0.40), lineWidth: 1))
+            .background(tone.tint.opacity(tone.fillOpacity(in: scheme)), in: RoundedRectangle(cornerRadius: 15))
+            .overlay(RoundedRectangle(cornerRadius: 15).strokeBorder(tone.tint.opacity(tone.strokeOpacity), lineWidth: 1))
             .overlay(alignment: .topLeading) {
                 RisoRegistrationMark().padding(.leading, 18).offset(y: -6.3)
             }
