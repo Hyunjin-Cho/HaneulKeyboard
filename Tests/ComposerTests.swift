@@ -1098,6 +1098,23 @@ struct ComposerTests {
         }
         // 2026-11-08 오너 요청(#194): bio(ㅠㅑㅐ)는 어느 사전에도 없어 어떤 규칙으로도 안 바뀌었다.
         for keys in ["bio", "BIO", "Bio"] { expect(type(keys).committedText, keys, "#194 사전 추가 \(keys)") }
+        // 2026-11-08 오너 요청(#194): 일괄 제외했던 단어 중 쓰는 말과 월 이름. 소문자·대문자·첫 글자 대문자 모두 그대로 남아야 한다.
+        for word in [
+            "acct", "ads", "asst", "avg", "bbc", "bff", "bldg", "blvd", "bmx", "bpm", "byte", "cafe", "cert",
+            "cred", "dec", "dvd", "dvds", "etc", "ext", "fave", "fax", "hbo", "hdtv", "hiya", "hrs", "hvac",
+            "ibm", "ieee", "imax", "inc", "iou", "ipod", "irc", "jan", "jeez", "jpn", "jul", "jun", "kart",
+            "lib", "lng", "lpg", "ltd", "med", "meds", "mega", "mgr", "mia", "mic", "mics", "misc", "mkt",
+            "mpeg", "mps", "msg", "mtv", "nasa", "nba", "nbc", "ncaa", "nerd", "nhl", "nike", "nov", "nsa",
+            "nsfw", "ntsc", "nyc", "obs", "ocr", "oct", "oink", "opec", "ops", "pct", "pda", "ppv", "pre",
+            "pvc", "rec", "rss", "stat", "uhf", "univ", "unix", "ups", "usa", "usda", "ussr", "utc", "vga",
+            "ymca", "yrs", "yum", "yup"
+        ] {
+            for keys in [word, word.uppercased(), word.prefix(1).uppercased() + word.dropFirst()] {
+                expect(type(keys).committedText, keys, "#194 사전 추가 \(keys)")
+            }
+        }
+        // 오너가 2026-11-01에 뺀 std는 그대로 한글이다.
+        expect(type("std").committedText, "ㄴㅅㅇ", "#194 std는 넣지 않음")
         // 넣지 않은 것은 그대로다: 초성체, 우는 표정, 멀쩡한 한글.
         for (keys, hangul) in [("rc", "ㄱㅊ"), ("da", "ㅇㅁ"), ("re", "ㄱㄷ"), ("ac", "ㅁㅊ"), ("de", "ㅇㄷ"), ("qr", "ㅂㄱ"), ("qt", "ㅂㅅ"),
                                ("mb", "ㅡㅠ"), ("hk", "ㅘ"), ("dm", "으"), ("gb", "휴"), ("tb", "슈"), ("sk", "나")] {

@@ -5419,3 +5419,15 @@ spark
 # existing R5 (Tier A, reviewed). No Korean-veto, Shift or short-word override.
 theorem
 curl
+# 2026-11-08 (#194): owner asked to add what is needed. Three-consonant forms reach only through curated (EnglishDetector units == 3).
+# Forms are all-jamo, so R5 clean rules do not apply. std stays out: owner excluded it on 2026-11-01 (#109). Record: dict_work/2026-11-08-shortwords-*.
+ads
+avg
+dec
+dvd
+etc
+ext
+fax
+rec
+rss
+vga

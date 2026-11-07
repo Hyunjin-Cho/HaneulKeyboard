@@ -1,0 +1,11 @@
+word,hangul_form,class,in_urimalsaem,standalone_before,standalone_after,context_before,context_after,trigger_before,trigger_after,tier,note
+ads,ㅁㅇㄴ,all_jamo,0,0,1,0,1,0,1,C,"⚠️ 전부 자모(완성음절 0) — names 기본 제외 권장(ㅗㅜㅑ류 슬랭 보호)"
+avg,ㅁㅍㅎ,all_jamo,0,0,1,0,1,0,1,C,"⚠️ 전부 자모(완성음절 0) — names 기본 제외 권장(ㅗㅜㅑ류 슬랭 보호)"
+dec,ㅇㄷㅊ,all_jamo,0,0,1,0,1,0,1,C,"⚠️ 전부 자모(완성음절 0) — names 기본 제외 권장(ㅗㅜㅑ류 슬랭 보호)"
+dvd,ㅇㅍㅇ,all_jamo,0,0,1,0,1,0,1,C,"⚠️ 전부 자모(완성음절 0) — names 기본 제외 권장(ㅗㅜㅑ류 슬랭 보호)"
+etc,ㄷㅅㅊ,all_jamo,0,0,1,0,1,0,1,C,"⚠️ 전부 자모(완성음절 0) — names 기본 제외 권장(ㅗㅜㅑ류 슬랭 보호)"
+ext,ㄷㅌㅅ,all_jamo,0,0,1,0,1,0,1,C,"⚠️ 전부 자모(완성음절 0) — names 기본 제외 권장(ㅗㅜㅑ류 슬랭 보호)"
+fax,ㄹㅁㅌ,all_jamo,0,0,1,0,1,0,1,C,"⚠️ 전부 자모(완성음절 0) — names 기본 제외 권장(ㅗㅜㅑ류 슬랭 보호)"
+rec,ㄱㄷㅊ,all_jamo,0,0,1,0,1,0,1,C,"⚠️ 전부 자모(완성음절 0) — names 기본 제외 권장(ㅗㅜㅑ류 슬랭 보호)"
+rss,ㄱㄴㄴ,all_jamo,0,0,1,0,1,0,1,C,"⚠️ 전부 자모(완성음절 0) — names 기본 제외 권장(ㅗㅜㅑ류 슬랭 보호)"
+vga,ㅍㅎㅁ,all_jamo,0,0,1,0,1,0,1,C,"⚠️ 전부 자모(완성음절 0) — names 기본 제외 권장(ㅗㅜㅑ류 슬랭 보호)"
