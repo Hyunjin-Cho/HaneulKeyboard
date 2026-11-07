@@ -34,24 +34,30 @@ struct PersonalDictionary: Equatable {
 
     /// 변환 추가 — 소문자 a–z·숫자와 `'` 한 개, 또는 `1.5ml` 형태의 소수 수량.
     var force: Set<String>
+    /// 2026-11-07 (#174, 리뷰 E174-P2-1) 오너 결정: 변환 추가에 대문자를 섞어 등록한 표기 원문(QuickTime).
+    /// 이 키열과 정확히 같으면 `hasEnglishCasing`을 건너뛴다. 소문자로 등록한 항목은 여기 들어오지 않아 goT·wOrk가 계속 막힌다.
+    var registeredSpellings: Set<String>
     /// 변환 금지 — 영어(소문자) 또는 그 한글 자판 표기(`normalizedBlockEntry`로 정규화된 값).
     /// 커밋 때 영어 키열과 한글 표기를 **둘 다** 이 집합에 대조한다.
     var block: Set<String>
 
     static let empty = PersonalDictionary(force: [], block: [])
 
-    init(force: Set<String> = [], block: Set<String> = []) {
+    init(force: Set<String> = [], block: Set<String> = [], registeredSpellings: Set<String> = []) {
         self.force = force
         self.block = block
+        self.registeredSpellings = registeredSpellings
     }
 
     /// 저장된 목록에서 만든다. 저장 시 이미 정규화됐더라도 다시 정규화한다 —
     /// `defaults write`로 손으로 넣은 값도 같은 규칙을 타게 하고, 규칙에 안 맞는 항목은
     /// 조용히 버린다(빈 문자열·공백·한글이 force에 섞여도 판정이 오염되지 않게).
     init(forceList: [String], blockList: [String]) {
+        let entries = Self.forceEntries(forceList)
         self.init(
-            force: Set(forceList.compactMap(Self.normalizedForceEntry)),
-            block: Set(blockList.compactMap(Self.normalizedBlockEntry))
+            force: Set(entries.compactMap(Self.normalizedForceEntry)),
+            block: Set(blockList.compactMap(Self.normalizedBlockEntry)),
+            registeredSpellings: Set(entries.filter { $0.contains(where: \.isUppercase) })
         )
     }
 
@@ -80,13 +86,16 @@ struct PersonalDictionary: Equatable {
     /// 화면에 보이던 조합 결과(marked text 그대로).
     ///   - block이 force보다 먼저: "절대 변환하지 않는다"는 약속은 같은 단어를 실수로 양쪽에
     ///     넣었을 때도 지켜져야 한다 — 안 바뀌는 쪽이 항상 안전한 실패다.
-    ///   - force는 혼합 대소문자를 인정하지 않는다(`hasEnglishCasing`). 금지는 대소문자와 무관하다.
+    ///   - force는 혼합 대소문자를 인정하지 않는다(`hasEnglishCasing`). 등록한 표기와 정확히 같은 키열만 예외다.
+    ///     금지는 대소문자와 무관하다.
     ///   - nil = 의견 없음 → 호출자가 `EnglishDetector.shouldConvert`에 묻는다.
     func decision(word: String, hangul: String) -> Decision? {
         let key = Self.normalizedEnglish(word)
         let hangulKey = hangul.precomposedStringWithCanonicalMapping.replacingOccurrences(of: "’", with: "'")
         if block.contains(key) || block.contains(hangulKey) { return .block }
-        if force.contains(key), Self.hasEnglishCasing(word) { return .forceConvert }
+        if force.contains(key), Self.hasEnglishCasing(word) || registeredSpellings.contains(word.replacingOccurrences(of: "’", with: "'")) {
+            return .forceConvert
+        }
         return nil
     }
 
@@ -98,6 +107,46 @@ struct PersonalDictionary: Equatable {
               !word.contains(where: \.isNumber) else { return true }
         let letters = word.filter(\.isLetter)
         return letters.allSatisfy(\.isUppercase) || letters.dropFirst().allSatisfy(\.isLowercase)
+    }
+
+    // MARK: - 변환 추가 목록 편집 (설정 앱이 쓴다. 입력기는 읽기만 한다)
+
+    /// 2026-11-07 (#174) 오너 결정: 저장 목록(`Keys.force`)에 사용자가 적은 대소문자를 그대로 둔다. 새 키를 만들지 않은 이유:
+    /// 소문자 목록과 원문 목록을 따로 두면 서로 어긋날 수 있고, 예전 빌드도 같은 목록을 소문자로 정규화해 읽으므로 그대로 동작한다.
+    /// 옛 항목(전부 소문자)은 옮길 것이 없고, 전체 제거·`defaults read`도 달라지지 않는다.
+    static func storedForceEntries(in defaults: UserDefaults) -> [String] {
+        forceEntries(defaults.stringArray(forKey: Keys.force) ?? [])
+    }
+
+    /// 저장된 목록을 표시·판정용으로 정리한다. 규칙에 안 맞는 항목은 버리고, 같은 낱말(대소문자 무시)은 한 줄로 합치며
+    /// (`defaults write`로 넣은 중복만 해당한다) 먼저 나온 대문자 표기를 남긴다. 정렬은 소문자 기준이라 옛 목록의 순서는 그대로다.
+    static func forceEntries(_ raw: [String]) -> [String] {
+        var byKey: [String: String] = [:]
+        for item in raw {
+            guard let entry = registeredForceEntry(item), let key = normalizedForceEntry(entry) else { continue }
+            if let existing = byKey[key], existing != key { continue }
+            byKey[key] = entry
+        }
+        return byKey.keys.sorted().compactMap { byKey[$0] }
+    }
+
+    /// 입력을 목록에 넣은 결과. 규칙에 안 맞으면 nil. 같은 낱말이 이미 있으면 새로 친 표기로 바꾼다.
+    static func addingForceEntry(_ input: String, to entries: [String]) -> [String]? {
+        guard let entry = registeredForceEntry(input), let key = normalizedForceEntry(entry) else { return nil }
+        return forceEntries(entries.filter { normalizedForceEntry($0) != key } + [entry])
+    }
+
+    static func removingForceEntry(_ entry: String, from entries: [String]) -> [String] {
+        let key = normalizedForceEntry(entry)
+        return entries.filter { normalizedForceEntry($0) != key }
+    }
+
+    /// 등록 표기: 검사는 `normalizedForceEntry`와 같고 대소문자만 그대로 둔다.
+    /// 소문자화로만 ASCII가 되는 문자(켈빈 기호 등)가 섞이면 소문자 항목으로 저장한다.
+    private static func registeredForceEntry(_ raw: String) -> String? {
+        guard let lowered = normalizedForceEntry(raw) else { return nil }
+        let spelled = raw.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "’", with: "'")
+        return spelled.allSatisfy(\.isASCII) ? spelled : lowered
     }
 
     // MARK: - 입력 정규화 (설정 앱의 입력 검증과 저장 시 정규화가 같은 함수를 쓴다)

@@ -649,7 +649,9 @@ func runReferenceAutomatonFuzzTests() {
                 keyComposer.autoEnglishEnabled = false
                 for step in steps { _ = apply(step, to: keyComposer, keySink) }
                 keyComposer.autoEnglishEnabled = true
-                keyComposer.personalDictionary = PersonalDictionary(force: [Contractions.normalizedKey(reference.keys)])
+                // 2026-11-07 (#174): 혼합 대소문자는 등록한 표기와 정확히 같아야 force다. 참조 키열 자체를 등록 표기로 넣어 키열이 같은지 본다.
+                keyComposer.personalDictionary = PersonalDictionary(force: [Contractions.normalizedKey(reference.keys)],
+                                                                    registeredSpellings: [keys])
                 let converted = keyComposer.commit(to: keySink, convertEnglish: true)
                 if converted != keys {
                     keyMismatch += 1

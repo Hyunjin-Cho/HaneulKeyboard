@@ -204,6 +204,10 @@ enum EnglishDetector {
         "어", "오", "우", "으", "이", "그", "저", "나", "너", "뭐", "왜", "예", "응",
     ]
 
+    /// 2026-11-07 오너 결정(리뷰 F-1의 개별 검토): curated 약어 wlb·rnb·thb·epb의 한글형. 무맥락에서만 막는다.
+    /// 음절 단위로 넓히지 않고 오너가 정한 네 꼴만 적는다. 그날 broad에 같은 음절 + ㅠㅜㅡ 꼴의 다른 낱말은 없었다.
+    static let sadTailExactForms: Set<String> = ["지ㅠ", "구ㅠ", "소ㅠ", "데ㅠ"]
+
     /// (2026-06-19) 트리거 게이트 완전 제거 — 새(to)/무(an)/내(so)/ㅁ(a)/
     /// 랙(for)을 포함한 shortWords는 "직전 단어가 영어면 무조건" 변환한다
     /// (사용자 결정). "내 책"·"새 기능"·"무엇"은 앞이 한글이라 prevEnglish=
@@ -345,9 +349,11 @@ enum EnglishDetector {
         // 2026-11-07 (#174) 오너 결정: 같은 기준을 R3·첫 자음 Shift·단독 목록·자음열에도 쓴다.
         // 떄문(EOans)·옛(DPt)·헸(gpT)·ㅁㅆ(aT) 같은 Shift 오타와 실존어가 영어 조각으로 바뀌었다.
         // MAIN에는 넣지 않는다 — iPhone·macOS·YouTube·sRGB 같은 영어 표기가 그 경로로 온다.
+        // 2026-11-07 오너 결정(리뷰 E174-P3-1): 등록된 단위 기호와 대소문자까지 같으면 차단하지 않는다(GPa=혬).
+        // sr·ton은 이 조건이 아니라 슬랭 보호와 끝 모음 판정에서 막히므로 그대로다.
         let titleCase = keys.first?.isUppercase == true && keys.dropFirst().allSatisfy(\.isLowercase)
         let conventionalCase = titleCase || keys.allSatisfy(\.isUppercase)
-        let englishCasing = !hasShiftKey || conventionalCase
+        let englishCasing = !hasShiftKey || conventionalCase || MeasurementUnits.contains(String(keys))
 
         // R2-화이트리스트 (조건 2·5): 직전 단어가 영어면 shortWords를 변환.
         // (2026-06-19) 트리거 게이트 제거 — 새/무/내/ㅁ/랙도 "앞 영어면 무조건".
@@ -425,7 +431,7 @@ enum EnglishDetector {
         }
         // 2026-11-07 (#174) 오너 결정: 해ㅠ·네ㅜ류. MAIN만이 아니라 단위 경로(새ㅜ=ton)도 함께 막도록 여기서 거른다.
         // 영어 문맥이 있거나 숫자 뒤 단위(10 ton)이면 이 판정에 오지 않거나 통과하고, Son·Don은 첫 자음 Shift가 위에서 받는다.
-        if !prevEnglish, isSadTail(units) {
+        if !prevEnglish, isSadTail(units) || sadTailExactForms.contains(hangul) {
             return false
         }
 

@@ -28,8 +28,15 @@ func runEnglishRulesTests() {
     }
     expect(typeWords(["I", "won"]).last ?? "", "won", "F-1 영어 문맥은 변환: I won")
     // 목록 밖 음절과 ㅠㅜㅡ가 아닌 끝은 좁게 막기의 범위 밖이다(B안). 깨진 영어 대조군도 지킨다.
-    converts(["thb", "wlb", "throb", "run", "fun", "sun", "gun", "apron", "cotton", "skeleton", "wisdom", "dkk", "apple"], "F-1 대조군 변환")
+    converts(["throb", "run", "fun", "sun", "gun", "apron", "cotton", "skeleton", "wisdom", "dkk", "apple"], "F-1 대조군 변환")
     staysKorean(["dkssud", "go", "ro"], "F-1 대조군 한글")
+
+    // 2026-11-07 오너 결정: curated 약어 4개의 한글형만 무맥락에서 막는다. 앞 음절이 같은 다른 영어는 건드리지 않는다.
+    for (keys, form) in [("wlb", "지ㅠ"), ("rnb", "구ㅠ"), ("thb", "소ㅠ"), ("epb", "데ㅠ")] {
+        expect(type(keys).committedText, form, "약어 4개 무맥락 한글: \(keys)")
+        expect(afterThe(keys), keys, "약어 4개 영어 문맥은 변환: \(keys)")
+    }
+    converts(["WLB", "Wlb", "RNB", "Rnb", "THB", "Thb", "EPB", "Epb"], "약어 4개 Title·ALLCAPS 유지")
 
     // ── F-2 오너 결정: 초성체·자음 얼굴 6개는 문맥과 무관하게 보호, 자음열의 혼합 대소문자는 막는다.
     for (keys, face) in [("rrt", "ㄱㄱㅅ"), ("sr", "ㄴㄱ"), ("dad", "ㅇㅁㅇ"), ("ada", "ㅁㅇㅁ"),
@@ -57,6 +64,14 @@ func runEnglishRulesTests() {
     staysKorean(["eoans", "dPt", "spaRk"], "F-3 대조군 한글")
     // Shift 없는 ㅑ 1음절은 종전대로다.
     expect(type("aid").committedText, "aid", "F-3 대조군 aid(먕)")
+    // 2026-11-07 오너 결정(리뷰 E174-P3-1): 등록된 단위 기호와 대소문자까지 같으면 혼합 Shift 차단을 건너뛴다.
+    expect(type("GPa").committedText, "GPa", "단위 GPa 단독")
+    expect(typeViaController("100GPa ").committedText, "100GPa ", "단위 GPa 숫자 뒤")
+    expect(typeViaController("100 GPa ").committedText, "100 GPa ", "단위 GPa 숫자 뒤 띄움")
+    expect(type("gPa").committedText, hangul("gPa"), "단위 표기와 다른 대소문자는 막는다")
+    expect(type("gpa").committedText, hangul("gpa"), "gpa는 표제어 veto")
+    expect(type("sr").committedText, "ㄴㄱ", "단위 sr 단독은 오너 결정대로 막힌다")
+    expect(type("ton").committedText, "새ㅜ", "단위 ton 단독은 오너 결정대로 막힌다")
 
     // ── F-4: 변환 추가는 Shift로 다른 자모가 된 혼합 대소문자까지 강제하지 않는다.
     let forced = PersonalDictionary(force: ["got", "work", "won", "r2d2", "openai"], block: [])
@@ -74,6 +89,50 @@ func runEnglishRulesTests() {
     expect(PersonalDictionary(force: ["github"]).decision(word: "GitHub", hangul: "x") == .forceConvert, true, "F-4 자모가 안 바뀌는 대문자는 force")
     expect(PersonalDictionary(force: ["got"], block: ["got"]).decision(word: "goT", hangul: "했") == .block, true, "F-4 금지는 대소문자 무관")
     expect(typeViaControllerWithPersonalDictionary("goT's", forced).committedText, "했'ㄴ", "F-4 축약형 경로도 같은 기준")
+
+    // ── 2026-11-07 오너 결정(리뷰 E174-P2-1): 등록한 대소문자를 보존해 그 키열 그대로 치면 Shift 가드를 건너뛴다.
+    let cased = ["QuickTime", "TeamViewer", "QuickBooks", "TopazAI"]
+    let registered = PersonalDictionary(forceList: cased + ["got", "work", "won"], blockList: [])
+    for word in cased {
+        expect(typeWithPersonalDictionary(word, registered).client.committedText, word, "등록 표기 그대로: \(word)")
+        expect(typeWithPersonalDictionary(word, registered).composer.lastConversion?.english ?? "", word, "등록 표기 되돌리기 쌍: \(word)")
+        expect(typeWithPersonalDictionary(word.lowercased(), registered).client.committedText, word.lowercased(), "등록 표기 소문자 입력: \(word)")
+        expect(typeWithPersonalDictionary(word.uppercased(), registered).client.committedText, word.uppercased(), "등록 표기 ALLCAPS 입력: \(word)")
+        expect(typeWithPersonalDictionary(word, .empty).client.committedText, hangul(word), "등록 안 하면 한글: \(word)")
+    }
+    for (keys, form) in [("goT", "했"), ("wOrk", "쟤가"), ("wOn", "쟤ㅜ")] {
+        expect(typeWithPersonalDictionary(keys, registered).client.committedText, form, "소문자 등록의 혼합 Shift는 계속 막는다: \(keys)")
+    }
+    expect(registered.decision(word: "quickTime", hangul: "x") == nil, true, "등록과 다른 혼합 대소문자는 force가 아니다")
+    expect(typeWithPersonalDictionary("QuickTimedms", registered).client.committedText, "QuickTime은", "등록 표기 + 조사")
+    expect(typeWithPersonalDictionary("QuickTime", PersonalDictionary(forceList: cased, blockList: ["quicktime"])).client.committedText,
+           hangul("QuickTime"), "금지가 등록 표기보다 우선")
+    expect(typeWithPersonalDictionary("QuickTime", PersonalDictionary(forceList: cased, blockList: [hangul("QuickTime")])).client.committedText,
+           hangul("QuickTime"), "한글 표기 금지도 우선")
+    expect(typeViaControllerWithPersonalDictionary("Y'KnOw", PersonalDictionary(forceList: ["Y\u{2019}KnOw"], blockList: [])).committedText,
+           "Y'KnOw", "곱은 따옴표로 등록해도 같은 표기")
+    // 옛 항목: 소문자 목록은 동작이 그대로다. 등록 표기 집합이 비어 전과 같은 값이 된다.
+    let old = PersonalDictionary(forceList: ["got", "work", "apple"], blockList: ["banana"])
+    expect(old == PersonalDictionary(force: ["got", "work", "apple"], block: ["banana"]), true, "옛 항목은 전과 같은 값")
+    for (word, want) in [("got", true), ("Got", true), ("GOT", true), ("goT", false), ("wOrk", false), ("apple", true), ("Apple", true)] {
+        expect(old.decision(word: word, hangul: "x") == .forceConvert, want, "옛 항목 판정: \(word)")
+    }
+    // 예전 빌드는 같은 목록을 소문자로 정규화해 읽으므로 새 항목을 만나도 깨지지 않는다.
+    expect(PersonalDictionary.normalizedForceEntry("QuickTime") ?? "", "quicktime", "옛 정규화 규칙은 그대로")
+    // 목록 편집: 설정 앱이 쓰는 순수 함수.
+    expect(PersonalDictionary.forceEntries(["banana", "apple"]).joined(separator: ","), "apple,banana", "옛 항목 표시는 그대로")
+    expect(PersonalDictionary.forceEntries(["QuickTime", "apple"]).joined(separator: ","), "apple,QuickTime", "새 항목은 등록한 표기로 표시, 정렬은 대소문자 무시")
+    expect(PersonalDictionary.forceEntries(["quicktime", "QuickTime", "QUICKTIME", " apple ", "apple", "", "한글"]).joined(separator: ","),
+           "apple,QuickTime", "같은 낱말은 한 줄, 먼저 나온 대문자 표기, 잘못된 항목은 버림")
+    expect(PersonalDictionary.addingForceEntry(" QuickTime ", to: ["apple"])?.joined(separator: ",") ?? "", "apple,QuickTime", "추가: 표기 보존")
+    expect(PersonalDictionary.addingForceEntry("QuickTime", to: ["apple", "quicktime"])?.joined(separator: ",") ?? "", "apple,QuickTime", "중복: 새로 친 표기로 바꾼다")
+    expect(PersonalDictionary.addingForceEntry("quicktime", to: ["QuickTime"])?.joined(separator: ",") ?? "", "quicktime", "중복: 소문자로 다시 치면 소문자")
+    expect(PersonalDictionary.addingForceEntry("apple", to: ["apple"])?.joined(separator: ",") ?? "", "apple", "중복: 같은 표기는 그대로")
+    expect(PersonalDictionary.addingForceEntry("한글", to: ["apple"]) == nil, true, "추가: 규칙에 안 맞으면 거절")
+    expect(PersonalDictionary.addingForceEntry("'", to: []) == nil, true, "추가: 글자 없는 항목 거절")
+    expect(PersonalDictionary.addingForceEntry("\u{212A}elvin", to: [])?.joined(separator: ",") ?? "", "kelvin", "소문자화로만 ASCII가 되면 소문자로 저장")
+    expect(PersonalDictionary.removingForceEntry("QuickTime", from: ["apple", "QuickTime"]).joined(separator: ","), "apple", "삭제: 등록 표기")
+    expect(PersonalDictionary.removingForceEntry("apple", from: ["apple", "QuickTime"]).joined(separator: ","), "QuickTime", "삭제: 옛 항목")
 
     // ── F-5: 줄 끝 CR·빈 줄이 있는 파일은 온전한 파일로 받지 않는다(fail-closed).
     func table(_ text: String) -> SortedWordTable { SortedWordTable(data: Data(text.utf8)) }
@@ -155,7 +214,7 @@ func runEnglishRulesTests() {
         defaults.set(["Vismo", " apple "], forKey: PersonalDictionary.Keys.force)
         defaults.set(["BANANA", "ㅠ무무"], forKey: PersonalDictionary.Keys.block)
         let first = PersonalDictionary.load(from: defaults)
-        expect(first == PersonalDictionary(force: ["vismo", "apple"], block: ["banana", "ㅠ무무"]), true, "F-17 정규화 결과")
+        expect(first.force == ["vismo", "apple"] && first.block == ["banana", "ㅠ무무"], true, "F-17 정규화 결과")
         let builds = PersonalDictionary.loadBuildCount
         for _ in 0..<100 { expect(PersonalDictionary.load(from: defaults) == first, true, "F-17 재사용 결과") }
         expect(PersonalDictionary.loadBuildCount, builds, "F-17 같은 배열은 재정규화 안 함")
@@ -168,6 +227,15 @@ func runEnglishRulesTests() {
         defaults.removeObject(forKey: PersonalDictionary.Keys.force)
         defaults.removeObject(forKey: PersonalDictionary.Keys.block)
         expect(PersonalDictionary.load(from: defaults) == .empty, true, "F-17 키를 지우면 빈 사전")
+        // 저장·읽기·삭제 왕복: 설정 앱이 쓰는 함수로 목록을 고쳐 저장하면 입력기 쪽 읽기에 바로 반영된다.
+        var entries = PersonalDictionary.storedForceEntries(in: defaults)
+        entries = PersonalDictionary.addingForceEntry("QuickTime", to: entries) ?? []
+        defaults.set(entries, forKey: PersonalDictionary.Keys.force)
+        expect(PersonalDictionary.storedForceEntries(in: defaults).joined(separator: ","), "QuickTime", "저장 왕복: 표기 보존")
+        expect(PersonalDictionary.load(from: defaults).decision(word: "QuickTime", hangul: "x") == .forceConvert, true, "저장 왕복: 입력기 판정")
+        entries = PersonalDictionary.removingForceEntry("QuickTime", from: entries)
+        defaults.set(entries, forKey: PersonalDictionary.Keys.force)
+        expect(PersonalDictionary.load(from: defaults).decision(word: "QuickTime", hangul: "x") == nil, true, "저장 왕복: 삭제 반영")
     } else {
         expect(false, true, "F-17 시험용 설정 도메인")
     }
