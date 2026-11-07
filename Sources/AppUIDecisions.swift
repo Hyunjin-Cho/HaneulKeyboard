@@ -47,7 +47,7 @@ enum OnboardingInstallPanel: Equatable {
     }
 }
 
-/// 2026-11-07 (#20): 후원 주소의 정본. 오너가 대조해 승인했다. `.github/FUNDING.yml`·PRIVACY.md와 어긋나면 `Tests/AppUITests.swift`가 실패한다.
+/// 2026-11-07 (#20): 후원 주소의 정본. 오너가 대조해 승인했다. `.github/FUNDING.yml`·README·PRIVACY.md와 어긋나면 `Tests/AppUITests.swift`가 실패한다.
 enum SupportLink {
     static let account = "Hyunjin-Cho"
     static let sponsors = URL(string: "https://github.com/sponsors/\(account)")!

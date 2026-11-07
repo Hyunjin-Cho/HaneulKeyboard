@@ -40,6 +40,7 @@ func runSupportLinkTests() {
     expectEqual(SupportLink.sponsors.absoluteString, "https://github.com/sponsors/Hyunjin-Cho", "오너가 대조한 후원 주소")
     expect(readSource(".github/FUNDING.yml")?.contains("github: \(SupportLink.account)") == true, "FUNDING.yml이 앱과 같은 계정")
     expect(readSource("PRIVACY.md")?.contains(SupportLink.sponsors.absoluteString) == true, "개인정보 문서가 앱과 같은 주소")
+    expect(readSource("README.md")?.contains(SupportLink.sponsors.absoluteString) == true, "README가 앱과 같은 주소")
 }
 
 // MARK: - 입력기 상태 표시 (리뷰 app-ui-F-1)
