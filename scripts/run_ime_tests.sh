@@ -8,6 +8,11 @@ cd "$(dirname "$0")/.."
 # 2026-11-07 (#175): 표가 manifest와 맞는지, 입력기 리소스 설정이 맞는지, 번들 검증이 표 누락을 잡는지 본다.
 python3 scripts/test_bundle_dictionaries.py
 
+# 2026-11-07 (#178): 입력기 소스에 네트워크 API가 없는지(PRIVACY.md 2번의 약속), 번들 검증기가 입력기 바이너리의 네트워크 심볼을
+# 실제로 잡는지(일부러 URLSession·소켓·Network.framework를 쓴 작은 실행 파일로 대조), 공개 문서의 상대 링크가 추적 파일을 가리키는지.
+python3 scripts/test_ime_no_network.py
+python3 scripts/check_doc_links.py
+
 BIN="$(mktemp -d)/haneul_ime_tests"
 
 swiftc -o "$BIN" \

@@ -1,6 +1,6 @@
 # 감사의 글 (Acknowledgements)
 
-> 기준일: 2026-10-17
+> 기준일: 2026-11-07 (2026-10-17 작성. 2026-11-07에 사전 탑재 방식·고지 원문·McBopomofo 고지를 고쳤습니다)
 
 하늘키보드는 혼자 만든 것이 아닙니다. 앞서 길을 닦아준 수많은 오픈소스와 도구, 그리고 그것을 가능케 한 사람들의 어깨 위에 서 있습니다.
 
@@ -32,12 +32,38 @@
 - 저장소: https://github.com/openvanilla/McBopomofo
 - 라이선스: MIT
 - 대만어(주음) 입력기. macOS의 TIS(Text Input Services) 입력기 **등록·설치 메커니즘**을 이해하고 구현하는 데 결정적인 참고가 되었습니다. 사인·노타리된 메인 앱이 입력기 번들을 설치하는 패턴이 특히 큰 도움이 되었습니다.
+- 2026-11-07 오너 결정으로 MIT 고지를 싣습니다. 대조한 사실은 이렇습니다. 입력기 등록 코드(`Sources/IMEInstaller.swift`)에서 TIS 입력 소스 목록을 훑는 머리 4줄이 McBopomofo의 `InputSourceHelper`와 거의 같고, 그 밖은 직접 구현했습니다. 이 사실을 더 크게도 작게도 적지 않습니다.
+- McBopomofo의 MIT 라이선스 원문(저작권 줄과 허가 문구):
+
+```text
+MIT License
+
+Copyright (c) 2011-2026 Mengjuei Hsieh et al.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
 
 ### 국립국어원 우리말샘
 - https://opendict.korean.go.kr
-- 라이선스: CC-BY-SA 2.0 KR
+- 라이선스: CC-BY-SA 2.0 KR — https://creativecommons.org/licenses/by-sa/2.0/kr/ (조항 원문: https://creativecommons.org/licenses/by-sa/2.0/kr/legalcode.ko)
 - 영타 자동 변환이 "이 글자가 실존하는 한국어 단어인가"를 판정할 때 쓰는 **표제어 67.7만 개**([`Resources/IM/korean_words.txt`](./Resources/IM/korean_words.txt))의 출처입니다. 우리말의 보고를 모두에게 열어준 국립국어원과 우리말샘 참여자들께 감사드립니다.
-- 2026-10-18 일반 명사 확장에서는 기존2026-06-03 원자료의 명사·뜻 번호·뜻 수·외국어 표기를 대조했습니다. 영어 대응은 직접 작성·검토했으며 원문 정의·예문을 제품에 복제하지 않았습니다. [범위와 항목별 출처](docs/feedback/2026-10-18-build89/04-noun-expansion-review.md).
+- 2026-10-18 일반 명사 확장에서는 기존2026-06-03 원자료의 명사·뜻 번호·뜻 수·외국어 표기를 대조했습니다. 영어 대응은 직접 작성·검토했으며 원문 정의·예문을 제품에 복제하지 않았습니다. 항목별 출처와 직접 작성·대조 수준은 [추가 명사 목록](dict_work/2026-10-18-phonetic-reviewed-nouns.tsv)에 기록했습니다(2026-11-07: 공개되지 않는 문서를 가리키던 링크를 이 목록으로 바꿨습니다).
 
 ### 국립국어원 한국어 학습용 어휘 목록
 - 출처: https://www.korean.go.kr/front/etcData/etcDataView.do?etc_seq=71
@@ -46,7 +72,8 @@
 
 ### New General Service List (NGSL)
 - https://www.newgeneralservicelist.com
-- 라이선스: CC BY-SA 4.0 — Browne, C., Culligan, B., & Phillips, J. (2013). *The New General Service List*.
+- 라이선스: CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0/ (조항 원문: https://creativecommons.org/licenses/by-sa/4.0/legalcode) — Browne, C., Culligan, B., & Phillips, J. (2013). *The New General Service List*.
+- 하늘키보드는 이 목록을 정렬·필터링하고 굴절형을 골라 `english_common.txt` 등으로 가공했습니다(변경 표시). 가공 방식은 `dict_work/SOURCE_FORMATS.md`와 파일 머리말에 있습니다.
 - 영타 자동 변환이 "이 입력이 실제 쓰이는 영어 단어인가"를 판정할 때 쓰는 **현대 영어 고빈도 lemma 2,809개**(굴절형 포함 1만여 형태)의 출처입니다. 영어 학습자를 위해 데이터를 공개해준 세 분 연구자께 감사드립니다.
 
 ### 미국 인구조사국 (US Census Bureau) — 2010 Census 성씨 데이터
@@ -61,20 +88,49 @@
 
 ### SCOWL / ESDB (English Speller Database) — Kevin Atkinson
 - https://wordlist.aspell.net
-- 라이선스: MIT-like — Copyright 2000-2026 by Kevin Atkinson (저작권 고지 유지 조건의 퍼미시브 라이선스, 동봉 README 기준)
+- 라이선스: MIT-like — Copyright 2000-2026 by Kevin Atkinson (저작권 고지 유지 조건의 퍼미시브 라이선스)
 - **원천 데이터 규모:** size 70 미국식 영어 약 16.7만 단어(현대어와 굴절형 포함). 가공·필터링한 후 broad 영어 사전으로 앱에 탑재합니다. 수십 년간 영어 철자 데이터를 다듬어 공개해 온 Kevin Atkinson과 기여자들(12dicts의 Alan Beale 등)께 감사드립니다.
+- 2026-11-07: 아래는 SCOWL/ESDB 공개 저장소(https://github.com/en-wl/wordlist)의 `Copyright` 파일에서, 생성한 미국식 단어 목록에 해당한다고 그 파일이 밝힌 고지 부분(`===` 앞)을 그대로 옮긴 것입니다. 이 부분이 이 앱이 쓴 목록(size 70, 미국식)에 해당하는지는 이 문서가 판단하지 않습니다.
+
+```text
+Copyright 2000-2026 by Kevin Atkinson
+
+Permission to use, copy, modify, distribute, and sell any part of the English
+Speller Database (ESDB, previously known as SCOWLv2), or word lists
+created from it, is hereby granted without fee, provided that the above
+copyright notice appears in all copies and that both the above copyright
+notice and this notice appear in supporting documentation.  Kevin Atkinson
+makes no representations about the suitability of this database for any
+purpose.  It is provided "as is" without express or implied warranty.
+
+ESDB is derived from many sources, most of which are in the Public Domain.
+Data from the Corpus of Contemporary American English (COCA) was also used.
+
+All data from COCA comes from 3-gram data that is not freely available;
+however, the usage is within the rights given by the NDA that was signed when
+purchasing the data.  More information on COCA is available at
+https://www.english-corpora.org/coca/.
+
+The primary source of words for ESDB comes from 12dicts and ENABLE2K.  Both
+are in the Public Domain, but Alan Beale <biljir@pobox.com> deserves special
+credit as he is the author of 12dicts and a major contributor to ENABLE2K.  In
+addition, he gave me an incredible amount of feedback and created a number of
+special lists in order to help improve the overall quality of ESDB.
+```
 
 ### 가공 후 앱 탑재 규모
 
-| 탑재 파일 | 규모 | 구성 |
+2026-11-07부터 입력기는 아래 사전 파일을 하나씩 읽지 않고, 영어 사전 여섯 개를 합쳐 정렬한 표 `english_bundled.txt` 하나로 찾습니다(`dict_work/dict_manifest.tsv`가 합칠 목록의 정본이고, 낱말 수는 표 머리말의 `count`에 있습니다). 이 표에는 새로 배포하는 낱말이 없고 이미 배포하던 낱말을 합친 것입니다. 표를 만든 원본 중 `english_supplement.txt`·`english_common.txt` 둘은 입력기 번들에 그대로도 들어 있고, 나머지 넷은 표로만 들어갑니다. macOS의 `/usr/share/dict/words`는 이 표에 복사하지 않고, 입력기가 시스템 파일을 그 자리에서 읽습니다.
+
+| 원본 사전 파일(저장소) | 규모 | 구성 |
 |---|---:|---|
 | `english_names.txt` | 28,378개 | Census 성씨와 SSA 이름을 가공·필터링한 목록 |
 | `english_modern.txt` | 71,348개 | SCOWL size 70을 가공·필터링한 목록 |
-| `english_names_extra.txt` | 수작업 보충 목록 | Census/SSA 출처가 아닌, 유명인을 수작업으로 선별한 목록 |
+| `english_names_extra.txt` | 수작업 보충 목록 | Census/SSA 출처가 아닌, 유명인·이름·제품·기술 약어를 수작업으로 선별한 목록. 2026-11-07 오너 결정으로 약어 7개(`ansi`·`goty`·`emtek`·`totp`·`algo`·`rhel`·`gorm`)가 이 목록으로 내려왔습니다 |
 
 ### GeoNames — 전 세계 지명 데이터
 - https://www.geonames.org
-- 라이선스: CC BY 4.0
+- 라이선스: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/
 - 영타 자동 변환의 **지명 사전**(북미·유럽 4개국의 주/도 + 인구 5만+ 도시, [`Resources/IM/english_sports_geo.txt`](./Resources/IM/english_sports_geo.txt)에 포함)의 출처입니다. 전 세계 지명을 자유롭게 열어준 GeoNames와 기여자들께 감사드립니다.
 
 ### Wikidata (Wikimedia)
@@ -111,7 +167,7 @@ plist·entitlements 구조와 IME 아키텍처를 비교·학습하는 데 참�
 
 # Acknowledgements (English)
 
-> Updated: 2026-10-10
+> Updated: 2026-11-07 (first written 2026-10-10; on 2026-11-07 the dictionary bundling note, license texts and the McBopomofo notice were revised)
 
 HaneulKeyboard builds on the work of the open-source projects, tools, and people who came before it.
 
@@ -125,15 +181,67 @@ Current application code is licensed under Apache License 2.0. `NOTICE` identifi
 
 - **[Nanum Pen Script](https://github.com/google/fonts/tree/main/ofl/nanumpenscript)** — Copyright (c) 2010, NHN Corporation, SIL Open Font License 1.1. The unmodified font is bundled for brief handwritten onboarding cues, with the full license in `Resources/Onboarding/NanumPenScript-OFL.txt` (2026-10-07). Registered for this app process only.
 
-- **[McBopomofo](https://github.com/openvanilla/McBopomofo)** (OpenVanilla, MIT) — A Bopomofo input method for Taiwanese Mandarin. Its approach to **registering and installing a TIS (Text Input Services) input method on macOS** — a signed, notarized host app that installs the IME bundle — was a decisive reference.
-- **[Urimalsaem (우리말샘)](https://opendict.korean.go.kr)** (National Institute of Korean Language, CC-BY-SA 2.0 KR) — Source of the 677k Korean headwords used by the wrong-layout auto-correction to verify real Korean words. The existing 2026-06-03 snapshot also informed noun/POS/sense checks for the 2026-10-18 explicitly triggered noun expansion; definitions and examples are not bundled.
+- **[McBopomofo](https://github.com/openvanilla/McBopomofo)** (OpenVanilla, MIT) — A Bopomofo input method for Taiwanese Mandarin. Its approach to **registering and installing a TIS (Text Input Services) input method on macOS** — a signed, notarized host app that installs the IME bundle — was a decisive reference. By the owner's decision on 2026-11-07 its MIT notice is included here. What a comparison found: the first four lines of the loop that walks the TIS input source list in our registration code (`Sources/IMEInstaller.swift`) are nearly identical to McBopomofo's `InputSourceHelper`; the rest is our own implementation. The text below states neither more nor less than that. McBopomofo's MIT license text (copyright line and permission notice):
+
+```text
+MIT License
+
+Copyright (c) 2011-2026 Mengjuei Hsieh et al.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+- **[Urimalsaem (우리말샘)](https://opendict.korean.go.kr)** (National Institute of Korean Language, CC-BY-SA 2.0 KR — license: https://creativecommons.org/licenses/by-sa/2.0/kr/ , legal code: https://creativecommons.org/licenses/by-sa/2.0/kr/legalcode.ko) — Source of the 677k Korean headwords used by the wrong-layout auto-correction to verify real Korean words. The existing 2026-06-03 snapshot also informed noun/POS/sense checks for the 2026-10-18 explicitly triggered noun expansion; definitions and examples are not bundled. Per-entry sources for that expansion are in the [added noun list](dict_work/2026-10-18-phonetic-reviewed-nouns.tsv).
 - **[NIKL Korean vocabulary list for learners](https://www.korean.go.kr/front/etcData/etcDataView.do?etc_seq=71)** (KOGL Type 1) — Used for noun coverage checks on 2026-10-18, not as an English translation source.
-- **[New General Service List (NGSL)](https://www.newgeneralservicelist.com)** (Browne, C., Culligan, B., & Phillips, J., CC BY-SA 4.0) — Source of the 2,809 high-frequency modern English lemmas (10k+ word forms) used by the wrong-layout auto-correction to verify real English words.
+- **[New General Service List (NGSL)](https://www.newgeneralservicelist.com)** (Browne, C., Culligan, B., & Phillips, J., CC BY-SA 4.0 — license: https://creativecommons.org/licenses/by-sa/4.0/ , legal code: https://creativecommons.org/licenses/by-sa/4.0/legalcode) — Source of the 2,809 high-frequency modern English lemmas (10k+ word forms) used by the wrong-layout auto-correction to verify real English words. HaneulKeyboard sorted, filtered and selected inflected forms from this list when producing `english_common.txt` and related files (changes indicated); the method is in `dict_work/SOURCE_FORMATS.md` and the file headers.
 - **[US Census Bureau — 2010 Census Surnames](https://www.census.gov/topics/population/genealogy/data/2010_surnames.html)** (Public Domain) — The source dataset contains about 162k surnames. After processing and filtering, Census surnames and SSA first names are bundled together in `english_names.txt` (28,378 entries).
 - **[US Social Security Administration — Baby Names](https://www.ssa.gov/oact/babynames/)** (Public Domain) — Source of the first-name data (yearly birth registrations since 1880) used for recognizing personal names.
-- **[SCOWL / ESDB (English Speller Database)](https://wordlist.aspell.net)** (Kevin Atkinson, MIT-like license — Copyright 2000-2026 by Kevin Atkinson) — The source size-70 American English list contains about 167k words; the processed and filtered `english_modern.txt` bundled with the app contains 71,348 entries. Thanks to Kevin Atkinson and contributors (including Alan Beale of 12dicts) for decades of curating English spelling data.
-- **Bundled name data:** `english_names.txt` contains 28,378 processed Census/SSA entries. `english_names_extra.txt` is a hand-curated famous-person supplement and is not sourced from Census or SSA.
-- **[GeoNames](https://www.geonames.org)** (CC BY 4.0) — Source of the place-name dictionary (North American & European states/provinces + cities with population 50k+) used by the wrong-layout auto-correction.
+- **[SCOWL / ESDB (English Speller Database)](https://wordlist.aspell.net)** (Kevin Atkinson, MIT-like license — Copyright 2000-2026 by Kevin Atkinson) — The source size-70 American English list contains about 167k words; the processed and filtered `english_modern.txt` bundled with the app contains 71,348 entries. Thanks to Kevin Atkinson and contributors (including Alan Beale of 12dicts) for decades of curating English spelling data. On 2026-11-07 the notice below was copied verbatim from the `Copyright` file of the public SCOWL/ESDB repository (https://github.com/en-wl/wordlist), taking the part before the `===` line, which that file names as the notice for a generated word list. This document does not decide whether that part is the one that applies to the list this app used (size 70, US spelling).
+
+```text
+Copyright 2000-2026 by Kevin Atkinson
+
+Permission to use, copy, modify, distribute, and sell any part of the English
+Speller Database (ESDB, previously known as SCOWLv2), or word lists
+created from it, is hereby granted without fee, provided that the above
+copyright notice appears in all copies and that both the above copyright
+notice and this notice appear in supporting documentation.  Kevin Atkinson
+makes no representations about the suitability of this database for any
+purpose.  It is provided "as is" without express or implied warranty.
+
+ESDB is derived from many sources, most of which are in the Public Domain.
+Data from the Corpus of Contemporary American English (COCA) was also used.
+
+All data from COCA comes from 3-gram data that is not freely available;
+however, the usage is within the rights given by the NDA that was signed when
+purchasing the data.  More information on COCA is available at
+https://www.english-corpora.org/coca/.
+
+The primary source of words for ESDB comes from 12dicts and ENABLE2K.  Both
+are in the Public Domain, but Alan Beale <biljir@pobox.com> deserves special
+credit as he is the author of 12dicts and a major contributor to ENABLE2K.  In
+addition, he gave me an incredible amount of feedback and created a number of
+special lists in order to help improve the overall quality of ESDB.
+```
+
+- **Bundled name data and table (changed 2026-11-07):** `english_names.txt` contains 28,378 processed Census/SSA entries. `english_names_extra.txt` is a hand-curated supplement of names, products and technical abbreviations and is not sourced from Census or SSA; by owner decision on 2026-11-07 seven abbreviations (`ansi`, `goty`, `emtek`, `totp`, `algo`, `rhel`, `gorm`) moved into it. The IME no longer reads these files one by one: six English dictionaries (the list in `dict_work/dict_manifest.tsv`) are merged into one sorted table, `english_bundled.txt`, and the IME looks words up in that table (the word count is in its header). The table contains no word that was not already distributed. macOS's `/usr/share/dict/words` is not copied into the table or the app; the IME reads that system file in place.
+- **[GeoNames](https://www.geonames.org)** (CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/) — Source of the place-name dictionary (North American & European states/provinces + cities with population 50k+) used by the wrong-layout auto-correction.
 - **[Wikidata](https://www.wikidata.org)** (Wikimedia, CC0 1.0 Public Domain) — Source of the football club & player dictionary (9 leagues across England, France, Spain, Italy) used by the wrong-layout auto-correction. Structured Korean/English labels and aliases also corroborated directly authored noun mappings on 2026-10-18; descriptions and media were not copied.
 ## Development tools
 

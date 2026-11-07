@@ -2,7 +2,7 @@
 
 - 기준일: 2026-10-09
 - 생성: Codex 내장 imagegen. 시안 v3(사용자 승인)의 종이결·하늘색/흰색/파랑/모래색 팔레트를 참조.
-- 배경: `Resources/Onboarding/RisoPaper.png`. 전체 UI를 굽지 않고 종이와 모서리 인쇄만 사용.
+- 배경: `Resources/Onboarding/RisoPaper.png`. 전체 UI를 굽지 않고 종이와 모서리 인쇄만 사용. **삭제됨(2026-11-07, #177)** — 쓰이지 않아 저장소에서 지웠다. 이 문서는 당시 기록이다.
 - 그림: `Resources/Onboarding/RisoLetters.png`. 투명 배경, 입체 키캡을 납작한 ㅎ/A 종이 조각으로 변경.
 - 글자, 아이콘 표시, 버튼, 링크, 단계 이동은 실제 SwiftUI/AppKit 구현.
 

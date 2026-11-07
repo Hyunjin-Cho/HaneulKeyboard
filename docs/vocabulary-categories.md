@@ -39,7 +39,7 @@ Developer ID 서명 로컬 검증본102의 메인 앱·입력기 적용을 마�
 
 ## 2026-10-18 당시 — 후속 명사1,507개 추가
 
-첫138개 보강에 이어 일반 명사1,507개를 더했다. 현재 **한글3,694개 / 고유 영문3,564개**, 기본3,659개+번호35개다. 기존2,187개 객체와 분류를 그대로 보존했다. 우리말샘의 품사·뜻 수 대조와 루트의 한영 쌍 검토를 거쳤으며 전체 명사 지원 완료는 아니다. [검토·출처·보류 상세](feedback/2026-10-18-build89/04-noun-expansion-review.md), [새 목록](../dict_work/2026-10-18-phonetic-reviewed-nouns.tsv), 원본 `Resources/IM/phonetic_dictionary.json`. 입력110,683/0·사전 감사·Release Universal 메인/IME 무서명 컴파일 통과. 사전 SHA `98966f22ab6b5a42e6475ac86c09de887544f70355c58b81215b0b6dc0c8db82`.
+첫138개 보강에 이어 일반 명사1,507개를 더했다. 현재 **한글3,694개 / 고유 영문3,564개**, 기본3,659개+번호35개다. 기존2,187개 객체와 분류를 그대로 보존했다. 우리말샘의 품사·뜻 수 대조와 루트의 한영 쌍 검토를 거쳤으며 전체 명사 지원 완료는 아니다. [새 목록과 항목별 출처](../dict_work/2026-10-18-phonetic-reviewed-nouns.tsv), 원본 `Resources/IM/phonetic_dictionary.json`. 입력110,683/0·사전 감사·Release Universal 메인/IME 무서명 컴파일 통과. 사전 SHA `98966f22ab6b5a42e6475ac86c09de887544f70355c58b81215b0b6dc0c8db82`.
 
 ## 2026-10-14 당시 — 일반 명사62개 추가
 
@@ -77,11 +77,11 @@ Developer ID 서명 로컬 검증본102의 메인 앱·입력기 적용을 마�
 - [broad 검역](../dict_work/2026-10-14-nature-camera-broad-audit.csv), [curated 검역](../dict_work/2026-10-14-nature-camera-curated-audit.csv).
 - [현재 코어 도달성 결과](../dict_work/2026-10-14-nature-camera-after.csv): 91개 모두 무맥락 변환에 도달, 미도달/검사 불가 0개.
 - 후보 검역은 해당 전체 단어와 명시한 도달성 목록의 변화만 측정한다. curated 구성 단어 추가로 생기는 모든 다른 붙여쓰기 조합을 전수 검역했다는 뜻은 아니다. 복합어 정책·한글/개인 금지·모호한 분해의 검증은 `Tests/InputInferenceTests.swift`에 있고, 특정 조합의 변화는 `audit_wordlist.sh --reachability ... --compound on|off`로 별도 비교한다.
-- [코어/자원 SHA와 실행 결과](../.tmp/goal86-2026-10-14/vocabulary/test-current-core/vocabulary-tests.json). 이전 코어 결과는 같은 폴더의 `test-baseline-core`에 분리했다.
+- 코어/자원 SHA와 실행 결과는 로컬 산출물(`.tmp/`, 저장소에 없음)에 있었다. 같은 검사는 `python3 Tests/run_vocabulary_extension_tests.py`로 다시 돌린다(2026-11-07 #178: 저장소에 없는 파일 링크를 걷었다).
 
 이는 선별한 표본의 누락 보완이며 세계 전체 생명체·브랜드·장비 이름의 수록 완료가 아니다. 한글 이름을 영어로 번역하는 발음 사전은 이번에 변경하지 않았다. 실제 배포 빌드의 자원 포함과 설치 입력 확인은 남아 있다.
 
-현재 여섯 번들 파일의 로더 기준 중복 제거 참조 항목은 **130,300개**다. `english_names_extra.txt`는 53→137개, `english_supplement.txt`는 5,286→5,293개이며 나머지 네 파일은 보존했다. 단어별 사전 역할이 바뀐 91항목과 고유 참조 항목의 증가 89개는 서로 다른 수치다. macOS `/usr/share/dict/words`·코드 약어/단위/숫자 목록은 이 번들 합계에 넣지 않는다.
+2026-10-14 당시 여섯 번들 파일의 로더 기준 중복 제거 참조 항목은 **130,300개**였다(당시 기록. 2026-11-07 #175부터 입력기는 이 여섯 파일을 합쳐 정렬한 `Resources/IM/english_bundled.txt` 하나로 찾으며 낱말 수는 그 파일 머리말의 `count`와 `python3 scripts/build_english_table.py --check`로 확인한다. 합칠 목록의 정본은 `dict_work/dict_manifest.tsv`다). `english_names_extra.txt`는 53→137개, `english_supplement.txt`는 5,286→5,293개이며 나머지 네 파일은 보존했다. 단어별 사전 역할이 바뀐 91항목과 고유 참조 항목의 증가 89개는 서로 다른 수치다. macOS `/usr/share/dict/words`·코드 약어/단위/숫자 목록은 이 번들 합계에 넣지 않는다.
 
 ## 2026-10-10 확장 이력 — 과일·과학·현물·외형
 
@@ -131,7 +131,7 @@ Developer ID 서명 로컬 검증본102의 메인 앱·입력기 적용을 마�
 | `english_sports_geo.txt` | 28,360 |
 | `english_supplement.txt` | 5,286 |
 
-여섯 번들 파일의 중복 제거 합계는 **130,211개**다. macOS `/usr/share/dict/words`, 코드의 짧은 약어/단위/숫자 목록은 이 수에 넣지 않았다. 참조 목록에 있는 모든 항목이 무조건 변환되는 것은 아니며 한국어 충돌·문맥 규칙에 따른다.
+2026-10-14 기준 여섯 번들 파일(합칠 목록의 정본은 `dict_work/dict_manifest.tsv`, 2026-11-07부터 입력기는 이 여섯을 합친 `english_bundled.txt` 표 하나로 찾는다)의 중복 제거 합계는 **130,211개**였다. 위 표의 파일별 수도 그날 값이다. macOS `/usr/share/dict/words`, 코드의 짧은 약어/단위/숫자 목록은 이 수에 넣지 않았다. 참조 목록에 있는 모든 항목이 무조건 변환되는 것은 아니며 한국어 충돌·문맥 규칙에 따른다.
 
 ## 새 대응 사전의 분류
 

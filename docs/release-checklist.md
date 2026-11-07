@@ -1,14 +1,14 @@
 # HaneulKeyboard 릴리스 체크리스트
 
-> **기준일:** 2026-11-04 (#131 버전 규칙 갱신 · 기존 #85 #72) · 정식 버전은 실제 배포 날짜를 0을 채운 `YYYY.MM.DD`로 쓰고, 핫픽스는 `_hotfix1`·`_hotfix2` 번호를 붙인다. 규칙의 근거는 줄번호 대신 **코드 심볼**로 적었다 — 그 심볼이 바뀌면 이 문서도 같이 고친다.
+> **기준일:** 2026-11-07 (#178 관문을 로컬 검증으로 고침 · 2026-11-04 #131 버전 규칙 갱신 · 기존 #85 #72) · 정식 버전은 실제 배포 날짜를 0을 채운 `YYYY.MM.DD`로 쓰고, 핫픽스는 `_hotfix1`·`_hotfix2` 번호를 붙인다. 규칙의 근거는 줄번호 대신 **코드 심볼**로 적었다 — 그 심볼이 바뀌면 이 문서도 같이 고친다.
 
 ## 왜 이 문서가 있나
 
-앱은 GitHub의 최신 릴리스 정보를 정해진 규칙으로 읽는다. 잘못된 버전·자산·응답은 오류 또는 설치 불가 상태가 되므로, 게시 전에 아래 규칙과 실제 업데이트 경로를 함께 확인한다. 현재 후보는 [세션 인계](HANDOFF_2026-10-11_session-recovery.md)와 남은 작업(비공개 아카이브 `untracked-docs/2026-11-04/`로 옮김, 2026-11-04 #129)에서 확인한다. [빌드 68 기록](releases/2026.9-build68-preparation.md)은 당시 검증 근거로 보존한다.
+앱은 GitHub의 최신 릴리스 정보를 정해진 규칙으로 읽는다. 잘못된 버전·자산·응답은 오류 또는 설치 불가 상태가 되므로, 게시 전에 아래 규칙과 실제 업데이트 경로를 함께 확인한다.
 
-**2026-10-18 승인 상태:** 빌드89 피드백의 로컬 코드 수정은 승인됐다. 이전89 후보의 공증 승인은 해당 후보에 적용됐으며, 이번 수정 후보는 공증·설치하지 않았다. 커밋·푸시·머지·태그·게시 승인도 없다. 체크박스는 실행 승인이나 현재 통과 표시가 아니다. 최신 범위와 미결은 [피드백 인계](feedback/2026-10-18-build89/03-handoff-astra.md)를 따른다.
+**현재 후보는 이 문서에 적지 않는다.** 후보의 버전·빌드 번호는 `project.yml`(`MARKETING_VERSION`·`HANEUL_RELEASE_SUFFIX`·`CURRENT_PROJECT_VERSION`), 게시 상태는 `gh release list`, 열린 작업은 `gh issue list`, 최근 변경은 `git log --oneline -20`에서 확인한다. 세션 인계 문서와 남은 작업 기록은 공개되지 않는 곳(비공개 아카이브)에 있다(2026-11-04 #129, 2026-11-07 #178: 공개되지 않는 문서를 가리키던 링크를 걷었다). [빌드 68 기록](releases/2026.9-build68-preparation.md)은 당시 검증 근거로 보존한다.
 
-**2026-10-25 현재 상태:** 슬래시·선택 원본3장·업데이트 알림 수정 후보93을 Developer ID Release Universal로 빌드해 메인 앱과 입력기에 설치했다. 새 후보의 공증·정식 설치 파일 제작·공개 배포는 보류다. updater Release447/0·Debug447/0, 설치 프로브12통과/3미통과(Gatekeeper2·staple1). 실제 새 공개 릴리스의 사용자 선택 설치는 미검증이며 #83은 OPEN이다. 아래의 10월18일 후보 기록은 당시 범위다. 현재 근거는 [인계](HANDOFF_2026-10-25_motion-and-remaining-work.md)와 `.tmp/priority-work-2026-10-25/`를 따른다.
+**과거 상태 기록(당시 기준, 현재 합격 기준 아님):** 2026-10-18에는 빌드89 피드백의 로컬 코드 수정만 승인됐고 커밋·푸시·머지·태그·게시 승인은 없었다. 2026-10-25에는 슬래시·선택 원본3장·업데이트 알림 수정 후보93을 로컬 Developer ID로 빌드해 설치했고 공증·공개 배포는 보류였다. 체크박스는 실행 승인이나 현재 통과 표시가 아니다.
 
 ## 1. 반드시 지킬 규칙
 
@@ -41,15 +41,20 @@
 
 - [ ] 릴리스에 넣을 PR이 전부 main에 머지됐다.
 - [ ] `git switch main && git pull` 뒤 `git status`가 깨끗하고, `git rev-parse HEAD`가 `git rev-parse origin/main`과 같다. — 빌드 스크립트는 작업 트리를 검사하지 않는다. 여기서 확인하지 않으면 태그가 가리키는 커밋과 실제로 빌드한 코드가 달라질 수 있다.
-- [ ] GitHub CI가 활성화됐고 대상 PR의 **현재 커밋**에서 성공했다. 활성화만으로 이전 커밋 검사가 자동 실행되지는 않는다.
+- [ ] **관문은 로컬 검증이다.** GitHub CI는 오너 결정(2026-10-28)으로 꺼 둔 상태이고 이 체크리스트는 CI를 요구하지 않는다(2026-11-07 #178: 'CI가 켜졌고 성공했다'는 항목이 오너 결정과 어긋나 고쳤다). 아래 검사를 **현재 커밋(main HEAD)에서** 직접 돌려 전부 통과를 눈으로 확인한다. 하나라도 빠지면 게시하지 않는다.
 - [ ] `python3 scripts/audit_phonetic_dictionary.py` 통과.
-- [ ] `bash scripts/run_ime_tests.sh` 출력이 ` 0 failed`로 끝난다.
+- [ ] `bash scripts/run_ime_tests.sh` 출력이 ` 0 failed`로 끝난다. 이 스크립트가 먼저 `scripts/test_bundle_dictionaries.py`(사전 표·번들 설정), `scripts/test_ime_no_network.py`(입력기 소스·바이너리에 네트워크 코드 없음), `scripts/check_doc_links.py`(공개 문서의 깨진 링크)를 함께 돌린다.
 - [ ] `bash scripts/run_input_inference_tests.sh` 통과. 외부 영어 문맥과 정확 복합어의 기본 ON·설정 OFF·한글/개인 사전 보호·미등록 오타 보존을 확인한다(#14/#24/#7).
 - [ ] `python3 Tests/run_vocabulary_extension_tests.py` 통과. 사전 확장 출처·실제 입력 도달·한국어 보호를 확인하고 `audit_wordlist.sh`에서 제품 기본 복합어 ON과 `--compound off` 비교를 구분해 남긴다(#16/#17/#74/#77).
 - [ ] 자체 상단 전환 팝업과 설정이 제거됐고, macOS 커서 옆 Caps Lock 표시는 별도로 실기 확인한다. R15 미해결 상태를 팝업 제거로 완료 처리하지 않는다(#81).
 - [ ] `bash scripts/run_slash_tests.sh` 통과. 기본 ON·설정 OFF·일반 Space 복귀·입력칸 이동은 설치본에서도 확인한다(#87).
-- [ ] `bash scripts/run_updater_tests.sh`, 안내 입력을 변경했다면 `bash scripts/run_onboarding_tests.sh`도 통과한다.
+- [ ] **`bash scripts/run_updater_tests.sh`는 매번 필수다.** Release·Debug 두 번 다 `0 failed`여야 한다. 이 검사가 관문 목록에서 빠진 채 2026-11-06부터 조용히 깨져 있던 사고가 있었다(컴파일에 필요한 소스가 목록에서 빠져 있었다 — 2026-11-07 #172에서 고쳤다). 소스 파일을 새로 만들거나 옮긴 날에는 이 스크립트의 소스 목록도 같이 고친다.
+- [ ] **`bash scripts/run_onboarding_tests.sh`도 매번 필수다.** 안내 입력 연습(`Tests/OnboardingPracticeTests.swift`), 메인 앱 화면 판단·설정 키·두루마리 자원(`Tests/AppUITests.swift`), 번들 자원이 코드나 JSON에서 참조되는지(`scripts/verify_bundle_resources.py`)를 함께 본다.
+- [ ] `python3 scripts/run_controller_tests.py` 통과(입력 컨트롤러 시나리오).
+- [ ] `bash scripts/audit_wordlist.sh --smoke` 통과(검역 스모크). 사전을 고쳤다면 `python3 scripts/build_english_table.py --check`도 통과해야 한다.
+- [ ] **무서명 빌드**가 두 타깃 모두 통과한다: `xcodegen generate` 뒤 `xcodebuild -project HaneulKeyboard.xcodeproj -scheme HaneulKeyboard -configuration Release -derivedDataPath .tmp/dd CODE_SIGNING_ALLOWED=NO build`(Debug도 같은 명령으로 돌린다. 산출물은 `.gitignore`된 `.tmp/` 아래에 둔다). 빌드 산출물이 LaunchServices에 남으면 입력기 자기 정리와 설치본 확인을 꼬이게 할 수 있으니 끝나면 `lsregister -u <앱 경로>`로 앱과 내장 입력기의 등록을 지운다. 2026-11-07 이 명령 꼴로 Release·Debug 빌드와 번들 검증이 통과하는 것을 확인했다. 서명·공증은 아래 ③에서 따로 한다.
 - [ ] `python3 scripts/test_postinstall_probe.py` 통과 — 실제 TIS 집계 블록의 enabled/disabled/없음/중복을 확인한다(2026-10-11 리뷰 F-2). 이 검사는 실제 설치 상태의 통과를 뜻하지 않는다.
+- [ ] `python3 scripts/test_install_destination.py` 통과 — 설치 대상 검증(다른 제품 ID·신뢰할 수 없는 서명·심볼릭 링크 거부).
 - [ ] `python3 scripts/test_uninstall.py` 통과 — Swift 공통 코드를 사용하는 CLI 진입점의 실패 전파를 확인한다. 실제 제품 순서의 실패/취소/재생성 시 데이터 보존, 실제 임시 파일·설정 검사는 `run_updater_tests.sh`에서 Debug/Release 모두 통과해야 한다(2026-10-11 승인 B안).
 - [ ] README·설정·수동 검사 항목이 현재 코드와 맞는다. 설정의 자동 변환/단축키 변환 분류, 기본 ON/OFF, 7단계 안내, 철자 오류 보존을 확인한다. 로컬 검사와 최신 설치본 실기를 구분해 기록한다.
 
@@ -62,8 +67,9 @@
 
 - [ ] Apple로 앱을 전송하는 공증과 실제 설치는 사용자가 보류를 해제한 뒤 수행한다. 로컬 검토 ZIP에는 `NOT-NOTARIZED`를 표시하고 설치용 DMG와 구분한다.
 
-- [ ] `python3 -m venv .tools/dmg` 후 `.tools/dmg/bin/python -m pip install -r scripts/requirements-dmg.txt`로 포장 도구 준비. `PACKAGE_ONLY=1 bash scripts/build_notarize_install.sh HaneulKeyboard`로 첫 설치용 `HaneulKeyboard_<공개 버전>.dmg`와 업데이트용 `.zip`·각 `.sha256`을 만든다. 앱/DMG는 따로 서명·공증·staple·Gatekeeper, DMG는 원본 앱/배경/위치 대조, ZIP는 추출본 고지/서명 검사를 거친다. 설치는 하지 않는다. `ZIP_ONLY=1`은 호환 이름이다.
+- [ ] `python3 -m venv .tools/dmg` 후 `.tools/dmg/bin/python -m pip install --require-hashes -r scripts/requirements-dmg.txt`로 포장 도구 준비(2026-11-07 #176: 전이 의존성까지 버전과 해시를 고정했다 — 해시가 하나라도 안 맞으면 설치가 실패해야 정상이다). `PACKAGE_ONLY=1 bash scripts/build_notarize_install.sh HaneulKeyboard`로 첫 설치용 `HaneulKeyboard_<공개 버전>.dmg`와 업데이트용 `.zip`·각 `.sha256`을 만든다. 앱/DMG는 따로 서명·공증·staple·Gatekeeper, DMG는 원본 앱/배경/위치 대조, ZIP는 추출본 고지/서명 검사를 거친다. 설치는 하지 않는다. `ZIP_ONLY=1`은 호환 이름이다.
 - [ ] **기존 같은 공개 이름 파일은 덮어쓰지 않는다.** 공증된 설치 테스트 후보는 `CANDIDATE_ONLY=1 bash scripts/build_notarize_install.sh HaneulKeyboard`로 `.build/candidates/<버전>-b<빌드>/`에 DMG·ZIP·체크섬을 만든다. 별도 DerivedData를 쓰고 설치는 건너뛴다. 정식 게시용은 `PACKAGE_ONLY=1`로 루트에 만든다. 무서명 화면 검사만 필요할 때는 `.tmp/`의 별도 preview 이름을 사용한다.
+- [ ] 빌드 스크립트가 끝낸 번들을 `python3 scripts/verify_license_resources.py <앱 경로>`로 확인한다(스크립트가 자동으로도 돌린다). LICENSE·NOTICE·ACKNOWLEDGEMENTS.md·옛 MIT 고지가 현재 원문과 같고, 입력기에 사전 5개(`english_bundled.txt`·`english_common.txt`·`english_supplement.txt`·`korean_words.txt`·`phonetic_dictionary.json`)가 원본과 같은 바이트로 들어 있으며, 입력기 바이너리가 네트워크 심볼을 가져다 쓰지 않아야 통과한다.
 - 타겟은 항상 `HaneulKeyboard`(메인 앱)다. IME 단독 zip은 배포물이 아니다(스크립트가 막는다).
 
 ### ④ 설치·실기기 확인
