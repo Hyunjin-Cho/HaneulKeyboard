@@ -38,13 +38,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         // 응용 프로그램 폴더 밖이면 옮긴다(App Translocation 방지) — 메뉴바 생성보다 먼저.
-        let staying = AppMover.moveToApplicationsIfNeeded()
         // (#32) 옮기기 판단이 끝난 뒤에야 "내가 여기 있다"를 IME에 기록한다 — 옮겨서 재실행되면
         // 새 인스턴스가 다시 기록하고, 옮기지 않고 종료하면 여기까지 오지 않는다.
-        AppCore.recordMainAppPathForIME()
         // 2026-11-07 (#176, 리뷰 install-update-F-9): 입력기 갱신·활성화도 옮기기 판단 뒤로 옮겼다. 예전엔 코어를 만들 때 예약돼, 옮기기 창이
         // 떠 있는 동안 곧 버려질 복사본이 설치된 입력기를 교체할 수 있었다. 곧 끝나는 인스턴스는 건드리지 않고 새 인스턴스에 맡긴다.
-        if staying { core.ensureIMEActive() }
+        AppLaunchSequence.run(
+            moveApp: { AppMover.moveToApplicationsIfNeeded() },
+            recordAppPath: { AppCore.recordMainAppPathForIME() },
+            activateIME: { core.ensureIMEActive() })
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {

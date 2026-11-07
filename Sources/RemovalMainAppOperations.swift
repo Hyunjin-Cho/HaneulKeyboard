@@ -43,9 +43,9 @@ extension RemovalObservation {
         } catch { return .failure(error) }
     }
 
-    /// bundle ID만 같은 다른 실행본은 자동 종료하지 않는다.
-    static func imeProcesses() -> Result<[(pid_t, String)], Error> {
-        listIMEProcesses().map { ownIMEProcesses($0, currentUID: getuid()) }
+    /// bundle ID만 같은 다른 실행본은 자동 종료하지 않는다. `list`는 시험에서만 바꾼다. 현재 계정 필터는 항상 여기서 건다.
+    static func imeProcesses(list: () -> Result<[IMEProcess], Error> = { listIMEProcesses() }) -> Result<[(pid_t, String)], Error> {
+        list().map { ownIMEProcesses($0, currentUID: getuid()) }
     }
 
     /// 실제 프로세스 대신 시험에서 바꿔 끼우는 경계. `signal`은 kill(2)의 errno(성공이면 0)를 돌려준다.

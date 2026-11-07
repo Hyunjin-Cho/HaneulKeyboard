@@ -7,18 +7,165 @@ import Foundation
         imeTargetBoundary(check)
         processScope(check)
         let fm = FileManager.default
-        let root = fm.temporaryDirectory.appendingPathComponent("haneul-install-flow-\(UUID().uuidString)")
+        // 관리자 스크립트가 조상 링크를 거부하므로 /var → /private/var를 푼 실제 경로에서 돌린다.
+        guard let resolved = realpath(fm.temporaryDirectory.path, nil) else {
+            check(false, "설치 흐름 검사 준비: 임시 폴더 경로를 풀지 못함")
+            return
+        }
+        defer { free(resolved) }
+        let root = URL(fileURLWithPath: String(cString: resolved)).appendingPathComponent("haneul-install-flow-\(UUID().uuidString)")
         do {
             try fm.createDirectory(at: root, withIntermediateDirectories: true)
             defer { try? fm.removeItem(at: root) }
             try buildNumbersAfterReplacement(in: root.appendingPathComponent("builds"), check)
             try appPlacement(in: root.appendingPathComponent("placement"), check)
             try await relaunchCleanup(in: root.appendingPathComponent("relaunch"), check)
+            try adminRemovalIdentity(in: root.appendingPathComponent("admin"), check)
+            try realProcessList(in: root.appendingPathComponent("process"), check)
         } catch {
             check(false, "설치 흐름 검사 준비·실행 실패: \(error)")
         }
         updateRefusalMessage(check)
+        launchSequence(check)
         launchOrder(check)
+    }
+
+    /// 리뷰 2.3절: 관리자 제거는 삭제 직전 신원 확인이다. Finder로 복사한 앱의 최상위 FinderInfo 때문에 막히면 안 되고,
+    /// 서명 유효성·Team 요구사항·inode·번들 ID는 그대로 봐야 한다.
+    /// Apple 서명 fixture가 없어 ad-hoc 서명 번들에 실제 codesign을 돌리되 `-R=` 요구사항만 뺀다. 요구사항 자체는 `real-codesign`이 본다.
+    private static func adminRemovalIdentity(in root: URL, _ check: (Bool, String) -> Void) throws {
+        let fm = FileManager.default
+        try fm.createDirectory(at: root, withIntermediateDirectories: true)
+        let identifier = RemovalObservation.imeID
+        let team = RemovalCommand.officialTeam
+        func signedBundle(_ name: String) throws -> URL {
+            let url = root.appendingPathComponent(name)
+            try fm.createDirectory(at: url.appendingPathComponent("Contents/MacOS"), withIntermediateDirectories: true)
+            let info = ["CFBundleIdentifier": identifier, "CFBundleExecutable": "app", "CFBundlePackageType": "APPL"]
+            let data = try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0)
+            try data.write(to: url.appendingPathComponent("Contents/Info.plist"))
+            let code = url.appendingPathComponent("Contents/MacOS/app")
+            try "#!/bin/sh\nexit 0\n".write(to: code, atomically: true, encoding: .utf8)
+            try fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: code.path)
+            check(tool("/usr/bin/codesign", ["--force", "--sign", "-", url.path]) == 0, "관리자 제거 fixture: ad-hoc 서명 \(name)")
+            return url
+        }
+        let codesignLog = root.appendingPathComponent("codesign.log")
+        let wrapper = root.appendingPathComponent("codesign-no-requirement.sh")
+        try """
+        #!/bin/sh
+        printf '%s\\n' "$@" >> \(shellQuoted(codesignLog.path))
+        count=$#
+        while [ "$count" -gt 0 ]; do
+            argument=$1
+            shift
+            case "$argument" in
+                -R=*) ;;
+                *) set -- "$@" "$argument" ;;
+            esac
+            count=$((count - 1))
+        done
+        exec /usr/bin/codesign "$@"
+        """.write(to: wrapper, atomically: true, encoding: .utf8)
+        try fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: wrapper.path)
+        func runScript(_ url: URL, codesign: String) -> Int32? {
+            guard let target = RemovalObservation.capture(url, identifier: identifier, trust: { _ in true }).0 else { return nil }
+            return tool("/bin/bash", ["-c", RemovalAdminScript(target: target, team: team).shellCommand(codesign: codesign)])
+        }
+
+        let finder = try signedBundle("finder-copy.app")
+        let finderInfo = (Data(count: 8) + Data([0x01, 0x00]) + Data(count: 22)).map { String(format: "%02x", $0) }.joined()
+        check(tool("/usr/bin/xattr", ["-wx", "com.apple.FinderInfo", finderInfo, finder.path]) == 0, "관리자 제거 fixture: FinderInfo 붙임")
+        check(tool("/usr/bin/codesign", ["--verify", "--strict", "--all-architectures", finder.path]) != 0,
+              "관리자 제거 fixture: FinderInfo가 있으면 실제 codesign --strict가 거부")
+        check(runScript(finder, codesign: wrapper.path) == 0 && !fm.fileExists(atPath: finder.path),
+              "관리자 제거: Finder로 복사한 앱(최상위 FinderInfo)을 막지 않음")
+        let log = (try? String(contentsOf: codesignLog, encoding: .utf8)) ?? ""
+        let arguments = log.components(separatedBy: "\n")
+        check(arguments.contains("--verify") && arguments.contains("--all-architectures") && !arguments.contains("--strict"),
+              "관리자 제거: 서명 유효성은 보되 --strict는 쓰지 않음")
+        check(arguments.contains("-R=anchor apple generic and identifier \"\(identifier)\" and certificate leaf[subject.OU] = \"\(team)\""),
+              "관리자 제거: Apple 인증서 사슬·번들 ID·Team 요구사항 유지")
+
+        let tampered = try signedBundle("tampered.app")
+        try "#!/bin/sh\nexit 1\n".write(to: tampered.appendingPathComponent("Contents/MacOS/app"), atomically: true, encoding: .utf8)
+        check(runScript(tampered, codesign: wrapper.path) == 77 && fm.fileExists(atPath: tampered.path), "관리자 제거: 서명이 깨진 번들은 지우지 않음")
+
+        let renamed = try signedBundle("other-id.app")
+        guard let renamedTarget = RemovalObservation.capture(renamed, identifier: identifier, trust: { _ in true }).0 else {
+            check(false, "관리자 제거 fixture: 대상 확인 실패")
+            return
+        }
+        let other = ["CFBundleIdentifier": "com.example.other", "CFBundleExecutable": "app", "CFBundlePackageType": "APPL"]
+        let otherData = try PropertyListSerialization.data(fromPropertyList: other, format: .xml, options: 0)
+        let handle = try FileHandle(forWritingTo: renamed.appendingPathComponent("Contents/Info.plist"))
+        try handle.truncate(atOffset: 0)
+        try handle.write(contentsOf: otherData)
+        try handle.close()
+        check(tool("/bin/bash", ["-c", RemovalAdminScript(target: renamedTarget, team: team).shellCommand(codesign: wrapper.path)]) == 76
+                && fm.fileExists(atPath: renamed.path), "관리자 제거: 인증 뒤 번들 ID 재확인 유지")
+
+        let adHoc = try signedBundle("real-codesign.app")
+        check(runScript(adHoc, codesign: "/usr/bin/codesign") == 77 && fm.fileExists(atPath: adHoc.path),
+              "관리자 제거: 실제 codesign이 Apple 서명이 아닌 번들을 거부")
+    }
+
+    /// 리뷰 B-P3-3: 순수 함수만이 아니라 실제 `ps` 출력에서 현재 계정 필터까지 이어지는지 본다.
+    /// `/bin/sleep`을 입력기 실행 파일 이름의 링크로 띄운다. 복사하면 OS가 바로 죽인다(실측 -9). 조회만 하고 종료 함수는 부르지 않는다.
+    private static func realProcessList(in root: URL, _ check: (Bool, String) -> Void) throws {
+        let fm = FileManager.default
+        try fm.createDirectory(at: root, withIntermediateDirectories: true)
+        let fake = root.appendingPathComponent("HaneulKeyboardIM")
+        try fm.createSymbolicLink(at: fake, withDestinationURL: URL(fileURLWithPath: "/bin/sleep"))
+        let task = Process()
+        task.executableURL = fake
+        task.arguments = ["30"]
+        try task.run()
+        defer { task.terminate(); task.waitUntilExit() }
+        let pid = task.processIdentifier
+        func found(_ result: Result<[(pid_t, String)], Error>) -> Bool {
+            guard case .success(let list) = result else { return false }
+            return list.contains { $0.0 == pid && $0.1.hasSuffix("/HaneulKeyboardIM") }
+        }
+        var direct = false
+        for _ in 0..<40 where !direct {
+            direct = found(RemovalObservation.imeProcesses())
+            if !direct { Thread.sleep(forTimeInterval: 0.05) }
+        }
+        check(direct, "프로세스: 실제 ps 출력에서 내 입력기 실행본을 찾음")
+        check(found(RemovalObservation.ProcessControl().list()), "프로세스: 종료 경로의 기본 조회도 같은 목록을 씀")
+    }
+
+    /// install-update-F-9: 옮기기 결과에 따라 입력기를 건드릴지 정한다. 곧 끝나는 인스턴스는 건드리지 않는다.
+    private static func launchSequence(_ check: (Bool, String) -> Void) {
+        let staying: [AppMoveOutcome] = [.alreadyInPlace, .blockedByOtherApp, .moveFailed]
+        for outcome in AppMoveOutcome.allCases {
+            var events: [String] = []
+            AppLaunchSequence.run(moveApp: { events.append("move"); return outcome },
+                                  recordAppPath: { events.append("record") },
+                                  activateIME: { events.append("activate") })
+            let keepsRunning = staying.contains(outcome)
+            check(AppLaunchSequence.shouldActivateIME(after: outcome) == keepsRunning, "앱 시작 \(outcome): 입력기 갱신 판단")
+            check(events == ["move", "record"] + (keepsRunning ? ["activate"] : []), "앱 시작 \(outcome): 옮기기 판단 → 경로 기록 → 입력기 갱신 순서")
+        }
+    }
+
+    private static func shellQuoted(_ value: String) -> String { "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'" }
+
+    @discardableResult
+    private static func tool(_ executable: String, _ arguments: [String]) -> Int32 {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: executable)
+        task.arguments = arguments
+        task.standardOutput = FileHandle.nullDevice
+        task.standardError = FileHandle.nullDevice
+        do {
+            try task.run()
+        } catch {
+            return -1
+        }
+        task.waitUntilExit()
+        return task.terminationStatus
     }
 
     private static func makeBundle(_ url: URL, build: String = "107", identifier: String = AppMoveDecision.mainAppBundleID) throws {
@@ -148,7 +295,7 @@ import Foundation
         try fm.createDirectory(at: work.appendingPathComponent("extract"), withIntermediateDirectories: true)
         try Data("zip".utf8).write(to: work.appendingPathComponent("update.zip"))
         var existed = true
-        try await Updater.relaunchCleaningUp(workDir: work) { existed = fm.fileExists(atPath: work.path) }
+        await Updater.relaunchCleaningUp(workDir: work) { existed = fm.fileExists(atPath: work.path) }
         check(!existed, "업데이트: 재실행 전에 임시 작업 폴더를 지움")
         struct Boom: Error {}
         var propagated = false
@@ -169,22 +316,12 @@ import Foundation
         }
     }
 
-    /// install-update-F-9: 옮기기를 거절할 복사본이 입력기를 교체하면 안 된다. 앱 시작 코드는 시험 빌드에 못 넣어 원문 순서로 본다.
+    /// install-update-F-9: 판단은 `launchSequence`가 실제로 돌려 본다. 앱 시작 코드는 시험 빌드에 못 넣어, 그 함수를 거치는지만 원문으로 본다.
     private static func launchOrder(_ check: (Bool, String) -> Void) {
         let app = (try? String(contentsOfFile: "Sources/HaneulKeyboardApp.swift", encoding: .utf8)) ?? ""
         check(app.contains("let core = AppCore(activateIMEOnLaunch: false)"), "앱 시작: 코어를 만들 때 입력기를 건드리지 않음")
-        guard let start = app.range(of: "func applicationWillFinishLaunching"),
-              let end = app.range(of: "func applicationDidFinishLaunching", range: start.upperBound..<app.endIndex) else {
-            check(false, "앱 시작: applicationWillFinishLaunching을 찾지 못함")
-            return
-        }
-        let body = app[start.upperBound..<end.lowerBound]
-        if let mover = body.range(of: "AppMover.moveToApplicationsIfNeeded()"),
-           let activation = body.range(of: "core.ensureIMEActive()") {
-            check(mover.upperBound <= activation.lowerBound, "앱 시작: 옮기기 판단 뒤에 입력기 갱신")
-        } else {
-            check(false, "앱 시작: 옮기기 판단과 입력기 갱신 호출을 찾지 못함")
-        }
+        check(app.contains("AppLaunchSequence.run("), "앱 시작: 옮기기 판단과 입력기 갱신을 한 순서로 묶음")
+        check(app.components(separatedBy: "ensureIMEActive").count - 1 == 1, "앱 시작: 입력기 갱신을 그 순서 밖에서 부르지 않음")
     }
 
     /// install-update-F-4: 다른 계정의 입력기 프로세스가 교체·제거를 막지 않는다.
@@ -210,6 +347,21 @@ import Foundation
         let own = RemovalObservation.ownIMEProcesses(parsed, currentUID: me)
         check(own.map(\.0) == [100] && own.first?.1 == userPath, "프로세스: 현재 계정의 입력기만 센다")
         check(RemovalObservation.ownIMEProcesses(parsed, currentUID: 503).isEmpty, "프로세스: 내 입력기가 없으면 비어 있음")
+
+        // 리뷰 B-P3-3: 조회 함수가 실제 현재 계정(getuid)으로 거르는 연결까지 본다.
+        let current = getuid()
+        let connected = RemovalObservation.imeProcesses(list: {
+            .success([RemovalObservation.IMEProcess(pid: 100, uid: current, path: userPath),
+                      RemovalObservation.IMEProcess(pid: 200, uid: current &+ 1, path: otherHomePath),
+                      RemovalObservation.IMEProcess(pid: 300, uid: current &+ 1, path: systemPath)])
+        })
+        if case .success(let list) = connected {
+            check(list.map(\.0) == [100], "프로세스: 조회 함수가 다른 계정 실행본을 뺌")
+        } else { check(false, "프로세스: 조회 함수가 목록을 돌려줌") }
+        struct ListFailure: Error {}
+        if case .failure = RemovalObservation.imeProcesses(list: { .failure(ListFailure()) }) {
+            check(true, "프로세스: 조회 실패를 그대로 올림")
+        } else { check(false, "프로세스: 조회 실패를 빈 목록으로 숨기지 않음") }
 
         let notice = RemovalObservation.otherAccountNotice(parsed, currentUID: me, removingSystemIME: true)
         check(notice != nil && notice?.reachedGoal == false && notice?.text.contains("다른 계정") == true,

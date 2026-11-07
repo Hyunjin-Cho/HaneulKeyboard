@@ -11,11 +11,8 @@ import AppKit
 /// IME 보안: 외부 라이브러리(LetsMove 등) 없이 AppKit만으로 직접 구현 —
 /// 의존성을 추가하지 않는다.
 enum AppMover {
-    /// 2026-11-07 (#176, 리뷰 install-update-F-9): 이 인스턴스가 계속 도는지 돌려준다. 곧 끝나는 인스턴스(옮기기 거절, 옮겨서 재실행,
-    /// 기존 최신본 열기)가 설치된 입력기를 교체하지 않게 `AppDelegate`가 이 값을 보고 입력기를 갱신한다. 옮긴 앱 열기가 나중에 실패하면
-    /// 이 인스턴스가 남지만 "직접 실행해 주세요"라고 안내하므로 여기서는 갱신하지 않는다.
-    @discardableResult
-    static func moveToApplicationsIfNeeded() -> Bool {
+    /// 2026-11-07 (#176): 판단 결과를 돌려준다. 입력기 갱신 여부는 `AppLaunchSequence`가 이 값으로 정한다.
+    static func moveToApplicationsIfNeeded() -> AppMoveOutcome {
         let fm = FileManager.default
         let bundleURL = Bundle.main.bundleURL
         // (review-0712 P2-1 / P3-8) 목적지 파일명은 항상 고정이고, 그 판단은
@@ -26,7 +23,7 @@ enum AppMover {
         let destURL = AppMoveDecision.destinationURL()
 
         // 이미 /Applications에서 실행 중이면 아무것도 하지 않는다.
-        guard !AppMoveDecision.isAlreadyInPlace(bundlePath: bundleURL.path) else { return true }
+        guard !AppMoveDecision.isAlreadyInPlace(bundlePath: bundleURL.path) else { return .alreadyInPlace }
 
         let alert = NSAlert()
         alert.messageText = "HaneulKeyboard를 응용 프로그램 폴더로 옮길까요?"
@@ -40,7 +37,7 @@ enum AppMover {
         // 사용자를 혼란시킨다 — 거절은 깔끔히 종료로 처리.
         guard alert.runModal() == .alertFirstButtonReturn else {
             NSApp.terminate(nil)
-            return false
+            return .declined
         }
 
         do {
@@ -55,7 +52,7 @@ enum AppMover {
                     block.informativeText = "\(destURL.path)이(가) HaneulKeyboard가 아닙니다. 안전을 위해 덮어쓰지 않고 중단했어요. 그 앱을 옮기거나 이름을 바꾼 뒤 다시 시도해 주세요."
                     block.alertStyle = .warning
                     block.runModal()
-                    return true
+                    return .blockedByOtherApp
                 }
                 // (H-02) 다운그레이드 방지 — /Applications의 기존 설치본이 더
                 // 최신(빌드 번호 큼)이면 확인받는다. 취소하면 기존 최신본을 열고
@@ -75,7 +72,7 @@ enum AppMover {
                         NSWorkspace.shared.openApplication(at: destURL, configuration: cfg) { _, _ in
                             DispatchQueue.main.async { NSApp.terminate(nil) }
                         }
-                        return false
+                        return .openingExistingCopy
                     }
                 }
             }
@@ -93,7 +90,7 @@ enum AppMover {
             fail.informativeText = "Finder에서 직접 응용 프로그램 폴더로 드래그해 주세요.\n(\(error.localizedDescription))"
             fail.alertStyle = .warning
             fail.runModal()
-            return true
+            return .moveFailed
         }
 
         // 옮긴 앱을 새 인스턴스로 실행하고, 현재(임시/원위치) 인스턴스는 종료.
@@ -114,7 +111,7 @@ enum AppMover {
                 NSApp.terminate(nil)
             }
         }
-        return false
+        return .relaunchingMovedCopy
     }
 
     /// 2026-11-07 (#176, 리뷰 install-update-F-3·F-10): 같은 볼륨의 staging에서 복사·검증·격리 해제를 끝낸 뒤에만 정본 경로에 놓는다.
