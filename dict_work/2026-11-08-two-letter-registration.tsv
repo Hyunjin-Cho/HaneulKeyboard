@@ -1,0 +1,71 @@
+# 2026-11-08 #194 오너 요청으로 넣은 2글자 단어. 뜻은 일반 지식이고 빈도를 잰 값이 아니다. before = 넣기 전 단독 변환 여부.
+word	hangul	structure	role	before	meaning
+ad	ㅁㅇ	자음+자음	consonantPairShortWords	0	광고·조감독
+ae	ㅁㄷ	자음+자음	consonantPairShortWords	0	After Effects
+ar	ㅁㄱ	자음+자음	consonantPairShortWords	0	증강현실
+cg	ㅊㅎ	자음+자음	consonantPairShortWords	0	컴퓨터 그래픽(ㅊㅎ은 거의 안 쓰임)
+cs	ㅊㄴ	자음+자음	consonantPairShortWords	0	고객 서비스
+dc	ㅇㅊ	자음+자음	consonantPairShortWords	0	회사·직류
+ex	ㄷㅌ	자음+자음	consonantPairShortWords	0	전(前)·예시
+fc	ㄹㅊ	자음+자음	consonantPairShortWords	0	축구 클럽
+fx	ㄹㅌ	자음+자음	consonantPairShortWords	0	특수 효과·환율
+gs	ㅎㄴ	자음+자음	consonantPairShortWords	0	회사
+qa	ㅂㅁ	자음+자음	consonantPairShortWords	0	품질 검수
+sd	ㄴㅇ	자음+자음	consonantPairShortWords	0	메모리 카드
+tv	ㅅㅍ	자음+자음	consonantPairShortWords	0	텔레비전
+vc	ㅍㅊ	자음+자음	consonantPairShortWords	0	벤처 캐피털
+vr	ㅍㄱ	자음+자음	consonantPairShortWords	0	가상현실
+vs	ㅍㄴ	자음+자음	consonantPairShortWords	0	대결
+bc	ㅠㅊ	모음+자음	shortWords(R1)	0	카드·기원전
+bg	ㅠㅎ	모음+자음	shortWords(R1)	0	배경
+bj	ㅠㅓ	모음+모음	shortWords(R1)	0	인터넷 방송인
+bl	ㅠㅣ	모음+모음	shortWords(R1)	0	장르
+bt	ㅠㅅ	모음+자음	shortWords(R1)	0	블루투스
+hd	ㅗㅇ	모음+자음	shortWords(R1)	0	고화질
+hi	ㅗㅑ	모음+모음	shortWords(R1)	0	인사(ㅗㅑ 슬랭 보호를 풀었다)
+hp	ㅗㅔ	모음+모음	shortWords(R1)	0	회사·체력
+hq	ㅗㅂ	모음+자음	shortWords(R1)	0	본사
+ic	ㅑㅊ	모음+자음	shortWords(R1)	0	나들목
+ig	ㅑㅎ	모음+자음	shortWords(R1)	0	인스타그램
+io	ㅑㅐ	모음+모음	shortWords(R1)	0	입출력
+ip	ㅑㅔ	모음+모음	shortWords(R1)	0	인터넷 주소
+iq	ㅑㅂ	모음+자음	shortWords(R1)	0	지능지수
+ir	ㅑㄱ	모음+자음	shortWords(R1)	0	투자 설명
+jp	ㅓㅔ	모음+모음	shortWords(R1)	0	일본
+jr	ㅓㄱ	모음+자음	shortWords(R1)	0	Jr
+kb	ㅏㅠ	모음+모음	shortWords(R1)	0	킬로바이트·은행
+kc	ㅏㅊ	모음+자음	shortWords(R1)	0	인증 마크
+kr	ㅏㄱ	모음+자음	shortWords(R1)	0	한국
+kt	ㅏㅅ	모음+자음	shortWords(R1)	0	통신사
+la	ㅣㅁ	모음+자음	shortWords(R1)	0	로스앤젤레스
+lh	ㅣㅗ	모음+모음	shortWords(R1)	0	토지주택공사
+lp	ㅣㅔ	모음+모음	shortWords(R1)	0	음반
+mc	ㅡㅊ	모음+자음	shortWords(R1)	0	사회자
+mr	ㅡㄱ	모음+자음	shortWords(R1)	0	Mr
+mt	ㅡㅅ	모음+자음	shortWords(R1)	0	대학 모임
+mv	ㅡㅍ	모음+자음	shortWords(R1)	0	뮤직비디오
+nc	ㅜㅊ	모음+자음	shortWords(R1)	0	회사
+nh	ㅜㅗ	모음+모음	shortWords(R1)	0	농협
+ny	ㅜㅛ	모음+모음	shortWords(R1)	0	뉴욕
+ob	ㅐㅠ	모음+모음	shortWords(R1)	0	맥주·졸업생
+oh	ㅐㅗ	모음+모음	shortWords(R1)	0	감탄사
+ol	ㅐㅣ	모음+모음	shortWords(R1)	0	직장 여성
+op	ㅐㅔ	모음+모음	shortWords(R1)	0	오프닝
+ot	ㅐㅅ	모음+자음	shortWords(R1)	0	오리엔테이션
+ow	ㅐㅈ	모음+자음	shortWords(R1)	0	감탄사
+pb	ㅔㅠ	모음+모음	shortWords(R1)	0	자체 브랜드
+pg	ㅔㅎ	모음+자음	shortWords(R1)	0	결제·등급
+ph	ㅔㅗ	모음+모음	shortWords(R1)	0	산도
+pk	ㅔㅏ	모음+모음	shortWords(R1)	0	페널티킥
+pv	ㅔㅍ	모음+자음	shortWords(R1)	0	홍보 영상
+uh	ㅕㅗ	모음+모음	shortWords(R1)	0	감탄사
+uk	ㅕㅏ	모음+모음	shortWords(R1)	0	영국
+un	ㅕㅜ	모음+모음	shortWords(R1)	0	유엔
+uv	ㅕㅍ	모음+자음	shortWords(R1)	0	자외선
+ux	ㅕㅌ	모음+자음	shortWords(R1)	0	사용자 경험
+ya	ㅛㅁ	모음+자음	shortWords(R1)	0	감탄사
+ye	ㅛㄷ	모음+자음	shortWords(R1)	0	감탄사
+yo	ㅛㅐ	모음+모음	shortWords(R1)	0	인사
+yt	ㅛㅅ	모음+자음	shortWords(R1)	0	유튜브
+ai	먀	자음+모음	standaloneShortWords	0	인공지능(먀, 오너 확인: 안 쓰는 말)
+fm	르	자음+모음	standaloneShortWords	0	라디오·FM대로(르)

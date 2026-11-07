@@ -1063,7 +1063,7 @@ struct ComposerTests {
         // Jamo slang / kaomoji must NEVER convert (review findings)
         expect(type("gee").committedText, "ㅎㄷㄷ", "consonant-only slang ㅎㄷㄷ untouched")
         expect(type("aw").committedText, "ㅁㅈ", "2-key slang ㅁㅈ untouched")
-        expect(type("hi").committedText, "ㅗㅑ", "2-key vowel slang ㅗㅑ untouched")
+        expect(type("hni").committedText, "ㅗㅜㅑ", "#194 vowel slang ㅗㅜㅑ untouched")
         // 2026-11-01 (#106): ㅢ(ml)은 오너 결정으로 단독에서도 변환한다.
         expect(type("ml").committedText, "ml", "ml: 단독 ㅢ도 변환 (#106)")
         // 2026-11-07 오너 결정(#194): ok(ㅐㅏ)·am(므)도 단독 변환. so(내)는 멀쩡한 한글이라 앞이 영어일 때만이다.
@@ -1085,6 +1085,34 @@ struct ComposerTests {
             expect(KoreanComposer.resolveToggle(before: keys + " ", english: keys, hangul: hangul, atDocStart: true)?.text ?? "",
                    hangul, "#194 \(keys) 되돌리기")
         }
+        // 2026-11-08 오너 요청(#194): 2글자 등록 목록. 소문자·대문자·첫 글자 대문자 모두 그대로 남아야 한다.
+        for word in ["oh", "uh", "yo", "hi", "ya", "ye", "ow", "ip", "hp", "lp", "kb", "uk", "jp", "un", "ph", "op",
+                     "bj", "nh", "lh", "pb", "pk", "ob", "ol", "ny", "io", "bl", "ux", "uv", "hd", "iq", "pg", "mc",
+                     "mr", "jr", "bg", "bt", "kt", "kr", "mt", "ot", "mv", "ic", "ir", "la", "nc", "bc", "pv", "yt",
+                     "ig", "hq", "kc",
+                     "tv", "vs", "vr", "ar", "qa", "cg", "ae", "fx", "fc", "ex", "ad", "sd", "dc", "cs", "vc", "gs",
+                     "ai", "fm"] {
+            for keys in [word, word.uppercased(), word.prefix(1).uppercased() + word.dropFirst()] {
+                expect(type(keys).committedText, keys, "#194 단독 \(keys)")
+            }
+        }
+        // 넣지 않은 것은 그대로다: 초성체, 우는 표정, 멀쩡한 한글.
+        for (keys, hangul) in [("rc", "ㄱㅊ"), ("da", "ㅇㅁ"), ("re", "ㄱㄷ"), ("ac", "ㅁㅊ"), ("de", "ㅇㄷ"), ("qr", "ㅂㄱ"), ("qt", "ㅂㅅ"),
+                               ("mb", "ㅡㅠ"), ("hk", "ㅘ"), ("dm", "으"), ("gb", "휴"), ("tb", "슈"), ("sk", "나")] {
+            expect(type(keys).committedText, hangul, "#194 안 넣음 \(keys)")
+        }
+        expect(type("ai", autoEnglish: false).committedText, "먀", "#194 ai 자동 변환 OFF")
+        expect(typePassive("tv").committedText, "ㅅㅍ", "#194 tv 클릭 확정은 그대로")
+        for (keys, hangul) in [("ai", "먀"), ("tv", "ㅅㅍ"), ("hi", "ㅗㅑ")] {
+            expect(typeWithPersonalDictionary(keys, PersonalDictionary(block: [keys])).client.committedText,
+                   hangul, "#194 \(keys) 개인 금지")
+            expect(KoreanComposer.resolveToggle(before: keys + " ", english: keys, hangul: hangul, atDocStart: true)?.text ?? "",
+                   hangul, "#194 \(keys) 되돌리기")
+        }
+        // 르·먀로 시작하는 실제 말은 단어 전체 판정이 지킨다.
+        expect(type("fmsptkdtm").committedText, "르네상스", "#194 표제어 르네상스 보호")
+        expect(type("ahfmsms").committedText, "모르는", "#194 모르는 보호")
+        expect(type("aidms").committedText, "ai은", "#194 ai + 조사")
         // 조사가 붙어도 앞말로 인정한다.
         expect(type("okdms").committedText, "ok은", "#194 ok + 조사")
         expect(type("amdms").committedText, "am은", "#194 am + 조사")
@@ -1306,7 +1334,7 @@ struct ComposerTests {
         expect(type("as").committedText, "as", "2글자: ㅁㄴ → as")
         expect(type("a").committedText, "ㅁ", "2글자: ㅁ 단독은 보호(문맥 전용)")
         expect(type("dd").committedText, "ㅇㅇ", "2글자: 초성체 ㅇㅇ 보호(동일키)")
-        expect(type("sd").committedText, "ㄴㅇ", "2글자: 목록에 없는 자음쌍은 유지")
+        expect(type("td").committedText, "ㅅㅇ", "2글자: 목록에 없는 자음쌍은 유지")  // 2026-11-08 (#194): 예시였던 sd를 목록에 넣어 td로 바꿨다
         // ── 구멍 ③: who=좨 1음절 가드 ──
         expect(type("who").committedText, "who", "who: 좨 → who")
         expect(typeWords(["who", "are", "you"]).joined(separator: " "), "who are you", "who: 문맥 체인")
