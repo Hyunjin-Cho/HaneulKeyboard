@@ -573,19 +573,19 @@ enum IMEInstallError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .bundleNotFound:
-            return "HaneulKeyboardIM.app을 찾을 수 없습니다. 메인 앱과 같은 폴더(또는 Contents/Helpers)에 IME 번들이 있어야 합니다. (HaneulKeyboardIM.app not found — the IME bundle must sit next to the main app or under Contents/Helpers.)"
+            return "HaneulKeyboardIM.app을 찾을 수 없어요. 메인 앱과 같은 폴더(또는 Contents/Helpers)에 입력기 번들이 있어야 해요. (HaneulKeyboardIM.app not found — the IME bundle must sit next to the main app or under Contents/Helpers.)"
         case .untrustedBundle:
-            return "IME 번들의 서명을 신뢰할 수 없습니다. 메인 앱과 동일한 개발자(Team)로 서명된 HaneulKeyboardIM.app만 설치할 수 있습니다. (Refusing to install an IME bundle not signed by the same Team as the main app.)"
+            return "입력기 번들의 서명을 믿을 수 없어요. 메인 앱과 같은 개발자(Team)로 서명된 HaneulKeyboardIM.app만 설치할 수 있어요. (Refusing to install an IME bundle not signed by the same Team as the main app.)"
         case .installedBundleUntrusted(let path):
-            return "설치된 IME 번들의 서명/Team 검증에 실패했습니다: \(path). 신뢰할 수 있는 HaneulKeyboardIM.app으로 다시 설치한 뒤 재시도하세요. (Refusing to register an installed IME bundle whose signature or Team no longer matches the main app.)"
+            return "설치된 입력기 번들의 서명을 확인하지 못했어요: \(path). 믿을 수 있는 HaneulKeyboardIM.app으로 다시 설치한 뒤 다시 시도해 주세요. (Refusing to register an installed IME bundle whose signature or Team no longer matches the main app.)"
         case .tisRegistrationFailed(let status):
-            return "IME 번들은 설치됐지만 입력 소스 등록에 실패했습니다. (TISRegisterInputSource: \(status))"
+            return "입력기는 설치됐지만 입력 소스로 등록하지 못했어요. (TISRegisterInputSource: \(status))"
         case .tisRegistrationMissing:
-            return "IME 번들은 설치됐지만 macOS 입력 소스 목록에서 확인되지 않습니다. 다시 설치하거나 로그아웃 후 재시도하세요."
+            return "입력기는 설치됐지만 macOS 입력 소스 목록에 보이지 않아요. 다시 설치하거나 로그아웃한 뒤 다시 시도해 주세요."
         case .tisEnableFailed:
-            return "IME는 등록됐지만 활성화되지 않았습니다. 시스템 설정의 키보드 입력 소스에서 HaneulKeyboard를 활성화하세요."
+            return "입력기는 등록됐지만 켜지지 않았어요. 시스템 설정의 키보드 입력 소스에서 HaneulKeyboard를 켜 주세요."
         case .nothingToRemove:
-            return "제거할 IME가 없습니다. (이미 제거되었습니다.)"
+            return "지울 입력기가 없어요. (이미 지워졌어요.)"
         case .uninstallFailed(let reason):
             return "IME 제거 실패: \(reason)"
         }

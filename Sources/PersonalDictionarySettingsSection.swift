@@ -44,7 +44,7 @@ struct PersonalDictionarySettingsSection: View {
 
     var body: some View {
         Group {
-            HaneulSettingsSection("개인 사전") {
+            HaneulSettingsSection {
                 Picker("개인 사전 목록", selection: $listKind) {
                     Text("변환 추가").tag(ListKind.force)
                     Text("변환 금지").tag(ListKind.block)
@@ -82,7 +82,7 @@ struct PersonalDictionarySettingsSection: View {
 
     @ViewBuilder
     private var forceRows: some View {
-        Text("자동 변환이 켜진 앱에서, 여기 적은 단어·제품명은 사전에 없거나 한국어와 겹쳐도 영어로 바꿉니다. 변환 금지에도 있으면 금지가 우선합니다.")
+        Text("자동으로 안 바뀌는 영어 단어·제품명을 적어 두세요. 한글 단어와 겹쳐도 영어로 바꿔요. 변환 금지에도 있으면 금지가 먼저예요.")
             .font(SettingsTypography.body)
             .foregroundStyle(.secondary)
             .lineLimit(Self.captionLines, reservesSpace: true)
@@ -90,32 +90,32 @@ struct PersonalDictionarySettingsSection: View {
             text: $forceInput, prompt: "영어 단어·제품명 (예: apple, QuickTime)", error: forceError,
             fieldLabel: "변환 추가할 영어 단어",
             addLabel: "변환 추가 목록에 단어 추가", action: addForce)
-        wordList(force, emptyText: "추가한 단어가 없습니다.", remove: removeForce)
+        wordList(force, emptyText: "추가한 단어가 없어요.", remove: removeForce)
     }
 
     @ViewBuilder
     private var blockRows: some View {
-        Text("여기 적은 단어는 자동으로 영어로 바꾸지 않습니다. 영어(apple)나 한글 모드 표기(메ㅔㅣㄷ)로 적어 주세요. 변환 추가에도 있으면 금지가 우선합니다.")
+        Text("자꾸 잘못 바뀌는 단어를 적어 두면 자동으로 바꾸지 않아요. 영어(apple)로도, 화면에 보인 글자(메ㅔㅣㄷ)로도 적을 수 있어요.")
             .font(SettingsTypography.body)
             .foregroundStyle(.secondary)
             .lineLimit(Self.captionLines, reservesSpace: true)
         addRow(
-            text: $blockInput, prompt: "영어 또는 한글 표기 (예: apple, 메ㅔㅣㄷ)", error: blockError,
+            text: $blockInput, prompt: "영어 또는 화면에 보인 글자 (예: apple, 메ㅔㅣㄷ)", error: blockError,
             fieldLabel: "변환 금지할 단어",
             addLabel: "변환 금지 목록에 단어 추가", action: addBlock)
-        wordList(block, emptyText: "금지한 단어가 없습니다.", remove: removeBlock)
+        wordList(block, emptyText: "금지한 단어가 없어요.", remove: removeBlock)
     }
 
     @ViewBuilder
     private var recentRows: some View {
-        Text("영어로 바뀌었다가 직접 한글로 되돌린 단어예요. 이 기기에만 최근 \(RecentReverts.maxCount)개까지 남아요. ‘변환 금지 추가’를 누르면 다음부터 자동으로 바꾸지 않아요.")
+        Text("영어로 바뀌었다가 직접 되돌린 단어예요. 이 Mac에만 최근 \(RecentReverts.maxCount)개까지 남아요. ‘변환 금지 추가’를 누르면 다음부터 자동으로 바꾸지 않아요.")
             .font(SettingsTypography.body)
             .foregroundStyle(.secondary)
             .lineLimit(Self.captionLines, reservesSpace: true)
 
         List {
             if recent.isEmpty {
-                Text("되돌린 변환이 없습니다.")
+                Text("되돌린 단어가 없어요.")
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(recent, id: \.self) { entry in
@@ -230,7 +230,7 @@ struct PersonalDictionarySettingsSection: View {
 
     private func addForce() {
         guard let updated = PersonalDictionary.addingForceEntry(forceInput, to: force) else {
-            forceError = "영문이 포함된 단어 하나를 적어 주세요. 숫자도 가능하며, 아포스트로피(')는 단어 안이나 끝에 한 번만 쓸 수 있습니다."
+            forceError = "영어 단어 하나만 띄어쓰기 없이 적어 주세요. 숫자도 괜찮고, '는 한 번만 넣을 수 있어요. 예: a7r, don't"
             return
         }
         forceError = nil
@@ -249,7 +249,7 @@ struct PersonalDictionarySettingsSection: View {
 
     private func addBlock() {
         guard let word = PersonalDictionary.normalizedBlockEntry(blockInput) else {
-            blockError = "영어 단어 하나(apple) 또는 한글 표기 하나(메ㅔㅣㄷ)만 적어 주세요."
+            blockError = "영어(apple)나 화면에 보인 글자(메ㅔㅣㄷ) 중 하나만 적어 주세요. 섞거나 띄어 쓰면 안 돼요."
             return
         }
         blockError = nil

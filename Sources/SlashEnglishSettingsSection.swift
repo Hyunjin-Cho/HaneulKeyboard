@@ -9,16 +9,12 @@ struct SlashEnglishSettingsSection: View {
 
     var body: some View {
         HaneulSettingsSection("슬래시 영어 입력") {
-            Toggle("슬래시(/) 뒤 영어 입력", isOn: $enabled)
+            SettingsToggleRow(title: "슬래시(/) 뒤는 바로 영어로",
+                detail: "한글 모드에서 /help를 치면 / 뒤의 글자가 바로 영어로 나와요. Space나 Return을 누르거나, /를 지우거나, 닫는 괄호 ) ] }를 치면 다시 한글로 돌아와요. 자동 변환을 꺼 둔 앱에서도 동작해요. 글 속의 /도 똑같으니, 글에 /를 자주 쓴다면 꺼 주세요.",
+                isOn: $enabled)
                 .onChange(of: enabled) { _, value in
                     Self.imeDefaults?.set(value, forKey: SlashEnglishSession.defaultsKey)
                 }
-            Text("한글 모드에서 /를 치면 이어지는 글자가 영어로 바로 입력됩니다. 일반 Space, 슬래시 삭제 또는 닫는 괄호 ) ] } 뒤에는 한글 입력으로 돌아옵니다. 예: /help")
-                .font(SettingsTypography.body)
-                .foregroundStyle(.secondary)
-            Text("영타 자동 변환과 앱별 자동 변환 설정에 관계없이 동작합니다.")
-                .font(SettingsTypography.body)
-                .foregroundStyle(.secondary)
         }
     }
 }
