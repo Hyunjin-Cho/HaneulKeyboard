@@ -97,6 +97,8 @@
 
 2026-10-28 보완(#104): 사용자 지정 `spark`를 `Resources/IM/english_supplement.txt`에 추가했다. `넴가`는 완성 한글 두 음절로 조합되지만 번들 한국어 표제어에 없고, 기존 broad 영어 사전에는 `spark`가 있었다. 검토 목록에 정확한 영어 한 단어를 추가해 기존 R5를 통과시키며, 한국어 보호나 Shift 판정은 바꾸지 않는다. 후보 검역의 Tier A·`넴` 표제어 경고는 [검역 결과](../dict_work/2026-10-28-spark-audit.csv)와 [등록 근거](../dict_work/2026-10-28-spark-registration.tsv)에 남긴다. 일반 Space 확정 시 `넴가 → spark`, 자동 변환 OFF·개인 금지 시 원문 보존, 변환 단축키로 저장 원문 왕복을 검사한다.
 
+2026-11-08 오너 요청(#194): 2글자는 한글로 조합되지 않는 꼴(모음+모음, 모음+자음, 자음+자음)만 단독 변환한다. `so`(내)처럼 멀쩡한 글자가 되는 꼴은 넣지 않고, 쓰지 않는 말인 `am`(므)·`ai`(먀)·`fm`(르)만 예외다. 초성체로 쓰는 것(`rc`=ㄱㅊ, `da`=ㅇㅁ)과 우는 표정(`mb`=ㅡㅠ)은 뺐다. 단어별 기록: [등록표](../dict_work/2026-11-08-two-letter-registration.tsv).
+
 실행 목록: `shortWords`, `standaloneShortWords`, `consonantPairShortWords`, `standaloneOverrideEnglish`, `contextOverrideEnglish`, `triggerOverrideEnglish`, `protectedSlang`. 숫자나 사전 전체를 이 문서에 복사하지 않는다. 사전 원본 목록은 [`dict_manifest.tsv`](../dict_work/dict_manifest.tsv)를 확인한다.
 
 ## 특수 입력과 되돌리기
