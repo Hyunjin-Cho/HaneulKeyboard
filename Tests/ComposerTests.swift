@@ -181,10 +181,10 @@ func typeViaControllerWithPersonalDictionary(_ keys: String, _ pd: PersonalDicti
     return client
 }
 
-func runDictionaryProbe(_ wordlistPath: String, _ label: String) -> Bool {
+func runDictionaryProbe(_ wordlistPath: String, _ label: String, flag: String = "--probe-kdict") -> Bool {
     let process = Process()
     process.executableURL = URL(fileURLWithPath: CommandLine.arguments[0])
-    process.arguments = ["--probe-kdict", wordlistPath]
+    process.arguments = [flag, wordlistPath]
     let pipe = Pipe()
     process.standardOutput = pipe
     process.standardError = pipe
@@ -857,6 +857,26 @@ enum DictManifest {
 @main
 struct ComposerTests {
     static func main() {
+        // 2026-11-07 (#175): 표가 온전하지 않으면 그 낱말이 변환되지 않는다(과변환이 아니라 미변환으로 샌다).
+        if CommandLine.arguments.count >= 3, CommandLine.arguments[1] == "--probe-bundled-table" {
+            EnglishDetector.bundledTablePath = CommandLine.arguments[2]
+            EnglishDetector.systemWordsPath = nil
+            EnglishDetector.wordlistPaths = []
+            EnglishDetector.curatedPaths = []
+            KoreanDictionary.wordlistPath = "Resources/IM/korean_words.txt"
+            print(type("playlist").committedText == "playlist" ? "true" : "false")
+            return
+        }
+        // 2026-11-07 (#175): 시스템 파일 경로를 주입해 실제 조합기까지 지나 판정한다. web2 전용 낱말 zythum으로 본다.
+        if CommandLine.arguments.count >= 3, CommandLine.arguments[1] == "--probe-system-words" {
+            EnglishDetector.bundledTablePath = nil
+            EnglishDetector.systemWordsPath = CommandLine.arguments[2]
+            EnglishDetector.wordlistPaths = []
+            EnglishDetector.curatedPaths = []
+            KoreanDictionary.wordlistPath = "Resources/IM/korean_words.txt"
+            print(type("zythum").committedText == "zythum" ? "true" : "false")
+            return
+        }
         if CommandLine.arguments.count >= 3, CommandLine.arguments[1] == "--probe-kdict" {
             KoreanDictionary.wordlistPath = CommandLine.arguments[2]
             if !KoreanDictionary.isLoaded {
@@ -875,7 +895,7 @@ struct ComposerTests {
             return
         }
 
-        // Wordlist: system dict + a temp supplement (no app bundle here).
+        // Wordlist: 번들 표 + 시스템 web2 + a temp supplement (no app bundle here).
         // Must be set before the first shouldConvert call (lazy load).
         let supplementPath = NSTemporaryDirectory() + "haneul_test_supplement.txt"
         try? "google\ngithub\n".write(toFile: supplementPath, atomically: true, encoding: .utf8)
@@ -901,18 +921,19 @@ struct ComposerTests {
         // (review-0712 P3-5) 목록을 여기 하드코딩하지 않고 정본 manifest에서
         // 읽는다. 예전엔 english_sports_geo.txt가 런타임에만 있고 여기엔 없어서,
         // 28,360줄짜리 사전이 통째로 빠져도 테스트가 통과했다.
+        // 2026-11-07 (#175): 배포본처럼 표와 시스템 파일로 찾는다. 표가 manifest와 같은지는 runEnglishTableTests가 본다.
         let manifestEntries = DictManifest.load()
+        EnglishDetector.bundledTablePath = "Resources/IM/english_bundled.txt"
         var wordlists = [
-            "/usr/share/dict/words",
             supplementPath,
             namesFixturePath, // broad 전용 — 아래 curated에 미등록 (의도)
         ]
         // 화이트리스트 방식(fail-safe): curated로 신뢰할 경로만 명시 등록.
         var curated: Set<String> = [supplementPath]
         for entry in manifestEntries
-        where FileManager.default.fileExists(atPath: entry.path) {
+        where entry.role == "curated" && FileManager.default.fileExists(atPath: entry.path) {
             wordlists.append(entry.path)
-            if entry.role == "curated" { curated.insert(entry.path) }
+            curated.insert(entry.path)
         }
         EnglishDetector.wordlistPaths = wordlists
         EnglishDetector.curatedPaths = curated

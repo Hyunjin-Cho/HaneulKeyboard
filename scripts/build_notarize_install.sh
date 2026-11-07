@@ -147,7 +147,7 @@ verify_notice_resources() {
     local app_path="$1"
     local label="$2"
     python3 "$PROJECT_ROOT/scripts/verify_license_resources.py" "$app_path"
-    echo "  ✓ $label includes current LICENSE + NOTICE + ACKNOWLEDGEMENTS.md + legacy MIT"
+    echo "  ✓ $label includes current LICENSE + NOTICE + ACKNOWLEDGEMENTS.md + legacy MIT (and IME dictionaries)"
 }
 
 verify_embedded_helper_bundle() {

@@ -13,7 +13,8 @@ import CoreFoundation
 //
 // EnglishDetector의 사전 Set은 프로세스당 1회 lazy 로드(static let)라서
 // "후보 제외 vs 포함" 비교는 프로세스를 나눠 실행한다 — 게이트/로딩 코드
-// 무변경 원칙. 오케스트레이션은 scripts/audit_wordlist.sh:
+// 무변경 원칙. 2026-11-07 (#175): --bundled-table·--system-words를 주면 배포본과 같은 방식으로 찾고,
+// --wordlists의 파일은 그 위에 얹힌다. 오케스트레이션은 scripts/audit_wordlist.sh:
 //   1) scan(베이스 사전)   → passA.tsv : 후보가 없을 때의 변환 여부
 //   2) scan(베이스+후보)   → passB.tsv : 후보를 넣었을 때의 변환 여부
 //   3) merge passA passB  → audit.csv : diff + Tier(A/B/C) + 휴리스틱 note
@@ -22,10 +23,10 @@ import CoreFoundation
 //
 // 서브커맨드 (직접 호출 시):
 //   WordlistAudit scan  --candidates F --wordlists p1,p2 --curated p1 \
-//                       --korean-dict K
+//                       --korean-dict K [--bundled-table T] [--system-words S]
 //   WordlistAudit merge passA.tsv passB.tsv --korean-dict K
 //   WordlistAudit reach --words F --wordlists p1,p2 --curated p1 \
-//                       --korean-dict K
+//                       --korean-dict K [--bundled-table T] [--system-words S]
 //
 // 시나리오 3종 (shouldConvert 인자):
 //   standalone — 무맥락               (previousEnglishWord: nil)
@@ -116,8 +117,11 @@ func evaluate(_ raw: String) -> Eval {
     )
 }
 
-func configureDetector(wordlists: [String], curated: [String], koreanDict: String) {
+func configureDetector(wordlists: [String], curated: [String], koreanDict: String,
+                       bundledTable: String?, systemWords: String?) {
     // 첫 lookup 전에 설정해야 함 (lazy 1회 로드) — 테스트 하네스와 동일 패턴.
+    EnglishDetector.bundledTablePath = bundledTable
+    EnglishDetector.systemWordsPath = systemWords
     EnglishDetector.wordlistPaths = wordlists
     EnglishDetector.curatedPaths = Set(curated)
     KoreanDictionary.wordlistPath = koreanDict
@@ -234,7 +238,8 @@ func parseArgs(_ args: [String]) -> Options {
     while i < args.count {
         let a = args[i]
         if a.hasPrefix("--") {
-            let known: Set<String> = ["--candidates", "--words", "--wordlists", "--curated", "--korean-dict", "--compound"]
+            let known: Set<String> = ["--candidates", "--words", "--wordlists", "--curated", "--korean-dict", "--compound",
+                                      "--bundled-table", "--system-words"]
             guard known.contains(a) else { fail("알 수 없는 옵션: \(a)") }
             guard i + 1 < args.count else { fail("\(a) 값 누락") }
             opts.values[String(a.dropFirst(2))] = args[i + 1]
@@ -261,7 +266,8 @@ func runScan(_ args: [String]) {
     let wordlists = requirePaths(opts, "wordlists")
     let curated = opts.values["curated"].map { $0.split(separator: ",").map(String.init) } ?? []
     guard let koreanDict = opts.values["korean-dict"] else { fail("--korean-dict 필요") }
-    configureDetector(wordlists: wordlists, curated: curated, koreanDict: koreanDict)
+    configureDetector(wordlists: wordlists, curated: curated, koreanDict: koreanDict,
+                      bundledTable: opts.values["bundled-table"], systemWords: opts.values["system-words"])
     note("검역 범위: 후보 전체 단어만. 구성 단어 추가로 생기는 다른 조합은 별도 reach 목록으로 비교하세요.")
 
     // TSV: word, hangul, class, in_urimalsaem, standalone, context, trigger
@@ -408,10 +414,12 @@ func runReach(_ args: [String]) {
     let wordlists = requirePaths(opts, "wordlists")
     let curatedList = opts.values["curated"].map { $0.split(separator: ",").map(String.init) } ?? []
     guard let koreanDict = opts.values["korean-dict"] else { fail("--korean-dict 필요") }
-    configureDetector(wordlists: wordlists, curated: curatedList, koreanDict: koreanDict)
+    let bundledTable = opts.values["bundled-table"], systemWords = opts.values["system-words"]
+    configureDetector(wordlists: wordlists, curated: curatedList, koreanDict: koreanDict,
+                      bundledTable: bundledTable, systemWords: systemWords)
 
     // 진단 라벨 전용 미러 세트 (판정은 위 evaluate의 실코드가 담당)
-    let broadMirror = mirrorLoadWords(wordlists)
+    let broadMirror = mirrorLoadWords(wordlists + [bundledTable, systemWords].compactMap { $0 })
     let curatedMirror = mirrorLoadWords(curatedList)
 
     print("word,hangul_form,class,in_urimalsaem,standalone,context,trigger,reached,diagnosis")
@@ -494,9 +502,9 @@ struct WordlistAudit {
     static func usage() -> Never {
         note("""
         WordlistAudit — 영어 사전 후보 검역 (scripts/audit_wordlist.sh 경유 권장)
-          scan  --candidates F --wordlists p1,p2 --curated p1 --korean-dict K [--compound on|off]
+          scan  --candidates F --wordlists p1,p2 --curated p1 --korean-dict K [--bundled-table T] [--system-words S] [--compound on|off]
           merge passA.tsv passB.tsv --korean-dict K
-          reach --words F --wordlists p1,p2 --curated p1 --korean-dict K [--compound on|off]
+          reach --words F --wordlists p1,p2 --curated p1 --korean-dict K [--bundled-table T] [--system-words S] [--compound on|off]
         """)
         exit(2)
     }

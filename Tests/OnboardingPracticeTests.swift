@@ -16,8 +16,9 @@ import AppKit
 @main @MainActor enum OnboardingPracticeTests {
     static func main() {
         _ = NSApplication.shared
-        EnglishDetector.wordlistPaths = ["/usr/share/dict/words"] + EnglishDetector.bundledWordlistNames.map { "Resources/IM/\($0).txt" }
-        EnglishDetector.curatedPaths = Set(EnglishDetector.curatedWordlistNames.map { "Resources/IM/\($0).txt" })
+        EnglishDetector.bundledTablePath = "Resources/IM/english_bundled.txt"
+        EnglishDetector.wordlistPaths = EnglishDetector.curatedWordlistNames.map { "Resources/IM/\($0).txt" }
+        EnglishDetector.curatedPaths = Set(EnglishDetector.wordlistPaths)
         KoreanDictionary.wordlistPath = "Resources/IM/korean_words.txt"
         var checks = 0
         func check(_ condition: Bool, _ message: String) {

@@ -135,8 +135,16 @@ targets:
         buildPhase: resources
       - path: ACKNOWLEDGEMENTS.md
         buildPhase: resources
+      # 2026-11-07 (#175): 입력기는 번들 사전을 english_bundled.txt로 찾는다. 그 입력일 뿐인 broad 전용 사전은 번들에 넣지 않는다.
+      # curated 둘(english_supplement·english_common)은 런타임이 Set으로 읽으므로 그대로 들어간다.
+      # 제외 목록은 scripts/test_bundle_dictionaries.py가 dict_work/dict_manifest.tsv와 대조한다.
       - path: Resources/IM
         buildPhase: resources
+        excludes:
+          - english_modern.txt
+          - english_names.txt
+          - english_names_extra.txt
+          - english_sports_geo.txt
     info:
       path: Generated/IMInfo.plist
       properties:
@@ -144,6 +152,7 @@ targets:
         LSUIElement: true
         # 2026-11-06 (#169): 입력기도 메모리 할당기를 공간 우선으로 두고 후보 107에서 시험한다. 106 코드 벤치 9회(키 100만 개씩): 15.5 → 11.5MB, 키 지연 중앙값 4.38 → 4.50µs,
         # 1ms 넘는 튐 0회 → 9회 중 2회(1.1·2.7ms, 원인 못 봄). man malloc에 없는 설정이라 macOS 판에 따라 무시될 수 있다. 타자가 느려지면 이 설정을 뺀다.
+        # 2026-11-07 (#175): broad 사전을 펼치지 않게 바꿔 사전 적재 뒤 벤치가 10.9 → 2.4MB가 됐다. 근거: dict_work/2026-11-07-english-inplace-audit.md.
         LSEnvironment:
           MallocSpaceEfficient: "1"
         CFBundleName: HaneulKeyboardIM

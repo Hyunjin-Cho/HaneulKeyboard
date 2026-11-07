@@ -353,6 +353,7 @@ def main():
         ],
     )
     print("완료 — 다음 단계: scripts/audit_wordlist.sh로 검역 후 리뷰 게이트.")
+    print("Resources/IM/에 머지한 뒤에는 scripts/build_english_table.py로 번들 표를 다시 만든다 (#175).")
 
 
 if __name__ == "__main__":

@@ -122,8 +122,9 @@ private final class SlashTextClient: ComposerClient {
             check(step(&session, nil, key: key, flags: .command) == .composeKorean, "문자 누락 Command 슬래시 보존")
         }
 
-        EnglishDetector.wordlistPaths = ["/usr/share/dict/words"] + EnglishDetector.bundledWordlistNames.map { "Resources/IM/\($0).txt" }
-        EnglishDetector.curatedPaths = Set(EnglishDetector.curatedWordlistNames.map { "Resources/IM/\($0).txt" })
+        EnglishDetector.bundledTablePath = "Resources/IM/english_bundled.txt"
+        EnglishDetector.wordlistPaths = EnglishDetector.curatedWordlistNames.map { "Resources/IM/\($0).txt" }
+        EnglishDetector.curatedPaths = Set(EnglishDetector.wordlistPaths)
         KoreanDictionary.wordlistPath = "Resources/IM/korean_words.txt"
 
         // 2026-10-20 빌드90: 시작 `/`를 실제로 지우는 이벤트만 종료한다.

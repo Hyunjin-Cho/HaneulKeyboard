@@ -181,8 +181,9 @@ final class ProbeClient: NSObject, IMKTextInput {
             "slashActive": c.probeSlashActive])
     }
     static func main() {
-        EnglishDetector.wordlistPaths = ["/usr/share/dict/words"] + EnglishDetector.bundledWordlistNames.map { "Resources/IM/\($0).txt" }
-        EnglishDetector.curatedPaths = Set(EnglishDetector.curatedWordlistNames.map { "Resources/IM/\($0).txt" })
+        EnglishDetector.bundledTablePath = "Resources/IM/english_bundled.txt"
+        EnglishDetector.wordlistPaths = EnglishDetector.curatedWordlistNames.map { "Resources/IM/\($0).txt" }
+        EnglishDetector.curatedPaths = Set(EnglishDetector.wordlistPaths)
         KoreanDictionary.wordlistPath = "Resources/IM/korean_words.txt"
         // 2026-11-07 (#173, 리뷰 F-14): 같은 시나리오를 합성 호스트와 NSTextView 실측 호스트로 두 번 돈다.
         for nsTextView in [false, true] {

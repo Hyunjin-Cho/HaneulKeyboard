@@ -18,8 +18,8 @@
 #   # 영어 top-100 기능어의 도달성 표 (and-class 구멍 자동 탐지)
 #   scripts/audit_wordlist.sh --reachability /tmp/top100.txt --out /tmp/reach.csv
 #
-# 기본 베이스 사전 = 현재 effective 구성: web2 + english_supplement.txt
-# (+ Resources/IM/에 이미 머지된 english_common/names가 있으면 자동 포함).
+# 기본 베이스 사전 = 배포본과 같은 구성 (2026-11-07 #175): 시스템 web2 + 번들 표(english_bundled.txt)
+# + manifest의 curated 사전. 표가 manifest와 어긋나면 검역 전에 실패한다.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -32,6 +32,7 @@ SMOKE=0
 KOREAN_DICT="Resources/IM/korean_words.txt"
 BASE=""
 CURATED_BASE=""
+TABLE_ARGS=()
 COMPOUND="on" # InputInferencePolicy.dictionaryCompoundDefault와 같은 제품 기본값
 
 while [[ $# -gt 0 ]]; do
@@ -55,17 +56,20 @@ done
 # 읽는다. 예전엔 런타임(EnglishDetector)·테스트·이 스크립트가 각자 목록을 들고
 # 있어서, english_sports_geo.txt가 런타임에만 있고 검역에서는 빠져도 몰랐다.
 MANIFEST="dict_work/dict_manifest.tsv"
+# 2026-11-07 (#175): 번들 사전은 표에 합쳐져 있고 web2는 시스템 파일 그대로다(시스템 파일이라 manifest 밖).
+# 표가 낡았으면 검역 결과가 거짓이 되므로 먼저 멈춘다.
 if [[ -z "$BASE" ]]; then
   [[ -f "$MANIFEST" ]] || { echo "사전 manifest 없음: $MANIFEST" >&2; exit 2; }
-  BASE="/usr/share/dict/words"   # web2 — 시스템 파일이라 manifest 밖
+  python3 scripts/build_english_table.py --check >/dev/null || exit 2
+  TABLE_ARGS=(--bundled-table "Resources/IM/english_bundled.txt" --system-words "/usr/share/dict/words")
   MANIFEST_CURATED=""
   while IFS=$'\t' read -r name role _min _sample; do
     [[ -z "$name" || "$name" == \#* ]] && continue
     f="Resources/IM/$name.txt"
     [[ -f "$f" ]] || { echo "manifest에 적힌 사전이 없음: $f" >&2; exit 2; }
-    BASE="$BASE,$f"
     [[ "$role" == "curated" ]] && MANIFEST_CURATED="${MANIFEST_CURATED:+$MANIFEST_CURATED,}$f"
   done < "$MANIFEST"
+  BASE="$MANIFEST_CURATED"
   CURATED_BASE="${CURATED_BASE:-$MANIFEST_CURATED}"
 elif [[ -z "$CURATED_BASE" ]]; then
   CURATED_BASE="Resources/IM/english_supplement.txt"
@@ -143,8 +147,16 @@ if [[ "$SMOKE" == 1 ]]; then
     --curated "$WORK/shadow_parts.txt" --korean-dict "$KOREAN_DICT" --compound on \
     > "$WORK/shadow.csv" 2> "$WORK/shadow.log"
   grep -q '^helloworlds,.*도달:무맥락' "$WORK/shadow.csv" || { echo "SMOKE FAIL: 기존 복수형 경로 진단 오인"; fail=1; }
+  # 2026-11-07 (#175): 기본 구성은 배포본과 같은 표·시스템 파일을 본다. 후보를 얹는 통로도 그 위에서 동작해야 한다.
+  printf "apple\nplaylist\nzythum\nzqzqz\n" > "$WORK/table_words.txt"
+  "$BIN" reach --words "$WORK/table_words.txt" --wordlists "$BASE" --curated "$CURATED_BASE" \
+    --korean-dict "$KOREAN_DICT" ${TABLE_ARGS[@]+"${TABLE_ARGS[@]}"} > "$WORK/table.csv" 2> "$WORK/table.log"
+  grep -q '^apple,.*,1,"도달' "$WORK/table.csv" || { echo "SMOKE FAIL: apple 미도달"; fail=1; }
+  grep -q '^playlist,.*,1,"도달' "$WORK/table.csv" || { echo "SMOKE FAIL: 번들 표의 playlist 미도달"; fail=1; }
+  grep -q '^zythum,.*,1,"도달' "$WORK/table.csv" || { echo "SMOKE FAIL: 시스템 파일의 zythum 미도달"; fail=1; }
+  grep -q '^zqzqz,.*,0,"' "$WORK/table.csv" || { echo "SMOKE FAIL: 없는 낱말이 도달"; fail=1; }
   if [[ "$fail" == 0 ]]; then
-    echo "SMOKE PASS: Tier/C-veto/자모/검사 범위/복합어 ON·OFF/미등록 오타 보존 정상"
+    echo "SMOKE PASS: Tier/C-veto/자모/검사 범위/복합어 ON·OFF/미등록 오타 보존/번들 표·시스템 파일 정상"
     exit 0
   fi
   echo "── smoke.csv ──"; cat "$WORK/smoke.csv"
@@ -155,7 +167,7 @@ fi
 if [[ -n "$REACH_FILE" ]]; then
   OUT="${OUT:-/tmp/haneul_reachability.csv}"
   "$BIN" reach --words "$REACH_FILE" --wordlists "$BASE" \
-    --curated "$CURATED_BASE" --korean-dict "$KOREAN_DICT" --compound "$COMPOUND" > "$OUT"
+    --curated "$CURATED_BASE" --korean-dict "$KOREAN_DICT" --compound "$COMPOUND" ${TABLE_ARGS[@]+"${TABLE_ARGS[@]}"} > "$OUT"
   echo "도달성 표: $OUT"
   exit 0
 fi
@@ -177,14 +189,14 @@ echo "후보 정규화: $TOTAL_IN → $TOTAL_NORM 단어 (소문자/알파벳만
 
 # pass A: 후보 제외 (현재 베이스 그대로)
 "$BIN" scan --candidates "$NORM" --wordlists "$BASE" \
-    --curated "$CURATED_BASE" --korean-dict "$KOREAN_DICT" --compound "$COMPOUND" > "$WORK/pass_a.tsv"
+    --curated "$CURATED_BASE" --korean-dict "$KOREAN_DICT" --compound "$COMPOUND" ${TABLE_ARGS[@]+"${TABLE_ARGS[@]}"} > "$WORK/pass_a.tsv"
 
 # pass B: 후보 포함 (역할에 따라 broad만 또는 broad+curated)
 B_WORDLISTS="$BASE,$NORM"
 B_CURATED="$CURATED_BASE"
 [[ "$ROLE" == "curated" ]] && B_CURATED="$CURATED_BASE,$NORM"
 "$BIN" scan --candidates "$NORM" --wordlists "$B_WORDLISTS" \
-    --curated "$B_CURATED" --korean-dict "$KOREAN_DICT" --compound "$COMPOUND" > "$WORK/pass_b.tsv"
+    --curated "$B_CURATED" --korean-dict "$KOREAN_DICT" --compound "$COMPOUND" ${TABLE_ARGS[@]+"${TABLE_ARGS[@]}"} > "$WORK/pass_b.tsv"
 
 # merge: diff + Tier + 휴리스틱 note → CSV
 "$BIN" merge "$WORK/pass_a.tsv" "$WORK/pass_b.tsv" --korean-dict "$KOREAN_DICT" > "$OUT"

@@ -150,6 +150,7 @@ func runEnglishRulesTests() {
 
     // ── F-6: 배포 사전 ∩ 제외 목록의 새 겹침을 잡는다. 현재 겹침은 기준선 파일이 고정한다.
     runExclusionOverlapCheck()
+    runEnglishTableTests()
 
     // ── F-7 오너 결정: 약어 7개는 curated에서 broad로 내렸다. 멀쩡한 한글은 지키고 깨진 꼴은 계속 변환한다.
     staysKorean(["ansi", "goty", "emtek", "totp", "algo", "rhel", "gorm", "Emtek", "Totp", "Rhel", "RHEL"], "F-7 멀쩡한 한글")
@@ -239,6 +240,185 @@ func runEnglishRulesTests() {
     } else {
         expect(false, true, "F-17 시험용 설정 도메인")
     }
+}
+
+/// 2026-11-07 (#175): 번들 표가 manifest의 사전과 정확히 같은가. 표에 web2 낱말이 들어가면 안 된다.
+/// 사전을 고치고 scripts/build_english_table.py를 안 돌리면 여기서 실패한다.
+func runEnglishTableTests() {
+    let tablePath = "Resources/IM/english_bundled.txt"
+    var expected = Set<String>()
+    for entry in DictManifest.load() {
+        expected.formUnion(EnglishDetector.loadWords(from: [entry.path], expectedCapacity: 0))
+    }
+    let tableText = (try? String(contentsOfFile: tablePath, encoding: .utf8)) ?? ""
+    let body = tableText.split(separator: "\n").filter { !$0.hasPrefix("#") }.map(String.init)
+    expect(body == expected.sorted(), true, "표: 번들 사전 합집합과 정확히 같다 (어긋나면 scripts/build_english_table.py)")
+    let foreign = Set(body).subtracting(expected).sorted()
+    expect(foreign.count, 0, "표 ⊆ 번들 사전 합집합: 번들 사전에 없는 낱말 \(foreign.prefix(10))")
+    expect(FileManager.default.fileExists(atPath: "dict_work/web2_snapshot.txt"), false, "표: web2 사본을 저장소에 두지 않는다")
+    guard let table = SortedWordTable(path: tablePath) else {
+        expect(false, true, "표: 파일 열기")
+        return
+    }
+    expect(table.isComplete, true, "표: 정렬·개수·줄 끝이 온전하다")
+    expect(table.uniqueCount, expected.count, "표: 낱말 수")
+    // 표본은 고르게 뽑는다. 전체 대조는 #175 머지 전 관문에서 돌렸고, 여기서는 조회 코드의 회귀만 잡는다.
+    var missed: [String] = [], wrongHit: [String] = []
+    for (index, word) in body.enumerated() where index % 53 == 0 {
+        if !table.contains(Array(word.utf8)) { missed.append(word) }
+        for near in [word + "q", String(word.dropLast()), word + word] where !expected.contains(near) {
+            if table.contains(Array(near.utf8)) { wrongHit.append(near) }
+        }
+    }
+    expect(missed.count, 0, "표: 있는 낱말 조회 \(missed.prefix(5))")
+    expect(wrongHit.count, 0, "표: 없는 낱말 조회 \(wrongHit.prefix(5))")
+    for entry in DictManifest.load() {
+        expect(EnglishDetector.isExplicitEnglishContextWord(entry.sampleWord), true, "표: \(entry.name) 대표어 \(entry.sampleWord)")
+    }
+    expect(EnglishDetector.isExplicitEnglishContextWord("zzzzq"), false, "표: 없는 낱말")
+    // 온전하지 않은 표는 쓰지 않는다. 변환이 줄어들 뿐 틀어진 조회로 새지 않는다.
+    expect(runDictionaryProbe(tablePath, "표 탐침: 배포 표", flag: "--probe-bundled-table"), true, "표 탐침: 배포 표")
+    let scratch = NSTemporaryDirectory() + "haneul-table-probe-\(ProcessInfo.processInfo.processIdentifier)"
+    try? FileManager.default.createDirectory(atPath: scratch, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(atPath: scratch) }
+    let stale = scratch + "/stale.txt", unsorted = scratch + "/unsorted.txt", crlf = scratch + "/crlf.txt"
+    try? "# count: 9\nplaylist\n".write(toFile: stale, atomically: true, encoding: .utf8)
+    try? "# count: 2\nplaylist\napple\n".write(toFile: unsorted, atomically: true, encoding: .utf8)
+    try? "# count: 2\napple\r\nplaylist\r\n".write(toFile: crlf, atomically: true, encoding: .utf8)
+    for (path, label) in [(stale, "개수 불일치"), (unsorted, "정렬 깨짐"), (crlf, "CRLF"), (scratch + "/none.txt", "파일 없음")] {
+        expect(runDictionaryProbe(path, "표 탐침: \(label)", flag: "--probe-bundled-table"), false, "표 탐침: \(label)이면 변환 안 함")
+    }
+    runSystemWordFileTests(scratch: scratch)
+}
+
+/// 2026-11-07 (#175): 시스템 파일을 펼치지 않고 찾아도 답이 `loadWords`로 펼친 Set과 같아야 한다. 파일이 달라져도 마찬가지다.
+private func runSystemWordFileTests(scratch: String) {
+    /// 시드 고정 뒤섞기. 언제나 같은 순서가 나온다.
+    func shuffled(_ items: [String], seed: UInt64) -> [String] {
+        var out = items, state = seed
+        for i in stride(from: out.count - 1, to: 0, by: -1) {
+            state = state &* 6364136223846793005 &+ 1442695040888963407
+            out.swapAt(i, Int((state >> 33) % UInt64(i + 1)))
+        }
+        return out
+    }
+    /// 3글자 이상 소문자 낱말 n개를 정렬된 채로 만든다.
+    func sortedWords(_ n: Int) -> [String] {
+        let letters = Array("abcdefghijklmnopqrstuvwxyz")
+        return (0..<n).map { i in
+            String([letters[(i / 17576) % 26], letters[(i / 676) % 26], letters[(i / 26) % 26], letters[i % 26]])
+        }
+    }
+    let plain = sortedWords(3000)
+    let fewStray = plain.enumerated().map { $0.offset == 1500 ? "zzzz" : $0.element } + ["aaab"]
+    var moved = plain
+    for (at, i) in stride(from: 31, to: 2900, by: 97).enumerated() { moved.swapAt(i, i + 1 + at % 3) }
+    let capitalRun = (0..<9000).map { "Capital\($0)" }.joined(separator: "\n")
+    /// 로더와 따로 적은 필터. `isWordLine`을 Set과 시스템 파일이 함께 쓰므로, 필터가 틀어지면 둘을 비교해서는 못 잡는다.
+    func oracle(_ bytes: Data) -> Set<String> {
+        var out = Set<String>()
+        for line in bytes.split(separator: 0x0A) {
+            let b = Array(line)
+            guard b.count >= 3, (0x61...0x7A).contains(b[0]),
+                  b.allSatisfy({ (0x61...0x7A).contains($0) || (0x41...0x5A).contains($0) }) else { continue }
+            out.insert(String(decoding: b.map { $0 | 0x20 }, as: UTF8.self))
+        }
+        return out
+    }
+    let innerCaps = plain.map { String($0.prefix(1)) + $0.dropFirst().uppercased() }
+    let sharedStem = sortedWords(800).map { "nonconformist" + $0 }
+    // 어긋난 낱말이 상한을 넘지만 정렬된 줄 사이에 고르게 섞여 색인 간격은 좁다. 상한만이 이 파일을 Set으로 돌린다.
+    let manyStrays = sortedWords(SystemWordFile.maxStrayWords + 200).flatMap { ["b" + $0, "a" + $0] }
+    let cases: [(name: String, bytes: Data, expanded: Bool)] = [
+        ("정렬", Data((plain.joined(separator: "\n") + "\n").utf8), false),
+        ("끝 줄바꿈 없음", Data(plain.joined(separator: "\n").utf8), false),
+        ("잘린 파일(낱말 중간)", Data((plain.joined(separator: "\n") + "\n").utf8).prefix(7000), false),
+        ("대소문자 이웃(대문자 먼저)", Data("A\na\nAbc\nabc\nAbd\nabd\nMarch\nmarch\nMay\nmay\n".utf8), false),
+        ("대소문자 이웃(소문자 먼저)", Data("abc\nAbc\nabd\nAbd\nmarch\nMarch\nmay\nMay\n".utf8), false),
+        ("대문자만 있으면 답이 아니다", Data("Alpha\nBeta\nMarch\nZebra\n".utf8), false),
+        ("안쪽 대문자", Data("aBc\nabD\nmArCh\nmay\nzEbRa\n".utf8), false),
+        ("안쪽 대문자가 색인을 넘김", Data((innerCaps.joined(separator: "\n") + "\n").utf8), false),
+        ("앞 8글자가 같은 낱말", Data((sharedStem.joined(separator: "\n") + "\n").utf8), false),
+        ("앞 8글자가 같고 길이가 다름", Data("nonconfo\nnonconfoa\nnonconfoaa\nnonconfob\nnonconfor\nnonconform\nnonconformist\nnonconfot\n".utf8), false),
+        ("같은 키 중복", Data("abc\nAbc\nabc\naBc\nabd\nabd\n".utf8), false),
+        ("짧은 줄·알파벳 아닌 줄", Data("a\nab\nabc\nab1\nabd\nabe-f\nabg h\n\n\nJean-Pierre\ndon't\nabz\n".utf8), false),
+        ("주석과 빈 줄", Data("# count: 3\n\nabc\n\n# note\nabd\n".utf8), false),
+        ("UTF-8 밖 바이트와 NUL", { var d = Data("abc\n".utf8); d.append(contentsOf: [0xFF, 0xFE, 0x0A, 0x00, 0x61, 0x62, 0x63, 0x0A]); d.append(Data("abd\n".utf8)); return d }(), false),
+        ("빈 파일", Data(), false),
+        ("줄바꿈만", Data("\n\n\n".utf8), false),
+        ("CRLF", Data((plain.prefix(500).joined(separator: "\r\n") + "\r\n").utf8), false),
+        ("일부만 CRLF", Data("abc\r\nabd\nabe\r\nabf\n".utf8), false),
+        ("어긋남 조금", Data((fewStray.joined(separator: "\n") + "\n").utf8), false),
+        ("어긋남 색인 근처", Data((moved.joined(separator: "\n") + "\n").utf8), false),
+        ("plies·pliers", Data("plier\nplies\npliers\nplight\n".utf8), false),
+        ("거꾸로", Data((Array(plain.reversed()).joined(separator: "\n") + "\n").utf8), false),
+        ("뒤섞음(상한 안)", Data((shuffled(plain, seed: 7).joined(separator: "\n") + "\n").utf8), false),
+        ("어긋남이 상한을 넘고 고르게 섞임", Data((manyStrays.joined(separator: "\n") + "\n").utf8), true),
+        ("뒤섞음(상한 넘음)", Data((shuffled(sortedWords(40_000), seed: 11).joined(separator: "\n") + "\n").utf8), true),
+        ("앞줄 하나가 뒤를 전부 밀어냄", Data((["zzzz"] + sortedWords(20_000)).joined(separator: "\n").utf8), true),
+        ("대상 아닌 줄이 길게 이어짐", Data(("abc\n" + capitalRun + "\nabd\n").utf8), true),
+        // 2026-11-07 (#175, 독립 리뷰): 위 사례는 파일 끝 검사만 탄다. 가운데 간격도 조회 비용 상한(`maxGapBytes`)을 넘으면 펼쳐야 한다.
+        ("대상 아닌 줄이 가운데에 길게 이어짐", Data((plain.prefix(100).joined(separator: "\n") + "\n" + capitalRun + "\n"
+            + plain.dropFirst(100).joined(separator: "\n") + "\n").utf8), true),
+    ]
+    for item in cases {
+        let path = scratch + "/system-\(item.name.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) & 0xFFFFFF }).txt"
+        try? item.bytes.write(to: URL(fileURLWithPath: path))
+        let set = EnglishDetector.loadWords(from: [path], expectedCapacity: 0)
+        expect(set == oracle(item.bytes), true, "로더 필터 == 따로 적은 필터: \(item.name)")
+        guard let file = SystemWordFile(path: path) else {
+            expect(false, true, "시스템 파일 열기: \(item.name)")
+            continue
+        }
+        expect(file.isExpanded, item.expanded, "시스템 파일 방식: \(item.name)")
+        var queries = Set(set)
+        for word in set {
+            queries.insert(word + "q")
+            queries.insert(String(word.dropLast()))
+            queries.insert(word.capitalized)
+            queries.insert(word.uppercased())
+            queries.insert(String(word.dropFirst()))
+        }
+        queries.formUnion(["", "a", "ab", "abc", "ABC", "aBc", "march", "March", "may", "abd", "plies", "pliers", "plier",
+                           "don't", "ab1", "jean", "alpha", "zebra", "zebr", "capital1", "한글", "ab\r", "abc\r", "naïve", "\u{212A}elvin"])
+        let wrong = queries.filter { file.contains($0) != set.contains($0) }.sorted()
+        expect(wrong.count, 0, "시스템 파일 == Set: \(item.name) \(wrong.prefix(5))")
+    }
+    // 필터의 뜻을 낱낱이 고정한다. March는 답이 아니고 mArCh는 답이다. 3글자 미만·알파벳 밖은 답이 아니다.
+    let meaning = SystemWordFile(data: Data("Abc\nabd\nab\nMarch\nmArCh\nZebra\nzEbra\nabe1\nabf-g\nabz\n".utf8))
+    for (word, want) in [("abc", false), ("abd", true), ("ab", false), ("march", true), ("March", false), ("mArCh", false),
+                         ("zebra", true), ("abe1", false), ("abe", false), ("abf", false), ("abz", true), ("", false)] {
+        expect(meaning.contains(word), want, "필터의 뜻: \(word)")
+    }
+    let onlyCapital = SystemWordFile(data: Data("March\nZebra\n".utf8))
+    expect(onlyCapital.contains("march"), false, "대문자로만 있으면 답이 아니다")
+    // 대문자 줄이 찾는 구간 안에 있어도 답이 아니다.
+    let capitalInside = SystemWordFile(data: Data("abc\nJohn\nzeta\n".utf8))
+    expect(capitalInside.contains("john"), false, "구간 안의 대문자 줄은 답이 아니다")
+    expect(capitalInside.contains("zeta"), true, "구간 안의 대상 줄은 답이다")
+    expect(SystemWordFile(data: Data("plier\nplies\npliers\nplight\n".utf8)).strayCount, 1, "어긋난 낱말은 예외 Set으로")
+    // 실제 시스템 파일. macOS가 바뀌어도 답이 같아야 하므로 어긋남 개수는 고정하지 않는다.
+    let real = "/usr/share/dict/words"
+    if let file = SystemWordFile(path: real) {
+        let set = EnglishDetector.loadWords(from: [real], expectedCapacity: 0)
+        var wrong: [String] = []
+        for (index, word) in set.sorted().enumerated() where index % 11 == 0 {
+            for query in [word, word + "q", String(word.dropLast()), word.capitalized] where file.contains(query) != set.contains(query) {
+                wrong.append(query)
+            }
+        }
+        expect(wrong.count, 0, "실제 시스템 파일 == Set \(wrong.prefix(5))")
+        expect(file.isExpanded, false, "실제 시스템 파일은 펼치지 않는다")
+    }
+    expect(SystemWordFile(path: scratch + "/none.txt") == nil, true, "시스템 파일 없음")
+    // 주입한 경로가 실제 판정까지 이어진다.
+    let fixture = scratch + "/system-fixture.txt"
+    try? "Zebra\nabc\nzythum\n".write(toFile: fixture, atomically: true, encoding: .utf8)
+    expect(runDictionaryProbe(fixture, "시스템 탐침: 주입 파일", flag: "--probe-system-words"), true, "시스템 탐침: 주입 파일의 낱말은 변환")
+    let without = scratch + "/system-without.txt"
+    try? "abc\nzebra\n".write(toFile: without, atomically: true, encoding: .utf8)
+    expect(runDictionaryProbe(without, "시스템 탐침: 낱말 없음", flag: "--probe-system-words"), false, "시스템 탐침: 없는 낱말은 변환 안 함")
+    expect(runDictionaryProbe(scratch + "/none.txt", "시스템 탐침: 파일 없음", flag: "--probe-system-words"), false, "시스템 탐침: 파일이 없으면 web2 없이 돈다")
 }
 
 /// 2026-11-07 (#174, F-6): 배포 사전과 제외 목록의 겹침을 기준선 파일과 대조한다.
