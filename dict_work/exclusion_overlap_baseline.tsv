@@ -322,3 +322,5 @@ english_modern	exclusions.txt	yvette
 english_names_extra	exclusions.txt	kia
 english_names_extra	scowl_exclusions_alljamo4.txt	inf
 english_names_extra	scowl_exclusions_alljamo4.txt	kia
+# 2026-11-08 (#194): 오너 요청. bio(ㅠㅑㅐ)는 SCOWL 일괄 제외(슬랭 보호)에 걸려 있었지만 쓰는 말이고 우리말샘에 없다.
+english_names_extra	scowl_exclusions_alljamo4.txt	bio

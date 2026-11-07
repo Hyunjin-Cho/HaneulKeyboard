@@ -466,7 +466,7 @@ enum EnglishDetector {
         // 이미 보호했다. ㅚ(hl/hL)처럼 한 자모로 합쳐진 표기는 이 경로로 바꾸지 않는다.
         // (2026-11-01 #106: ml/mL=ㅢ은 이 경로가 아니라 아래 R1의 shortWords로 변환한다.)
         // cm=츠는 검역한 비단어 예외, 다른 멀쩡한 1음절은 숫자 수량 조건을 요구한다.
-        if MeasurementUnits.contains(String(keys)), keys.count >= 2,
+        if MeasurementUnits.contains(String(keys)), !MeasurementUnits.quantityOnlySymbols.contains(String(keys)), keys.count >= 2,
            (brokenAsKorean && units.count >= 2) || String(keys) == "cm" {
             return true
         }

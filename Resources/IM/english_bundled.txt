@@ -4,7 +4,7 @@
 # Format: UTF-8 byte order, LF only, one word per line. The IME maps this file and binary-searches it.
 # Sources: NGSL (CC BY-SA 4.0); SCOWL/ESDB (MIT-like); US Census and SSA names (public domain);
 #   GeoNames (CC BY 4.0); Wikidata (CC0); lists curated by this project. Attribution: ACKNOWLEDGEMENTS.md.
-# count: 130316
+# count: 130317
 aaa
 aac
 aachen
@@ -12328,6 +12328,7 @@ binpicking
 bins
 bints
 binturongs
+bio
 bioastronautics
 biobreak
 biocatalysts

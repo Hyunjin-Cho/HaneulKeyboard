@@ -183,3 +183,6 @@ totp
 algo
 rhel
 gorm
+# 2026-11-08 (#194): owner-requested bio. It was in no bundled list and not in web2 (bios was), so no rule could reach it.
+# All-jamo form (bio=ㅠㅑㅐ) needs broad only. No guard or veto changes. Record: dict_work/2026-11-08-bio-registration.tsv.
+bio

@@ -1,0 +1,2 @@
+word	hangulForm	role	decision	reviewedOn	reference	note
+bio	ㅠㅑㅐ	broad	owner_requested_word	2026-11-08	https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/194	Owner reported bio not converting. Absent from every bundled list and web2; bios was present. All-jamo form, not in Urimalsaem. Broad only, audit in dict_work/2026-11-08-bio-audit.csv.

@@ -23,6 +23,10 @@ enum MeasurementUnits {
 
     static func contains(_ raw: String) -> Bool { symbols.contains(raw) }
 
+    /// 2026-11-08 오너 결정(#194): 숫자가 붙을 때만 바꾸는 단위. 단독 `nm`(ㅜㅡ)은 그대로 두고 `10nm`·`10 nm`·`1.5nm`은 바꾼다.
+    /// 숫자 뒤 판정은 `allowsAfterQuantity`가 맡으므로 이 목록을 보지 않는다.
+    static let quantityOnlySymbols: Set<String> = ["nm"]
+
     /// 정수 또는 소수. 부호는 기존 구두점 경로에 남긴다. `1.`은 수량으로 확정하지 않는다.
     static func isQuantity(_ raw: String) -> Bool {
         let parts = raw.split(separator: ".", omittingEmptySubsequences: false)
