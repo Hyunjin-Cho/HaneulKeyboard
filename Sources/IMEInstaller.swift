@@ -90,11 +90,8 @@ enum IMEInstaller {
 
     /// 번들의 빌드 번호(CFBundleVersion, 단조증가 정수). 버전 비교용. 문자열
     /// 비교는 "10" < "9" 오류가 나므로 정수로 파싱한다. nil = 추출 실패. (H-03)
-    private static func buildNumber(at url: URL) -> Int? {
-        guard let bundle = Bundle(url: url),
-              let s = bundle.infoDictionary?["CFBundleVersion"] as? String,
-              let n = Int(s) else { return nil }
-        return n
+    static func buildNumber(at url: URL) -> Int? {
+        BundleInfoFile.buildNumber(at: url)
     }
 
     /// 2026-09-21 (#19): 자동 업데이트로 앱이 교체된 뒤 첫 실행에서 "설치된 IME가 임베드본보다

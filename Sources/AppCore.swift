@@ -27,7 +27,7 @@ final class AppCore {
 
     /// IME가 "메인 앱이 아직 있는가"를 판단할 때 쓰는 기록 — 앱이 실행될 때마다 IME
     /// 설정 도메인에 자기 경로와 파일 번호(inode)를 남긴다. IME는 이 경로(와 같은 이름·
-    /// 같은 inode의 휴지통 사본)를 먼저 보고, 없으면 LaunchServices·표준 폴더를 뒤진다.
+    /// 같은 inode의 휴지통 사본)를 먼저 보고, 없으면 LaunchServices·/Applications·~/Applications를 본다.
     /// 호출 시점: `AppMover`가 /Applications로 옮긴 **뒤**(옮기면 재실행되어 새 인스턴스가
     /// 올바른 경로를 기록하고, 옮기지 않고 종료하면 곧 사라질 translocation 경로를 남기지
     /// 않는다 — 리뷰 M-1). (#32, 2026-09-19)
@@ -61,7 +61,7 @@ final class AppCore {
     /// visibility for system-domain installs done by build_notarize_install.sh.
     /// So we keep register/enable here, but move bundle copying behind explicit
     /// consent buttons in Settings/Onboarding.
-    private func ensureIMEActive() {
+    func ensureIMEActive() {
         guard let token = operationGate.begin(.activating) else { return }
         Task { [weak self] in
             guard let self else { return }

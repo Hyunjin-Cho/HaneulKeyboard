@@ -10,7 +10,7 @@ if [[ "$configuration" == Debug ]]; then flags+=(-D DEBUG); fi
 swiftc "${flags[@]}" -target "$(uname -m)-apple-macos14.0" \
   Shared/RemovalPolicy.swift Shared/RemovalObservation.swift Shared/RemovalAdminScript.swift Sources/RemovalMainAppOperations.swift Sources/ProductOperationGate.swift \
   Sources/Updater.swift Sources/UpdateReplacement.swift Sources/UpdateTransport.swift Sources/BundleTrust.swift Sources/UpdateDecisions.swift Sources/InstallDecisions.swift \
-  Sources/IMEInstaller.swift Sources/InputSourceSettings.swift Sources/UninstallManager.swift Sources/InputSwitcher.swift Sources/Logging.swift \
+  Sources/IMEInstaller.swift Sources/AppMover.swift Sources/InputSourceSettings.swift Sources/UninstallManager.swift Sources/InputSwitcher.swift Sources/Logging.swift \
   IMESources/OrphanDecision.swift Sources/LoginItem.swift \
   scripts/RemovalCommand.swift Tests/UpdaterTests.swift Tests/UpdateSecurityTests.swift Tests/UpdateReplacementTests.swift Tests/UninstallTests.swift Tests/InputSourceSettingsTests.swift Tests/InstallFlowTests.swift -o "$TEST_DIR/updater-tests"
 echo "$configuration"

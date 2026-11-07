@@ -284,7 +284,7 @@ final class Updater {
                 try Self.replaceWithAdminPrivileges(destination: destination, with: verifiedApp)
             }
             haneulLog("HaneulKeyboard: update \(update.tag) installed at \(destination.path) (\(strategy)) — relaunching")
-            try await relaunch(at: destination)
+            try await Self.relaunchCleaningUp(workDir: workDir) { try await relaunch(at: destination) }
         } catch {
             let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             phase = .failed(message)
@@ -357,13 +357,17 @@ final class Updater {
         guard verification.passed else { throw UpdateError.verificationFailed(verification.failures) }
 
         // 검증을 통과한 우리 번들이므로 격리 속성을 벗긴다(App Translocation 방지). URLSession
-        // 다운로드엔 보통 quarantine이 붙지 않지만(LSFileQuarantineEnabled 미설정) 붙어 있어도
-        // 되게 — 없으면 xattr가 비영으로 끝나므로 결과는 무시한다.
+        // 다운로드엔 보통 quarantine이 붙지 않지만(LSFileQuarantineEnabled 미설정) 붙어 있어도 되게.
+        stripQuarantine(at: app)
+        return app
+    }
+
+    /// 없으면 xattr가 비영으로 끝날 수 있으므로 결과는 로그로만 남긴다. 2026-11-07 (#176): `AppMover`도 같은 방식으로 쓴다.
+    nonisolated static func stripQuarantine(at app: URL) {
         let xattr = run("/usr/bin/xattr", ["-dr", "com.apple.quarantine", app.path])
         if xattr.status != 0 && !xattr.output.isEmpty && !xattr.output.contains("No such xattr") {
-            haneulLog("HaneulKeyboard: update — quarantine strip returned \(xattr.status): \(xattr.output)")
+            haneulLog("HaneulKeyboard: quarantine strip returned \(xattr.status): \(xattr.output)")
         }
-        return app
     }
 
     nonisolated private static func replaceStrategy(for destination: URL) -> UpdateDecision.ReplaceStrategy {
@@ -415,6 +419,13 @@ final class Updater {
         if let notice = result.stringValue, !notice.isEmpty {
             haneulLog("HaneulKeyboard: update replacement — \(notice)")
         }
+    }
+
+    /// 2026-11-07 (#176, 리뷰 install-update-F-7): `NSApp.terminate`는 돌아오지 않아 `installAvailableUpdate`의 defer가 돌지 않는다.
+    /// 그래서 업데이트가 성공할 때마다 ZIP과 풀린 앱이 임시 폴더에 남았다. 재실행 전에 지운다.
+    static func relaunchCleaningUp(workDir: URL, relaunch: () async throws -> Void) async rethrows {
+        try? FileManager.default.removeItem(at: workDir)
+        try await relaunch()
     }
 
     /// `AppMover`와 같은 패턴 — 교체된 번들을 새 인스턴스로 열고 현재 인스턴스를 종료한다.
@@ -497,7 +508,8 @@ enum UpdateError: LocalizedError {
         case .verificationFailed(let failures):
             return "검증 실패로 설치하지 않았어요: " + failures.joined(separator: ", ")
         case .notInApplications(let path):
-            return "새 버전 설치는 응용 프로그램 폴더(/Applications)에 설치된 앱에서만 할 수 있어요. 지금 실행 위치: \(path)"
+            // 2026-11-07 (#176, 리뷰 install-update-F-5): 하위 폴더에 두거나 이름을 바꾼 앱도 응용 프로그램 폴더 안이라 예전 문구로는 이유를 알 수 없었다.
+            return "새 버전 설치는 앱이 \(AppMoveDecision.destinationURL().path)에 있을 때만 할 수 있어요. 지금 실행 위치: \(path). 앱을 하위 폴더가 아닌 응용 프로그램 폴더 바로 아래로 옮기고 이름을 \(AppMoveDecision.destinationName)으로 바꾼 뒤 다시 열어 주세요."
         case .replaceFailed(let reason):
             return "앱 교체 실패 — \(reason)"
         case .replaceRecoveryFailed(let reason, let backupPath, let destinationPath):

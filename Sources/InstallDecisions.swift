@@ -45,6 +45,18 @@ enum AppMoveDecision {
     }
 }
 
+// MARK: - 번들 정보
+
+/// 2026-11-07 (#176, 리뷰 install-update-F-1): 번들의 Info.plist를 직접 읽는다. `Bundle(url:)`은 경로별로 프로세스 수명 동안
+/// 캐시되어 교체·삭제 뒤에도 옛 값을 돌려준다. 그래서 입력기 자동 갱신이 성공해도 "입력기 갱신 필요"가 앱이 끝날 때까지 남았다.
+enum BundleInfoFile {
+    /// CFBundleVersion(단조증가 정수). 문자열 비교는 "10" < "9" 오류가 나므로 정수로 파싱한다. 못 읽으면 nil.
+    static func buildNumber(at bundleURL: URL) -> Int? {
+        let plist = bundleURL.appendingPathComponent("Contents/Info.plist")
+        return (NSDictionary(contentsOf: plist)?["CFBundleVersion"] as? String).flatMap { Int($0) }
+    }
+}
+
 // MARK: - 전체 제거
 
 /// 전체 제거 결과. 필수 단계가 모두 확인돼야 종료한다.
