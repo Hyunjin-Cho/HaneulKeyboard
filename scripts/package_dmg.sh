@@ -15,7 +15,7 @@ check_tools() {
     if [[ ! -x "$DMGBUILD" || ! -x "$DMGBUILD_PY" ]]; then
         echo "DMG tools are missing. Setup in this repository:" >&2
         echo "  python3 -m venv .tools/dmg" >&2
-        echo "  .tools/dmg/bin/python -m pip install -r scripts/requirements-dmg.txt" >&2
+        echo "  .tools/dmg/bin/python -m pip install --require-hashes -r scripts/requirements-dmg.txt" >&2
         exit 1
     fi
     "$DMGBUILD_PY" -c 'import dmgbuild; assert tuple(map(int, dmgbuild.__version__.split("."))) >= (1, 6, 7), "dmgbuild >= 1.6.7 required"; print("dmgbuild " + dmgbuild.__version__)'
