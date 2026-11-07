@@ -18,6 +18,12 @@ final class MemoryDefaults: UserDefaults, @unchecked Sendable {
 let probeDefaults = MemoryDefaults()
 
 final class ProbeClient: NSObject, IMKTextInput {
+    /// 2026-11-07 (#173, 리뷰 F-14): 실제 NSTextView를 재서 나온 값으로도 전 시나리오를 돌린다(off-screen 실측) —
+    /// 길이 0·문서 끝 읽기는 nil, 넘친 읽기는 잘라서 반환, 조합이 없을 때 markedRange {caret,0}, 범위 교체 뒤 캐럿 유지.
+    /// 합성 호스트의 빈 문자열 응답이 F-5를 숨겼다. IMK 프록시를 거친 실기기 값은 별도 확인 대상이다.
+    static var nsTextViewByDefault = false
+    var nsTextView = ProbeClient.nsTextViewByDefault
+    var readLengths: [Int] = []
     struct Field { var text = ""; var selection = NSRange(location: 0, length: 0); var marked = NSRange(location: NSNotFound, length: 0) }
     var fields = [Field(), Field()]
     var active = 0
@@ -45,7 +51,7 @@ final class ProbeClient: NSObject, IMKTextInput {
         let string = (value as? NSAttributedString)?.string ?? (value as? String ?? "")
         let range = replacementRange.location != NSNotFound ? replacementRange : (marked.location != NSNotFound ? marked : selection)
         precondition(range.location != NSNotFound && NSMaxRange(range) <= (text as NSString).length)
-        let trailing = preserveTrailingCaret && replacementRange.location != NSNotFound
+        let trailing = (preserveTrailingCaret || nsTextView) && replacementRange.location != NSNotFound
             ? max(0, selection.location - NSMaxRange(range)) : 0
         text = (text as NSString).replacingCharacters(in: range, with: string)
         selection = NSRange(location: range.location + (string as NSString).length + trailing, length: 0)
@@ -65,10 +71,22 @@ final class ProbeClient: NSObject, IMKTextInput {
         if frozenSelection { return NSRange(location: 0, length: 0) }
         return reportMissingSelectionRange ? NSRange(location: NSNotFound, length: 0) : selection
     }
-    func markedRange() -> NSRange { reportMissingMarkedRange ? NSRange(location: NSNotFound, length: 0) : marked }
+    func markedRange() -> NSRange {
+        if reportMissingMarkedRange { return NSRange(location: NSNotFound, length: 0) }
+        if nsTextView, marked.location == NSNotFound { return NSRange(location: selection.location, length: 0) }
+        return marked
+    }
     func attributedSubstring(from range: NSRange) -> NSAttributedString! {
         beforeSubstring?()
+        readLengths.append(range.length)
         let readable = replacementReadSnapshot ?? text
+        if nsTextView {
+            let available = (readable as NSString).length - range.location
+            guard !unreadable, range.location != NSNotFound, range.length > 0, available > 0 else { return nil }
+            let clipped = min(range.length, available)
+            let actual = NSRange(location: range.location, length: shortenRead ? clipped - 1 : clipped)
+            return NSAttributedString(string: (readable as NSString).substring(with: actual))
+        }
         guard !unreadable, range.location != NSNotFound, NSMaxRange(range) <= (readable as NSString).length else { return nil }
         let actual = shortenRead && range.length > 0 ? NSRange(location: range.location, length: range.length - 1) : range
         return NSAttributedString(string: (readable as NSString).substring(with: actual))
@@ -95,7 +113,8 @@ final class ProbeClient: NSObject, IMKTextInput {
     static var checks = 0
     static var failures: [String] = []
     static var scenarios: [[String: Any]] = []
-    static func check(_ value: Bool, _ id: String) { checks += 1; if !value { failures.append(id) } }
+    static var hostLabel = ""
+    static func check(_ value: Bool, _ id: String) { checks += 1; if !value { failures.append(hostLabel + id) } }
     static func fresh(key: RevertKey = .shiftSpace, keyboard: Bool = true) -> (HaneulInputController, ProbeClient) {
         probeDefaults.values = [RevertKey.defaultsKey: key.rawValue, RevertKey.phoneticKey: true,
             RevertKey.manualToggleAllWordsKey: keyboard, SlashEnglishSession.defaultsKey: true,
@@ -155,7 +174,7 @@ final class ProbeClient: NSObject, IMKTextInput {
         else if h.text.trimmingCharacters(in: .whitespacesAndNewlines) == "apple" { classification = "english" }
         else if h.text.trimmingCharacters(in: .whitespacesAndNewlines) == "메ㅔㅣㄷ" { classification = "keyboardInverse" }
         else { classification = "other" }
-        scenarios.append(["id": id, "surfaceClass": classification,
+        scenarios.append(["id": hostLabel + id, "surfaceClass": classification,
             "pairPresent": c.probeComposer.lastConversion != nil,
             "origin": String(describing: c.probeComposer.lastConversionOrigin),
             "englishContextPresent": c.probeComposer.lastEnglishWord != nil,
@@ -165,6 +184,21 @@ final class ProbeClient: NSObject, IMKTextInput {
         EnglishDetector.wordlistPaths = ["/usr/share/dict/words"] + EnglishDetector.bundledWordlistNames.map { "Resources/IM/\($0).txt" }
         EnglishDetector.curatedPaths = Set(EnglishDetector.curatedWordlistNames.map { "Resources/IM/\($0).txt" })
         KoreanDictionary.wordlistPath = "Resources/IM/korean_words.txt"
+        // 2026-11-07 (#173, 리뷰 F-14): 같은 시나리오를 합성 호스트와 NSTextView 실측 호스트로 두 번 돈다.
+        for nsTextView in [false, true] {
+            ProbeClient.nsTextViewByDefault = nsTextView
+            hostLabel = nsTextView ? "nstextview:" : ""
+            runScenarios()
+            runInputCoreReviewScenarios()
+        }
+        let output: [String:Any] = ["checks":checks,"failures":failures,"scenarioCount":scenarios.count,
+            "scenarios":scenarios,"limits":"Controller method bodies with a synthetic IMK host. Physical input and OS timing still require separate validation."]
+        let data = try! JSONSerialization.data(withJSONObject:output,options:[.prettyPrinted,.sortedKeys])
+        print(String(decoding:data,as:UTF8.self))
+        if !failures.isEmpty { exit(1) }
+    }
+
+    static func runScenarios() {
         check(PhoneticDictionary.bundled.english(for: "사과") == "apple", "bundled_dictionary_available")
         // #104: actual controller dispatch must use the registered spark word,
         // preserve surrounding text and keep the existing saved-pair undo.
@@ -666,10 +700,382 @@ final class ProbeClient: NSObject, IMKTextInput {
             check(press(c,h,"h",code:4),"slash_after_special_key_other_field_is_korean")
             result("slash_\(label)_then_other_field_commit",c,h)
         }
-        let output: [String:Any] = ["checks":checks,"failures":failures,"scenarioCount":scenarios.count,
-            "scenarios":scenarios,"limits":"Controller method bodies with a synthetic IMK host. Physical input and OS timing still require separate validation."]
-        let data = try! JSONSerialization.data(withJSONObject:output,options:[.prettyPrinted,.sortedKeys])
-        print(String(decoding:data,as:UTF8.self))
-        if !failures.isEmpty { exit(1) }
+    }
+
+    /// 2026-11-07 (#173): 입력 코어 리뷰(input-core-F-1~6·12·13·15·16) 회귀. 고친 동작마다 정상 동작 대조군을 함께 둔다.
+    static func runInputCoreReviewScenarios() {
+        func moveCaretToEnd(_ h: ProbeClient) { h.selection = NSRange(location: (h.text as NSString).length, length: 0) }
+        func recentReverts() -> Int { RecentReverts.load(from: probeDefaults).entries.count }
+        func shift(_ c: HaneulInputController, _ h: ProbeClient) -> Bool { press(c,h," ",code:49,flags:.shift) }
+
+        // F-1: 수정키 삭제로 시작 기호가 문서 끝에서 사라지면 읽기가 nil이다 — 기호를 읽어 본 호스트면 소실로 본다.
+        for flags: NSEvent.ModifierFlags in [.command, .option] {
+            for prefix in ["", "앞 "] {
+                let (c,h) = fresh(); h.setField(0,text:prefix)
+                press(c,h,"/",code:44); press(c,h,"h",code:4); press(c,h,"i",code:34)
+                check(h.text == prefix + "/hi" && c.probeSlashActive,"slash_modified_delete_started")
+                check(!press(c,h,"\u{7f}",code:51,flags:flags,deliver:false),"slash_modified_delete_forwarded")
+                h.text = prefix; moveCaretToEnd(h)
+                check(press(c,h,"h",code:4),"slash_modified_delete_next_key_composes")
+                check(h.text == prefix + "ㅗ" && !c.probeSlashActive,"slash_modified_delete_korean_\(flags.rawValue)_\(prefix.isEmpty)")
+                result("slash_modified_delete_\(flags.rawValue)_\(prefix.isEmpty)",c,h)
+            }
+        }
+        do { // 대조: 뒤에 글자가 남아 있으면 다른 글자가 읽혀 원래도 복귀한다.
+            let (c,h) = fresh(); h.setField(0,text:"뒤"); h.selection = NSRange(location:0,length:0)
+            press(c,h,"/",code:44); press(c,h,"h",code:4)
+            _ = press(c,h,"\u{7f}",code:51,flags:.option,deliver:false)
+            h.text = "뒤"; h.selection = NSRange(location:0,length:0)
+            check(press(c,h,"h",code:4) && !c.probeSlashActive,"slash_modified_delete_following_text_control")
+            result("slash_modified_delete_following_text_control",c,h)
+        }
+        for host in ["unreadable", "frozen"] { // 대조: 처음부터 못 읽는 호스트는 기호 소실을 알 수 없다 — 추측하지 않는다.
+            let (c,h) = fresh(); h.unreadable = true; h.frozenSelection = host == "frozen"
+            press(c,h,"/",code:44); press(c,h,"h",code:4)
+            _ = press(c,h,"\u{7f}",code:51,flags:.command,deliver:false)
+            h.text = ""; h.selection = NSRange(location:0,length:0)
+            check(!press(c,h,"h",code:4) && c.probeSlashActive && h.text == "h","slash_never_readable_stays_english_\(host)")
+            result("slash_never_readable_\(host)",c,h)
+        }
+
+        // F-2: 교체 직후 읽기가 옛 글자여도(노션형) 되돌림은 화면에 반영된다 — 영어 문맥을 끊고, 다음 키에서 확인해 기록한다.
+        for host in ["immediate", "delayed", "rejected"] {
+            let (c,h) = fresh()
+            typeKeys("want",c,h); press(c,h," ",code:49)
+            check(h.text == "want " && c.probeComposer.lastEnglishWord == "want","auto_revert_precondition_\(host)")
+            h.delayReplacementReadback = host == "delayed"; h.rejectReplacement = host == "rejected"
+            h.preserveTrailingCaret = true
+            check(shift(c,h),"auto_revert_consumed_\(host)")
+            let surface = host == "rejected" ? "want " : "ㅈ뭇 "
+            check(h.text == surface,"auto_revert_surface_\(host)")
+            check(c.probeComposer.lastEnglishWord == nil,"auto_revert_cuts_english_context_\(host)")
+            check(c.probeComposer.lastConversion?.english == "want","auto_revert_keeps_pair_\(host)")
+            typeKeys("to",c,h); press(c,h," ",code:49)
+            // 2026-11-07 (#173, 독립 리뷰 A-P2-1): 진짜 거부(Terminal.app형)는 화면이 영어 그대로라 문맥도 돌아와야 한다.
+            // 처음엔 `want 새 `를 정답으로 적었는데 예전 동작을 깨는 회귀였다. 기록도 하지 않는다.
+            check(h.text == (host == "rejected" ? "want to " : surface + "새 "),"auto_revert_next_word_\(host)")
+            check(recentReverts() == (host == "rejected" ? 0 : 1),"auto_revert_recorded_\(host)")
+            result("auto_revert_\(host)",c,h)
+        }
+        for (first, second) in [("git","is"),("cd","ls")] { // 대조: 문맥과 무관하게 변환되는 단어는 거부 호스트에서도 같다.
+            let (c,h) = fresh(); h.rejectReplacement = true; h.preserveTrailingCaret = true
+            typeKeys(first,c,h); press(c,h," ",code:49)
+            _ = shift(c,h)
+            typeKeys(second,c,h); press(c,h," ",code:49)
+            check(h.text == first + " " + second + " ","auto_revert_rejected_context_free_\(first)")
+            result("auto_revert_rejected_context_free_\(first)",c,h)
+        }
+        do { // 거부 호스트에서 여러 번 눌러도 문맥은 처음 그대로다.
+            let (c,h) = fresh(); h.rejectReplacement = true; h.preserveTrailingCaret = true
+            typeKeys("want",c,h); press(c,h," ",code:49)
+            for _ in 0..<3 { _ = shift(c,h) }
+            typeKeys("to",c,h); press(c,h," ",code:49)
+            check(h.text == "want to " && recentReverts() == 0,"auto_revert_rejected_repeat")
+            result("auto_revert_rejected_repeat",c,h)
+        }
+        do { // 되돌리는 값은 쌍의 영어가 아니라 끊기 전 문맥이다 — `apple'`은 원래 문맥을 넘기지 않는다.
+            let (c,h) = fresh(); h.rejectReplacement = true; h.preserveTrailingCaret = true
+            typeKeys("apple",c,h)
+            check(press(c,h,"'",code:39),"auto_revert_rejected_apostrophe_absorbed")
+            press(c,h," ",code:49)
+            check(c.probeComposer.lastConversion?.english == "apple'" && c.probeComposer.lastEnglishWord == nil,"auto_revert_rejected_apostrophe_precondition")
+            _ = shift(c,h)
+            typeKeys("t",c,h)
+            check(c.probeComposer.lastEnglishWord == nil,"auto_revert_rejected_restores_previous_context_only")
+            result("auto_revert_rejected_apostrophe",c,h)
+        }
+        do { // 대조: 다음 키에서 읽기가 안 되면 무엇이 맞는지 모른다 — 끊어 둔 채로 둔다(안전한 실패).
+            let (c,h) = fresh(); h.rejectReplacement = true; h.preserveTrailingCaret = true
+            typeKeys("want",c,h); press(c,h," ",code:49)
+            _ = shift(c,h)
+            h.unreadable = true
+            typeKeys("to",c,h); press(c,h," ",code:49)
+            check(h.text == "want 새 ","auto_revert_rejected_unknown_stays_cut")
+            result("auto_revert_rejected_unknown",c,h)
+        }
+        do { // 지연 호스트의 재토글: 다음 키에서 영어로 확인되면 문맥이 돌아오고, 기록은 한글로 되돌린 한 번뿐이다.
+            let (c,h) = fresh(); typeKeys("want",c,h); press(c,h," ",code:49)
+            h.delayReplacementReadback = true; h.preserveTrailingCaret = true
+            _ = shift(c,h); _ = shift(c,h)
+            check(h.text == "want " && recentReverts() == 1,"auto_revert_delayed_redo_surface")
+            typeKeys("to",c,h); press(c,h," ",code:49)
+            check(h.text == "want to ","auto_revert_delayed_redo_restores_context")
+            check(recentReverts() == 1,"auto_revert_delayed_redo_one_record")
+            result("auto_revert_delayed_redo",c,h)
+        }
+        for boundary in ["commit", "deactivate", "new_proxy"] { // 세션이 바뀌면 후보를 버리고 기록하지 않는다.
+            let (c,h) = fresh(); typeKeys("want",c,h); press(c,h," ",code:49)
+            h.delayReplacementReadback = true; h.preserveTrailingCaret = true
+            _ = shift(c,h)
+            var next = h
+            switch boundary {
+            case "commit": c.commitComposition(h)
+            case "deactivate": c.deactivateServer(h); c.activateServer(h)
+            default: next = ProbeClient()
+            }
+            typeKeys("t",c,next)
+            check(recentReverts() == 0,"auto_revert_candidate_dropped_\(boundary)")
+            result("auto_revert_candidate_\(boundary)",c,next)
+        }
+        do { // 후보 확인 읽기 중 세션이 끝나면 원래 키는 앱에 넘기고 낡은 기록을 남기지 않는다.
+            let (c,h) = fresh(); typeKeys("want",c,h); press(c,h," ",code:49)
+            h.delayReplacementReadback = true; h.preserveTrailingCaret = true
+            _ = shift(c,h)
+            h.beforeSubstring = { h.beforeSubstring = nil; c.commitComposition(h) }
+            check(!press(c,h,"h",code:4),"auto_revert_candidate_session_change_forwards_key")
+            check(recentReverts() == 0,"auto_revert_candidate_session_change_no_record")
+            result("auto_revert_candidate_session_change",c,h)
+        }
+
+        // F-3 (오너 결정 2026-11-07): 같은 줄의 공백·닫는 기호·따옴표만 건너뛴다. 그 밖의 글자를 만나면 바꾸지 않고 스페이스를 넘긴다.
+        let blocked = ["hello\n\n", "안녕\n", "안녕\r\n", "func foo() {\n    ", "안녕 🎬", "안녕 漢字", "résumé", "안녕(", "안녕[", "안녕{", "안녕:", "안녕\u{3000}"]
+        for (index, before) in blocked.enumerated() {
+            let (c,h) = fresh(); h.setField(0,text:before)
+            check(!shift(c,h),"manual_skip_blocked_passes_key_\(index)")
+            check(h.text == before + " ","manual_skip_blocked_only_space_added_\(index)")
+            check(c.probeComposer.lastConversion == nil,"manual_skip_blocked_no_pair_\(index)")
+            result("manual_skip_blocked_\(index)",c,h)
+        }
+
+        // F-15: 건너뛸 수 있는 뒤 경계가 길어도 두 번째 입력으로 돌아온다(스페이스가 쌓이지 않는다).
+        for prefix in ["", "앞말 ", "😀 "] {
+            for trailing in [" ", "   ", "    ", "... ", "!!! ", ", ", "\t\t\t\t", "\"')] ", "’”", String(repeating: " ", count: 40), "\u{a0}", "\u{a0}\u{a0}\u{a0}\u{a0}", ",\u{a0}"] {
+                for caret in [false, true] {
+                    let (c,h) = fresh(); h.setField(0,text:prefix + "안녕" + trailing); h.preserveTrailingCaret = caret
+                    for (step, expected) in ["dkssud","안녕","dkssud","안녕"].enumerated() {
+                        check(shift(c,h),"manual_roundtrip_consumed_\(step)_\(trailing.count)_\(prefix.count)")
+                        check(h.text == prefix + expected + trailing,"manual_roundtrip_surface_\(step)_\(trailing.count)_\(prefix.count)")
+                    }
+                    check(c.probeComposer.lastConversionOrigin == .keyboard,"manual_roundtrip_origin")
+                    result("manual_roundtrip_\(prefix.count)_\(trailing.count)_\(caret)",c,h)
+                }
+            }
+        }
+        // 2026-11-07 (#173, 루트 판단): 크롬 계열 contenteditable은 줄 끝 공백을 NBSP로 줄 수 있다(실기기 미확인) — 변환 직후 되돌리기가 깨지면 안 된다.
+        do {
+            let (c,h) = fresh(); typeKeys("apple",c,h); press(c,h," ",code:49)
+            h.text = "apple\u{a0}"; moveCaretToEnd(h)
+            for expected in ["메ㅔㅣㄷ\u{a0}","apple\u{a0}","메ㅔㅣㄷ\u{a0}"] { check(shift(c,h) && h.text == expected,"nbsp_pair_roundtrip") }
+            check(c.probeComposer.lastConversionOrigin == .automatic,"nbsp_pair_keeps_saved_pair")
+            result("nbsp_pair_roundtrip",c,h)
+        }
+        // 첫 교체를 호스트가 늦게 보여 줘도(노션형) 긴 뒤 경계에서 저장 쌍으로 돌아온다 — 자판 역변환(메ㅔㅣㄷ)으로 새지 않는다.
+        for prefix in ["", "앞말 "] {
+            for trailing in ["    ", "... ", "!!! "] {
+                let (c,h) = fresh(); h.setField(0,text:prefix + "사과" + trailing)
+                h.delayReplacementReadback = true; h.preserveTrailingCaret = true
+                _ = shift(c,h)
+                check(h.text == prefix + "apple" + trailing,"deferred_long_trailing_first")
+                _ = shift(c,h)
+                check(h.text == prefix + "사과" + trailing,"deferred_long_trailing_restores_\(prefix.count)_\(trailing.count)")
+                result("deferred_long_trailing_\(prefix.count)_\(trailing.count)",c,h)
+            }
+        }
+        do { // 자동 경로도 공백을 여러 번 친 뒤 저장 쌍으로 돌아온다(발음 쌍이 자판 역변환으로 바뀌지 않는다).
+            let (c,h) = fresh(); h.setField(0,text:"앞말 ")
+            typeOriginal(c,h); shortcut(c,h)
+            check(h.text == "앞말 apple","pair_spaces_precondition")
+            for _ in 0..<4 { press(c,h," ",code:49) }
+            check(shift(c,h),"pair_spaces_consumed")
+            check(h.text == "앞말 사과    ","pair_spaces_restores_saved_original")
+            result("pair_spaces_restore",c,h)
+        }
+        do { // 대조: 일반 되돌리기는 읽는 범위가 넓어지지 않는다(긴 읽기를 잘라 주는 호스트 회귀·문맥 최소 읽기).
+            let (c,h) = fresh(); h.setField(0,text:String(repeating: "앞", count: 80) + " ")
+            typeKeys("apple",c,h); press(c,h," ",code:49)
+            h.readLengths = []
+            check(shift(c,h),"pair_read_narrow_consumed")
+            check(h.text.hasSuffix(" 메ㅔㅣㄷ "),"pair_read_narrow_surface")
+            check((h.readLengths.max() ?? 0) <= 9,"pair_read_narrow_length")
+            result("pair_read_narrow",c,h)
+        }
+
+        // F-16: 저장 쌍이 화면과 다르면 쌍을 버리고 수동 경로로 넘어간다.
+        do {
+            let (c,h) = fresh(); typeKeys("apple",c,h); press(c,h," ",code:49)
+            h.text = "Apple "; moveCaretToEnd(h)
+            check(shift(c,h),"pair_mismatch_consumed")
+            check(h.text == "메ㅔㅣㄷ ","pair_mismatch_manual_surface")
+            check(c.probeComposer.lastConversion?.english == "Apple","pair_mismatch_new_pair")
+            check(c.probeComposer.lastConversionOrigin == .keyboard,"pair_mismatch_new_origin")
+            _ = shift(c,h)
+            check(h.text == "Apple ","pair_mismatch_roundtrip")
+            result("pair_mismatch_case",c,h)
+        }
+        do { // 커서가 다른 단어로 옮겨진 경우: 그 단어만 바뀌고 옛 단어는 건드리지 않는다.
+            let (c,h) = fresh(); typeKeys("apple",c,h); press(c,h," ",code:49)
+            h.text = "apple 안녕 "; moveCaretToEnd(h)
+            check(shift(c,h),"pair_moved_consumed")
+            check(h.text == "apple dkssud ","pair_moved_only_new_word")
+            result("pair_moved_word",c,h)
+        }
+        do { // 바꿀 단어가 없으면 쌍을 버리고 스페이스 — 다음 입력이 옛 쌍을 다시 쓰지 않는다.
+            let (c,h) = fresh(); typeKeys("apple",c,h); press(c,h," ",code:49)
+            h.text = "apple 😀 "; moveCaretToEnd(h)
+            check(!shift(c,h),"pair_blocked_passes_key")
+            check(h.text == "apple 😀  ","pair_blocked_only_space_added")
+            check(c.probeComposer.lastConversion == nil && c.probeComposer.lastEnglishWord == nil,"pair_blocked_clears_stale_state")
+            result("pair_blocked",c,h)
+        }
+        do { // 설정으로 수동 변환이 꺼져 있으면 스페이스.
+            let (c,h) = fresh(keyboard:false); typeKeys("apple",c,h); press(c,h," ",code:49)
+            h.text = "Apple "; moveCaretToEnd(h)
+            check(!shift(c,h) && h.text == "Apple  ","pair_mismatch_keyboard_off_space")
+            result("pair_mismatch_keyboard_off",c,h)
+        }
+        do { // 대조: 쌍이 맞으면 수동 경로를 타지 않고 저장 쌍으로 왕복한다.
+            let (c,h) = fresh(); typeKeys("apple",c,h); press(c,h," ",code:49)
+            for expected in ["메ㅔㅣㄷ ","apple ","메ㅔㅣㄷ "] { check(shift(c,h) && h.text == expected,"pair_match_control") }
+            check(c.probeComposer.lastConversionOrigin == .automatic,"pair_match_control_origin")
+            result("pair_match_control",c,h)
+        }
+
+        // F-4: 글자를 넣는 왕복 중 세션 콜백이 재진입해도 같은 단어를 두 번 넣지 않는다.
+        for (scenario, keys, expected) in [("active","rk","가 "),("passive","rk","가"),("deactivate","rk","가 "),
+                                           ("converted","apple","apple "),("particle","githubdp","github에 "),
+                                           ("alphanumeric","a24","a24 "),("sent_digits","10kg","10kg ")] {
+            let (c,h) = fresh()
+            typeKeys(keys,c,h)
+            h.afterInsert = {
+                h.afterInsert = nil
+                if scenario == "deactivate" { c.deactivateServer(h) } else { c.commitComposition(h) }
+            }
+            if scenario == "passive" { _ = press(c,h,"a",code:0,flags:.command,deliver:false) }
+            else { press(c,h," ",code:49) }
+            check(h.text == expected,"commit_reentrancy_once_\(scenario)")
+            check(!c.probeComposer.hasPendingComposition,"commit_reentrancy_no_pending_\(scenario)")
+            result("commit_reentrancy_\(scenario)",c,h)
+        }
+        do { // 넘침으로 앞부분을 내보내는 왕복 중 재진입해도 글자가 늘지 않는다.
+            let (c,h) = fresh()
+            for _ in 0..<45 {
+                h.afterInsert = { h.afterInsert = nil; c.commitComposition(h) }
+                typeKeys("rk",c,h)
+            }
+            h.afterInsert = nil
+            check(h.text == String(repeating: "가", count: 45),"spill_reentrancy_once")
+            result("spill_reentrancy",c,h)
+        }
+        do { // 대조: 재진입이 없으면 그대로.
+            let (c,h) = fresh(); typeKeys("rk",c,h); press(c,h," ",code:49)
+            check(h.text == "가 ","commit_no_reentrancy_control")
+            result("commit_no_reentrancy_control",c,h)
+        }
+
+        // F-5: NSTextView는 길이 0 읽기에 nil을 준다. 글자가 있는 문서 맨 앞은 오른쪽 글자가 읽히니 스페이스를 넘긴다.
+        do {
+            let (c,h) = fresh(); h.setField(0,text:"abc"); h.selection = NSRange(location:0,length:0)
+            check(!shift(c,h),"manual_doc_start_passes_key")
+            check(h.text == " abc","manual_doc_start_space")
+            result("manual_doc_start",c,h)
+        }
+        do { // 빈 칸: 길이 0 읽기에 빈 문자열을 주는 호스트는 넘긴다. nil을 주는 호스트는 아래 Ghostty형과 구분되지 않는다(오너 판단 대기).
+            let (c,h) = fresh()
+            check(shift(c,h) == h.nsTextView,"manual_empty_field_key")
+            check(h.text == (h.nsTextView ? "" : " "),"manual_empty_field_surface")
+            result("manual_empty_field",c,h)
+        }
+        do { // 대조(#30): 커서가 늘 0이고 못 읽는 터미널은 스페이스가 끼어들지 않는다.
+            let (c,h) = fresh(); h.setField(0,text:"재가 "); h.unreadable = true; h.frozenSelection = true
+            check(shift(c,h) && h.text == "재가 ","manual_ghostty_like_consumes_key")
+            result("manual_ghostty_like",c,h)
+        }
+
+        // F-6: 쌍이 있는데 커서 위치를 모르면 키만 소비한다. 수동 경로(쌍 없음)는 일반 스페이스와 구분이 안 돼 그대로 넘긴다.
+        do {
+            let (c,h) = fresh(); typeKeys("apple",c,h); press(c,h," ",code:49)
+            h.reportMissingSelectionRange = true
+            check(shift(c,h),"pair_missing_selection_consumed")
+            check(h.text == "apple ","pair_missing_selection_no_space")
+            check(c.probeComposer.lastConversion != nil,"pair_missing_selection_keeps_pair")
+            h.reportMissingSelectionRange = false
+            check(shift(c,h) && h.text == "메ㅔㅣㄷ ","pair_missing_selection_later_recovers")
+            result("pair_missing_selection",c,h)
+        }
+        do {
+            let (c,h) = fresh(); h.setField(0,text:"재가 "); h.reportMissingSelectionRange = true
+            check(!shift(c,h) && h.text == "재가  ","manual_missing_selection_control")
+            result("manual_missing_selection_control",c,h)
+        }
+
+        // F-14 ④: 조합 중 Return·Tab·Esc는 조합을 활성 경계로 확정하고 키를 앱에 한 번 넘긴다. 문맥은 끊긴다.
+        for (text, code, flags, label): (String, UInt16, NSEvent.ModifierFlags, String) in [
+            ("\r",36,[],"return"), ("\r",36,.shift,"shift_return"), ("\u{3}",76,.numericPad,"keypad_enter"),
+            ("\t",48,[],"tab"), ("\u{1b}",53,[],"escape"),
+        ] {
+            for (keys, committed) in [("rk","가"),("dkssud","안녕"),("apple","apple"),("githubdp","github에")] {
+                let (c,h) = fresh(); typeKeys(keys,c,h)
+                check(h.marked.location != NSNotFound,"composing_key_precondition_\(label)")
+                check(!press(c,h,text,code:code,flags:flags,deliver:false),"composing_key_forwarded_\(label)_\(keys)")
+                check(h.text == committed,"composing_key_commits_active_\(label)_\(keys)")
+                check(h.marked.location == NSNotFound && !c.probeComposer.hasPendingComposition,"composing_key_ends_composition_\(label)_\(keys)")
+                check(c.probeComposer.lastConversion == nil && c.probeComposer.lastEnglishWord == nil,"composing_key_breaks_context_\(label)_\(keys)")
+                typeKeys("to",c,h); press(c,h," ",code:49)
+                check(h.text == committed + "새 ","composing_key_next_word_korean_\(label)_\(keys)")
+                result("composing_key_\(label)_\(keys)",c,h)
+            }
+        }
+        for (text, code, flags, label): (String, UInt16, NSEvent.ModifierFlags, String) in [
+            ("\r",36,.command,"cmd_return"), ("\r",36,.option,"option_return"), ("\t",48,.control,"ctrl_tab"), ("\u{1b}",53,.command,"cmd_escape"),
+        ] { // 대조: 수정키가 붙으면 앱 단축키다 — 화면에 보이던 글자 그대로 확정한다(영타 변환 없음).
+            let (c,h) = fresh(); typeKeys("apple",c,h)
+            check(!press(c,h,text,code:code,flags:flags,deliver:false),"composing_shortcut_forwarded_\(label)")
+            check(h.text == "메ㅔㅣㄷ" && !c.probeComposer.hasPendingComposition,"composing_shortcut_passive_\(label)")
+            result("composing_shortcut_\(label)",c,h)
+        }
+
+        // 2026-11-07 (#173, 독립 리뷰 A-P3-2): 대문자가 두 글자가 되는 문자는 자모가 아니다 — 활성 경계로 넘기고 Debug에서도 죽지 않는다.
+        do {
+            let (c,h) = fresh(); typeKeys("rk",c,h)
+            check(!press(c,h,"ß",code:27,flags:.shift),"sharp_s_shift_forwarded")
+            check(h.text == "가ß" && !c.probeComposer.hasPendingComposition,"sharp_s_shift_boundary")
+            result("sharp_s_shift",c,h)
+        }
+
+        // F-14 ④: 조합이 없으면 세션 콜백·단축키가 호스트의 선택 범위를 건드리지 않는다(#93 — 빈 marked text가 선택을 지운다).
+        for action in ["commit", "deactivate", "deactivate_activate", "cmd_backspace", "arrow"] {
+            let (c,h) = fresh(); h.setField(0,text:"keep selected text")
+            let selection = NSRange(location:5,length:8)
+            h.selection = selection
+            var hostWrites = 0
+            h.afterInsert = { hostWrites += 1 }; h.afterMark = { hostWrites += 1 }
+            switch action {
+            case "commit": c.commitComposition(h)
+            case "deactivate": c.deactivateServer(h)
+            case "deactivate_activate": c.deactivateServer(h); c.activateServer(h)
+            case "cmd_backspace": check(!press(c,h,"\u{7f}",code:51,flags:.command,deliver:false),"selection_keep_forwarded_\(action)")
+            default: check(!press(c,h,"\u{f702}",code:123,flags:.function,deliver:false),"selection_keep_forwarded_\(action)")
+            }
+            check(h.text == "keep selected text" && h.selection == selection,"selection_keep_surface_\(action)")
+            check(hostWrites == 0,"selection_keep_no_host_write_\(action)")
+            result("selection_keep_\(action)",c,h)
+        }
+        for action in ["commit", "deactivate"] { // 대조: 조합 중이면 보이던 글자를 확정하고 캐럿은 그 뒤다.
+            let (c,h) = fresh(); h.setField(0,text:"앞 ")
+            typeKeys("apple",c,h)
+            if action == "commit" { c.commitComposition(h) } else { c.deactivateServer(h) }
+            check(h.text == "앞 메ㅔㅣㄷ" && h.marked.location == NSNotFound,"selection_commit_visible_\(action)")
+            check(h.selection == NSRange(location:6,length:0),"selection_commit_caret_\(action)")
+            check(!c.probeComposer.hasPendingComposition,"selection_commit_no_pending_\(action)")
+            result("selection_commit_\(action)",c,h)
+        }
+
+        // F-12·F-13: 실제 키 분배로 확인한다(조합 규칙 자체는 ComposerTests).
+        for (keys, next, expected) in [("rks","k","가나"),("rk","s","간")] {
+            let (c,h) = fresh(); typeKeys(keys,c,h)
+            check(press(c,h,"'",code:39),"apostrophe_absorbed")
+            check(press(c,h,"\u{7f}",code:51,deliver:false),"apostrophe_delete_absorbed")
+            typeKeys(next,c,h)
+            check(h.text == expected,"apostrophe_delete_reopens_syllable_\(keys)")
+            result("apostrophe_delete_\(keys)",c,h)
+        }
+        do {
+            let (c,h) = fresh()
+            for _ in 0..<45 { typeKeys("rk",c,h) }
+            while c.probeComposer.hasPendingComposition { _ = press(c,h,"\u{7f}",code:51,deliver:false) }
+            typeKeys("apple",c,h); press(c,h," ",code:49)
+            check(h.text.hasSuffix("apple "),"spill_deleted_next_word_converts")
+            result("spill_deleted_next_word",c,h)
+        }
     }
 }

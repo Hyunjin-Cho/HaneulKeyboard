@@ -160,6 +160,10 @@ final class KoreanComposer {
         lastConversionOrigin = conversionOrigin
     }
 
+    /// 2026-11-07 (#173, 독립 리뷰 A-P2-1): 되돌리기가 화면에 반영되지 않았다고 확인되면 끊어 둔 문맥을 끊기 전 값으로 되돌린다.
+    /// `applyToggle(toEnglish: true)`를 쓰면 원래 문맥을 넘기지 않던 단어(`apple'`·문맥 전용 동형어)에도 문맥이 생긴다.
+    func restoreEnglishContext(_ word: String?) { lastEnglishWord = word }
+
     /// 2026-10-06 (#76): 숫자·NFD 자모도 단어의 일부다. 아포스트로피는
     /// 양쪽에 단어 문자가 있을 때만 내부 연결자로 취급한다(여는 따옴표 보호).
     static func isWordChar(_ c: unichar) -> Bool {
@@ -181,12 +185,32 @@ final class KoreanComposer {
         return true
     }
 
+    /// 2026-11-07 (#173, 리뷰 F-3 오너 결정): 되돌리기가 커서 뒤로 건너뛰는 글자는 같은 줄의 공백과 닫는 기호·따옴표뿐이다.
+    /// 예전엔 단어 글자가 아니면 전부 건너뛰어 다음 줄 들여쓰기·이모지·한자 뒤에서 앞 단어가 조용히 바뀌었다.
+    /// 그 밖의 글자(줄바꿈 포함)를 만나면 바꾸지 않고 스페이스를 앱에 넘긴다.
+    /// 같은 날 루트 판단: "공백"에 NBSP도 넣는다 — 크롬 계열 contenteditable이 줄 끝 공백을 NBSP로 줄 수 있어
+    /// 안 넣으면 변환 직후 되돌리기가 깨질 수 있다(실기기 미확인).
+    private static func isSkippableTrailing(_ c: unichar) -> Bool {
+        switch c {
+        case 0x20, 0x09, 0xA0,           // 스페이스·탭·NBSP
+             0x21, 0x3F, 0x2E, 0x2C,     // ! ? . ,
+             0x29, 0x5D, 0x7D,           // ) ] }
+             0x27, 0x22, 0x2019, 0x201D: // ' " ’ ”
+            return true
+        default:
+            return false
+        }
+    }
+
     /// 원본 UTF-16 범위를 유지한다. 내부 숫자/아포스트로피를 포함하되
     /// 끝의 따옴표·구두점은 제자리에 남긴다. 숫자만 있으면 변환 함수가 거부한다.
     static func wordBeforeCursor(before: String, atDocStart: Bool) -> (word: String, trailing: Int)? {
         let s = before as NSString
         var end = s.length
-        while end > 0, !isWordChar(s.character(at: end - 1)) { end -= 1 }
+        while end > 0, !isWordChar(s.character(at: end - 1)) {
+            guard isSkippableTrailing(s.character(at: end - 1)) else { return nil }
+            end -= 1
+        }
         var start = end
         while start > 0 {
             let c = s.character(at: start - 1)
@@ -217,7 +241,8 @@ final class KoreanComposer {
                     return (replacement, length, s.length - start)
                 }
             }
-            if isWordChar(s.character(at: end - 1)) { break }
+            // 2026-11-07 (#173, 리뷰 F-3·F-15): 읽는 창을 넓히면서 저장 쌍도 수동 경로와 같은 글자만 건너뛴다.
+            guard isSkippableTrailing(s.character(at: end - 1)) else { break }
             end -= 1
         }
         return nil
@@ -338,11 +363,12 @@ final class KoreanComposer {
 
         if word.count >= maxWordUnits {
             let hangul = wordText()
-            if !hangul.isEmpty { client.insertText(hangul) }
+            // 2026-11-07 (#173, 리뷰 F-4): 상태를 먼저 비운 뒤 앱에 넣는다(commit과 같은 재진입 방어).
             word = []
             didSpillWord = true
             clearParticlePreview()
             lastEnglishWord = nil // spill emits Hangul — breaks English context
+            if !hangul.isEmpty { client.insertText(hangul) }
         }
 
         refreshMarkedText(client: client)
@@ -374,11 +400,12 @@ final class KoreanComposer {
         stashBuffer()
         word.append((text: String(character), keys: [character]))
         if word.count > maxWordUnits {
-            client.insertText(wordText())
+            let spilled = wordText()   // 2026-11-07 (#173, 리뷰 F-4): 위 handleInput과 같은 순서
             word = []
             didSpillWord = true
             clearParticlePreview()
             lastEnglishWord = nil
+            client.insertText(spilled)
         }
         refreshMarkedText(client: client)
         return true
@@ -444,6 +471,20 @@ final class KoreanComposer {
     /// screen, never something different.
     @discardableResult
     func commit(to client: ComposerClient, convertEnglish: Bool = false) -> String {
+        // 2026-11-07 (#173, 리뷰 F-4): 판정과 상태 정리를 끝낸 뒤에야 앱에 넣는다(commitPhonetic과 같은 방어).
+        // 왕복 중 세션 콜백이 commit을 다시 부르면 남은 word를 또 넣어 `가가 `가 됐다(합성 호스트 재현, 실기기 발생 여부는 미확인).
+        guard let text = finishWord(convertEnglish: convertEnglish) else {
+            // #93: without our own composition, empty marked text replaces the
+            // host's selection. Passive shortcuts must leave that selection alone.
+            return ""
+        }
+        client.insertText(text)
+        client.setMarkedText("")
+        return text
+    }
+
+    /// 조합을 확정할 글자로 판정하고 조합 상태를 비운다. 앱 왕복은 하지 않는다. 넣을 글자가 없으면 nil.
+    private func finishWord(convertEnglish: Bool) -> String? {
         stashBuffer()
         var nextQuantity: String?
         defer {
@@ -453,11 +494,7 @@ final class KoreanComposer {
         }
 
         let hangul = wordText()
-        guard !hangul.isEmpty else {
-            // #93: without our own composition, empty marked text replaces the
-            // host's selection. Passive shortcuts must leave that selection alone.
-            return ""
-        }
+        guard !hangul.isEmpty else { return nil }
 
         // 클릭/입력 소스 전환은 마지막으로 보인 조합을 그대로 확정한다.
         // 미리보기에서 원본으로 되돌린 선택도 현재 단어가 끝날 때까지 유지한다.
@@ -467,8 +504,6 @@ final class KoreanComposer {
             lastEnglishWord = nil
             lastConversion = displayed != hangul ? (hangul, displayed) : nil
             lastConversionOrigin = .automatic
-            client.insertText(displayed)
-            client.setMarkedText("")
             return displayed
         }
 
@@ -489,8 +524,7 @@ final class KoreanComposer {
             // 2026-11-04: 예전엔 숫자와 단어가 한 조합(10ㅏㅎ)이었다. 같은 판정(수량·영숫자 이름·개인 사전·조사)을 그대로 쓰려고
             // 앞에 보낸 숫자를 붙여 판정하고, 결과에서 숫자 부분만 떼어 넣는다. 숫자 부분이 달라지는 결과는 쓰지 않는다.
             let fullKeys = Array(digitsBefore) + keys
-            let sink = BufferedClient()
-            let text = commitAlphanumeric(to: sink, convertible: convertible, hangul: digitsBefore + hangul, keys: fullKeys)
+            let text = commitAlphanumeric(convertible: convertible, hangul: digitsBefore + hangul, keys: fullKeys)
             if text.hasPrefix(digitsBefore) {
                 // (Fable 리뷰 F7: 여기 있던 수량 전달 줄은 조합 중 단어에 자모가 늘 있어 도달하지 않았다 — 지웠다.
                 //  `10 kg`의 수량 전달은 completeBoundary(" ")가 맡는다.)
@@ -502,14 +536,12 @@ final class KoreanComposer {
                 if let pair = lastConversion, !pair.english.hasPrefix(digitsBefore), pair.english == rest {
                     lastConversion = (digitsBefore + pair.hangul, digitsBefore + pair.english)
                 }
-                client.insertText(rest)
-                client.setMarkedText("")
                 return rest
             }
         }
         if hasBufferedDigits {
             if convertible, MeasurementUnits.isQuantity(String(keys)) { nextQuantity = String(keys) }
-            return commitAlphanumeric(to: client, convertible: convertible, hangul: hangul, keys: keys)
+            return commitAlphanumeric(convertible: convertible, hangul: hangul, keys: keys)
         }
         if let apostrophe = apostropheIndex {
             // 2026-09-19 (#34): `'`를 품은 단어는 축약형 경로로 판정한다.
@@ -529,8 +561,6 @@ final class KoreanComposer {
                 committed = hangul
                 lastConversion = nil
             }
-            client.insertText(committed)
-            client.setMarkedText("")
             return committed
         } else if convertible, shouldConvertWord(units: units, keys: keys) {
             committed = String(keys)
@@ -578,8 +608,6 @@ final class KoreanComposer {
             lastEnglishWord = nil
             lastConversion = nil
         }
-        client.insertText(committed)
-        client.setMarkedText("")
         return committed
     }
 
@@ -591,8 +619,7 @@ final class KoreanComposer {
 
     /// 숫자 후보는 명시 목록/개인 사전 전체 일치만 영어로 확정한다.
     /// 후보에서 벗어나면 숫자마다 단어를 끝내던 기존 결과와 마지막 변환 상태를 재현한다.
-    private func commitAlphanumeric(to client: ComposerClient, convertible: Bool,
-                                    hangul: String, keys: [Character]) -> String {
+    private func commitAlphanumeric(convertible: Bool, hangul: String, keys: [Character]) -> String {
         let raw = String(keys)
         let decision = personalDictionary.decision(word: raw, hangul: hangul)
         let mayConvert = convertible && KoreanDictionary.isLoaded
@@ -611,8 +638,6 @@ final class KoreanComposer {
                 text = hangul
                 lastConversion = nil
             }
-            client.insertText(text)
-            client.setMarkedText("")
             return text
         }
         let quantity = MeasurementUnits.splitQuantity(raw)
@@ -668,8 +693,6 @@ final class KoreanComposer {
             lastConversionOrigin = fallback.lastConversionOrigin
             lastConversionUsedQuantity = fallback.lastConversionUsedQuantity
         }
-        client.insertText(text)
-        client.setMarkedText("")
         return text
     }
 
@@ -765,6 +788,9 @@ final class KoreanComposer {
     /// normal delete on the text behind the cursor.
     func deleteBackward(client: ComposerClient) -> Bool {
         lastConversion = nil // 백스페이스 = 되돌리기 기회 끝
+        // 2026-11-07 (#173, 리뷰 F-13): 넘친 입력을 다 지우면 다음 글자는 새 단어다 — 넘침 표시가 남아 변환이 빠졌다.
+        // refreshMarkedText에서 지우면 안 된다. handleDigit의 넘침 직후에도 조합이 빈 채로 불린다.
+        defer { if !hasPendingComposition { didSpillWord = false } }
         if !buffer.isEmpty {
             peelJamo()
             if !pendingKeys.isEmpty { pendingKeys.removeLast() }
@@ -781,8 +807,9 @@ final class KoreanComposer {
             let removed = word.removeLast()
             // 숫자 직전 음절을 다시 조합 중으로 돌린다. a1 → Backspace → k는 「마」다.
             // 숫자 때문에 보관했던 음절이므로, 숫자를 지운 뒤 「ㅁㅏ」로 갈라지지 않게 한다.
+            // 2026-11-07 (#173, 리뷰 F-12): 아포스트로피도 같다(간' → Backspace → ㅏ는 「가나」).
             if removed.keys.count == 1, let key = removed.keys.first,
-               AlphanumericWords.isDigit(key), let previous = word.last,
+               AlphanumericWords.isDigit(key) || Contractions.isApostrophe(key), let previous = word.last,
                previous.keys.allSatisfy({ KeyboardLayout2Set.jamo(for: $0) != nil }) {
                 word.removeLast()
                 for key in previous.keys { _ = handleInput(String(key), client: client) }

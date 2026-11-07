@@ -26,17 +26,13 @@ enum KeyboardLayout2Set {
     ) -> Character? {
         if let chars = charactersIgnoringModifiers,
            let lower = chars.lowercased().first {
-            let character: Character = shifted
-                ? Character(String(lower).uppercased())
-                : lower
+            guard let character = shifted ? singleUppercase(lower) : lower else { return nil }
             return jamo(for: character) == nil ? nil : character
         }
 
         if let raw = characters?.lowercased().first,
            raw.isASCII, raw.isLetter {
-            let character: Character = shifted
-                ? Character(String(raw).uppercased())
-                : raw
+            guard let character = shifted ? singleUppercase(raw) : raw else { return nil }
             return jamo(for: character) == nil ? nil : character
         }
 
@@ -44,6 +40,13 @@ enum KeyboardLayout2Set {
             return nil
         }
         return characterForKeyCode(keyCode, shifted: shifted)
+    }
+
+    /// 2026-11-07 (#173, 독립 리뷰 A-P3-2): 대문자가 두 글자가 되는 문자(ß → SS)는 자모가 아니다. `Character(_:)`에 넘기면
+    /// Debug에서 트랩이 나고 Release에서는 결국 nil이었다 — 두 빌드 모두 nil로 맞춘다.
+    private static func singleUppercase(_ character: Character) -> Character? {
+        let upper = String(character).uppercased()
+        return upper.count == 1 ? upper.first : nil
     }
 
     /// Look up the jamo by physical key code (used as fallback when
