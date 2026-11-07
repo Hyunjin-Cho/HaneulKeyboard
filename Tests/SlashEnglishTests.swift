@@ -205,6 +205,49 @@ private final class SlashTextClient: ComposerClient {
             check(step(&session, "g", context: context(0, text: "")) == .composeKorean,
                   "수정자 삭제 뒤 기호가 없다고 확인되면 현재 키부터 복귀")
         }
+        // 2026-11-07 (#173, 리뷰 F-1): 실제 NSTextView는 문서 끝 읽기에 빈 문자열이 아니라 nil을 준다(실측).
+        // 시작 기호를 한 번이라도 읽어 본 호스트에서 nil + 커서가 시작 자리 이하면 기호가 사라진 것이다.
+        for anchor in [0, 3] {
+            for flags: NSEvent.ModifierFlags in [.command, .option] {
+                start(&session, at: anchor)
+                check(step(&session, "h", context: context(anchor + 1)) == .passThrough, "F-1 기호를 읽음")
+                check(step(&session, "i", context: context(anchor + 2)) == .passThrough, "F-1 뒷글자")
+                check(step(&session, "\u{7f}", key: 51, flags: flags, context: context(anchor + 3)) == .passThrough,
+                      "F-1 수정자 삭제 자체는 앱에 전달")
+                check(step(&session, "g", context: context(anchor, text: nil)) == .composeKorean && !session.isActive,
+                      "F-1 문서 끝에서 기호가 사라지면 현재 키부터 한글: \(anchor)")
+            }
+            // Cmd+Backspace가 줄 전체를 지워 커서가 시작 자리보다 앞으로 가도 같다.
+            start(&session, at: anchor)
+            _ = step(&session, "h", context: context(anchor + 1))
+            check(step(&session, "g", context: context(max(0, anchor - 1), text: nil)) == .composeKorean && !session.isActive,
+                  "F-1 커서가 시작 자리 이하면 소실: \(anchor)")
+        }
+        // 대조: 처음부터 못 읽는 호스트(Ghostty형)는 소실을 알 수 없어 기존 보수 정책을 유지한다.
+        do {
+            start(&session, at: 0)
+            check(step(&session, "h", context: context(1, text: nil)) == .passThrough, "F-1 대조 못 읽는 호스트")
+            check(step(&session, "\u{7f}", key: 51, flags: .command, context: context(2, text: nil)) == .passThrough, "F-1 대조 수정자 삭제")
+            check(step(&session, "g", context: context(0, text: nil)) == .passThrough && session.isActive,
+                  "F-1 대조: 읽은 적 없으면 nil로 종료하지 않음")
+            // 플래그는 세션마다 새로 시작한다 — 앞 세션에서 읽었어도 새 세션에서 못 읽으면 추측하지 않는다.
+            start(&session, at: 0)
+            _ = step(&session, "h", context: context(1))
+            session.reset()
+            start(&session, at: 0)
+            check(step(&session, "g", context: context(0, text: nil)) == .passThrough && session.isActive,
+                  "F-1 대조: 읽은 기록은 세션을 넘지 않음")
+        }
+        // 대조: 읽어 본 호스트라도 커서가 기호 뒤거나, 범위 선택·조합 중·위치 불명이면 일시적 읽기 실패로 본다.
+        for snapshot in [context(1, text: nil), context(5, text: nil),
+                         context(0, length: 2, text: nil),
+                         context(0, text: nil, marked: NSRange(location: 0, length: 1)),
+                         context(NSNotFound, text: nil)] {
+            start(&session, at: 0)
+            _ = step(&session, "h", context: context(1))
+            check(step(&session, "g", context: snapshot) == .passThrough && session.isActive,
+                  "F-1 대조: 소실로 단정하지 않는 읽기 실패 \(snapshot.selection)")
+        }
 
         // The first plain Backspace directly after '/' does not need substring
         // support. Later edits still require the original verified geometry.

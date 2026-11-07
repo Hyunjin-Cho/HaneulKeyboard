@@ -306,6 +306,148 @@ func runDict106Tests() {
 // words go to shortWords (R1); clean one-syllable words go to standaloneShortWords.
 /// 2026-11-06 (#154): 메뉴바 아이콘 켜고 끄기의 판단.
 /// 2026-11-06 (#162): 한국어 사전을 Set에서 파일 매핑으로 바꾸며 정렬·색인 경계를 지킨다.
+/// 2026-11-07 (#173): 입력 코어 리뷰 회귀 — 컨트롤러 없이 볼 수 있는 판정·조합 규칙. 컨트롤러 경로는 InputControllerSessionTests.
+func runInputCoreReviewTests() {
+    // F-3 (오너 결정 2026-11-07): 커서 뒤로 건너뛰는 글자는 같은 줄의 공백(스페이스·탭)과 ! ? . , ) ] } 와 따옴표(' " ’ ”)뿐이다.
+    let skippable = [" ", "\t", "!", "?", ".", ",", ")", "]", "}", "'", "\"", "’", "”",
+                     "... ", "!!! ", "    ", "\t\t", "), ", "\" ", "’ ", "”, ", String(repeating: " ", count: 40)]
+    for trailing in skippable {
+        let found = KoreanComposer.wordBeforeCursor(before: "안녕" + trailing, atDocStart: true)
+        expect(found?.word ?? "", "안녕", "F-3 건너뜀: \(trailing.debugDescription)")
+        expect(found?.trailing ?? -1, (trailing as NSString).length, "F-3 뒤 경계 길이: \(trailing.debugDescription)")
+        let toggle = KoreanComposer.resolveToggle(before: "apple" + trailing, english: "apple", hangul: "메ㅔㅣㄷ", atDocStart: true)
+        expect(toggle?.text ?? "", "메ㅔㅣㄷ", "F-3 저장 쌍도 같은 글자를 건너뜀: \(trailing.debugDescription)")
+    }
+    let blocking = ["\n", "\r", "\r\n", "\u{2028}", "\u{2029}", "\n    ", "   \n", " \n ", " 🎬", "🎬 ", "🎬", " 漢字", "漢", "(", "[", "{", "{\n    ",
+                    ":", ";", "-", "/", "<", ">", "\u{a0}", "\u{3000}", "é", "。", "、", "e\u{301}", "\u{fe0f}"]
+    for tail in blocking {
+        expect(KoreanComposer.wordBeforeCursor(before: "안녕" + tail, atDocStart: true) == nil, true,
+               "F-3 멈춤: \(tail.debugDescription)")
+        expect(KoreanComposer.resolveToggle(before: "apple" + tail, english: "apple", hangul: "메ㅔㅣㄷ", atDocStart: true) == nil, true,
+               "F-3 저장 쌍도 멈춤: \(tail.debugDescription)")
+    }
+    expect(KoreanComposer.wordBeforeCursor(before: "func foo() {\n    ", atDocStart: true) == nil, true, "F-3 코드 다음 줄 들여쓰기")
+    expect(KoreanComposer.wordBeforeCursor(before: "résumé", atDocStart: true) == nil, true, "F-3 악센트 글자 뒤")
+    // 대조: 왼쪽 경계와 단어 찾기는 그대로다.
+    expect(KoreanComposer.wordBeforeCursor(before: "func foo() ", atDocStart: true) == nil, true, "F-3 여는 괄호에서 멈춤: foo() 뒤")
+    expect(KoreanComposer.wordBeforeCursor(before: "(foo) ", atDocStart: true)?.word ?? "", "foo", "F-3 대조: ) 뒤 공백은 건너뜀")
+    expect(KoreanComposer.wordBeforeCursor(before: "🎬 안녕! ", atDocStart: false)?.word ?? "", "안녕", "F-3 대조: 앞쪽 이모지는 경계")
+    expect(KoreanComposer.wordBeforeCursor(before: "(\"안녕\") ", atDocStart: true)?.word ?? "", "안녕", "F-3 대조: 닫는 따옴표·괄호")
+    expect(KoreanComposer.wordBeforeCursor(before: "첫 줄\n안녕 ", atDocStart: false)?.word ?? "", "안녕", "F-3 대조: 같은 줄의 단어")
+    expect(KoreanComposer.wordBeforeCursor(before: String(repeating: " ", count: 64), atDocStart: true) == nil, true, "F-3 대조: 공백뿐이면 nil")
+
+    // F-12: 아포스트로피를 지우면 직전 음절이 다시 열린다(숫자와 같은 결과).
+    func composed(_ script: String) -> (client: FakeClient, composer: KoreanComposer) {
+        let client = FakeClient(), composer = KoreanComposer()
+        for ch in script {
+            if ch == "⌫" { deleteKeyViaController(composer: composer, client: client) }
+            else { typeKeyViaController(ch, composer: composer, client: client) }
+        }
+        return (client, composer)
+    }
+    for (script, expected) in [("a2⌫k", "마"), ("a'⌫k", "마"), ("rks'⌫k", "가나"), ("rk'⌫s", "간"),
+                               ("rks'⌫w", "갅"), ("i'⌫", "ㅑ"), ("dkssud'⌫s", "안녕ㄴ"),
+                               ("rk'⌫'", "가'"), ("rk'⌫⌫", "ㄱ")] {
+        expect(composed(script).client.marked, expected, "F-12 재개: \(script)")
+    }
+    // 대조: 숫자 유닛 뒤의 아포스트로피는 다시 열 음절이 없다.
+    expect(composed("a2'⌫k").client.marked, "ㅁ2ㅏ", "F-12 대조: 앞이 숫자면 재개하지 않음")
+    do { // 다시 연 뒤에도 키열이 그대로라 영타 변환이 된다.
+        let (client, composer) = composed("apple'⌫")
+        composer.commit(to: client, convertEnglish: true)
+        expect(client.committedText, "apple", "F-12 재개 뒤 영타 변환 유지")
+    }
+
+    // F-13: 넘친 입력을 전부 지운 뒤의 새 단어는 넘침 표시를 물려받지 않는다.
+    func spilled(_ composer: KoreanComposer, _ client: FakeClient) {
+        for _ in 0..<45 { for ch in "rk" { typeKeyViaController(ch, composer: composer, client: client) } }
+    }
+    do {
+        let client = FakeClient(), composer = KoreanComposer()
+        spilled(composer, client)
+        while composer.hasPendingComposition { _ = composer.deleteBackward(client: client) }
+        for ch in "apple" { typeKeyViaController(ch, composer: composer, client: client) }
+        composer.commit(to: client, convertEnglish: true)
+        expect(client.committedText.hasSuffix("apple"), true, "F-13 전부 지운 뒤 다음 단어 변환")
+    }
+    do { // 대조: 일부만 지우면 아직 긴 입력의 연속이라 변환하지 않는다.
+        let client = FakeClient(), composer = KoreanComposer()
+        spilled(composer, client)
+        _ = composer.deleteBackward(client: client)
+        for ch in "apple" { typeKeyViaController(ch, composer: composer, client: client) }
+        composer.commit(to: client, convertEnglish: true)
+        expect(client.committedText.hasSuffix("메ㅔㅣㄷ"), true, "F-13 대조: 일부 삭제는 넘침 유지")
+    }
+    do { // 대조: 지우지 않고 이어 치면 변환하지 않고, 경계를 친 다음 단어는 변환한다.
+        let client = FakeClient(), composer = KoreanComposer()
+        spilled(composer, client)
+        for ch in "apple" { typeKeyViaController(ch, composer: composer, client: client) }
+        composer.commit(to: client, convertEnglish: true)
+        expect(client.committedText.hasSuffix("메ㅔㅣㄷ"), true, "F-13 대조: 넘침 뒤 이어 친 단어")
+        for ch in "apple" { typeKeyViaController(ch, composer: composer, client: client) }
+        composer.commit(to: client, convertEnglish: true)
+        expect(client.committedText.hasSuffix("apple"), true, "F-13 대조: 경계 뒤 단어는 변환")
+    }
+    do { // 숫자 넘침은 조합이 빈 채로 refresh한다 — 넘침 표시를 그 자리에서 지우면 뒤 숫자가 새 후보가 된다.
+        let client = FakeClient(), composer = KoreanComposer()
+        for ch in "a" + String(repeating: "2", count: 90) { typeKeyViaController(ch, composer: composer, client: client) }
+        composer.commit(to: client, convertEnglish: true)
+        expect(client.committedText, "ㅁ" + String(repeating: "2", count: 90), "F-13 대조: 숫자 넘침 유실 없음")
+    }
+
+    // F-4: 글자를 넣는 왕복 중 세션 콜백이 commit을 다시 불러도 한 번만 들어간다. 상태를 먼저 비우고 왕복한다.
+    final class ReentrantClient: ComposerClient {
+        var inserted: [String] = []
+        var marked = ""
+        var onInsert: (() -> Void)?
+        func insertText(_ text: String) {
+            inserted.append(text)
+            let callback = onInsert
+            onInsert = nil
+            callback?()
+        }
+        func setMarkedText(_ text: String) { marked = text }
+    }
+    for (keys, convert, expected) in [("rk", true, "가"), ("rk", false, "가"), ("apple", true, "apple"),
+                                      ("apple", false, "메ㅔㅣㄷ"), ("githubdp", true, "github에"),
+                                      ("a24", true, "a24"), ("rk'", true, "가'")] {
+        let client = ReentrantClient(), composer = KoreanComposer()
+        for ch in keys {
+            if Contractions.isApostrophe(ch) { _ = composer.handleApostrophe(ch, client: client) }
+            else if AlphanumericWords.isDigit(ch) { _ = composer.handleDigit(ch, client: client) }
+            else { _ = composer.handleInput(String(ch), client: client) }
+        }
+        var nested = "(없음)"
+        client.onInsert = {
+            nested = composer.commit(to: client)
+            composer.resetEnglishContext()
+        }
+        expect(composer.commit(to: client, convertEnglish: convert), expected, "F-4 바깥 확정 \(keys) \(convert)")
+        expect(client.inserted.joined(), expected, "F-4 글자가 한 번만 들어감 \(keys) \(convert)")
+        expect(nested, "", "F-4 재진입 commit은 넣을 것이 없음 \(keys) \(convert)")
+        expect(composer.hasPendingComposition, false, "F-4 조합이 남지 않음 \(keys) \(convert)")
+        expect(composer.lastConversion == nil && composer.lastEnglishWord == nil, true,
+               "F-4 재진입이 끝낸 세션의 쌍을 되살리지 않음 \(keys) \(convert)")
+    }
+    do { // 넘침 왕복 중 재진입: 내보내는 중인 단어를 다시 넣지 않는다.
+        let client = ReentrantClient(), composer = KoreanComposer()
+        for _ in 0..<45 {
+            client.onInsert = { composer.commit(to: client) }
+            for ch in "rk" { _ = composer.handleInput(String(ch), client: client) }
+        }
+        client.onInsert = nil
+        composer.commit(to: client)
+        expect(client.inserted.joined(), String(repeating: "가", count: 45), "F-4 넘침 재진입에도 글자가 늘지 않음")
+    }
+    do { // 대조: 재진입이 없으면 쌍·문맥을 평소대로 세운다.
+        let client = ReentrantClient(), composer = KoreanComposer()
+        for ch in "apple" { _ = composer.handleInput(String(ch), client: client) }
+        expect(composer.commit(to: client, convertEnglish: true), "apple", "F-4 대조 확정")
+        expect(composer.lastConversion?.hangul ?? "", "메ㅔㅣㄷ", "F-4 대조 쌍")
+        expect(composer.lastEnglishWord ?? "", "apple", "F-4 대조 문맥")
+    }
+}
+
 func runSortedWordTableTests() {
     func table(_ text: String) -> SortedWordTable { SortedWordTable(data: Data(text.utf8)) }
     func has(_ t: SortedWordTable, _ word: String) -> Bool { t.contains(Array(word.utf8)) }
@@ -2812,6 +2954,7 @@ struct ComposerTests {
         runAppBundleWatchTests()
         runLoginItemTests()
         runSortedWordTableTests()
+        runInputCoreReviewTests()
         print("\(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
     }

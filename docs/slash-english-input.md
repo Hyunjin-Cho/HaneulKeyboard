@@ -10,6 +10,8 @@
 
 2026-10-25: 시작 `/` 바로 다음 키가 일반 Backspace이면 주변 글자 조회를 제공하지 않는 앱에서도 임시 영어를 끝낸다. 위치 조회가 가능하면 커서가 시작 기호 바로 뒤인지 확인한다. 위치 조회 자체가 불가능한 경우는 `/` 직후라는 단일 키 순서만 사용한다. 중간에 문자·커서 이동·단축키가 끼거나 Fn·Cmd·Option·Ctrl 삭제, 선택 범위 불일치, 조합 중인 범위가 있으면 이 보완 규칙을 쓰지 않는다. 실제 삭제는 원래 앱이 한 번만 수행한다.
 
+2026-11-07 (#173): 수정키 삭제·잘라내기·실행 취소로 `/`가 문서 끝에서 사라지면 실제 NSTextView는 그 자리 읽기에 빈 문자열이 아니라 nil을 준다(실측). 같은 세션에서 `/`를 한 번이라도 읽은 호스트가 nil을 주고 커서가 시작 자리 이하이면 기호가 사라진 것으로 보고 현재 키부터 한글로 돌린다. 읽었다는 사실만 기억하고 글자는 저장하지 않는다. 처음부터 못 읽는 호스트는 추측하지 않고 기존 정책을 유지한다. IMK를 거친 실기기 값은 체크리스트로 확인한다. 근거: `SlashEnglishSession.triggerWasRead`, `Tests/SlashEnglishTests.swift`.
+
 위 조회는 `handle`에서만 하며 RPC 중 세션이 바뀌면 즉시 중단한다. 활성화 콜백에는 새 조회가 없다. 근거: `SlashEnglishSession.Context/captureTrigger/process/deletesTrigger`, `HaneulInputController.handle`. 새 상태에 보관하는 값은 시작 위치이며 원문 내용은 아니다.
 
 저장 키·기본값·순수 상태 전이는 `Shared/SlashEnglishSession.swift`의 `defaultsKey/defaultEnabled/process/reset`가 소유한다. 기본 ON이며 `Sources/SlashEnglishSettingsSection.swift`가 IME defaults 도메인 `com.hyunjincho.inputmethod.haneul`에 ON/OFF를 쓴다. 위치는 입력 기능 → 단축키 변환 → 슬래시 영어 입력. 자동 변환 토글과 앱별 예외 목록은 이 명시적인 영어 상태와 독립적이다.

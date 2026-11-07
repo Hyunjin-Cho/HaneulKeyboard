@@ -23,6 +23,8 @@ struct SlashEnglishSession {
 
     /// 컨트롤러가 handle 안에서만 읽는 일회성 자료. 세션에는 이 값을 저장하지 않는다.
     /// triggerText == nil은 조회 불가, 빈 문자열은 해당 위치에 문자가 없다는 확인이다.
+    /// 2026-11-07 (#173, 리뷰 F-1): NSTextView는 문서 끝 읽기에 빈 문자열 대신 nil을 준다(실측) — nil을 전부 조회 불가로
+    /// 읽으면 수정키 삭제로 기호가 사라져도 영어가 남았다. 아래 triggerWasRead로 호스트가 읽기를 지원하는지 가른다.
     struct Context {
         let selection: NSRange
         let markedRange: NSRange
@@ -44,6 +46,8 @@ struct SlashEnglishSession {
     private var caretDiverged = false
     /// 커서 위치가 개수와 한 번이라도 맞았는지 — 맞았던 호스트는 커서를 제대로 알려 주는 앱이다(Fable 리뷰 F3).
     private var caretMatched = false
+    /// 이 세션에서 시작 자리의 `/`를 읽은 적이 있는지 — 글자는 저장하지 않고 호스트가 읽기를 지원한다는 사실만 남긴다.
+    private var triggerWasRead = false
 
     mutating func reset() {
         isActive = false
@@ -53,6 +57,7 @@ struct SlashEnglishSession {
         caretFrozen = false
         caretDiverged = false
         caretMatched = false
+        triggerWasRead = false
     }
 
     /// 앞 조합을 확정한 뒤, `/` 키를 앱에 전달하기 직전의 삽입 위치를 사용한다.
@@ -178,14 +183,21 @@ struct SlashEnglishSession {
             if let text = context.triggerText, text != "/" {
                 // 조회에 성공해 시작 기호가 사라졌다면 현재 키부터 한글 경로로 돌린다.
                 reset()
-            } else if context.triggerText == "/",
-                      deletesTrigger(keyCode: keyCode, modifiers: modifiers,
-                                     modifierFlagsRaw: modifierFlagsRaw,
-                                     selection: context.selection, trigger: trigger) {
-                // `/`만 지워 빈 필드가 되면 다음 substring은 nil일 수 있다.
-                // 삭제 전에 확인한 기호·선택 범위로 종료하고 실제 삭제는 앱에 맡긴다.
+            } else if context.triggerText == "/" {
+                triggerWasRead = true
+                if deletesTrigger(keyCode: keyCode, modifiers: modifiers,
+                                  modifierFlagsRaw: modifierFlagsRaw,
+                                  selection: context.selection, trigger: trigger) {
+                    // `/`만 지워 빈 필드가 되면 다음 substring은 nil일 수 있다.
+                    // 삭제 전에 확인한 기호·선택 범위로 종료하고 실제 삭제는 앱에 맡긴다.
+                    reset()
+                    return .end
+                }
+            } else if context.triggerText == nil, triggerWasRead, context.selection.length == 0,
+                      context.selection.location <= trigger.location {
+                // 2026-11-07 (#173, 리뷰 F-1): 읽기가 되던 호스트에서 시작 자리 읽기가 nil이고 커서가 그 자리 이하면 기호가 문서
+                // 끝에서 사라진 것이다(수정키 삭제·잘라내기·실행 취소). 처음부터 못 읽는 호스트(Ghostty형)는 플래그가 없어 추측하지 않는다.
                 reset()
-                return .end
             }
         }
         if isActive {
@@ -251,6 +263,7 @@ struct SlashEnglishSession {
         typedAfterTrigger = 0
         caretFrozen = false
         caretDiverged = false
+        triggerWasRead = false
         return .begin
     }
 }

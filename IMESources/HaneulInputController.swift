@@ -73,6 +73,17 @@ final class HaneulInputController: IMKInputController {
     }
     private var deferredManualToggle: DeferredManualToggle?
 
+    // 2026-11-07 (#173, 리뷰 F-2): 저장 쌍의 교체도 늦은 읽기 호스트에서는 거부로 읽힌다(화면은 이미 바뀌었다).
+    // 다음 키에서 한 번만 표면을 대조해 미뤄 둔 상태 전이·기록을 마친다. 타이머는 쓰지 않고 세션 경계를 넘지 않는다.
+    private struct DeferredPairToggle {
+        let start: Int
+        let hangul: String
+        let english: String
+        let toEnglish: Bool
+        let origin: KoreanComposer.ConversionOrigin
+    }
+    private var deferredPairToggle: DeferredPairToggle?
+
     // Listen ONLY for .keyDown. macOS routes CapsLock-based Korean<->ABC
     // switching automatically via TICapsLockLanguageSwitchCapable in plist,
     // and we must NOT subscribe to .flagsChanged — every Shift press fires
@@ -86,6 +97,7 @@ final class HaneulInputController: IMKInputController {
     override func activateServer(_ sender: Any!) {
         sessionGeneration &+= 1
         deferredManualToggle = nil
+        deferredPairToggle = nil
         roundTripTrace.record(.activateBegin, composer: composer)
         defer { roundTripTrace.record(.activateEnd, composer: composer) }
         log.log("activateServer")
@@ -111,6 +123,7 @@ final class HaneulInputController: IMKInputController {
     override func deactivateServer(_ sender: Any!) {
         sessionGeneration &+= 1
         deferredManualToggle = nil
+        deferredPairToggle = nil
         roundTripTrace.record(.deactivateBegin, composer: composer)
         defer { roundTripTrace.record(.deactivateEnd, composer: composer) }
         log.log("deactivateServer")
@@ -126,6 +139,7 @@ final class HaneulInputController: IMKInputController {
     override func commitComposition(_ sender: Any!) {
         sessionGeneration &+= 1
         deferredManualToggle = nil
+        deferredPairToggle = nil
         roundTripTrace.record(.commitBegin, composer: composer)
         defer { roundTripTrace.record(.commitEnd, composer: composer) }
         // #87: 이 콜백에는 확정 원인/키 이벤트 ID가 없다. 같은 프록시도 다른 입력칸을
@@ -169,6 +183,7 @@ final class HaneulInputController: IMKInputController {
         if slashClient !== (sender as AnyObject?) {
             sessionGeneration &+= 1
             deferredManualToggle = nil
+            deferredPairToggle = nil
             roundTripTrace.record(.clientChangedBegin, composer: composer)
             defer { roundTripTrace.record(.clientChangedEnd, composer: composer) }
             slashEnglish.reset()
@@ -189,6 +204,7 @@ final class HaneulInputController: IMKInputController {
         // 조합하지 않고 그대로 통과시킨다(review0706 P3-4).
         if IsSecureEventInputEnabled() {
             deferredManualToggle = nil
+            deferredPairToggle = nil
             slashEnglish.reset()
             externalContextPending = false
             composer.commit(to: composerClient)
@@ -199,6 +215,12 @@ final class HaneulInputController: IMKInputController {
         // R12: bounded opt-in state diagnostics; no keystroke/text logging.
         let traceState = roundTripTrace.beginHandle(isToggle: isToggle, composer: composer)
         defer { roundTripTrace.endHandle(traceState, composer: composer) }
+
+        // 이번 키가 무엇이든 앞 키의 되돌리기를 먼저 마무리한다(다음 단어가 조합되기 전에 문맥이 화면과 맞아야 한다).
+        if deferredPairToggle != nil {
+            settleDeferredPairToggle(client: client, generation: eventSession, inputSequence: eventSequence)
+            guard eventSession == sessionGeneration else { return isToggle }
+        }
 
         // #87: Backspace·Shift+Space·단축키보다 먼저 분기한다. 영어 상태에서는
         // 키를 소비하거나 재삽입하지 않아 앱의 삭제·단축키·Option 입력이 그대로 동작한다.
@@ -333,40 +355,54 @@ final class HaneulInputController: IMKInputController {
             #if DEBUG
             log.log("ss진단A: selLoc=\(sel.location, privacy: .public) selLen=\(sel.length, privacy: .public)")
             #endif
-            // (L3) 드래그 선택 중(length>0)이거나 커서 위치를 모르면 손대지 않음.
-            if sel.location != NSNotFound, sel.length == 0 {
-                let span = max((conv.english as NSString).length, (conv.hangul as NSString).length) + 4
-                let readStart = max(0, sel.location - span)
-                let reqLen = sel.location - readStart
-                let attr = tracedSubstring(client,
-                    from: NSRange(location: readStart, length: reqLen))
-                guard eventSession == sessionGeneration else { return true }
-                let before = (attr?.string ?? "") as NSString
-                #if DEBUG
-                log.log("ss진단B: reqLen=\(reqLen, privacy: .public) beforeLen=\(before.length, privacy: .public)")
-                #endif
-                // (T1) 커서 앞을 읽어줄 수 없는 클라이언트(Ghostty 등 일부 터미널)
-                // 에서는 되돌리기가 원리적으로 불가능하다 — 아래로 흘려보내면
-                // 되돌리기를 요청한 자리에 엉뚱한 스페이스만 끼어드니, 아무것도
-                // 하지 않고 키만 소비한다. 판정은 순수함수로 분리해 테스트한다(#30).
-                if KoreanComposer.toggleUnsupported(cursorLocation: sel.location,
-                                                    didReadText: attr != nil) {
-                    return true
+            // 2026-11-07 (#173, 리뷰 F-6): 쌍이 있는데 커서 위치를 모르면 되돌릴 수 없다 — 흘려보내면 (T1)이 막으려는
+            // 증상 그대로 되돌리기 자리에 스페이스가 들어간다. 아무것도 하지 않고 키만 소비한다.
+            if sel.location == NSNotFound { return true }
+            // (L3) 드래그 선택 중(length>0)이면 손대지 않음.
+            if sel.length == 0 {
+                // 2026-11-07 (#173, 리뷰 F-15): 수동 경로는 뒤 경계를 readSpan까지 건너뛰는데 여기는 4글자만 읽어 두 번째 입력이
+                // 돌아오지 못했다. 평소 읽기는 그대로 좁게 두고(긴 읽기를 잘라 주는 호스트 회귀 방지) 못 찾았을 때만 넓혀 본다.
+                let pairLength = max((conv.english as NSString).length, (conv.hangul as NSString).length)
+                var resolved: (text: String, replaceLen: Int, offsetFromEnd: Int)?
+                var surfaceKnown = true
+                for slack in [4, ManualToggle.readSpan] {
+                    let readStart = max(0, sel.location - pairLength - slack)
+                    let reqLen = sel.location - readStart
+                    let attr = tracedSubstring(client,
+                        from: NSRange(location: readStart, length: reqLen))
+                    guard eventSession == sessionGeneration else { return true }
+                    let before = (attr?.string ?? "") as NSString
+                    #if DEBUG
+                    log.log("ss진단B: reqLen=\(reqLen, privacy: .public) beforeLen=\(before.length, privacy: .public)")
+                    #endif
+                    // (T1) 커서 앞을 읽어줄 수 없는 클라이언트(Ghostty 등 일부 터미널)
+                    // 에서는 되돌리기가 원리적으로 불가능하다 — 아래로 흘려보내면
+                    // 되돌리기를 요청한 자리에 엉뚱한 스페이스만 끼어드니, 아무것도
+                    // 하지 않고 키만 소비한다. 판정은 순수함수로 분리해 테스트한다(#30).
+                    if KoreanComposer.toggleUnsupported(cursorLocation: sel.location,
+                                                        didReadText: attr != nil) {
+                        return true
+                    }
+                    // (H1) Chromium/Electron 등이 substring을 잘라 반환하면 좌표가
+                    // 어긋나 인접 글자를 덮어쓴다 — 요청 길이와 다르면 안전하게 포기.
+                    // boundary skip·좌측경계·매칭은 순수함수 resolveToggle이 담당
+                    // (M1: IMK 비의존이라 단위테스트로 검증).
+                    guard before.length == reqLen else {
+                        surfaceKnown = false
+                        break
+                    }
+                    resolved = KoreanComposer.resolveToggle(before: before as String,
+                        english: conv.english, hangul: conv.hangul, atDocStart: readStart == 0)
+                    if resolved != nil || readStart == 0 { break }
                 }
-                // (H1) Chromium/Electron 등이 substring을 잘라 반환하면 좌표가
-                // 어긋나 인접 글자를 덮어쓴다 — 요청 길이와 다르면 안전하게 포기.
-                // boundary skip·좌측경계·매칭은 순수함수 resolveToggle이 담당
-                // (M1: IMK 비의존이라 단위테스트로 검증).
-                if before.length == reqLen,
-                   let r = KoreanComposer.resolveToggle(before: before as String,
-                       english: conv.english, hangul: conv.hangul, atDocStart: readStart == 0) {
+                if let r = resolved {
                     let start = sel.location - r.offsetFromEnd
                     tracedInsert(client, text: r.text as NSString,
                         replacementRange: NSRange(location: start, length: r.replaceLen))
                     guard eventSession == sessionGeneration else { return true }
                     // (T2) Terminal.app 등은 이 교체를 조용히 무시한다 — 교체 자리를
-                    // 다시 읽어 옛 글자가 그대로면 거부로 판정하고, 화면·내부 상태를
-                    // 손대지 않은 채 키만 소비한다(스페이스가 끼어들지 않게). 연속
+                    // 다시 읽어 옛 글자가 그대로면 거부로 판정하고, 화면을 더
+                    // 건드리지 않은 채 키만 소비한다(스페이스가 끼어들지 않게). 연속
                     // 시도해도 같은 결과가 되도록 lastConversion은 유지한다(#30).
                     let previous = r.text == conv.english ? conv.hangul : conv.english
                     let rejected = KoreanComposer.toggleWasRejected(
@@ -377,7 +413,20 @@ final class HaneulInputController: IMKInputController {
                     #if DEBUG
                     log.log("ss진단C: rejected=\(rejected, privacy: .public)")
                     #endif
-                    if rejected { return true }
+                    if rejected {
+                        // 2026-11-07 (#173, 리뷰 F-2): 늦은 읽기 호스트(노션 기록)는 화면이 바뀌었어도 옛 글자를 돌려준다.
+                        // 한글로 되돌리는 쪽은 영어 문맥을 바로 끊는다 — 진짜 거부여도 안전한 실패다. 기록과 영어 쪽 전이는 다음 키의 확인 뒤에 한다.
+                        guard eventSequence == inputSequence else { return true }
+                        let toEnglish = r.text == conv.english
+                        if !toEnglish {
+                            composer.applyToggle(toEnglish: false, hangul: conv.hangul,
+                                                 english: conv.english, origin: origin)
+                        }
+                        deferredPairToggle = DeferredPairToggle(start: start, hangul: conv.hangul,
+                            english: conv.english, toEnglish: toEnglish, origin: origin)
+                        roundTripTrace.record(.deferredStored, composer: composer)
+                        return true
+                    }
                     // (M-01) 화면만 바꾸지 말고 내부 영어 문맥도 방향에 맞춰 전이 —
                     // r.text가 영어면 영어 문맥 복원, 한글이면 끊김. (안 하면 다음
                     // 단어가 옛 문맥으로 잘못 변환됨.)
@@ -391,8 +440,11 @@ final class HaneulInputController: IMKInputController {
                     }
                     return true
                 }
+                // 2026-11-07 (#173, 리뷰 F-16): 위치를 알고 읽었는데 쌍이 없다 = 저장 쌍이 낡았다(앱의 자동 교정·커서 이동).
+                // 쌍과 문맥을 버리고 아래 수동 경로로 넘긴다. 쌍이 없을 때 되는 일이 쌍이 있어서 안 되던 어긋남을 없앤다.
+                if surfaceKnown { composer.resetEnglishContext() }
             }
-            // (M2) 매칭 실패/불안전 → 토글하지 않고 아래 일반 경계 처리로 흘려보낸다
+            // (M2) 불안전(읽기 잘림·드래그 선택) → 토글하지 않고 아래 일반 경계 처리로 흘려보낸다
             // (키를 먹지 않게 — 최소한 스페이스는 입력됨).
         }
 
@@ -565,6 +617,26 @@ final class HaneulInputController: IMKInputController {
         }
     }
 
+    /// 앞 키의 저장 쌍 교체가 거부로 읽혔을 때, 이번 키에서 그 자리를 다시 읽어 확정한다. 후보는 한 번만 쓰고 버린다.
+    /// 끝까지 옛 글자면 진짜 거부(Terminal.app형)다 — 되돌린 적이 없으니 기록하지 않는다.
+    private func settleDeferredPairToggle(client: IMKTextInput, generation: UInt, inputSequence eventSequence: UInt) {
+        guard let candidate = deferredPairToggle else { return }
+        deferredPairToggle = nil
+        let expected = candidate.toEnglish ? candidate.english : candidate.hangul
+        let surface = tracedSubstring(client, stage: .readback,
+            from: NSRange(location: candidate.start, length: (expected as NSString).length))?.string
+        guard generation == sessionGeneration, eventSequence == inputSequence, surface == expected,
+              composer.lastConversion?.hangul == candidate.hangul,
+              composer.lastConversion?.english == candidate.english else { return }
+        composer.applyToggle(toEnglish: candidate.toEnglish, hangul: candidate.hangul,
+                             english: candidate.english, origin: candidate.origin)
+        externalContextPending = false
+        roundTripTrace.record(.deferredConfirmed, composer: composer)
+        if !candidate.toEnglish, composer.shouldRecordAutomaticRevert {
+            recordRevert(hangul: candidate.hangul, english: candidate.english)
+        }
+    }
+
     /// Verify a previous replacement on the next explicit shortcut, never on a timer.
     /// Both cursor positions (at replacement end / after the old trailing boundary)
     /// are accepted only when the same anchored result and word boundaries match.
@@ -597,7 +669,9 @@ final class HaneulInputController: IMKInputController {
         let marked = tracedMarkedRange(client)
         guard isCurrent() else { return false }
         guard marked.location == NSNotFound || marked.length == 0 else { return discard() }
-        let span = max((candidate.english as NSString).length, (candidate.hangul as NSString).length) + 4
+        // 2026-11-07 (#173, 리뷰 F-15): 뒤 경계가 4글자를 넘으면 단어가 창 밖으로 나가 후보를 버리고 자판 역변환으로 샜다.
+        let span = max((candidate.english as NSString).length, (candidate.hangul as NSString).length)
+            + trailingLength + 4
         let readStart = max(0, selection.location - span)
         let length = selection.location - readStart
         let before = tracedSubstring(client, from: NSRange(location: readStart, length: length))?.string
@@ -679,7 +753,15 @@ final class HaneulInputController: IMKInputController {
         // (T1) 커서 앞을 읽어줄 수 없는 클라이언트(Ghostty 등 터미널)에서는 원리적으로 불가능 —
         // 아무것도 하지 않고 키만 소비한다(#30). 아래로 흘려보내면 되돌리기를 요청한 자리에
         // 엉뚱한 스페이스만 끼어든다.
-        guard let attr else { return true }
+        guard let attr else {
+            guard sel.location == 0 else { return true }
+            // 2026-11-07 (#173, 리뷰 F-5): NSTextView는 길이 0 읽기에 nil을 줘서(실측) 문서 맨 앞을 미지원 호스트로 오판하고
+            // 키를 삼켰다. 오른쪽 글자가 읽히면 읽기 지원 호스트다 → 스페이스를 넘긴다. 빈 칸은 Ghostty형(늘 0, 읽기 nil)과
+            // 구분되지 않아 #30 약속대로 키를 소비한다 — 빈 NSTextView 칸의 삼킴은 오너 판단 대기.
+            let right = tracedSubstring(client, from: NSRange(location: 0, length: 1))
+            guard generation == sessionGeneration else { return true }
+            return right == nil
+        }
         // 커서가 문서 맨 앞 = 앞에 단어가 없는 **정상 상태**다. 자동 경로의 `toggleUnsupported`는
         // 이걸 "거짓 보고"로 보고 키를 먹는데(변환 직후라면 앞에 글자가 반드시 있으므로),
         // 수동 경로에선 뜻이 다르다 — 빈 필드에서 스페이스가 사라지지 않게 흘려보낸다.
