@@ -266,7 +266,7 @@ final class Updater {
             phase = .verifying
             let currentVersion = Self.currentVersion
             let currentBuild = Self.currentBuild
-            let verifiedApp = try await Task.detached(priority: .userInitiated) {
+            let verified = try await Task.detached(priority: .userInitiated) {
                 try Self.extractAndVerify(zip: zipURL, workDir: workDir,
                                           currentVersion: currentVersion, currentBuild: currentBuild)
             }.value
@@ -277,11 +277,11 @@ final class Updater {
             switch strategy {
             case .userAtomic:
                 try await Task.detached(priority: .userInitiated) {
-                    try Self.replaceAtomically(destination: destination, with: verifiedApp)
+                    try Self.replaceAtomically(destination: destination, with: verified.app)
                 }.value
             case .adminPrompt:
                 // NSAppleScript의 관리자 인증 UI는 메인 액터에서 띄운다(IMEInstaller.uninstall과 동일).
-                try Self.replaceWithAdminPrivileges(destination: destination, with: verifiedApp)
+                try Self.replaceWithAdminPrivileges(destination: destination, with: verified)
             }
             haneulLog("HaneulKeyboard: update \(update.tag) installed at \(destination.path) (\(strategy)) — relaunching")
             try await Self.relaunchCleaningUp(workDir: workDir) { try await relaunch(at: destination) }
@@ -307,11 +307,18 @@ final class Updater {
         if asset.size > 0, asset.size != size { throw UpdateError.sizeMismatch(expected: asset.size, actual: size) }
     }
 
-    /// zip 해제 → 다섯 가지 검증 → (통과 시) quarantine 제거. 통과한 번들 URL을 돌려준다.
+    /// 검증을 통과한 번들과 그때 읽은 정체. 2026-11-07 (#176): 관리자 경로가 인증 뒤 복사본을 이 값과 대조한다.
+    /// 임시 폴더의 파일은 같은 사용자 권한의 코드가 바꿀 수 있으므로 나중에 다시 읽지 않고 검증 시점의 값을 들고 다닌다.
+    private struct VerifiedUpdate: Sendable {
+        let app: URL
+        let identity: UpdateReplacementScript.VerifiedIdentity
+    }
+
+    /// zip 해제 → 다섯 가지 검증 → (통과 시) quarantine 제거. 통과한 번들을 돌려준다.
     /// 여기까지는 전부 임시 폴더 안이다.
     nonisolated private static func extractAndVerify(
         zip: URL, workDir: URL, currentVersion: String, currentBuild: Int?
-    ) throws -> URL {
+    ) throws -> VerifiedUpdate {
         let fm = FileManager.default
         let extractDir = workDir.appendingPathComponent("extract", isDirectory: true)
         try fm.createDirectory(at: extractDir, withIntermediateDirectories: true)
@@ -355,11 +362,14 @@ final class Updater {
             )
         )
         guard verification.passed else { throw UpdateError.verificationFailed(verification.failures) }
+        guard let version = info?["CFBundleShortVersionString"] as? String, let build = info?["CFBundleVersion"] as? String else {
+            throw UpdateError.verificationFailed(["버전 정보를 읽지 못함"])
+        }
 
         // 검증을 통과한 우리 번들이므로 격리 속성을 벗긴다(App Translocation 방지). URLSession
         // 다운로드엔 보통 quarantine이 붙지 않지만(LSFileQuarantineEnabled 미설정) 붙어 있어도 되게.
         stripQuarantine(at: app)
-        return app
+        return VerifiedUpdate(app: app, identity: .init(bundleID: UpdateDecision.appBundleID, version: version, build: build))
     }
 
     /// 없으면 xattr가 비영으로 끝날 수 있으므로 결과는 로그로만 남긴다. 2026-11-07 (#176): `AppMover`도 같은 방식으로 쓴다.
@@ -395,14 +405,15 @@ final class Updater {
     /// root 소유 설치본 — staging 복사 → 옛 번들 백업 → 새 번들 배치.
     /// 새 번들 배치가 실패하면 같은 관리자 명령 안에서 백업을 원래 위치로 복구한다.
     /// 복구도 실패하면 백업을 보존하고 실제 백업·복원 경로를 안내한다(리뷰 F-1).
+    /// 2026-11-07 (#176, 리뷰 security-overlap-F-3): 인증창이 떠 있는 동안 임시 폴더의 사본이 바뀔 수 있어, 권한 상승한 스크립트 안에서 복사본을 다시 검증한다.
     @MainActor
-    private static func replaceWithAdminPrivileges(destination: URL, with source: URL) throws {
+    private static func replaceWithAdminPrivileges(destination: URL, with verified: VerifiedUpdate) throws {
         let parent = destination.deletingLastPathComponent()
         let token = UUID().uuidString
         let staging = parent.appendingPathComponent(".\(destination.lastPathComponent).update-\(token)")
         let old = parent.appendingPathComponent(".\(destination.lastPathComponent).old-\(token)")
-        let replacement = UpdateReplacementScript(source: source, destination: destination,
-                                                  staging: staging, backup: old)
+        let replacement = UpdateReplacementScript(source: verified.app, destination: destination,
+                                                  staging: staging, backup: old, identity: verified.identity)
         var errorInfo: NSDictionary?
         guard let appleScript = NSAppleScript(source: replacement.appleScriptSource) else {
             throw UpdateError.replaceFailed("관리자 권한 요청 스크립트 생성 실패")
