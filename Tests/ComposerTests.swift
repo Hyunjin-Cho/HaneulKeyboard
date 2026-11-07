@@ -1383,6 +1383,36 @@ struct ComposerTests {
             false, "연동: 개발 빌드 경로는 삭제 불가"
         )
 
+        // ── 2026-11-07 (#176, 오너 결정): 메인 앱 찾기는 응용 프로그램 폴더까지만 ──
+        // 키 입력을 보는 입력기가 데스크탑·다운로드·문서 폴더를 뒤지면 macOS 권한 창을 부를 수 있다.
+        let orphanRoots = OrphanDecision.scanRoots(home: "/Users/x")
+        expect(orphanRoots.map(\.path).joined(separator: "|"), "/Applications|/Users/x/Applications", "연동: 스캔은 /Applications·~/Applications만")
+        expect(orphanRoots.allSatisfy { $0.depth == 2 }, true, "연동: Utilities 같은 하위 폴더 한 단계까지 본다")
+        for sourcePath in ["IMESources/OrphanWatcher.swift", "IMESources/OrphanDecision.swift"] {
+            let source = (try? String(contentsOfFile: sourcePath, encoding: .utf8)) ?? ""
+            expect(!source.isEmpty && !["Desktop", "Downloads", "Documents"].contains { source.contains($0) }, true,
+                   "연동: \(sourcePath)에 보호 폴더 이름이 없다")
+        }
+        let orphanTree: [String: [String]] = [
+            "/Applications": ["HaneulKeyboard.app", "Other.app", "Utilities", ".hidden", "notes.txt"],
+            "/Applications/Utilities": ["Copy.app", "Deep"],
+            "/Applications/Utilities/Deep": ["TooDeep.app"],
+            "/Applications/.hidden": ["Hidden.app"],
+            "/Users/x/Applications": [],
+        ]
+        func orphanScan(_ unreadable: Set<String> = []) -> [String]? {
+            OrphanDecision.findApps(
+                in: orphanRoots, bundleID: "our.id",
+                list: { unreadable.contains($0) ? nil : orphanTree[$0] ?? [] },
+                isDirectory: { orphanTree[$0] != nil },
+                identifier: { $0.hasSuffix("Other.app") ? "other.id" : "our.id" })
+        }
+        expect(orphanScan()?.joined(separator: "|") ?? "nil", "/Applications/HaneulKeyboard.app|/Applications/Utilities/Copy.app",
+               "연동: 우리 앱만 찾고, 깊이 제한·숨김 폴더·남의 앱은 제외")
+        expect(orphanScan(["/Applications"]) == nil, true, "연동: 응용 프로그램 폴더를 못 읽으면 관찰 불가(정리 보류)")
+        expect(orphanScan(["/Users/x/Applications"]) == nil, true, "연동: ~/Applications를 못 읽으면 관찰 불가(정리 보류)")
+        expect(orphanScan(["/Applications/Utilities"]) == nil, true, "연동: 하위 폴더를 못 읽어도 없다고 단정하지 않음")
+
 
         // ── 2026-09-19 (#34) 아포스트로피 축약형 ────────────────────────
         // 예전엔 `'`(keyCode 39)가 active boundary였다: `ㅑ`만 i로 변환되고

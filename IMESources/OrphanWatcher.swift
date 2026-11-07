@@ -141,41 +141,21 @@ final class OrphanWatcher {
         let alive = paths.contains { fm.fileExists(atPath: $0) && !OrphanDecision.isInTrash($0) }
         if alive { return paths }
 
-        // 3) 표준 위치 스캔 — 위에서 못 찾았을 때만. /Applications·~/Applications는 하위 폴더
-        //    한 단계까지(Utilities 등에 넣어 두는 사용자가 있다 — AppMoveDecision.isAlreadyInPlace가
-        //    하위 폴더도 제자리로 인정한다), 그 밖 흔한 폴더는 최상위만 본다.
-        let home = fm.homeDirectoryForCurrentUser
-        let twoLevel = ["/Applications", home.appendingPathComponent("Applications").path]
-        let oneLevel = ["Desktop", "Downloads", "Documents"].map { home.appendingPathComponent($0).path }
-        for (dirs, depth) in [(twoLevel, 2), (oneLevel, 1)] {
-            for dir in dirs {
-                guard let found = Self.scanForMainApp(in: dir, depth: depth) else { return nil }
-                paths += found
-            }
-        }
-        return paths
-    }
-
-    /// `dir` 아래에서 우리 bundle ID의 .app을 찾는다(깊이 제한). `.app` 안으로는 들어가지 않는다.
-    private static func scanForMainApp(in dir: String, depth: Int) -> [String]? {
-        guard depth > 0 else { return [] }
-        let entries: [String]
-        do { entries = try FileManager.default.contentsOfDirectory(atPath: dir) }
-        catch { return RemovalObservation.isMissing(error) ? [] : nil }
-        var found: [String] = []
-        for entry in entries where !entry.hasPrefix(".") {
-            let url = URL(fileURLWithPath: dir).appendingPathComponent(entry)
-            if entry.hasSuffix(".app") {
-                if bundleIdentifier(at: url) == mainAppBundleID { found.append(url.path) }
-            } else if depth > 1 {
+        // 3) 표준 위치 스캔 — 위에서 못 찾았을 때만. 폴더 목록과 "읽지 못하면 관찰 불가" 규칙은 `OrphanDecision`에 있다.
+        guard let found = OrphanDecision.findApps(
+            in: OrphanDecision.scanRoots(home: fm.homeDirectoryForCurrentUser.path),
+            bundleID: Self.mainAppBundleID,
+            list: { dir in
+                do { return try fm.contentsOfDirectory(atPath: dir) }
+                catch { return RemovalObservation.isMissing(error) ? [] : nil }
+            },
+            isDirectory: { path in
                 var isDir: ObjCBool = false
-                if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue {
-                    guard let nested = scanForMainApp(in: url.path, depth: depth - 1) else { return nil }
-                    found += nested
-                }
-            }
-        }
-        return found
+                return fm.fileExists(atPath: path, isDirectory: &isDir) && isDir.boolValue
+            },
+            identifier: { Self.bundleIdentifier(at: URL(fileURLWithPath: $0)) }
+        ) else { return nil }
+        return paths + found
     }
 
     /// Info.plist를 직접 읽는다 — `Bundle(url:)`은 프로세스 수명 동안 캐시에 남아 스캔마다

@@ -56,8 +56,49 @@ enum OrphanDecision {
         paths.filter { !isInTrash($0) || accept($0) }
     }
 
+    struct ScanRoot: Equatable {
+        let path: String
+        let depth: Int
+    }
+
+    /// 2026-11-07 (#176, 오너 결정 · 리뷰 install-update-F-2): 데스크탑·다운로드·문서 폴더 스캔을 뺐다. 메인 앱을 버린 뒤 키 입력을 보는 입력기가
+    /// 보호 폴더를 뒤지면 macOS 권한 창을 부를 수 있고, 거부하면 오류가 "관찰 불가"가 되어 자기 정리가 영구히 미뤄졌다.
+    /// 남은 근거는 기록된 경로·LaunchServices·이 두 폴더다. 하위 폴더는 한 단계까지 본다(Utilities 등 —
+    /// `AppMoveDecision.isAlreadyInPlace`가 하위 폴더도 제자리로 인정한다). 보호 폴더로 옮기고 실행하지 않은 앱은 LaunchServices가 알 때만 찾는다.
+    static func scanRoots(home: String) -> [ScanRoot] {
+        [ScanRoot(path: "/Applications", depth: 2), ScanRoot(path: home + "/Applications", depth: 2)]
+    }
+
+    /// `roots` 아래에서 `bundleID`의 .app을 찾는다. `.app` 안으로는 들어가지 않는다.
+    /// `list`가 nil이면 그 폴더는 읽지 못한 것이다 — 없다고 단정하지 않고 전체를 nil(관찰 불가)로 돌려 자기 정리를 미룬다.
+    /// 폴더가 없는 경우는 `list`가 빈 배열을 돌려준다.
+    static func findApps(in roots: [ScanRoot], bundleID: String, list: (String) -> [String]?,
+                         isDirectory: (String) -> Bool, identifier: (String) -> String?) -> [String]? {
+        func scan(_ dir: String, depth: Int) -> [String]? {
+            guard depth > 0 else { return [] }
+            guard let entries = list(dir) else { return nil }
+            var found: [String] = []
+            for entry in entries where !entry.hasPrefix(".") {
+                let path = URL(fileURLWithPath: dir).appendingPathComponent(entry).path
+                if entry.hasSuffix(".app") {
+                    if identifier(path) == bundleID { found.append(path) }
+                } else if depth > 1, isDirectory(path) {
+                    guard let nested = scan(path, depth: depth - 1) else { return nil }
+                    found += nested
+                }
+            }
+            return found
+        }
+        var found: [String] = []
+        for root in roots {
+            guard let paths = scan(root.path, depth: root.depth) else { return nil }
+            found += paths
+        }
+        return found
+    }
+
     /// 후보 경로들(LaunchServices가 아는 복사본 + 메인 앱이 기록한 자기 경로 + 그 이름의
-    /// 휴지통 사본 + 표준 폴더 스캔)을 하나의 관찰로 요약한다.
+    /// 휴지통 사본 + /Applications·~/Applications 스캔)을 하나의 관찰로 요약한다.
     /// `exists`로 지금 디스크에 실재하는 것만 센다 — LaunchServices 캐시는 지워진 앱을
     /// 한동안 계속 알고 있다.
     static func classify(candidatePaths: [String], exists: (String) -> Bool) -> AppPresence {
