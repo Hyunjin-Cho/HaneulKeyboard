@@ -357,6 +357,9 @@ private func runSystemWordFileTests(scratch: String) {
         ("뒤섞음(상한 넘음)", Data((shuffled(sortedWords(40_000), seed: 11).joined(separator: "\n") + "\n").utf8), true),
         ("앞줄 하나가 뒤를 전부 밀어냄", Data((["zzzz"] + sortedWords(20_000)).joined(separator: "\n").utf8), true),
         ("대상 아닌 줄이 길게 이어짐", Data(("abc\n" + capitalRun + "\nabd\n").utf8), true),
+        // 2026-11-07 (#175, 독립 리뷰): 위 사례는 파일 끝 검사만 탄다. 가운데 간격도 조회 비용 상한(`maxGapBytes`)을 넘으면 펼쳐야 한다.
+        ("대상 아닌 줄이 가운데에 길게 이어짐", Data((plain.prefix(100).joined(separator: "\n") + "\n" + capitalRun + "\n"
+            + plain.dropFirst(100).joined(separator: "\n") + "\n").utf8), true),
     ]
     for item in cases {
         let path = scratch + "/system-\(item.name.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) & 0xFFFFFF }).txt"
