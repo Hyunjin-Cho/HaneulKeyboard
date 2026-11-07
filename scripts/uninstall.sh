@@ -23,6 +23,7 @@ trap 'rm -rf "$WORK_DIR"' EXIT
 swiftc -parse-as-library -target "$(uname -m)-apple-macos14.0" -module-cache-path "$WORK_DIR/module-cache" \
     "$ROOT_DIR/Shared/RemovalPolicy.swift" "$ROOT_DIR/Shared/RemovalObservation.swift" \
     "$ROOT_DIR/Shared/RemovalAdminScript.swift" "$ROOT_DIR/Sources/BundleTrust.swift" \
+    "$ROOT_DIR/Sources/RemovalMainAppOperations.swift" \
     "$ROOT_DIR/scripts/RemovalCommand.swift" "$ROOT_DIR/scripts/RemovalCommandMain.swift" \
     -o "$WORK_DIR/uninstall"
 "$WORK_DIR/uninstall" "$@"

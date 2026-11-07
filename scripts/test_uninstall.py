@@ -41,7 +41,7 @@ out.chmod(0o700)
         else:
             calls = [json.loads(line) for line in journal.read_text().splitlines()]
             assert len(calls) == 1
-            for file in ("Shared/RemovalPolicy.swift", "Shared/RemovalObservation.swift", "Shared/RemovalAdminScript.swift", "scripts/RemovalCommand.swift"):
+            for file in ("Shared/RemovalPolicy.swift", "Shared/RemovalObservation.swift", "Shared/RemovalAdminScript.swift", "Sources/RemovalMainAppOperations.swift", "scripts/RemovalCommand.swift"):
                 assert str(root / file) in calls[0], (scenario, file)
             assert ("fixture-product" in result.stdout) == (scenario != "compiler-failure")
             assert not Path(calls[0][calls[0].index("-o") + 1]).exists(), "임시 실행기 정리"
