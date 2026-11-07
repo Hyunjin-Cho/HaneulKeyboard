@@ -91,6 +91,9 @@ enum Uninstaller {
                     guard result.reachedGoal else { return result }
                 }
                 return mainTargets.isEmpty ? .alreadyAbsent : .removed
+            },
+            otherAccountNotice: {
+                RemovalObservation.otherAccountNotice(removingSystemIME: imeTargets.contains { $0.url == RemovalObservation.systemIME })
             }
         ))
     }
