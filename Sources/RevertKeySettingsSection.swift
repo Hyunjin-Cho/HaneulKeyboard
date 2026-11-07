@@ -11,7 +11,7 @@ import SwiftUI
 struct RevertKeySettingsSection: View {
     /// IME 도메인 — 이유는 `EnglishConversionSettingsTab.imeDefaults` 주석 참조
     /// (`UserDefaults.standard`로 쓰면 IME 헬퍼가 영영 보지 못한다).
-    private static let imeDefaults = UserDefaults(suiteName: "com.hyunjincho.inputmethod.haneul")
+    private static let imeDefaults = UserDefaults(suiteName: IMEInstaller.imeBundleID)
 
     @State private var revertKey: RevertKey = RevertKey.resolve(
         rawValue: RevertKeySettingsSection.imeDefaults?.string(forKey: RevertKey.defaultsKey))
@@ -72,7 +72,7 @@ struct RevertKeySettingsSection: View {
 /// 2026-10-11 (#88): 자동 변환 화면에 앱별 예외를 모은다. 저장 키와 추가/제거 동작은 유지한다.
 struct AppAutoConversionSettingsSection: View {
     /// IME 도메인 — 이유는 `EnglishConversionSettingsTab.imeDefaults` 주석 참조.
-    private static let imeDefaults = UserDefaults(suiteName: "com.hyunjincho.inputmethod.haneul")
+    private static let imeDefaults = UserDefaults(suiteName: IMEInstaller.imeBundleID)
 
     @State private var disabledIDs: [String] =
         AppAutoConversionSettingsSection.imeDefaults?.stringArray(forKey: AutoConvertPolicy.disabledAppsKey) ?? []

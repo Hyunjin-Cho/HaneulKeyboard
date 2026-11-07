@@ -2,77 +2,45 @@ import AppKit
 import SwiftUI
 
 /// 2026-11-03 (#116): 안내 1~4 두루마리 무대 — 긴 리소 그림 한 장 위를 카메라가 트럭·푸시 인 한다(앱 안에서 실시간).
-/// 오너 결정(2026-11-03 17:46): 3D 세트 없이 그림 한 장 + 앱 안 카메라, 사람은 새로 그린 세 사람.
-/// 그림·카메라 정거장·인물 자리의 정본은 비공개 haneul-art `onboarding/`(scroll.py · people.py)이 내보낸
-/// OnboardingScroll.json · OnboardingPeople.json이다. 여기에 값을 옮겨 적지 않는다.
-enum OnboardingScrollArt {
-    struct Station: Decodable { let page: Int; let cx: CGFloat; let cy: CGFloat; let zoom: CGFloat }
-    /// 인물 자리: 1·2페이지는 가운데 사람(x, y) + 간격, 3페이지부터는 사람마다(figures, PEOPLE 순서).
-    /// figures 한 칸 = [x, y] · [x, y, 배율] · [x, y, 배율, 앞뒤]. 앞뒤 기본 10, 따로 찍은 층(Prop)과 비교해 쌓는다.
-    struct PeopleAt: Decodable {
-        let page: Int
-        let scale: CGFloat
-        let x: CGFloat?
-        let y: CGFloat?
-        let spacing: CGFloat?
-        let figures: [[CGFloat]]?
-        /// 2026-11-04 (#119): 공중 자세(시소 높은 끝·징검돌 사이)로 들고 나는 사람.
-        let hops: [Hop]?
-
-        func foot(_ index: Int) -> CGPoint? {
-            if let figures, index < figures.count, figures[index].count >= 2 { return CGPoint(x: figures[index][0], y: figures[index][1]) }
-            guard let x, let y else { return nil }
-            return CGPoint(x: x + CGFloat(index - 1) * (spacing ?? 0), y: y)
-        }
-        func scale(_ index: Int) -> CGFloat {
-            if let figures, index < figures.count, figures[index].count > 2 { return figures[index][2] }
-            return scale
-        }
-        func depth(_ index: Int) -> CGFloat {
-            if let figures, index < figures.count, figures[index].count > 3 { return figures[index][3] }
-            return 10
-        }
-    }
-    /// 2026-11-04 (#119): 공중 자세로 들고 나는 사람 — rise = 뛰어오르는 땅 자리, land = 내려앉는 땅 자리(세계 pt, 발끝),
-    /// up·down = 오르내리는 동안 보일 자세 이름, air_dy = 공중 자세를 페이지 자세보다 아래에 놓고 바꿔 끼울 거리(엉덩이 높이 맞춤).
-    struct Hop: Decodable { let who: Int; let rise: [CGFloat]; let land: [CGFloat]; let up: String; let down: String; let air_dy: CGFloat? }
-    /// 2026-11-04 (#119): 첫 화면 펼침용 말린 축. w·h = 세계 pt, edge = 펼친 그림이 끝나는 자리(축 왼쪽에서 pt).
-    struct Roll: Decodable { let file: String; let w: CGFloat; let h: CGFloat; let edge: CGFloat }
-    /// 2026-11-03 20:29: 두루마리에서 떼어 따로 찍은 층(4페이지 시소 판 — 시소 뒤에 선 사람을 가린다). x, y = 세계 왼쪽 위 pt.
-    struct Prop: Decodable { let page: Int; let file: String; let x: CGFloat; let y: CGFloat; let w: CGFloat; let h: CGFloat; let z: CGFloat }
-    struct Scroll: Decodable {
-        let image_pt: [CGFloat]
-        let stage_pt: [CGFloat]
-        let stations: [Station]
-        let people: [PeopleAt]
-        let props: [Prop]?
-        let roll: Roll?
-    }
-    struct Sprite: Decodable { let file: String; let canvas_pt: [CGFloat]; let anchor_pt: [CGFloat] }
-    struct People: Decodable { let order: [String]; let sprites: [String: Sprite] }
+/// 구조체 정의(자료의 모양)는 `OnboardingScrollData.swift`에 있다(2026-11-07, #177).
+extension OnboardingScrollArt {
 
     static let scroll: Scroll? = decode("OnboardingScroll")
     static let people: People? = decode("OnboardingPeople")
     /// 2026-11-06 (#156): 앱은 창 없이 뒤에 남으므로 그림을 여기(전역)에 쥐지 않는다. 13600×960 두루마리는 풀면 52MB다.
     /// 불러 주기만 하고, 쥐는 쪽은 무대(StageView)다. 창이 닫혀 무대가 사라지면 그림도 같이 풀린다.
-    private static let imageURL = Bundle.main.url(forResource: "OnboardingScroll", withExtension: "jpg")
+    /// 2026-11-07 (#177, 리뷰 app-ui-F-6): 번들에 없으면 이유를 로그에 남긴다(안내 1~6페이지가 종이색 무대로 바뀐다).
+    private static let imageURL: URL? = {
+        let url = Bundle.main.url(forResource: "OnboardingScroll", withExtension: "jpg")
+        if url == nil { haneulLog("HaneulKeyboard: 안내 두루마리 그림(OnboardingScroll.jpg)이 번들에 없어요 — 안내 무대를 종이색으로 대신해요") }
+        return url
+    }()
     static func loadImage() -> CGImage? { cgImage(imageURL) }
     /// 두루마리 그림이 있는 페이지 수(정거장 수). 2026-11-03 20:57: 1~7페이지(7 = 영상 첫 프레임 자리).
     static var pageCount: Int { imageURL == nil ? 0 : (scroll?.stations.count ?? 0) }
 
     static func image(named file: String) -> CGImage? {
-        cgImage(Bundle.main.url(forResource: (file as NSString).deletingPathExtension, withExtension: "png"))
+        cgImage(Bundle.main.url(forResource: pngResourceName(file), withExtension: "png"))
     }
 
     static func loadSprite(key: String) -> CGImage? {
         guard let s = people?.sprites[key] else { return nil }
-        return cgImage(Bundle.main.url(forResource: (s.file as NSString).deletingPathExtension, withExtension: "png"))
+        return cgImage(Bundle.main.url(forResource: pngResourceName(s.file), withExtension: "png"))
     }
 
+    /// 2026-11-07 (#177, 리뷰 app-ui-F-6): 예전엔 `try?`로 삼켜서, 키 이름이 바뀌거나 파일이 빠져도 원인이 어디에도 남지 않았다.
+    /// 실패하면 로그에 이유를 남기고 nil을 돌려준다 — 그러면 `pageCount`가 0이 되어 무대는 종이색이 된다.
     private static func decode<T: Decodable>(_ name: String) -> T? {
-        guard let url = Bundle.main.url(forResource: name, withExtension: "json"),
-              let data = try? Data(contentsOf: url) else { return nil }
-        return try? JSONDecoder().decode(T.self, from: data)
+        guard let url = Bundle.main.url(forResource: name, withExtension: "json") else {
+            haneulLog("HaneulKeyboard: 안내 두루마리 자원 \(name).json이 번들에 없어요 — 안내 무대를 종이색으로 대신해요")
+            return nil
+        }
+        do {
+            return try JSONDecoder().decode(T.self, from: Data(contentsOf: url))
+        } catch {
+            haneulLog("HaneulKeyboard: 안내 두루마리 자원 \(name).json을 읽지 못했어요 — \(error) — 안내 무대를 종이색으로 대신해요")
+            return nil
+        }
     }
 
     private static func cgImage(_ url: URL?) -> CGImage? {

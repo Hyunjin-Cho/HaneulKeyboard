@@ -5,8 +5,9 @@ import Security
 
 enum IMEInstaller {
     static let bundleName = "HaneulKeyboardIM.app"
-    /// IME 번들 ID. 2026-09-20 (#46): 공유 비활성화 함수용으로 추가 — 이 파일 안 다른 자리의
-    /// 같은 리터럴(`registerWithTIS`·`tisActivationState`·`stopIMEProcess`)은 손대지 않았다.
+    /// IME 번들 ID이자 설정(defaults) 도메인 이름. 2026-09-20 (#46): 공유 비활성화 함수용으로 추가.
+    /// 2026-11-07 (#177, 리뷰 app-ui-F-8): 앱 쪽의 같은 리터럴(이 파일 안 `registerWithTIS`·`tisActivationState`와
+    /// 설정 화면 여러 곳)을 모두 이 상수로 모았다. 값은 그대로다(입력기 Info.plist·사용자 저장소와 같아야 한다).
     static let imeBundleID = "com.hyunjincho.inputmethod.haneul"
 
     static var installURL: URL {
@@ -281,7 +282,8 @@ enum IMEInstaller {
 
     @MainActor
     static func uninstall() async -> RemovalReport {
-        Uninstaller.removeInputMethod()
+        // 2026-11-07 (#177, 리뷰 app-ui-F-4): 제거 순서는 메인 스레드 밖에서 돈다. 관리자 인증(NSAppleScript)·TIS는 Uninstaller가 메인으로 돌아와 부른다.
+        await Uninstaller.removeInputMethod()
     }
 
     /// `do shell script ... with administrator privileges` — shows the
@@ -381,7 +383,7 @@ enum IMEInstaller {
     /// actually changed.
     @MainActor
     private static func registerWithTIS(at url: URL) async throws {
-        let bundleID = "com.hyunjincho.inputmethod.haneul"
+        let bundleID = imeBundleID
         if !tisKnowsBundle(bundleID) {
             let status = TISRegisterInputSource(url as CFURL)
             guard status == noErr else {
@@ -413,7 +415,7 @@ enum IMEInstaller {
 
     @MainActor
     private static func tisActivationState() -> TISActivationState {
-        let bundleID = "com.hyunjincho.inputmethod.haneul"
+        let bundleID = imeBundleID
         guard let all = TISCreateInputSourceList(nil, true)?.takeRetainedValue() as? [TISInputSource] else {
             return TISActivationState(known: false, enabled: false)
         }

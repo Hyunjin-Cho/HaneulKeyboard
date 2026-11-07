@@ -16,7 +16,7 @@ struct OnboardingView: View {
     var onSettings: (SettingsTab) -> Void = { _ in }
     var onSupport: () -> Void = {}
     var onComplete: () -> Void = {}
-    @AppStorage("haneul.hasCompletedOnboarding") private var hasCompleted = false
+    @AppStorage(HaneulDefaultsKey.hasCompletedOnboarding) private var hasCompleted = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
     @State private var step = 0
@@ -129,8 +129,10 @@ struct OnboardingView: View {
         } else if step == Self.stagePage {
             OnboardingStageVideo(animate: !reduceMotion)
         } else {
-            // 블로킹: 3~6 그림 자리(#107 4번에서 채운다). 검수 하네스가 이 키 색 자리에 콘티 장면을 갈아 끼운다.
-            Color(red: 0, green: 1, blue: 0)
+            // 2026-11-07 (#177, 리뷰 app-ui-F-6): 두루마리 자원을 못 읽어 pageCount가 0일 때만 여기로 온다(원인은 `OnboardingScrollArt`가 로그에 남긴다).
+            // 예전엔 2026-11-03 틀 잡기(#115) 검수 하네스가 갈아 끼우는 키 색(순녹색)이었다 — 사용자가 보게 되면 형광 녹색 사각형이다.
+            // 지금은 1~7페이지 모두 위 두 갈래가 맡아 검수 도구도 이 색을 더 쓰지 않으므로 안내 종이색으로 둔다.
+            OnboardingRiso.ivory
         }
     }
 
@@ -309,15 +311,22 @@ struct OnboardingView: View {
                 }
                 Spacer(minLength: 0)
                 if !ready {
-                    OnboardingButton(core.isPreparingIME ? "확인·설치 중…" : "하늘키보드 설치") {
-                        Task {
-                            installError = nil
-                            if let error = await core.installIME() { installError = error.localizedDescription }
-                        }
-                    }.disabled(core.isPreparingIME).fixedSize()
+                    if core.imeRefreshBlockedBySystemInstall && !core.isPreparingIME {
+                        // 2026-11-07 (#177, 리뷰 app-ui-F-3): 설치 버튼은 시스템 영역 입력기를 바꾸지 못하고 재등록만 한다 — 눌러도 그대로라
+                        // 막다른 길이었다. 해결이 있는 앱 관리로 바로 보낸다.
+                        OnboardingButton("앱 관리 열기") { onSettings(.appManagement) }.fixedSize()
+                    } else {
+                        OnboardingButton(core.isPreparingIME ? "확인·설치 중…" : "하늘키보드 설치") {
+                            Task {
+                                installError = nil
+                                if let error = await core.installIME() { installError = error.localizedDescription }
+                            }
+                        }.disabled(core.isPreparingIME).fixedSize()
+                    }
                 }
             }.feedbackPanel(.information).fixedSize(horizontal: false, vertical: true)
-            if let message = installError ?? core.imeActivationError?.localizedDescription ?? core.imeSettingsRefreshWarning {
+            if let message = installError ?? systemInstallNotice ?? core.imeActivationError?.localizedDescription
+                ?? core.imeSettingsRefreshWarning {
                 Text(message).font(.system(size: 14))
                     .foregroundStyle(FeedbackStatus.warning.color(in: colorScheme)).textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true).feedbackPanel(.warning)
@@ -334,8 +343,15 @@ struct OnboardingView: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
+    /// 2026-11-07 (#177, 리뷰 app-ui-F-3): 시스템 영역(/Library/Input Methods)의 낡은 입력기는 앱이 직접 바꿀 수 없다.
+    /// 왜 안 되는지와 무엇을 할지를 함께 적는다. 이전엔 이 해결법이 설정 → 버전·업데이트에만 있었다.
+    private var systemInstallNotice: String? {
+        guard core.imeRefreshBlockedBySystemInstall, !core.isPreparingIME else { return nil }
+        return "이 Mac의 시스템 영역(/Library/Input Methods)에 이전 버전 입력기가 있어서 앱이 직접 바꿀 수 없어요. ‘앱 관리 열기’에서 ‘입력기 제거’를 누른 뒤 ‘하늘키보드 설치’를 눌러 주세요."
+    }
     private var installStatus: String {
         if core.isPreparingIME { return "설치 상태를 확인하고 있어요" }
+        if core.imeRefreshBlockedBySystemInstall { return "이전 버전 입력기를 지우고 다시 설치해 주세요" }
         if core.imeRefreshNeeded { return "입력기를 새 버전으로 업데이트해 주세요" }
         if core.imeInstalled { return "설치 완료" }
         if core.imeDisabled { return "설치되어 있어요 · 입력 소스를 다시 켜 주세요" }
@@ -707,7 +723,7 @@ struct OnboardingView: View {
         slashEnabled = defaults?.object(forKey: SlashEnglishSession.defaultsKey) as? Bool
             ?? SlashEnglishSession.defaultEnabled
         autoEnabled = AutoConvertPolicy.allowed(
-            globalEnabled: defaults?.object(forKey: "haneul.autoEnglishEnabled") as? Bool ?? true,
+            globalEnabled: defaults?.object(forKey: HaneulDefaultsKey.autoEnglishEnabled) as? Bool ?? true,
             disabledIDs: defaults?.stringArray(forKey: AutoConvertPolicy.disabledAppsKey) ?? [],
             clientBundleID: Bundle.main.bundleIdentifier)
     }

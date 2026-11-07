@@ -25,12 +25,8 @@ enum OnboardingRiso {
     }
     // 2026-11-04 (#118): 10월 안내의 작은 풍경·인물 띠(walkers·landscape·승인 7자세)와 머리 아이콘(appIcon)은
     // 리디자인(#107 — 두루마리·새 세 사람·7페이지 영상) 뒤 쓰이지 않아 자원과 함께 지웠다(git 기록에 남는다).
-
-    private static func bundledImage(_ name: String) -> NSImage {
-        guard let url = Bundle.main.url(forResource: name, withExtension: "png"),
-              let image = NSImage(contentsOf: url) else { return NSImage(size: NSSize(width: 1, height: 1)) }
-        return image
-    }
+    // 2026-11-07 (#177, 리뷰 app-ui-F-5): 그때 빠뜨린 10월 종이 RisoPaper.png(약 3MB)와 그것만 읽던 bundledImage도 지웠다.
+    // 앱 번들·ZIP·DMG가 3MB 가벼워진다. 원본은 비공개 haneul-art에 있고 git 기록에도 남는다.
 
     /// 이음매 없는 한지 타일. 2048px 원본을 1024pt(@2x)로 맞춰, 레티나에서 한 픽셀이 그대로 찍히게 한다.
     private static func tileImage(_ name: String) -> NSImage {

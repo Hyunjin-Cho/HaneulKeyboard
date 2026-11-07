@@ -13,11 +13,11 @@ struct EnglishConversionSettingsTab: View {
     /// IME 헬퍼는 자기 프로세스의 defaults 도메인(`com.hyunjincho.inputmethod.haneul`)만 읽는다.
     /// `UserDefaults.standard`로 쓰면 메인 앱 도메인에 들어가 IME는 영영 보지 못한다.
     /// **이 주석이 설정 화면 전체의 `imeDefaults` 설명 정본이다** — 다른 절 파일들이 여기를 가리킨다.
-    private static let imeDefaults = UserDefaults(suiteName: "com.hyunjincho.inputmethod.haneul")
+    private static let imeDefaults = UserDefaults(suiteName: IMEInstaller.imeBundleID)
 
     @State private var autoEnglishEnabled: Bool =
         EnglishConversionSettingsTab.imeDefaults?
-            .object(forKey: "haneul.autoEnglishEnabled") as? Bool ?? true
+            .object(forKey: HaneulDefaultsKey.autoEnglishEnabled) as? Bool ?? true
     @State private var externalEnglishContextEnabled: Bool =
         EnglishConversionSettingsTab.imeDefaults.map { InputInferencePolicy.externalEnglishContextEnabled(in: $0) }
             ?? InputInferencePolicy.externalEnglishContextDefault
@@ -52,7 +52,7 @@ struct EnglishConversionSettingsTab: View {
                     HaneulSettingsSection("자동 변환") {
                         Toggle("영타 자동 변환", isOn: $autoEnglishEnabled)
                             .onChange(of: autoEnglishEnabled) { _, newValue in
-                                Self.imeDefaults?.set(newValue, forKey: "haneul.autoEnglishEnabled")
+                                Self.imeDefaults?.set(newValue, forKey: HaneulDefaultsKey.autoEnglishEnabled)
                             }
                         Text("한글 모드에서 영문 자판으로 잘못 친 글자(ㅠ무뭄)를 Space나 문장부호로 끝낼 때 영어(banana)로 바꿉니다. 올바른 한글과 사전에 없는 영어 철자는 그대로 둡니다.")
                             .font(SettingsTypography.body)
