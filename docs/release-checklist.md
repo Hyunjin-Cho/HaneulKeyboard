@@ -52,7 +52,7 @@
 - [ ] **`bash scripts/run_onboarding_tests.sh`도 매번 필수다.** 안내 입력 연습(`Tests/OnboardingPracticeTests.swift`), 메인 앱 화면 판단·설정 키·두루마리 자원(`Tests/AppUITests.swift`), 번들 자원이 코드나 JSON에서 참조되는지(`scripts/verify_bundle_resources.py`)를 함께 본다.
 - [ ] `python3 scripts/run_controller_tests.py` 통과(입력 컨트롤러 시나리오).
 - [ ] `bash scripts/audit_wordlist.sh --smoke` 통과(검역 스모크). 사전을 고쳤다면 `python3 scripts/build_english_table.py --check`도 통과해야 한다.
-- [ ] **무서명 빌드**가 두 타깃 모두 통과한다: `xcodegen generate` 뒤 `xcodebuild -scheme HaneulKeyboard -configuration Release -derivedDataPath .tmp/dd CODE_SIGNING_ALLOWED=NO build`(산출물은 `.gitignore`된 `.tmp/` 아래에 둔다. 2026-11-07 문서를 고칠 때는 이 명령을 실행해 보지 못했다 — 안 되면 이 줄을 고친다). 서명·공증은 아래 ③에서 따로 한다.
+- [ ] **무서명 빌드**가 두 타깃 모두 통과한다: `xcodegen generate` 뒤 `xcodebuild -project HaneulKeyboard.xcodeproj -scheme HaneulKeyboard -configuration Release -derivedDataPath .tmp/dd CODE_SIGNING_ALLOWED=NO build`(Debug도 같은 명령으로 돌린다. 산출물은 `.gitignore`된 `.tmp/` 아래에 둔다). 빌드 산출물이 LaunchServices에 남으면 입력기 자기 정리와 설치본 확인을 꼬이게 할 수 있으니 끝나면 `lsregister -u <앱 경로>`로 앱과 내장 입력기의 등록을 지운다. 2026-11-07 이 명령 꼴로 Release·Debug 빌드와 번들 검증이 통과하는 것을 확인했다. 서명·공증은 아래 ③에서 따로 한다.
 - [ ] `python3 scripts/test_postinstall_probe.py` 통과 — 실제 TIS 집계 블록의 enabled/disabled/없음/중복을 확인한다(2026-10-11 리뷰 F-2). 이 검사는 실제 설치 상태의 통과를 뜻하지 않는다.
 - [ ] `python3 scripts/test_install_destination.py` 통과 — 설치 대상 검증(다른 제품 ID·신뢰할 수 없는 서명·심볼릭 링크 거부).
 - [ ] `python3 scripts/test_uninstall.py` 통과 — Swift 공통 코드를 사용하는 CLI 진입점의 실패 전파를 확인한다. 실제 제품 순서의 실패/취소/재생성 시 데이터 보존, 실제 임시 파일·설정 검사는 `run_updater_tests.sh`에서 Debug/Release 모두 통과해야 한다(2026-10-11 승인 B안).
