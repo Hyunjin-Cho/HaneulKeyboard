@@ -27,7 +27,7 @@ enum AppMover {
 
         let alert = NSAlert()
         alert.messageText = "HaneulKeyboard를 응용 프로그램 폴더로 옮길까요?"
-        alert.informativeText = "압축을 푼 위치에서 바로 실행하면 macOS 보안 기능(앱 격리) 때문에 메뉴바 아이콘이 첫 실행에 안 뜰 수 있어요. 응용 프로그램 폴더로 옮기면 항상 안정적으로 작동합니다."
+        alert.informativeText = "압축을 푼 위치에서 바로 실행하면 macOS 보안 기능(앱 격리) 때문에 메뉴바 아이콘이 첫 실행에 안 뜰 수 있어요. 응용 프로그램 폴더로 옮기면 안정적으로 동작해요."
         alert.addButton(withTitle: "옮기고 다시 열기")
         alert.addButton(withTitle: "옮기지 않고 종료")
         alert.alertStyle = .informational
@@ -49,7 +49,7 @@ enum AppMover {
                 guard isOurApp(at: destURL) else {
                     let block = NSAlert()
                     block.messageText = "응용 프로그램 폴더에 다른 앱이 있어요"
-                    block.informativeText = "\(destURL.path)이(가) HaneulKeyboard가 아닙니다. 안전을 위해 덮어쓰지 않고 중단했어요. 그 앱을 옮기거나 이름을 바꾼 뒤 다시 시도해 주세요."
+                    block.informativeText = "\(destURL.path)이(가) HaneulKeyboard가 아니에요. 안전을 위해 덮어쓰지 않고 중단했어요. 그 앱을 옮기거나 이름을 바꾼 뒤 다시 시도해 주세요."
                     block.alertStyle = .warning
                     block.runModal()
                     return .blockedByOtherApp
@@ -62,7 +62,7 @@ enum AppMover {
                    incoming < existing {
                     let warn = NSAlert()
                     warn.messageText = "이미 더 최신 버전이 설치돼 있어요"
-                    warn.informativeText = "응용 프로그램 폴더의 HaneulKeyboard가 지금 실행한 버전보다 최신입니다. 그래도 이 (구)버전으로 덮어쓸까요?"
+                    warn.informativeText = "응용 프로그램 폴더의 HaneulKeyboard가 지금 실행한 버전보다 최신이에요. 그래도 이 (구)버전으로 덮어쓸까요?"
                     warn.addButton(withTitle: "기존 최신 버전 열기")
                     warn.addButton(withTitle: "구버전으로 덮어쓰기")
                     warn.alertStyle = .warning

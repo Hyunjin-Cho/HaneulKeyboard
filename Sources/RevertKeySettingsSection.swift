@@ -24,47 +24,49 @@ struct RevertKeySettingsSection: View {
         RevertKeySettingsSection.imeDefaults?.object(forKey: RevertKey.phoneticKey) as? Bool
             ?? RevertKey.phoneticDefault
     var body: some View {
-        HaneulSettingsSection("단축키와 수동 변환") {
-            Picker("변환 단축키", selection: $revertKey) {
-                ForEach(RevertKey.allCases, id: \.self) { key in
-                    Text(key.displayName).tag(key)
+        // 2026-11-07 오너(#189): 키 하나로 하는 세 가지를 한 카드에 모은다. 이름과 설명은 사용자가 겪는 상황으로 다시 썼다.
+        HaneulSettingsSection {
+            VStack(alignment: .leading, spacing: 3) {
+                Picker("변환 단축키", selection: $revertKey) {
+                    ForEach(RevertKey.allCases, id: \.self) { key in
+                        Text(key.displayName).tag(key)
+                    }
                 }
-            }
-            .onChange(of: revertKey) { _, newValue in
-                Self.imeDefaults?.set(newValue.rawValue, forKey: RevertKey.defaultsKey)
-            }
-            // 2026-09-21 (#60): 단축키 겹침 안내는 본문 캡션에서 툴팁으로 내렸다 — 고르는
-            // 순간이 아니라 고른 뒤에야 필요한 정보인데, 이 탭에서 가장 긴 캡션이었다.
-            .help("고른 조합이 다른 앱의 단축키와 겹치면 다른 조합을 고르세요.")
-
-            Text("자판 변환·등록 단어 변환·변환 되돌리기에 같은 단축키를 사용합니다.")
-                .font(SettingsTypography.body)
-                .foregroundStyle(.secondary)
-
-            Toggle("자판 변환", isOn: $manualToggleAllWords)
-                .onChange(of: manualToggleAllWords) { _, newValue in
-                    Self.imeDefaults?.set(newValue, forKey: RevertKey.manualToggleAllWordsKey)
+                .onChange(of: revertKey) { _, newValue in
+                    Self.imeDefaults?.set(newValue.rawValue, forKey: RevertKey.defaultsKey)
                 }
-            Text("변환 단축키로 입력한 글자를 반대쪽 한/영 자판 글자로 바꿉니다. 예: 재가 ↔ work")
-                .font(SettingsTypography.body)
-                .foregroundStyle(.secondary)
+                .help("다른 앱의 단축키와 겹치면 다른 조합을 골라 주세요.")
+                Text("이 키 하나로 세 가지를 해요. 방금 영어로 바뀐 단어는 되돌리고, 목록에 있는 한글 단어는 영어로 바꾸고, 그 밖의 단어는 한/영을 바꿔요.")
+                    .font(SettingsTypography.body)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
-            Toggle("등록 단어 변환", isOn: $phoneticEnabled)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("되돌리기")
+                Text("방금 영어로 잘못 바뀌었다면 눌러 주세요. 친 글자 그대로 돌아오고, 한 번 더 누르면 다시 영어로 바뀌어요.")
+                    .font(SettingsTypography.body)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            SettingsToggleRow(title: "한글 단어를 영어로 바꾸기",
+                detail: "바나나 → banana, 축구 → football처럼 앱에 준비된 단어를 바꿔요. 번역은 아니에요. 이 키를 눌렀을 때만 바뀌고 Space로는 안 바뀌어요.",
+                isOn: $phoneticEnabled)
                 .onChange(of: phoneticEnabled) { _, newValue in
                     Self.imeDefaults?.set(newValue, forKey: RevertKey.phoneticKey)
                 }
-            Text("변환 단축키로 바나나 → banana, 축구 → football처럼 바꿉니다. 다시 누르면 입력한 한글로 돌아옵니다. 일반 Space에서는 바뀌지 않으며, 기본 사전에 등록된 표기만 지원합니다.")
-                .font(SettingsTypography.body)
-                .foregroundStyle(.secondary)
-        }
 
-        HaneulSettingsSection("변환 되돌리기") {
-            Text("방금 변환한 글자를 변환 단축키로 원래대로 되돌립니다. 다시 누르면 재변환합니다.")
+            SettingsToggleRow(title: "쳐 놓은 단어 한/영 바꾸기",
+                detail: "한/영 전환을 깜빡하고 친 단어를 같은 키 자리의 글자로 바꿔요. 예: dkssud ↔ 안녕. 한글 모드에서 단어 뒤에 커서를 두고 눌러 주세요. 조사가 붙거나 목록에 없는 한글도 여기로 넘어가요.",
+                isOn: $manualToggleAllWords)
+                .onChange(of: manualToggleAllWords) { _, newValue in
+                    Self.imeDefaults?.set(newValue, forKey: RevertKey.manualToggleAllWordsKey)
+                }
+
+            Label("터미널 앱(Terminal, Ghostty 등)은 이미 들어간 글자를 바꿀 수 없어서 이 키를 눌러도 그대로예요. 자동 변환과 슬래시 입력은 돼요.", systemImage: "terminal")
                 .font(SettingsTypography.body)
-                .foregroundStyle(.secondary)
-            Text("Terminal·Ghostty 같은 터미널 앱에서는 되돌리기가 동작하지 않습니다. 영타 자동 변환은 그대로 사용할 수 있습니다.")
-                .font(SettingsTypography.body)
-                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
@@ -82,7 +84,7 @@ struct AppAutoConversionSettingsSection: View {
 
     var body: some View {
         HaneulSettingsSection("앱별 자동 변환 끄기") {
-            Text("아래 앱에서는 한글 모드로 영어를 쳐도 바꾸지 않습니다. 위 \"영타 자동 변환\"이 꺼져 있으면 목록과 상관없이 모든 앱에서 바꾸지 않습니다.")
+            Text("여기 넣은 앱에서는 영어로 자동 변환하지 않아요. 한글 입력과 단축키, 슬래시 입력은 그대로 돼요. 위 ‘영어 자동 변환’을 끄면 모든 앱에서 꺼져요.")
                 .font(SettingsTypography.body)
                 .foregroundStyle(.secondary)
 
@@ -90,7 +92,7 @@ struct AppAutoConversionSettingsSection: View {
             // 절 높이가 달라지면 화면이 덜컥거린다.
             List {
                 if disabledIDs.isEmpty {
-                    Text("끈 앱이 없습니다.")
+                    Text("아직 넣은 앱이 없어요.")
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(disabledIDs, id: \.self) { bundleID in
@@ -118,7 +120,8 @@ struct AppAutoConversionSettingsSection: View {
             }
             .listStyle(.bordered(alternatesRowBackgrounds: true))
             .font(SettingsTypography.body)
-            .frame(height: 132)
+            // 2026-11-07 (#189): 첫 카드와 함께 한 화면에 들어가게 132에서 줄였다. 많아지면 목록 안에서 스크롤한다.
+            .frame(height: 104)
 
             HStack {
                 Button("실행 중인 앱에서 추가...") {
@@ -192,7 +195,7 @@ private struct RunningAppPickerSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("실행 중인 앱")
                 .font(SettingsTypography.control)
-            Text("Dock에 보이는 앱만 나옵니다. 끄고 싶은 앱을 먼저 실행해 두세요.")
+            Text("지금 열려 있고 Dock에 보이는 앱만 나와요. 넣을 앱을 먼저 열어 주세요.")
                 .font(SettingsTypography.body)
                 .foregroundStyle(.secondary)
 
@@ -200,7 +203,7 @@ private struct RunningAppPickerSheet: View {
             // 테두리와 빈 상태의 목록 위치는 유지한다.
             List {
                 if apps.isEmpty {
-                    Text("실행 중인 앱이 없습니다.")
+                    Text("열려 있는 앱이 없어요.")
                         .foregroundStyle(.secondary)
                         .listRowBackground(Color.clear)
                 } else {

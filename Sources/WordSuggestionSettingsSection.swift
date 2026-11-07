@@ -40,7 +40,7 @@ struct WordSuggestionSettingsSection: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("단어 제안")
                 .font(SettingsTypography.control)
-            Text("모두의 사전에 필요한 단어나 산업군·분야를 알려 주세요. 다음 버전에 반영할 수 있도록 검토하겠습니다. 이 기기에서만 바꾸려면 개인 사전을 사용해 주세요.")
+            Text("기본 사전에 넣었으면 하는 단어나 분야를 알려 주세요. 살펴보고, 넣을 수 있는 말은 이후 버전에 넣을게요. 나만 쓸 단어라면 개인 사전에 넣어 주세요.")
                 .font(SettingsTypography.body)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

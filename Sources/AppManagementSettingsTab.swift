@@ -1,22 +1,16 @@
 import SwiftUI
 
-/// 2026-10-10 (#88): 입력기 관리와 전체 제거를 별도 구획으로 모은다.
-/// 설치/제거 상태는 AppCore가, 전체 제거 확인/결과 창은 SettingsView가 보존한다.
+/// 2026-10-10 (#88): 로그인 항목·메뉴바 아이콘·전체 제거를 구획으로 모은다.
+/// 2026-11-07 오너(#189): 입력기 설치·제거는 「설치·업데이트」로 옮겼다(`InputMethodSettingsSection`).
+/// 전체 제거 확인/결과 창은 SettingsView가 보존한다.
 struct AppManagementSettingsTab: View {
     @Bindable var core: AppCore
     @Binding var showingUninstallConfirm: Bool
-    @State private var operationError: String?
     /// 2026-11-06 (#154): 메인 앱만 읽는 설정이라 입력기 도메인이 아니라 기본 도메인에 둔다.
     @AppStorage(MenuBarIconDecision.defaultsKey) private var showsMenuBarIcon = true
     /// 2026-11-06 (#160): 시스템 설정에서도 바뀌는 값이라 저장하지 않고 macOS에 물어본다.
     @State private var loginItem = LoginItem.state
     @State private var loginItemError: String?
-
-    /// 2026-11-07 (#177, 리뷰 app-ui-F-1): 읽기 전·작업 중에는 캐시된 false를 "설치되어 있지 않습니다"로 말하지 않는다.
-    private var imeStatus: IMEStatusPresentation {
-        .resolve(statusKnown: core.imeStatusKnown, busy: core.isPreparingIME,
-                 installed: core.imeInstalled, disabled: core.imeDisabled)
-    }
 
     private var isBusy: Bool {
         if core.isPreparingIME { return true }
@@ -28,105 +22,17 @@ struct AppManagementSettingsTab: View {
 
     var body: some View {
         Form {
-            HaneulSettingsSection("한글 입력기") {
-                if core.imeInstalled {
-                    Label("한글 입력기가 설치되어 있습니다.", systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                    VStack(alignment: .leading, spacing: 6) {
-                        Label("시스템 입력 소스에서 기존 \"두벌식\"은 제거하세요.", systemImage: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
-                        Text("자모가 깨지는 것을 막습니다.")
-                            .font(SettingsTypography.body)
-                            .foregroundStyle(.secondary)
-                    }
-                } else if imeStatus == .checking {
-                    Label("한글 입력기 상태를 확인하고 있습니다.", systemImage: "hourglass")
-                        .foregroundStyle(.secondary)
-                } else {
-                    Label(core.imeDisabled
-                        ? "시스템 입력 소스에서 하늘키보드가 꺼져 있습니다."
-                        : "한글 입력기가 설치되어 있지 않습니다.",
-                        systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                    Text("하늘키보드 입력기를 ~/Library/Input Methods/에 설치합니다. 설치한 뒤 시스템 설정에서 입력 소스로 추가하세요.")
-                        .font(SettingsTypography.body)
-                        .foregroundStyle(.secondary)
-                    Button("입력기 설치") {
-                        Task {
-                            operationError = nil
-                            if let error = await core.installIME() {
-                                operationError = "설치하지 못했습니다: \(error.localizedDescription)"
-                            }
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(isBusy)
-                }
-
-                // 2026-11-07 (#177, 리뷰 app-ui-F-3): 시스템 영역의 낡은 입력기는 앱이 직접 바꿀 수 없다. 안내 1단계와 버전·업데이트 화면이
-                // 가리키는 해결 자리가 여기다 — 무엇을 눌러야 하는지 같은 말로 적는다.
-                if core.imeRefreshBlockedBySystemInstall {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Label("시스템 영역의 입력기가 이전 버전입니다.", systemImage: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
-                        Text("이 Mac의 /Library/Input Methods에 이전 빌드 입력기가 있어 앱이 직접 새 버전으로 바꿀 수 없습니다. 아래 ‘입력기 제거’(관리자 암호가 필요합니다)로 지운 뒤 ‘입력기 설치’를 눌러 주세요.")
-                            .font(SettingsTypography.body)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                if let message = operationError ?? core.imeActivationError.map({ "입력기를 준비하지 못했습니다: \($0.localizedDescription)" }) {
-                    Text(message)
-                        .font(SettingsTypography.body)
-                        .foregroundStyle(.red)
-                        .textSelection(.enabled)
-                }
-                if let warning = core.imeSettingsRefreshWarning {
-                    Text(warning).font(SettingsTypography.body).foregroundStyle(.orange).textSelection(.enabled)
-                }
-
-                if core.isPreparingIME {
-                    ProgressView("입력기를 관리하는 중…")
-                        .controlSize(.small)
-                }
-
-                HStack(spacing: 12) {
-                    Button("입력 소스 설정 열기") {
-                        IMEInstaller.openInputSourcesSettings()
-                    }
-                    .disabled(isBusy)
-                    Spacer()
-                    if core.imeInstalled || core.imeDisabled || core.imeOnDisk {
-                        Button("입력기 제거", role: .destructive) {
-                            Task {
-                                operationError = nil
-                                if let error = await core.uninstallIME() {
-                                    operationError = "제거하지 못했습니다: \(error.localizedDescription)"
-                                }
-                            }
-                        }
-                        .disabled(isBusy)
-                    }
-                }
-                if let report = core.lastInputRemovalReport, operationError == nil {
-                    Text(report.statusText).font(SettingsTypography.body).foregroundStyle(.secondary).textSelection(.enabled)
-                }
-                Text("입력기만 제거해도 하늘키보드 앱과 사용자 설정은 남습니다.")
-                    .font(SettingsTypography.body)
-                    .foregroundStyle(.secondary)
-            }
-
             // 2026-11-06 (#154): 아이콘을 꺼도 메뉴에 있던 일을 여기서 할 수 있다. 설정과 응원하기는 왼쪽 메뉴에 있다.
             HaneulSettingsSection("로그인할 때 열기") {
                 Toggle("Mac에 로그인할 때 하늘키보드 열기", isOn: Binding(
                     get: { loginItem != .off },
                     set: { setLoginItem($0) }))
-                Text("켜 두면 Mac을 켤 때 앱이 뒤에서 열려 메뉴바 아이콘과 새 버전 알림이 이어집니다. 꺼도 한글 입력과 영타 변환은 그대로 동작합니다.")
+                Text("켜 두면 로그인할 때 메뉴바 아이콘이 함께 뜨고 새 버전 알림도 받아요. 꺼도 한글 입력과 영어 자동 변환은 그대로 돼요.")
                     .font(SettingsTypography.body)
                     .foregroundStyle(.secondary)
                 if loginItem == .needsApproval {
                     HStack(spacing: 12) {
-                        Label("시스템 설정에서 허용해야 합니다.", systemImage: "exclamationmark.triangle.fill")
+                        Label("시스템 설정에서 허용해 주세요.", systemImage: "exclamationmark.triangle.fill")
                             .foregroundStyle(.orange)
                         Spacer()
                         Button("로그인 항목 열기") { LoginItem.openSystemSettings() }
@@ -144,10 +50,10 @@ struct AppManagementSettingsTab: View {
                     .onChange(of: showsMenuBarIcon) { _, _ in
                         NotificationCenter.default.post(name: .haneulMenuBarIconChanged, object: nil)
                     }
-                Text("꺼도 한글 입력과 영타 변환은 그대로 동작합니다. 아이콘을 끈 동안에는 응용 프로그램 폴더에서 하늘키보드를 열면 이 화면이 열립니다.")
+                Text("아이콘을 꺼도 한글 입력과 영어 자동 변환은 그대로 돼요. 설정을 다시 열려면 응용 프로그램 폴더에서 하늘키보드를 열어 주세요.")
                     .font(SettingsTypography.body)
                     .foregroundStyle(.secondary)
-                Text("아이콘을 꺼도 앱은 뒤에서 실행되어 새 버전 알림을 받습니다. 앱 종료를 누르면 꺼지고, 로그인할 때 열기가 켜져 있으면 다음 로그인 때 다시 열립니다.")
+                Text("아이콘을 꺼도 앱은 뒤에서 새 버전 알림을 받아요. ‘메뉴바 앱 종료’는 메뉴바 앱만 꺼요. 한글 입력은 계속 돼요. 로그인할 때 열기가 켜져 있으면 다음 로그인 때 다시 열려요.")
                     .font(SettingsTypography.body)
                     .foregroundStyle(.secondary)
                 HStack(spacing: 12) {
@@ -155,13 +61,13 @@ struct AppManagementSettingsTab: View {
                         NotificationCenter.default.post(name: .haneulOnboardingRequested, object: nil)
                     }
                     Spacer()
-                    Button("앱 종료") { NSApp.terminate(nil) }
+                    Button("메뉴바 앱 종료") { NSApp.terminate(nil) }
                         .disabled(isBusy)
                 }
             }
 
             HaneulSettingsSection("하늘키보드 전체 제거") {
-                Text("하늘키보드의 앱·입력기·설정을 모두 지웁니다. 다시 쓰려면 내려받아 설치해야 합니다.")
+                Text("앱·입력기·설정·개인 사전을 모두 지워요. 다시 쓰려면 새로 내려받아 설치해야 해요.")
                     .font(SettingsTypography.body)
                     .foregroundStyle(.secondary)
                 HStack {
@@ -184,7 +90,7 @@ struct AppManagementSettingsTab: View {
             try LoginItem.set(enabled: enabled)
             loginItemError = nil
         } catch {
-            loginItemError = "바꾸지 못했습니다. 시스템 설정 → 일반 → 로그인 항목에서 바꿔 주세요. (\(error.localizedDescription))"
+            loginItemError = "바꾸지 못했어요. 시스템 설정 → 일반 → 로그인 항목에서 바꿔 주세요. (\(error.localizedDescription))"
         }
         loginItem = LoginItem.state
     }

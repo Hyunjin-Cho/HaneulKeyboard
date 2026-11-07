@@ -282,7 +282,7 @@ func runDict106Tests() {
         expect(type(keys).committedText, hangul, "#106 not added: \(keys)")
     }
 
-    // Standalone ml (ㅢ) converts; ok(ㅐㅏ) stays context-only; mm(ㅡㅡ) stays an emoticon.
+    // Standalone ml (ㅢ) converts; mm(ㅡㅡ) stays an emoticon. ok(ㅐㅏ)도 2026-11-07 #194부터 단독 변환한다.
     for keys in ["ml", "mL"] {
         expect(type(keys).committedText, keys, "#106 standalone \(keys)")
         expect(typeViaController(keys + " ").committedText, keys + " ", "#106 standalone \(keys) Space")
@@ -295,7 +295,6 @@ func runDict106Tests() {
     }
     expect(KoreanComposer.resolveToggle(before: "ml ", english: "ml", hangul: "ㅢ", atDocStart: true)?.text ?? "",
            "ㅢ", "#106 ml Shift+Space restores ㅢ")
-    expect(type("ok").committedText, "ㅐㅏ", "#106 ok stays context-only")
     expect(type("mm").committedText, "ㅡㅡ", "#106 mm emoticon stays")
     expect(type("dml").committedText, "의", "#106 의 stays Korean")
     expect(typeWords(["ml", ManualToggle.hangulToKeys("우유")!]).last ?? "", "우유", "#106 Korean after ml stays Korean")
@@ -1064,11 +1063,84 @@ struct ComposerTests {
         // Jamo slang / kaomoji must NEVER convert (review findings)
         expect(type("gee").committedText, "ㅎㄷㄷ", "consonant-only slang ㅎㄷㄷ untouched")
         expect(type("aw").committedText, "ㅁㅈ", "2-key slang ㅁㅈ untouched")
-        expect(type("hi").committedText, "ㅗㅑ", "2-key vowel slang ㅗㅑ untouched")
-        // ㅐㅏ(ok)는 흔한 자모 슬랭 → 무맥락 유지, 영어 문맥서만 변환.
+        expect(type("hni").committedText, "ㅗㅜㅑ", "#194 vowel slang ㅗㅜㅑ untouched")
         // 2026-11-01 (#106): ㅢ(ml)은 오너 결정으로 단독에서도 변환한다.
         expect(type("ml").committedText, "ml", "ml: 단독 ㅢ도 변환 (#106)")
-        expect(type("ok").committedText, "ㅐㅏ", "ok: 무맥락 슬랭 ㅐㅏ 보호")
+        // 2026-11-07 오너 결정(#194): ok(ㅐㅏ)·am(므)도 단독 변환. so(내)는 멀쩡한 한글이라 앞이 영어일 때만이다.
+        for keys in ["ok", "OK", "Ok", "am", "AM", "Am", "pm", "PM", "Pm"] {
+            expect(type(keys).committedText, keys, "#194 단독 \(keys)")
+            expect(typeViaController(keys + " ").committedText, keys + " ", "#194 단독 \(keys) Space")
+        }
+        expect(type("so").committedText, "내", "#194 so(내)는 단독 변환 안 함")
+        expect(typeWords(["apple", "so"]).last ?? "", "so", "#194 앞 영어 뒤 so")
+        expect(type("ok", autoEnglish: false).committedText, "ㅐㅏ", "#194 ok 자동 변환 OFF")
+        expect(type("am", autoEnglish: false).committedText, "므", "#194 am 자동 변환 OFF")
+        expect(typePassive("ok").committedText, "ㅐㅏ", "#194 ok 클릭 확정은 그대로")
+        expect(typePassive("am").committedText, "므", "#194 am 클릭 확정은 그대로")
+        for (keys, hangul) in [("ok", "ㅐㅏ"), ("am", "므")] {
+            for blocked in [keys, hangul] {
+                expect(typeWithPersonalDictionary(keys, PersonalDictionary(block: [blocked])).client.committedText,
+                       hangul, "#194 \(keys) 개인 금지: \(blocked)")
+            }
+            expect(KoreanComposer.resolveToggle(before: keys + " ", english: keys, hangul: hangul, atDocStart: true)?.text ?? "",
+                   hangul, "#194 \(keys) 되돌리기")
+        }
+        // 2026-11-08 오너 요청(#194): 2글자 등록 목록. 소문자·대문자·첫 글자 대문자 모두 그대로 남아야 한다.
+        for word in ["oh", "uh", "yo", "hi", "ya", "ye", "ow", "ip", "hp", "lp", "kb", "uk", "jp", "un", "ph", "op",
+                     "bj", "nh", "lh", "pb", "pk", "ob", "ol", "ny", "io", "bl", "ux", "uv", "hd", "iq", "pg", "mc",
+                     "mr", "jr", "bg", "bt", "kt", "kr", "mt", "ot", "mv", "ic", "ir", "la", "nc", "bc", "pv", "yt",
+                     "ig", "hq", "kc",
+                     "tv", "vs", "vr", "ar", "qa", "cg", "ae", "fx", "fc", "ex", "ad", "sd", "dc", "cs", "vc", "gs",
+                     "ai", "fm"] {
+            for keys in [word, word.uppercased(), word.prefix(1).uppercased() + word.dropFirst()] {
+                expect(type(keys).committedText, keys, "#194 단독 \(keys)")
+            }
+        }
+        // 2026-11-08 오너 요청(#194): bio(ㅠㅑㅐ)는 어느 사전에도 없어 어떤 규칙으로도 안 바뀌었다.
+        for keys in ["bio", "BIO", "Bio"] { expect(type(keys).committedText, keys, "#194 사전 추가 \(keys)") }
+        // 2026-11-08 오너 요청(#194): 일괄 제외했던 단어 중 쓰는 말과 월 이름. 소문자·대문자·첫 글자 대문자 모두 그대로 남아야 한다.
+        for word in [
+            "acct", "ads", "asst", "avg", "bbc", "bff", "bldg", "blvd", "bmx", "bpm", "byte", "cafe", "cert",
+            "cred", "dec", "dvd", "dvds", "etc", "ext", "fave", "fax", "hbo", "hdtv", "hiya", "hrs", "hvac",
+            "ibm", "ieee", "imax", "inc", "iou", "ipod", "irc", "jan", "jeez", "jpn", "jul", "jun", "kart",
+            "lib", "lng", "lpg", "ltd", "med", "meds", "mega", "mgr", "mia", "mic", "mics", "misc", "mkt",
+            "mpeg", "mps", "msg", "mtv", "nasa", "nba", "nbc", "ncaa", "nerd", "nhl", "nike", "nov", "nsa",
+            "nsfw", "ntsc", "nyc", "obs", "ocr", "oct", "oink", "opec", "ops", "pct", "pda", "ppv", "pre",
+            "pvc", "rec", "rss", "stat", "uhf", "univ", "unix", "ups", "usa", "usda", "ussr", "utc", "vga",
+            "ymca", "yrs", "yum", "yup"
+        ] {
+            for keys in [word, word.uppercased(), word.prefix(1).uppercased() + word.dropFirst()] {
+                expect(type(keys).committedText, keys, "#194 사전 추가 \(keys)")
+            }
+        }
+        // 오너가 2026-11-01에 뺀 std는 그대로 한글이다.
+        expect(type("std").committedText, "ㄴㅅㅇ", "#194 std는 넣지 않음")
+        // 넣지 않은 것은 그대로다: 초성체, 우는 표정, 멀쩡한 한글.
+        for (keys, hangul) in [("rc", "ㄱㅊ"), ("da", "ㅇㅁ"), ("re", "ㄱㄷ"), ("ac", "ㅁㅊ"), ("de", "ㅇㄷ"), ("qr", "ㅂㄱ"), ("qt", "ㅂㅅ"),
+                               ("mb", "ㅡㅠ"), ("hk", "ㅘ"), ("dm", "으"), ("gb", "휴"), ("tb", "슈"), ("sk", "나")] {
+            expect(type(keys).committedText, hangul, "#194 안 넣음 \(keys)")
+        }
+        expect(type("ai", autoEnglish: false).committedText, "먀", "#194 ai 자동 변환 OFF")
+        expect(typePassive("tv").committedText, "ㅅㅍ", "#194 tv 클릭 확정은 그대로")
+        for (keys, hangul) in [("ai", "먀"), ("tv", "ㅅㅍ"), ("hi", "ㅗㅑ")] {
+            expect(typeWithPersonalDictionary(keys, PersonalDictionary(block: [keys])).client.committedText,
+                   hangul, "#194 \(keys) 개인 금지")
+            expect(KoreanComposer.resolveToggle(before: keys + " ", english: keys, hangul: hangul, atDocStart: true)?.text ?? "",
+                   hangul, "#194 \(keys) 되돌리기")
+        }
+        // 르·먀로 시작하는 실제 말은 단어 전체 판정이 지킨다.
+        expect(type("fmsptkdtm").committedText, "르네상스", "#194 표제어 르네상스 보호")
+        expect(type("ahfmsms").committedText, "모르는", "#194 모르는 보호")
+        expect(type("aidms").committedText, "ai은", "#194 ai + 조사")
+        // 조사가 붙어도 앞말로 인정한다.
+        expect(type("okdms").committedText, "ok은", "#194 ok + 조사")
+        expect(type("amdms").committedText, "am은", "#194 am + 조사")
+        expect(type("pmdms").committedText, "pm은", "#194 pm + 조사")
+        // 다른 영어 단어와 같은 규칙이다: 영어 뒤의 짧은 단어(내·새)는 영어 문맥으로 본다. 되돌리기가 안전망이다.
+        expect(typeWords(["ok", "so"]).last ?? "", "so", "#194 ok 뒤 so: 일반 영어 문맥과 같다")
+        // 므가 들어간 실제 말은 지킨다.
+        expect(type("amfh").committedText, "므로", "#194 표제어 므로 보호")
+        expect(type("amgma").committedText, "므흠", "#194 조합이 이어지면 단독 판정이 아니다")
         expect(typeWords(["want", "ml"]).last ?? "", "ml", "ml: 영어 문맥서만 변환")
         // (the composer assembles these as ㅡ므/ㅜ무/ㅠ뮤 — same as Apple's
         // IME; the point is the V-C-V palindrome guard blocks conversion)
@@ -1281,7 +1353,7 @@ struct ComposerTests {
         expect(type("as").committedText, "as", "2글자: ㅁㄴ → as")
         expect(type("a").committedText, "ㅁ", "2글자: ㅁ 단독은 보호(문맥 전용)")
         expect(type("dd").committedText, "ㅇㅇ", "2글자: 초성체 ㅇㅇ 보호(동일키)")
-        expect(type("sd").committedText, "ㄴㅇ", "2글자: 목록에 없는 자음쌍은 유지")
+        expect(type("td").committedText, "ㅅㅇ", "2글자: 목록에 없는 자음쌍은 유지")  // 2026-11-08 (#194): 예시였던 sd를 목록에 넣어 td로 바꿨다
         // ── 구멍 ③: who=좨 1음절 가드 ──
         expect(type("who").committedText, "who", "who: 좨 → who")
         expect(typeWords(["who", "are", "you"]).joined(separator: " "), "who are you", "who: 문맥 체인")
@@ -1941,7 +2013,7 @@ struct ComposerTests {
         // 영어 문맥이 축약형을 통해 이어진다
         expect(
             typeWordsViaController(["i'm", "ok"]).joined(separator: " "), "i'm ok",
-            "축약형 문맥: i'm 뒤 ㅐㅏ(ok, contextOnly)가 영어로"
+            "축약형 문맥: i'm 뒤 ㅐㅏ(ok)가 영어로"
         )
         expect(
             typeWordsViaController(["apple", "don't", "go"]).joined(separator: " "),
@@ -3087,6 +3159,15 @@ struct ComposerTests {
         }
         // 2026-11-01 (#106): 오너 결정으로 단독 ml/mL(ㅢ)은 변환한다. 숫자 뒤가 아닌
         // 경계(두 칸 공백·줄바꿈·쉼표·`1.`) 뒤의 ml도 단독 ml과 같이 변환된다.
+        // 2026-11-08 오너 결정(#194): nm은 숫자가 붙을 때만 바꾼다. 단독 ㅜㅡ와 얼굴 ㅜㅡㅜ는 그대로다.
+        for value in ["10nm", "10 nm", "1.5nm", "1.5 nm"] {
+            expect(typeViaController(value).committedText, value, "#194 숫자 뒤 nm: \(value)")
+        }
+        expect(type("nm").committedText, "ㅜㅡ", "#194 단독 nm은 ㅜㅡ 그대로")
+        expect(typeViaController("nm ").committedText, "ㅜㅡ ", "#194 단독 nm Space")
+        expect(typeWords(["apple", "nm"]).last ?? "", "ㅜㅡ", "#194 영어 뒤 nm도 그대로")
+        expect(type("nmn").committedText, "ㅜㅡㅜ", "#194 얼굴 ㅜㅡㅜ 그대로")
+        expect(type("um").committedText, "um", "#194 같은 단위 경로의 um은 그대로 변환")
         for value in ["ml", "mL", "100  ml", "100\nml", "100,ml", "1.ml"] {
             expect(typeViaController(value).committedText, value, "단위: 단독 ml 변환 (#106) \(value)")
         }
