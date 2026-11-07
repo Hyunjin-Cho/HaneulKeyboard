@@ -1,0 +1,11 @@
+word,hangul_form,class,in_urimalsaem,standalone,context,trigger,reached,diagnosis
+ansi,무냐,clean,0,0,0,0,0,"미도달 추정:clean 2음절+ — curated 등재 시 R5 후보(개별 검역 필요)"
+goty,해쇼,clean,0,0,0,0,0,"미도달 추정:clean 2음절+ — curated 등재 시 R5 후보(개별 검역 필요)"
+emtek,듯다,clean,0,0,0,0,0,"미도달 추정:clean 2음절+ — curated 등재 시 R5 후보(개별 검역 필요)"
+totp,새세,clean,0,0,0,0,0,"미도달 추정:clean 2음절+ — curated 등재 시 R5 후보(개별 검역 필요)"
+algo,미해,clean,0,0,0,0,0,"미도달 추정:clean 2음절+ — curated 등재 시 R5 후보(개별 검역 필요)"
+rhel,고디,clean,0,0,0,0,0,"미도달 추정:clean 2음절+ — curated 등재 시 R5 후보(개별 검역 필요)"
+gorm,해그,clean,0,0,0,0,0,"미도달 추정:clean 2음절+ — curated 등재 시 R5 후보(개별 검역 필요)"
+dirty,약쇼,clean,0,1,1,1,1,"도달:무맥락(추정:R5 curated 2음절+/명시 예외)"
+duty,여쇼,clean,0,1,1,1,1,"도달:무맥락(추정:R5 curated 2음절+/명시 예외)"
+coal,채미,clean,0,1,1,1,1,"도달:무맥락(추정:R5 curated 2음절+/명시 예외)"

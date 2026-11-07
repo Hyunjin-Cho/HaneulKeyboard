@@ -97,7 +97,10 @@ final class SortedWordTable {
     let uniqueCount: Int
     let declaredCount: Int
     let sorted: Bool
-    var isComplete: Bool { uniqueCount > 0 && declaredCount >= 0 && uniqueCount == declaredCount && sorted }
+    /// 2026-11-07 (#174): 빈 줄이나 줄 끝 CR이 없는가. CR이 붙은 줄은 어떤 조회와도 맞지 않고, 빈 줄이 색인 자리에 오면 이진 탐색의 단조성이 깨진다.
+    /// 재생성·편집 도구가 줄 끝을 바꾸면 자동 변환이 꺼지지 않은 채 veto만 조용히 사라지므로 온전하지 않은 파일로 본다(fail-closed).
+    let wellFormed: Bool
+    var isComplete: Bool { uniqueCount > 0 && declaredCount >= 0 && uniqueCount == declaredCount && sorted && wellFormed }
 
     convenience init?(path: String) {
         guard let mapped = try? Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe) else { return nil }
@@ -107,11 +110,11 @@ final class SortedWordTable {
     init(data given: Data) {
         // 색인이 UInt32라 4GB를 넘는 파일은 받지 않는다. 비면 isComplete가 false라 자동 변환이 꺼진다.
         let mapped = given.count < Int(UInt32.max) ? given : Data()
-        var floor = 0, declared = -1, unique = 0, isSorted = true
+        var floor = 0, declared = -1, unique = 0, isSorted = true, isWellFormed = true
         var marks: [UInt32] = []
         mapped.withUnsafeBytes { (raw: UnsafeRawBufferPointer) in
             let bytes = raw.bindMemory(to: UInt8.self)
-            let newline = UInt8(ascii: "\n"), hash = UInt8(ascii: "#")
+            let newline = UInt8(ascii: "\n"), hash = UInt8(ascii: "#"), carriageReturn = UInt8(ascii: "\r")
             var start = 0
             // 머리 주석: `# count: N`을 읽고 표제어 시작 위치를 정한다.
             while start < bytes.count, bytes[start] == hash {
@@ -130,6 +133,7 @@ final class SortedWordTable {
                 var end = cursor
                 while end < bytes.count, bytes[end] != newline { end += 1 }
                 let line = cursor..<end
+                if line.isEmpty || bytes[end - 1] == carriageReturn { isWellFormed = false }
                 if !line.isEmpty, Self.isValidUTF8(bytes, line) {
                     if let p = previous {
                         if bytes[line].lexicographicallyPrecedes(bytes[p]) { isSorted = false }
@@ -150,6 +154,7 @@ final class SortedWordTable {
         declaredCount = declared
         uniqueCount = unique
         sorted = isSorted
+        wellFormed = isWellFormed
     }
 
     func contains(_ key: [UInt8]) -> Bool {

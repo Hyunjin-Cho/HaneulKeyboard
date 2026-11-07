@@ -155,9 +155,11 @@ enum EnglishDetector {
         "dmg",
         // 2026-11-01 (#109) 수학 약어 — 오너 지정(A안). gpt=헷·dmg=읗과 같은 구멍
         // (멀쩡한 1음절·우리말샘 미등재 → R5 "2음절+" 가드에 막혀 사전만으로는 미도달).
-        // cos=챈, abs=뮨, xi=탸. veto 뒤에서 평가하므로 실존 한국어(cot=챗 등)는 넣지 않았다.
+        // abs=뮨, xi=탸. veto 뒤에서 평가하므로 실존 한국어(cot=챗 등)는 넣지 않았다.
         // 자음 3개 초성형(gcd·det·arg·std·csc)은 초성체와 겹칠 수 있어 오너가 제외했다.
-        "cos", "abs", "xi",
+        // 2026-11-07 (#174) 오너 결정: cos=챈을 뺐다. 채다의 활용형이라 "눈치 챈 사람"이 "눈치 cos 사람"으로 깨졌다.
+        // 영어 문맥(contextOverrideEnglish)과 개인 사전으로는 계속 쓴다.
+        "abs", "xi",
     ]
 
     /// 자음으로 시작하는 **2글자** 영단어 — 무맥락 단독 변환 화이트리스트
@@ -188,6 +190,18 @@ enum EnglishDetector {
         "ㄷㄷ", "ㅎㄹ", "ㅁㅈ", "ㅇㅇ", "ㄴㄴ", "ㄱㄱ", "ㅂㅂ", "ㅇㅋ",
         "ㄴㅇㄱ", "ㅁㅊㄷ", "ㅇㄱㄹㅇ", "ㅈㄴ", "ㄲㅈ", "ㅊㅋ", "ㅊㅊ",
         "ㅎㅇ", "ㅂㄱ", "ㄷㅊ", "ㄱㄷ", "ㅇㄷ", "ㅁㄴㅇㄹ", "ㅗㅜㅑ", "ㅗㅑ",
+        // 2026-11-07 (#174) 오너 결정: 초성체 ㄱㄱㅅ(rrt)·ㄴㄱ(sr)과 자음 얼굴 ㅇㅁㅇ(dad)·ㅁㅇㅁ(ada)·ㅈㅁㅈㅁ(wawa)·ㅁㅇㅁㅇ(adad).
+        // Title·ALLCAPS(Dad·DAD)는 첫 자음 Shift 경로가 veto보다 먼저 받으므로 그대로 변환된다.
+        "ㄱㄱㅅ", "ㄴㄱ", "ㅇㅁㅇ", "ㅁㅇㅁ", "ㅈㅁㅈㅁ", "ㅁㅇㅁㅇ",
+    ]
+
+    /// 2026-11-07 (#174) 오너 결정(리뷰 B안): 무맥락에서 이 1음절 뒤에 ㅠㅜㅡ만 이어지면 변환하지 않는다.
+    /// "어떻게 해ㅠ"가 "어떻게 gob", "네ㅜ"가 "spn"이 되는 사고가 채팅에서 흔한 꼴이었다.
+    /// 깨진 한글이라도 이 꼴은 우는 표정이 붙은 한국어다. 앞말을 고빈도 음절로 좁혀 잃는 영어를 줄였고,
+    /// 영어 문맥(the son, I won)은 그대로 변환한다.
+    static let sadTailHeads: Set<String> = [
+        "해", "개", "걔", "내", "네", "애", "얘", "새", "재", "쟤", "야", "여", "아",
+        "어", "오", "우", "으", "이", "그", "저", "나", "너", "뭐", "왜", "예", "응",
     ]
 
     /// (2026-06-19) 트리거 게이트 완전 제거 — 새(to)/무(an)/내(so)/ㅁ(a)/
@@ -238,8 +252,8 @@ enum EnglishDetector {
     /// 2026-09-20 (#39) ros=갠 추가: 1음절 clean·우리말샘 미등재라 veto는 통과하지만
     /// R5의 "2음절+" 가드에 막혀 사전만으로는 어떤 경로로도 안 잡히던 구멍(and·gpt·who와
     /// 같은 부류). standaloneShortWords가 아니라 여기인 이유 — 그 목록은 소문자화된
-    /// word만 보고 Shift 가드가 없어 rOs=걘(걔는)까지 ros로 깨진다. S 등급은 QWERTOP
-    /// Shift 가드로 걘을 지키고, 키 3개라 가드 ②도 통과한다. 남는 위험은 "비 갠 뒤"의
+    /// word만 보고 Shift 가드가 없어 rOs=걘(걔는)까지 ros로 깨졌다(2026-11-07 #174부터 그 목록도
+    /// 혼합 Shift를 막는다). S 등급은 QWERTOP Shift 가드로 걘을 지키고, 키 3개라 가드 ②도 통과한다. 남는 위험은 "비 갠 뒤"의
     /// 갠(개다 활용형) — work=재가와 같은 판단으로 Shift+Space 되돌리기에 맡긴다.
     /// 같은 부류(1음절 clean 미도달)가 #39 검역에 26개 더 있었지만(eps=덴·apt=멧·
     /// tbd=슝 …) 오너 지정인 ros만 올렸다 — 나머지는 오너 결정 대기.
@@ -254,9 +268,10 @@ enum EnglishDetector {
     /// down=애주 — 전부 일상에서 안 쓰는 한자어.)
     /// 2026-09-19 (#33) 추가: got=햇(햇감자처럼 접두사로 붙어 단독 커밋이 드묾),
     /// end=둥(하는 둥 마는 둥 — 의존명사라 앞말 없이 혼자 오지 않는다).
+    /// 2026-11-07 (#174) 오너 결정: cos=챈을 단독 목록에서 여기로 옮겼다. 앞이 영어일 때만 변환한다.
     static let contextOverrideEnglish: Set<String> = [
         "when", "then", "than", "also", "form", "works", "down",
-        "got", "end",
+        "got", "end", "cos",
     ]
 
     /// T(트리거) — 한글형이 흔한 한국어라 "직전 영어 단어가 이것일 때만" 영어로
@@ -324,6 +339,15 @@ enum EnglishDetector {
         // 두벌식에서 다른 자모를 내는 Shift만 한국어 입력 의도로 센다.
         // R2도 이 가드를 공유해야 sO(냬)를 소문자 so(내)와 혼동하지 않는다.
         let hasShiftKey = keys.contains { $0.isUppercase && "QWERTOP".contains($0) }
+        // 2026-10-06 (#75): wOrk(쟤가)는 의미 있는 내부 Shift를 포함한다.
+        // Title Case/ALL CAPS는 유지하되 S/C/T에서 막힌 혼합 대소문자가
+        // R5를 통해 한국어 보호를 우회하지 않게 한다(worK의 K는 자모 변화 없음).
+        // 2026-11-07 (#174) 오너 결정: 같은 기준을 R3·첫 자음 Shift·단독 목록·자음열에도 쓴다.
+        // 떄문(EOans)·옛(DPt)·헸(gpT)·ㅁㅆ(aT) 같은 Shift 오타와 실존어가 영어 조각으로 바뀌었다.
+        // MAIN에는 넣지 않는다 — iPhone·macOS·YouTube·sRGB 같은 영어 표기가 그 경로로 온다.
+        let titleCase = keys.first?.isUppercase == true && keys.dropFirst().allSatisfy(\.isLowercase)
+        let conventionalCase = titleCase || keys.allSatisfy(\.isUppercase)
+        let englishCasing = !hasShiftKey || conventionalCase
 
         // R2-화이트리스트 (조건 2·5): 직전 단어가 영어면 shortWords를 변환.
         // (2026-06-19) 트리거 게이트 제거 — 새/무/내/ㅁ/랙도 "앞 영어면 무조건".
@@ -373,7 +397,13 @@ enum EnglishDetector {
         // 오변환은 shift+space 되돌리기가 최종 안전망. (대문자는 keyDown으로
         // 들어오므로 flagsChanged 구독 불필요 — 쌍자음 깨짐 위험 없음.)
         if let first = keys.first, first.isUppercase,
-           "ASDFGZXCV".contains(first), isDictWord {
+           "ASDFGZXCV".contains(first), isDictWord, englishCasing {
+            return true
+        }
+        // 2026-11-07 (#174) 오너 결정: 문장 첫 The. T는 쌍자음 키라 위 분기에 못 오고, 쏟은 멀쩡한 1음절이라 R5에도 안 닿고,
+        // 쏟다가 표제어라 아래 X다 veto에 걸렸다. 키열이 정확히 The일 때만 변환하므로 the·THE·쏟은(Thedms)은 그대로다.
+        // 조사 분리의 앞말로는 쓰지 않는다(EnglishParticleSplitter.prefixDecision) — 쏟는이 The는이 되면 안 된다.
+        if isSentenceStartThe(keys) {
             return true
         }
 
@@ -391,6 +421,11 @@ enum EnglishDetector {
         }
         // 초성체 슬랭도 동급 보호 (사전엔 완성 한글만 있어서 별도 목록).
         if protectedSlang.contains(hangul) {
+            return false
+        }
+        // 2026-11-07 (#174) 오너 결정: 해ㅠ·네ㅜ류. MAIN만이 아니라 단위 경로(새ㅜ=ton)도 함께 막도록 여기서 거른다.
+        // 영어 문맥이 있거나 숫자 뒤 단위(10 ton)이면 이 판정에 오지 않거나 통과하고, Son·Don은 첫 자음 Shift가 위에서 받는다.
+        if !prevEnglish, isSadTail(units) {
             return false
         }
 
@@ -414,7 +449,7 @@ enum EnglishDetector {
         // 무맥락 단독 화이트리스트 (and=뭉): veto 통과한 1음절 비단어를 좌우
         // 문맥 무관하게 변환. R5(2음절+)가 못 잡는 1음절 구멍 — 명시 목록
         // 이라 걍 등 다른 1음절 슬랭은 건드리지 않는다.
-        if standaloneShortWords.contains(word) {
+        if standaloneShortWords.contains(word), englishCasing {
             return true
         }
 
@@ -431,7 +466,7 @@ enum EnglishDetector {
         // (was/are류 broad 꼬리 차단 — red=ㄱㄷㅇ는 NGSL에 있음. 2026-06-19
         // 사용자 요청으로 3자 확장). ㅋㅋㅋ는 보호막이, 초성체(ㅇㄱㄹ=drf)는
         // protectedSlang + "영어단어 아님" 사전 게이트가 이중 방어.
-        if !lowered.contains(where: mapsToVowel),
+        if englishCasing, !lowered.contains(where: mapsToVowel),
            units.allSatisfy({ $0.unicodeScalars.allSatisfy { (0x3131...0x314E).contains($0.value) } }) {
             if units.count >= 4, isDictWord { return true }
             if units.count == 3, commonWords.contains(word) { return true }
@@ -446,7 +481,8 @@ enum EnglishDetector {
         // ★ (M3) R5(clean)는 curated만 신뢰하지만 여기는 의도적으로 broad
         // (isDictWord) 예외 — "1음절+ㅑ"는 한국어가 거의 없어 broad가 안전.
         // 걍(rid) 등 미등재 슬랭은 변환되나 shift+space 되돌리기로 커버.
-        if units.count == 1, isDictWord, hasMedialYa(units[0]) {
+        // 2026-11-07 (#174) 오너 결정: 의미 있는 Shift가 있으면 막는다. 썅(Tid)·쨩(Wid)·곘(rPT)·얐(diT)가 영어로 바뀌었다.
+        if units.count == 1, isDictWord, hasMedialYa(units[0]), !hasShiftKey {
             return true
         }
 
@@ -458,7 +494,7 @@ enum EnglishDetector {
         }
 
         // R3 — 조건 3: a syllable that doesn't exist in used Korean (솓).
-        if units.contains(where: containsImplausibleSyllable), isShortWord || isDictWord {
+        if units.contains(where: containsImplausibleSyllable), isShortWord || isDictWord, englishCasing {
             return true
         }
 
@@ -470,12 +506,7 @@ enum EnglishDetector {
         // 힘찬=glacks)는 commonWords에 없어 차단. ★ 2음절 가드 = 1음절 슬랭
         // (걍=rid 등 우리말샘 미등재) 보호 — 검역(2026-06-19): NGSL 62개 무맥락
         // 후보 중 걍이 유일한 진짜 한국어로 확인.
-        // 2026-10-06 (#75): wOrk(쟤가)는 의미 있는 내부 Shift를 포함한다.
-        // Title Case/ALL CAPS는 유지하되 S/C/T에서 막힌 혼합 대소문자가
-        // R5를 통해 한국어 보호를 우회하지 않게 한다(worK의 K는 자모 변화 없음).
-        let titleCase = keys.first?.isUppercase == true && keys.dropFirst().allSatisfy(\.isLowercase)
-        let conventionalCase = titleCase || keys.allSatisfy(\.isUppercase)
-        if !brokenAsKorean, units.count >= 2, (!hasShiftKey || conventionalCase), commonWords.contains(word) {
+        if !brokenAsKorean, units.count >= 2, englishCasing, commonWords.contains(word) {
             return true
         }
 
@@ -561,6 +592,17 @@ enum EnglishDetector {
             }
         }
         return found
+    }
+
+    /// 2026-11-07 (#174): 문장 첫 The 예외의 키열.
+    static func isSentenceStartThe(_ keys: [Character]) -> Bool {
+        keys == ["T", "h", "e"]
+    }
+
+    /// 2026-11-07 (#174): `sadTailHeads`의 1음절 뒤에 ㅠㅜㅡ만 이어지는 꼴인가 (해ㅠ·개ㅠㅠ·네ㅜ).
+    private static func isSadTail(_ units: [String]) -> Bool {
+        guard units.count >= 2, sadTailHeads.contains(units[0]) else { return false }
+        return units.dropFirst().allSatisfy { $0 == "ㅠ" || $0 == "ㅜ" || $0 == "ㅡ" }
     }
 
     private static func mapsToVowel(_ key: Character) -> Bool {

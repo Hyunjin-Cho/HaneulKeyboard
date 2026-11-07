@@ -214,6 +214,7 @@ zymurgy
   깨진 한글 경로는 구조적으로 안전하므로 폭넓게.
 - Census는 대문자, SSA는 Capitalized → 양쪽 다 소문자 정규화 필요.
 - `Resources/IM/english_names_extra.txt`: 위 두 소스(미국 중심)가 못 덮는 국제 유명인 단어 시드 50개 — 검역(전원 Tier C) 후 머지된 최종본 (초안 파일은 정리됨).
+- 2026-11-07 (#174) 오너 결정: 수작업 약어 `ansi`·`goty`·`emtek`·`totp`·`algo`·`rhel`·`gorm`을 `english_supplement`(curated)에서 `english_names_extra`(broad)로 내렸다. 멀쩡한 한글형이 구어·이름과 겹쳤다. 기록: `2026-11-07-demote174-registration.tsv`, 도달성 전·후 `2026-11-07-demote174-reach-before.csv`·`-after.csv`.
 
 ## 부록: exclusions 정본 위치 (2026-06-10)
 
@@ -223,3 +224,6 @@ zymurgy
 - `dict_work/scowl_exclusions_alljamo4.txt` — SCOWL ≤4자모 전부-자모 826 (btw·lol류)
 재생성 시: `build_english_wordlists.py --exclude dict_work/exclusions.txt`,
 SCOWL diff에는 `comm -23 ... dict_work/scowl_exclusions_alljamo4.txt` (위 §4 레시피).
+
+2026-11-07 (#174): 생성기는 NGSL·인명 후보에만 제외 목록을 적용한다. 배포 사전 전체와 제외 목록의 겹침은
+`dict_work/exclusion_overlap_baseline.tsv`가 그날 값으로 고정하고, 새 겹침이 생기면 `scripts/run_ime_tests.sh`가 실패한다.

@@ -722,7 +722,7 @@ final class KoreanComposer {
         // 2026-09-21 (#53): 통째 판정을 소사전보다 먼저 — `don't`(또는 그 한글형 애ㅜ'ㅅ)를
         // 금지했으면 축약형 소사전에 있어도 한글로 남기고, `y'know`처럼 추가했으면 소사전에
         // 없어도 통째로 변환한다. block이 force보다 먼저인 이유는 shouldConvertWord와 같다.
-        switch personalDictionary.decision(word: Contractions.normalizedKey(keys), hangul: hangul) {
+        switch personalDictionary.decision(word: String(keys), hangul: hangul) {
         case .block: return hangul
         case .forceConvert: return String(keys)
         case nil: break
@@ -755,7 +755,8 @@ final class KoreanComposer {
     ///   - **force가 EnglishDetector보다 앞**: 사전 등급·구조 룰(ㅋㅋㅋ 가드 포함)·우리말샘
     ///     veto 전부를 건너뛰는 것이 명세다(사용자 명시 > 사전). "친 키가 그 단어를 이루어야
     ///     한다"는 조건은 별도 검사가 필요 없다 — `word`가 실제 키열에서 만들어지므로 다른 키로
-    ///     친 우연한 한글이 강제 변환될 수는 없다.
+    ///     친 우연한 한글이 강제 변환될 수는 없다. 2026-11-07 (#174): Shift는 예외라 대소문자가 보이게
+    ///     친 키열 그대로 넘기고, 혼합 대소문자(goT=했·wOrk=쟤가)는 `decision`이 force에서 뺀다.
     ///   - **남기는 관문은 둘뿐**: ① 호출자의 `convertible`(활성 경계 + 자동 변환 켜짐 —
     ///     passive 경계는 화면 그대로 커밋해야 하고 마스터 스위치는 개인 사전보다 위다),
     ///     ② `KoreanDictionary.isLoaded` fail-closed(H-10). "veto 사전이 깨지면 자동변환을
@@ -763,7 +764,7 @@ final class KoreanComposer {
     ///     않는다 — 사용자 입장에서도 "기능이 통째로 꺼진 상태"와 일치한다.
     private func shouldConvertWord(units: [String], keys: [Character]) -> Bool {
         switch personalDictionary.decision(
-            word: Contractions.normalizedKey(keys), hangul: units.joined()
+            word: String(keys), hangul: units.joined()
         ) {
         case .block:
             return false

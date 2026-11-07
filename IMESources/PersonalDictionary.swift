@@ -14,8 +14,9 @@ import Foundation
 ///      수 있어야 "무엇을 저장하는가"라는 주장이 검증 가능하다.
 ///
 /// 저장 규약(설정 앱 ↔ IME, 두 프로세스):
-///   - 설정 앱이 `UserDefaults(suiteName:)`으로 쓰고, IME가 `UserDefaults.standard`로
-///     활성 경계(변환 직전)마다 읽는다 — 기존 `haneul.autoEnglishEnabled` 패턴과 같다.
+///   - 설정 앱이 `UserDefaults(suiteName:)`으로 쓰고, IME가 `UserDefaults.standard`로 읽는다.
+///     입력기를 켤 때, 조합 글자·Backspace·활성 경계 키마다, 숫자 키에서 읽는다(HaneulInputController의
+///     `refreshAutomaticSettings`) — 기존 `haneul.autoEnglishEnabled` 패턴과 같다.
 ///   - 두 목록은 설정 앱만 쓴다. IME는 읽기만.
 struct PersonalDictionary: Equatable {
     enum Decision: Equatable {
@@ -54,25 +55,49 @@ struct PersonalDictionary: Equatable {
         )
     }
 
-    /// IME 쪽 로더. 목록은 작아서(수십~수백) 활성 경계마다 읽어도 부담이 없다.
+    private static let loadLock = NSLock()
+    nonisolated(unsafe) private static var lastLoad: (force: [String], block: [String], value: PersonalDictionary)?
+    /// 정규화를 실제로 다시 한 횟수. 재사용이 되는지 테스트가 본다.
+    nonisolated(unsafe) private(set) static var loadBuildCount = 0
+
+    /// IME 쪽 로더. 글자마다 불리므로 비용이 키 입력 지연에 바로 얹힌다.
+    /// 2026-11-07 (#174, 리뷰 input-core F-17): 항목 1000개에서 키당 2.5ms를 썼고 그중 약 95%가 변하지 않는 목록의 재정규화였다.
+    /// 배열 읽기는 그대로 매번 해서 설정 반영 시점은 전과 같고, 원본 배열이 같으면 지난 정규화 결과를 돌려준다.
+    /// 설정 앱도 같은 함수를 쓰므로 잠금으로 지킨다.
     static func load(from defaults: UserDefaults) -> PersonalDictionary {
-        PersonalDictionary(
-            forceList: defaults.stringArray(forKey: Keys.force) ?? [],
-            blockList: defaults.stringArray(forKey: Keys.block) ?? []
-        )
+        let forceList = defaults.stringArray(forKey: Keys.force) ?? []
+        let blockList = defaults.stringArray(forKey: Keys.block) ?? []
+        loadLock.lock()
+        defer { loadLock.unlock() }
+        if let last = lastLoad, last.force == forceList, last.block == blockList { return last.value }
+        let value = PersonalDictionary(forceList: forceList, blockList: blockList)
+        lastLoad = (forceList, blockList, value)
+        loadBuildCount += 1
+        return value
     }
 
     /// 판정. `word`는 실제로 친 키열(대소문자·곱은 따옴표는 여기서 정규화), `hangul`은
     /// 화면에 보이던 조합 결과(marked text 그대로).
     ///   - block이 force보다 먼저: "절대 변환하지 않는다"는 약속은 같은 단어를 실수로 양쪽에
     ///     넣었을 때도 지켜져야 한다 — 안 바뀌는 쪽이 항상 안전한 실패다.
+    ///   - force는 혼합 대소문자를 인정하지 않는다(`hasEnglishCasing`). 금지는 대소문자와 무관하다.
     ///   - nil = 의견 없음 → 호출자가 `EnglishDetector.shouldConvert`에 묻는다.
     func decision(word: String, hangul: String) -> Decision? {
         let key = Self.normalizedEnglish(word)
         let hangulKey = hangul.precomposedStringWithCanonicalMapping.replacingOccurrences(of: "’", with: "'")
         if block.contains(key) || block.contains(hangulKey) { return .block }
-        if force.contains(key) { return .forceConvert }
+        if force.contains(key), Self.hasEnglishCasing(word) { return .forceConvert }
         return nil
+    }
+
+    /// 2026-11-07 (#174, 리뷰 F-4): 두벌식에서 Shift로 다른 자모가 되는 키(QWERTOP)가 대문자이면 Title Case나 ALL CAPS만 영어 표기로 본다.
+    /// 소문자로만 비교하면 got을 추가했을 때 햇뿐 아니라 했(goT)도, work를 추가했을 때 쟤가(wOrk)도 강제 변환됐다.
+    /// 기준은 `EnglishDetector`의 R5와 같다. 숫자가 든 이름(a7R·R2D2)은 한국어로 칠 일이 없어 그대로 force로 본다.
+    private static func hasEnglishCasing(_ word: String) -> Bool {
+        guard word.contains(where: { $0.isUppercase && "QWERTOP".contains($0) }),
+              !word.contains(where: \.isNumber) else { return true }
+        let letters = word.filter(\.isLetter)
+        return letters.allSatisfy(\.isUppercase) || letters.dropFirst().allSatisfy(\.isLowercase)
     }
 
     // MARK: - 입력 정규화 (설정 앱의 입력 검증과 저장 시 정규화가 같은 함수를 쓴다)

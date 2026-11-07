@@ -1,0 +1,8 @@
+word	hangulForm	role	decision	reviewedOn	reference	note
+ansi	무냐	broad	owner_demoted_from_curated	2026-11-07	https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/174	무냐?(구어)가 ansi로 바뀌었다. Ansi·ANSI(첫 자음 Shift)는 계속 변환.
+goty	해쇼	broad	owner_demoted_from_curated	2026-11-07	https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/174	해쇼(구어)가 goty로 바뀌었다. Goty·GOTY(첫 자음 Shift)는 계속 변환.
+emtek	듯다	broad	owner_demoted_from_curated	2026-11-07	https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/174	듯다가 emtek으로 바뀌었다. EMTEK(뜼따, 비완성형 음절)은 계속 변환. Emtek(뜻다)은 멀쩡한 한글이라 변환 안 됨.
+totp	새세	broad	owner_demoted_from_curated	2026-11-07	https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/174	새세가 totp로 바뀌었다. TOTP(썌쎼, 비완성형 음절)는 계속 변환. Totp(쌔세)는 멀쩡한 한글이라 변환 안 됨.
+algo	미해	broad	owner_demoted_from_curated	2026-11-07	https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/174	미해가 algo로 바뀌었다. Algo·ALGO(첫 자음 Shift)는 계속 변환.
+rhel	고디	broad	owner_demoted_from_curated	2026-11-07	https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/174	고디가 rhel로 바뀌었다. RHEL(꼬띠)·Rhel(꼬디)도 멀쩡한 한글이라 변환되지 않는다. 쓰려면 개인 사전.
+gorm	해그	broad	owner_demoted_from_curated	2026-11-07	https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/174	해그가 gorm으로 바뀌었다. Gorm·GORM(첫 자음 Shift)은 계속 변환.

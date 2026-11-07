@@ -58,6 +58,7 @@ private func runLivePreviewHoldTests() {
 }
 
 func runEnglishParticleTests() {
+    runEnglishRulesTests()
     runLivePreviewHoldTests()
     runExpandedParticleTests()
     func raw(_ english: String, _ particle: String) -> String {

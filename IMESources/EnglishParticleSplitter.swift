@@ -118,7 +118,9 @@ enum EnglishParticleSplitter {
         }
         if preference == .forceConvert { return .accept }
         // '내+가', '재가+에서'는 한글이다. 문맥이나 복합어 추론으로 우회하지 않는다.
+        // 2026-11-07 (#174): The 예외는 단어 전체일 때만이다. 쏟는·쏟은·쏟을이 The는·The은·The을이 되면 안 된다.
         return !KoreanDictionary.contains(hangul)
+            && !EnglishDetector.isSentenceStartThe(Array(prefix))
             && EnglishDetector.shouldConvert(units: hangul.map(String.init), keys: Array(prefix)) ? .accept : .reject
     }
 
@@ -132,6 +134,10 @@ enum EnglishParticleSplitter {
         let matchingKeys = String(keys.map(canonicalParticleKey))
         var outputs: Set<String> = []
         var containsBlockedPrefix = false
+        // 2026-11-07 (#174, 리뷰 F-9): 다른 자리에서 끊으면 앞부분이 표제어인 말(부메랑+은)은 한국어 읽기가 있으니 분리하지 않는다.
+        // 부메(qnap)+랑은으로 끊겨 qnap랑은이 됐다. 사용자가 그 앞말을 직접 추가했으면 그 뜻이 우선이다.
+        var hasKoreanReading = false
+        var hasForcedPrefix = false
         for ending in endings where matchingKeys.hasSuffix(ending.keys) {
             let prefix = String(typed.dropLast(ending.keys.count))
             guard prefix.count >= 2,
@@ -142,14 +148,17 @@ enum EnglishParticleSplitter {
                 containsBlockedPrefix = true
                 continue
             case .reject:
+                if KoreanDictionary.contains(prefixHangul) { hasKoreanReading = true }
                 continue
             case .accept:
                 outputs.insert(prefix + ending.text)
+                if personalDictionary.decision(word: prefix, hangul: prefixHangul) == .forceConvert { hasForcedPrefix = true }
             }
         }
 
         // 금지 또는 복수 해석을 전체 영어 굴절형 추정이 다시 덮지 못하게 한다.
         if containsBlockedPrefix || outputs.count > 1 { return .preserveHangul }
+        if hasKoreanReading, !hasForcedPrefix { return nil }
         guard let only = outputs.first else { return nil }
         return .mixed(only)
     }
