@@ -45,6 +45,55 @@ enum AppMoveDecision {
     }
 }
 
+// MARK: - 앱 시작 순서
+
+/// 옮기기 판단의 결과. `AppMover`가 돌려준다.
+enum AppMoveOutcome: Equatable, CaseIterable, Sendable {
+    /// 이미 응용 프로그램 폴더 안이다.
+    case alreadyInPlace
+    /// 옮기기를 거절해 이 인스턴스가 끝난다.
+    case declined
+    /// 옮긴 앱을 새 인스턴스로 여는 중이라 이 인스턴스는 끝난다.
+    case relaunchingMovedCopy
+    /// 기존 최신본을 여는 중이라 이 인스턴스는 끝난다.
+    case openingExistingCopy
+    /// 같은 이름의 다른 앱이 있어 옮기지 못했다. 이 인스턴스가 계속 돈다.
+    case blockedByOtherApp
+    /// 옮기지 못했다. 이 인스턴스가 계속 돈다.
+    case moveFailed
+}
+
+/// 2026-11-07 (#176, 리뷰 install-update-F-9·B-P3-3): 앱 시작 때의 순서. `AppDelegate`는 시험 빌드에 못 넣어 여기로 뺐다.
+/// 옮기기 창이 떠 있는 동안이나 곧 끝나는 인스턴스가 설치된 입력기를 교체하지 않게, 입력기 갱신·활성화는 옮기기 판단 뒤에
+/// 계속 도는 인스턴스에서만 한다. 옮긴 앱 열기가 나중에 실패하면 인스턴스가 남지만 "직접 실행해 주세요"라고 안내하므로 갱신하지 않는다.
+enum AppLaunchSequence {
+    static func shouldActivateIME(after outcome: AppMoveOutcome) -> Bool {
+        switch outcome {
+        case .alreadyInPlace, .blockedByOtherApp, .moveFailed: return true
+        case .declined, .relaunchingMovedCopy, .openingExistingCopy: return false
+        }
+    }
+
+    @MainActor
+    static func run(moveApp: () -> AppMoveOutcome, recordAppPath: () -> Void, activateIME: () -> Void) {
+        let outcome = moveApp()
+        recordAppPath()
+        if shouldActivateIME(after: outcome) { activateIME() }
+    }
+}
+
+// MARK: - 번들 정보
+
+/// 2026-11-07 (#176, 리뷰 install-update-F-1): 번들의 Info.plist를 직접 읽는다. `Bundle(url:)`은 경로별로 프로세스 수명 동안
+/// 캐시되어 교체·삭제 뒤에도 옛 값을 돌려준다. 그래서 입력기 자동 갱신이 성공해도 "입력기 갱신 필요"가 앱이 끝날 때까지 남았다.
+enum BundleInfoFile {
+    /// CFBundleVersion(단조증가 정수). 문자열 비교는 "10" < "9" 오류가 나므로 정수로 파싱한다. 못 읽으면 nil.
+    static func buildNumber(at bundleURL: URL) -> Int? {
+        let plist = bundleURL.appendingPathComponent("Contents/Info.plist")
+        return (NSDictionary(contentsOf: plist)?["CFBundleVersion"] as? String).flatMap { Int($0) }
+    }
+}
+
 // MARK: - 전체 제거
 
 /// 전체 제거 결과. 필수 단계가 모두 확인돼야 종료한다.

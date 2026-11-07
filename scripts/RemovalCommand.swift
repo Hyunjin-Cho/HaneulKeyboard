@@ -48,7 +48,10 @@ enum RemovalCommand {
                 guard RemovalObservation.verifyInputMethods(urls).allSatisfy({ $0.state.reachedGoal }) else { return .preserved("입력기 파일이 다시 생겼어요") }
                 return RemovalObservation.clearProductSettings()
             },
-            removeMainApps: { .preserved("메인 앱은 Finder에서 직접 제거해 주세요") }
+            removeMainApps: { .preserved("메인 앱은 Finder에서 직접 제거해 주세요") },
+            otherAccountNotice: {
+                RemovalObservation.otherAccountNotice(removingSystemIME: targets.contains { $0.url == RemovalObservation.systemIME })
+            }
         ))
     }
     static func exitCode(_ report: RemovalReport) -> Int32 { report.complete ? 0 : 1 }

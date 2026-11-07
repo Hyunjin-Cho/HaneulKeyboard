@@ -69,6 +69,8 @@ enum RemovalSequence {
         let observeInputSources: () -> RemovalState
         let clearSettings: () -> RemovalState
         let removeMainApps: () -> RemovalState
+        /// 2026-11-07 (#176): 다른 계정이 시스템 입력기를 쓰는 중일 때의 안내. 제거를 막지 않는다.
+        var otherAccountNotice: () -> RemovalState? = { nil }
     }
     static func run(mode: RemovalReport.Mode, operations op: Operations) -> RemovalReport {
         var report = RemovalReport(mode: mode, steps: [])
@@ -85,6 +87,7 @@ enum RemovalSequence {
         guard input.reachedGoal else { keepDataAndApp("입력 소스를 안전하게 전환하지 못했어요"); return report }
         let stopped = op.stopProcesses(); add("process", "입력기 실행 종료", stopped)
         guard stopped.reachedGoal else { keepDataAndApp("실행 종료를 확인하지 못했어요"); return report }
+        if let notice = op.otherAccountNotice() { add("other-accounts", "다른 계정의 입력기", notice, required: false) }
         let files = op.removeInputMethods(); report.steps += files
         guard !files.isEmpty && files.allSatisfy({ $0.state.reachedGoal }) else {
             keepDataAndApp("입력기 제거를 끝내지 못했어요"); return report

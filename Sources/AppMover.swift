@@ -11,7 +11,8 @@ import AppKit
 /// IME 보안: 외부 라이브러리(LetsMove 등) 없이 AppKit만으로 직접 구현 —
 /// 의존성을 추가하지 않는다.
 enum AppMover {
-    static func moveToApplicationsIfNeeded() {
+    /// 2026-11-07 (#176): 판단 결과를 돌려준다. 입력기 갱신 여부는 `AppLaunchSequence`가 이 값으로 정한다.
+    static func moveToApplicationsIfNeeded() -> AppMoveOutcome {
         let fm = FileManager.default
         let bundleURL = Bundle.main.bundleURL
         // (review-0712 P2-1 / P3-8) 목적지 파일명은 항상 고정이고, 그 판단은
@@ -22,7 +23,7 @@ enum AppMover {
         let destURL = AppMoveDecision.destinationURL()
 
         // 이미 /Applications에서 실행 중이면 아무것도 하지 않는다.
-        guard !AppMoveDecision.isAlreadyInPlace(bundlePath: bundleURL.path) else { return }
+        guard !AppMoveDecision.isAlreadyInPlace(bundlePath: bundleURL.path) else { return .alreadyInPlace }
 
         let alert = NSAlert()
         alert.messageText = "HaneulKeyboard를 응용 프로그램 폴더로 옮길까요?"
@@ -36,7 +37,7 @@ enum AppMover {
         // 사용자를 혼란시킨다 — 거절은 깔끔히 종료로 처리.
         guard alert.runModal() == .alertFirstButtonReturn else {
             NSApp.terminate(nil)
-            return
+            return .declined
         }
 
         do {
@@ -51,7 +52,7 @@ enum AppMover {
                     block.informativeText = "\(destURL.path)이(가) HaneulKeyboard가 아닙니다. 안전을 위해 덮어쓰지 않고 중단했어요. 그 앱을 옮기거나 이름을 바꾼 뒤 다시 시도해 주세요."
                     block.alertStyle = .warning
                     block.runModal()
-                    return
+                    return .blockedByOtherApp
                 }
                 // (H-02) 다운그레이드 방지 — /Applications의 기존 설치본이 더
                 // 최신(빌드 번호 큼)이면 확인받는다. 취소하면 기존 최신본을 열고
@@ -71,22 +72,12 @@ enum AppMover {
                         NSWorkspace.shared.openApplication(at: destURL, configuration: cfg) { _, _ in
                             DispatchQueue.main.async { NSApp.terminate(nil) }
                         }
-                        return
+                        return .openingExistingCopy
                     }
                 }
-                // (H-02) 원자 교체 — 같은 볼륨(/Applications)에 staging으로 복사한
-                // 뒤 replaceItemAt으로 한 번에 바꾼다. 복사 도중 디스크/IO 오류가
-                // 나도 기존 설치본이 그대로 보존된다(예전엔 destURL을 먼저 지워서
-                // 복사 실패 시 앱이 통째로 사라질 수 있었다 — H-02).
-                let staging = destURL.deletingLastPathComponent()
-                    .appendingPathComponent(".\(destURL.lastPathComponent).staging-\(UUID().uuidString)")
-                defer { try? fm.removeItem(at: staging) }
-                try fm.copyItem(at: bundleURL, to: staging)
-                _ = try fm.replaceItemAt(destURL, withItemAt: staging)
-            } else {
-                // 첫 설치 — 교체할 기존본이 없으니 바로 복사.
-                try fm.copyItem(at: bundleURL, to: destURL)
             }
+            // (H-02) 원자 교체 — 예전엔 destURL을 먼저 지워서 복사 실패 시 앱이 통째로 사라질 수 있었다.
+            try placeCopy(of: bundleURL, at: destURL)
             // (#12) 옮긴 뒤 원본을 정리 — 안 지우면 원본도 LaunchServices에
             // 등록돼 Launchpad에 중복으로 뜬다. (translocated 임시본은 읽기전용이라
             // 삭제 실패할 수 있으나 OS가 자동 정리하므로 무방 — try?로 무시.)
@@ -99,7 +90,7 @@ enum AppMover {
             fail.informativeText = "Finder에서 직접 응용 프로그램 폴더로 드래그해 주세요.\n(\(error.localizedDescription))"
             fail.alertStyle = .warning
             fail.runModal()
-            return
+            return .moveFailed
         }
 
         // 옮긴 앱을 새 인스턴스로 실행하고, 현재(임시/원위치) 인스턴스는 종료.
@@ -120,6 +111,29 @@ enum AppMover {
                 NSApp.terminate(nil)
             }
         }
+        return .relaunchingMovedCopy
+    }
+
+    /// 2026-11-07 (#176, 리뷰 install-update-F-3·F-10): 같은 볼륨의 staging에서 복사·검증·격리 해제를 끝낸 뒤에만 정본 경로에 놓는다.
+    /// - 복사 도중 디스크/IO 오류가 나도 기존 설치본은 그대로이고 반쪽 앱이 남지 않는다. 예전 첫 설치는 정본 경로로 바로 복사해,
+    ///   실패하면 반쪽 번들이 남아 다음 시도를 "다른 앱이 있어요"로 막았다(교체는 H-02 때부터 staging을 썼다).
+    /// - `copyItem`은 격리 속성을 그대로 옮긴다(재현 확인). 그대로 두면 옮긴 앱이 다시 App Translocation으로 실행될 수 있어(추측, 실기기 확인 항목)
+    ///   `Updater`와 같은 방식으로 재귀 제거한다. 우리 앱임을 확인한 복사본에서만 벗긴다.
+    static func placeCopy(of source: URL, at destination: URL,
+                          verify: (URL) -> Bool = { isOurApp(at: $0) },
+                          stripQuarantine: (URL) -> Void = { Updater.stripQuarantine(at: $0) }) throws {
+        let fm = FileManager.default
+        let staging = destination.deletingLastPathComponent()
+            .appendingPathComponent(".\(destination.lastPathComponent).staging-\(UUID().uuidString)")
+        defer { try? fm.removeItem(at: staging) }
+        try fm.copyItem(at: source, to: staging)
+        guard verify(staging) else { throw AppMoveError.untrustedCopy }
+        stripQuarantine(staging)
+        if fm.fileExists(atPath: destination.path) {
+            _ = try fm.replaceItemAt(destination, withItemAt: staging)
+        } else {
+            try fm.moveItem(at: staging, to: destination)
+        }
     }
 
     /// (review-0712 P2-1) 목적지 번들이 우리 제품인가.
@@ -138,10 +152,12 @@ enum AppMover {
     }
 
     /// 번들의 빌드 번호(CFBundleVersion, 단조증가 정수). 다운그레이드 판별용. (H-02)
-    private static func buildNumber(at url: URL) -> Int? {
-        guard let bundle = Bundle(url: url),
-              let s = bundle.infoDictionary?["CFBundleVersion"] as? String,
-              let n = Int(s) else { return nil }
-        return n
+    static func buildNumber(at url: URL) -> Int? {
+        BundleInfoFile.buildNumber(at: url)
     }
+}
+
+enum AppMoveError: LocalizedError, Equatable {
+    case untrustedCopy
+    var errorDescription: String? { "복사한 앱의 서명을 확인하지 못해 옮기지 않았어요" }
 }

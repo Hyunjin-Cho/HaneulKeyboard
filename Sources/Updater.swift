@@ -266,7 +266,7 @@ final class Updater {
             phase = .verifying
             let currentVersion = Self.currentVersion
             let currentBuild = Self.currentBuild
-            let verifiedApp = try await Task.detached(priority: .userInitiated) {
+            let verified = try await Task.detached(priority: .userInitiated) {
                 try Self.extractAndVerify(zip: zipURL, workDir: workDir,
                                           currentVersion: currentVersion, currentBuild: currentBuild)
             }.value
@@ -277,14 +277,14 @@ final class Updater {
             switch strategy {
             case .userAtomic:
                 try await Task.detached(priority: .userInitiated) {
-                    try Self.replaceAtomically(destination: destination, with: verifiedApp)
+                    try Self.replaceAtomically(destination: destination, with: verified.app)
                 }.value
             case .adminPrompt:
                 // NSAppleScript의 관리자 인증 UI는 메인 액터에서 띄운다(IMEInstaller.uninstall과 동일).
-                try Self.replaceWithAdminPrivileges(destination: destination, with: verifiedApp)
+                try Self.replaceWithAdminPrivileges(destination: destination, with: verified)
             }
             haneulLog("HaneulKeyboard: update \(update.tag) installed at \(destination.path) (\(strategy)) — relaunching")
-            try await relaunch(at: destination)
+            try await Self.relaunchCleaningUp(workDir: workDir) { try await relaunch(at: destination) }
         } catch {
             let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             phase = .failed(message)
@@ -307,11 +307,18 @@ final class Updater {
         if asset.size > 0, asset.size != size { throw UpdateError.sizeMismatch(expected: asset.size, actual: size) }
     }
 
-    /// zip 해제 → 다섯 가지 검증 → (통과 시) quarantine 제거. 통과한 번들 URL을 돌려준다.
+    /// 검증을 통과한 번들과 그때 읽은 정체. 2026-11-07 (#176): 관리자 경로가 인증 뒤 복사본을 이 값과 대조한다.
+    /// 임시 폴더의 파일은 같은 사용자 권한의 코드가 바꿀 수 있으므로 나중에 다시 읽지 않고 검증 시점의 값을 들고 다닌다.
+    private struct VerifiedUpdate: Sendable {
+        let app: URL
+        let identity: UpdateReplacementScript.VerifiedIdentity
+    }
+
+    /// zip 해제 → 다섯 가지 검증 → (통과 시) quarantine 제거. 통과한 번들을 돌려준다.
     /// 여기까지는 전부 임시 폴더 안이다.
     nonisolated private static func extractAndVerify(
         zip: URL, workDir: URL, currentVersion: String, currentBuild: Int?
-    ) throws -> URL {
+    ) throws -> VerifiedUpdate {
         let fm = FileManager.default
         let extractDir = workDir.appendingPathComponent("extract", isDirectory: true)
         try fm.createDirectory(at: extractDir, withIntermediateDirectories: true)
@@ -355,15 +362,22 @@ final class Updater {
             )
         )
         guard verification.passed else { throw UpdateError.verificationFailed(verification.failures) }
+        guard let version = info?["CFBundleShortVersionString"] as? String, let build = info?["CFBundleVersion"] as? String else {
+            throw UpdateError.verificationFailed(["버전 정보를 읽지 못함"])
+        }
 
         // 검증을 통과한 우리 번들이므로 격리 속성을 벗긴다(App Translocation 방지). URLSession
-        // 다운로드엔 보통 quarantine이 붙지 않지만(LSFileQuarantineEnabled 미설정) 붙어 있어도
-        // 되게 — 없으면 xattr가 비영으로 끝나므로 결과는 무시한다.
+        // 다운로드엔 보통 quarantine이 붙지 않지만(LSFileQuarantineEnabled 미설정) 붙어 있어도 되게.
+        stripQuarantine(at: app)
+        return VerifiedUpdate(app: app, identity: .init(bundleID: UpdateDecision.appBundleID, version: version, build: build))
+    }
+
+    /// 없으면 xattr가 비영으로 끝날 수 있으므로 결과는 로그로만 남긴다. 2026-11-07 (#176): `AppMover`도 같은 방식으로 쓴다.
+    nonisolated static func stripQuarantine(at app: URL) {
         let xattr = run("/usr/bin/xattr", ["-dr", "com.apple.quarantine", app.path])
         if xattr.status != 0 && !xattr.output.isEmpty && !xattr.output.contains("No such xattr") {
-            haneulLog("HaneulKeyboard: update — quarantine strip returned \(xattr.status): \(xattr.output)")
+            haneulLog("HaneulKeyboard: quarantine strip returned \(xattr.status): \(xattr.output)")
         }
-        return app
     }
 
     nonisolated private static func replaceStrategy(for destination: URL) -> UpdateDecision.ReplaceStrategy {
@@ -391,14 +405,15 @@ final class Updater {
     /// root 소유 설치본 — staging 복사 → 옛 번들 백업 → 새 번들 배치.
     /// 새 번들 배치가 실패하면 같은 관리자 명령 안에서 백업을 원래 위치로 복구한다.
     /// 복구도 실패하면 백업을 보존하고 실제 백업·복원 경로를 안내한다(리뷰 F-1).
+    /// 2026-11-07 (#176, 리뷰 security-overlap-F-3): 인증창이 떠 있는 동안 임시 폴더의 사본이 바뀔 수 있어, 권한 상승한 스크립트 안에서 복사본을 다시 검증한다.
     @MainActor
-    private static func replaceWithAdminPrivileges(destination: URL, with source: URL) throws {
+    private static func replaceWithAdminPrivileges(destination: URL, with verified: VerifiedUpdate) throws {
         let parent = destination.deletingLastPathComponent()
         let token = UUID().uuidString
         let staging = parent.appendingPathComponent(".\(destination.lastPathComponent).update-\(token)")
         let old = parent.appendingPathComponent(".\(destination.lastPathComponent).old-\(token)")
-        let replacement = UpdateReplacementScript(source: source, destination: destination,
-                                                  staging: staging, backup: old)
+        let replacement = UpdateReplacementScript(source: verified.app, destination: destination,
+                                                  staging: staging, backup: old, identity: verified.identity)
         var errorInfo: NSDictionary?
         guard let appleScript = NSAppleScript(source: replacement.appleScriptSource) else {
             throw UpdateError.replaceFailed("관리자 권한 요청 스크립트 생성 실패")
@@ -415,6 +430,13 @@ final class Updater {
         if let notice = result.stringValue, !notice.isEmpty {
             haneulLog("HaneulKeyboard: update replacement — \(notice)")
         }
+    }
+
+    /// 2026-11-07 (#176, 리뷰 install-update-F-7): `NSApp.terminate`는 돌아오지 않아 `installAvailableUpdate`의 defer가 돌지 않는다.
+    /// 그래서 업데이트가 성공할 때마다 ZIP과 풀린 앱이 임시 폴더에 남았다. 재실행 전에 지운다.
+    static func relaunchCleaningUp(workDir: URL, relaunch: () async throws -> Void) async rethrows {
+        try? FileManager.default.removeItem(at: workDir)
+        try await relaunch()
     }
 
     /// `AppMover`와 같은 패턴 — 교체된 번들을 새 인스턴스로 열고 현재 인스턴스를 종료한다.
@@ -497,7 +519,8 @@ enum UpdateError: LocalizedError {
         case .verificationFailed(let failures):
             return "검증 실패로 설치하지 않았어요: " + failures.joined(separator: ", ")
         case .notInApplications(let path):
-            return "새 버전 설치는 응용 프로그램 폴더(/Applications)에 설치된 앱에서만 할 수 있어요. 지금 실행 위치: \(path)"
+            // 2026-11-07 (#176, 리뷰 install-update-F-5): 하위 폴더에 두거나 이름을 바꾼 앱도 응용 프로그램 폴더 안이라 예전 문구로는 이유를 알 수 없었다.
+            return "새 버전 설치는 앱이 \(AppMoveDecision.destinationURL().path)에 있을 때만 할 수 있어요. 지금 실행 위치: \(path). 앱을 하위 폴더가 아닌 응용 프로그램 폴더 바로 아래로 옮기고 이름을 \(AppMoveDecision.destinationName)으로 바꾼 뒤 다시 열어 주세요."
         case .replaceFailed(let reason):
             return "앱 교체 실패 — \(reason)"
         case .replaceRecoveryFailed(let reason, let backupPath, let destinationPath):

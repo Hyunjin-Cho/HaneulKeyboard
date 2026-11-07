@@ -261,6 +261,7 @@ final class UpdateReleaseStub: URLProtocol {
         UpdateReplacementTests.run { check($0, $1) }
         UninstallTests.run { check($0, $1) }
         InputSourceSettingsTests.run { check($0, $1) }
+        await InstallFlowTests.run { check($0, $1) }
         print("Updater: \(passed) passed, \(failed) failed")
         exit(failed == 0 ? 0 : 1)
     }
