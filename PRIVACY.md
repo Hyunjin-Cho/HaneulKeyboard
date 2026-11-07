@@ -101,6 +101,10 @@ macOS와 호스트 앱이 보안 입력(secure event input)을 올바르게 활�
 - 제안 내용에 비밀번호·개인정보를 적지 마세요. 실제 제출 전 내용을 확인할 수 있습니다.
 - 구현: `Sources/WordSuggestion.swift`의 `emailURL`·`issueURL`, `Sources/WordSuggestionSettingsSection.swift`의 작성창 열기, `Sources/PersonalDictionarySettingsSection.swift`의 `suggestRecent`.
 
+### 8-1. 응원하기 (2026-11-07 추가)
+
+**응원하기** 창의 **GitHub에서 후원하기**는 GitHub Sponsors 후원 페이지(`https://github.com/sponsors/Hyunjin-Cho`)를 기본 브라우저로 엽니다. 앱은 이 주소를 여는 것 외에 아무것도 보내지 않으며, 후원 여부와 결제 정보를 알 수 없습니다. 결제는 GitHub에서 이루어지고 GitHub의 약관과 개인정보 처리방침을 따릅니다. 후원 여부는 기능에 영향을 주지 않습니다.
+
 ### 9. 새 버전 알림과 설치 (2026-10-24 갱신)
 
 앱이 **처음으로 인터넷에 접속하는** 기능이라 따로 적습니다. 설정 창의 **버전·업데이트**에서 **새 버전 알림**을 켜고 끌 수 있습니다.

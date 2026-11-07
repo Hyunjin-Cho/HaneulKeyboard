@@ -47,6 +47,13 @@ enum OnboardingInstallPanel: Equatable {
     }
 }
 
+/// 2026-11-07 (#20): 후원 주소의 정본. 오너가 대조해 승인했다. `.github/FUNDING.yml`·PRIVACY.md와 어긋나면 `Tests/AppUITests.swift`가 실패한다.
+enum SupportLink {
+    static let account = "Hyunjin-Cho"
+    static let sponsors = URL(string: "https://github.com/sponsors/\(account)")!
+    static var displayAddress: String { "github.com/sponsors/\(account)" }
+}
+
 /// 지금 쓰는 입력 소스를 사실대로 말하기 위한 분류. (리뷰 app-ui-F-7)
 /// 예전엔 입력 소스 ID에 korean·hangul이 있으면 "한국어", 아니면 전부 "영어"라고 했다 — 일본어·중국어·프랑스어 자판도 "영어"가 되고,
 /// Apple 두벌식이 "한국어"로 보여 하늘키보드를 고르지 않았다는 사실도 가려졌다. 안내 창은 처음부터 정확한 ID 비교를 쓴다.
