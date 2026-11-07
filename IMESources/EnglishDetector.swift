@@ -19,7 +19,7 @@ import CoreFoundation
 ///   MAIN — standalone jamo + ≥3 keys + vowel key + dict hit (메ㅔㅣㄷ←apple,
 ///          and broken proper nouns ㅡㅐㄱ무←moran via the bundled list).
 ///   R1   — starts with a standalone VOWEL (조건 1: 자음보다 모음이 먼저 =
-///          한국어 불가, ㅑ→i). shortWords (excl. context-only) or dict.
+///          한국어 불가, ㅑ→i). shortWords or dict.
 ///   R3   — contains a syllable not in KS X 1001 완성형 (조건 3: 솓←the).
 ///          EUC-KR encodability = membership; no data file needed.
 ///   R5   — ≥2 Hangul syllables AND a CURATED common-English hit (조건 8·11: 퍄녀미←
@@ -121,6 +121,8 @@ enum EnglishDetector {
         // pd·pr과 같은 R1 경로다: ln=ㅣㅜ, pi=ㅔㅑ, mu=ㅡㅕ, nu=ㅜㅕ. 우리말샘 미등재·
         // 초성체 슬랭 목록에 없음을 검역으로 확인했다(dict_work/2026-11-01-dict106-*).
         "ln", "pi", "mu", "nu",
+        // 2026-11-07 (#194) pm(ㅔㅡ): 오후. 그 전에는 단위(피코미터) 경로로 소문자 pm만 바뀌어 PM·Pm(ㅖㅡ)이 그대로 남았다.
+        "pm",
         // and(뭉): 우리말샘 미등재 + clean 1음절이라 어떤 구조 룰에도 도달
         // 못 하던 구멍. 무맥락 단독·영어 사이·영어 뒤 모두 변환된다
         // (2026-06-19 standaloneShortWords로 항상 변환 — 아래 정의).
@@ -160,6 +162,9 @@ enum EnglishDetector {
         // 2026-11-07 (#174) 오너 결정: cos=챈을 뺐다. 채다의 활용형이라 "눈치 챈 사람"이 "눈치 cos 사람"으로 깨졌다.
         // 영어 문맥(contextOverrideEnglish)과 개인 사전으로는 계속 쓴다.
         "abs", "xi",
+        // 2026-11-07 (#194) am(므): 오너 지정 — 오전. 2글자에서 멀쩡한 한글이 되는 꼴(so=내)은 원칙상 안 넣지만 오너가 정한 예외다.
+        // 므는 우리말샘 미등재이고 므다도 없다. veto 뒤에서 평가하고, 표제어 므로·므흣은 단어 전체 판정이 먼저 지킨다.
+        "am",
     ]
 
     /// 자음으로 시작하는 **2글자** 영단어 — 무맥락 단독 변환 화이트리스트
@@ -175,11 +180,9 @@ enum EnglishDetector {
     /// 정책과 묶어 오너 결정 대기 — 목록은 #39 검토 기록에.
     static let consonantPairShortWords: Set<String> = ["we", "at", "as", "ev"]
 
-    /// shortWords whose Hangul forms are everyday jamo slang (ㅐㅏ=ok):
-    /// convertible ONLY in English context (R2), never standalone.
-    /// 2026-11-01 (#106): 오너 결정으로 ml(ㅢ)을 뺐다 — 단독 ㅢ도 R1(모음 시작)으로
-    /// ml이 된다. 반복 키 이모티콘 mm(ㅡㅡ)·cc(ㅊㅊ)는 위 공통 가드가 계속 막는다.
-    static let contextOnlyShortWords: Set<String> = ["ok"]
+    // 2026-11-07 오너 결정(#194): contextOnlyShortWords를 없앴다. 마지막으로 남았던 ok(ㅐㅏ)를 단독으로도 바꾼다.
+    // 그 전에는 "ㅐㅏ는 흔한 자모 슬랭"이라고 적어 막았지만 오너가 "이런 건 쓰지 않는다"고 정정했다.
+    // 2026-11-01 (#106)에 뺀 ml(ㅢ)과 같은 R1(모음 시작) 경로다. 반복 키 이모티콘 mm(ㅡㅡ)·cc(ㅊㅊ)는 공통 가드가 계속 막는다.
 
     /// 자음 초성체 슬랭 보호 목록 — 한국어 사전(완성 한글만)에는 없지만
     /// 의도적으로 치는 표현들. 영어 문맥 뒤에서도 절대 변환하지 않는다
@@ -332,8 +335,7 @@ enum EnglishDetector {
         }
 
         let word = String(lowered)
-        let isContextShortWord = shortWords.contains(word)
-        let isShortWord = isContextShortWord && !contextOnlyShortWords.contains(word)
+        let isShortWord = shortWords.contains(word)
         let isDictWord = lowered.count >= 3 && matchesEnglishWord(word)
         let hangul = units.joined()
         // "한국어로서 깨짐" 구조 판정 — R5(무맥락 clean 게이트)와 R2-확장이 공유.
@@ -359,7 +361,7 @@ enum EnglishDetector {
         // (2026-06-19) 트리거 게이트 제거 — 새/무/내/ㅁ/랙도 "앞 영어면 무조건".
         // 한국어 용법(내 책/새 기능)은 앞이 한글이라 prevEnglish=false로 보호.
         // 초성체·의미 있는 Shift는 보호하고, veto보다 먼저 평가한다.
-        if prevEnglish, isContextShortWord, !hasShiftKey, !protectedSlang.contains(hangul) {
+        if prevEnglish, isShortWord, !hasShiftKey, !protectedSlang.contains(hangul) {
             return true
         }
         // ── veto 우회 정책 등급 S/C/T (#33, 2026-09-19) — 셋 다 veto보다 위 ──
