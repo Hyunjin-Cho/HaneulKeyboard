@@ -10,7 +10,8 @@ import Foundation
     struct Caption: Decodable {
         let text: String
         let top, fontSize: CGFloat
-        /// 저장소 안 TTF 이름(확장자 없이, Resources/Onboarding). 없으면 시스템 글꼴.
+        /// 저장소 안 글꼴 파일 이름(확장자 없이, Resources/Onboarding — .otf 먼저, 없으면 .ttf). 없으면 시스템 글꼴.
+        /// 2026-11-08 (#209): 고운바탕 TTF를 지우고 마루부리 OTF로 바꿔 .otf도 읽는다.
         let font: String?
         /// regular·medium·semibold·bold. 없으면 medium(2026-10-10 조판과 같다).
         let weight: String?
@@ -61,7 +62,9 @@ import Foundation
     /// 번들 TTF를 이 프로세스에만 등록하고 글꼴을 만든다(시스템에 설치하지 않는다).
     static func font(for caption: Caption) throws -> NSFont {
         if let name = caption.font {
-            let url = root.appendingPathComponent("Resources/Onboarding/\(name).ttf")
+            let base = root.appendingPathComponent("Resources/Onboarding/\(name)")
+            let otf = base.appendingPathExtension("otf")
+            let url = FileManager.default.fileExists(atPath: otf.path) ? otf : base.appendingPathExtension("ttf")
             CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
             guard let descriptors = CTFontManagerCreateFontDescriptorsFromURL(url as CFURL) as? [CTFontDescriptor],
                   let postScript = descriptors.first.flatMap({ CTFontDescriptorCopyAttribute($0, kCTFontNameAttribute) as? String }),
