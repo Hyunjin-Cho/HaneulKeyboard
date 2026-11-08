@@ -52,6 +52,21 @@ enum SupportLink {
     static let account = "Hyunjin-Cho"
     static let sponsors = URL(string: "https://github.com/sponsors/\(account)")!
     static var displayAddress: String { "github.com/sponsors/\(account)" }
+
+    /// 2026-11-08 오너(#20): 응원 창은 후원처 목록(A안)이다. 후원처가 늘면 여기에 한 줄 더한다(창에 3곳까지 들어간다).
+    static let channels: [SupportChannel] = [
+        SupportChannel(id: "github", name: "GitHub Sponsors", detail: "한 번 또는 매달 · GitHub 계정이 필요해요",
+                       url: sponsors, displayAddress: displayAddress),
+    ]
+}
+
+/// 응원 창 한 줄: 후원처 이름, 방법과 필요한 것 한 줄, 여는 주소.
+struct SupportChannel: Identifiable, Equatable {
+    let id: String
+    let name: String
+    let detail: String
+    let url: URL
+    let displayAddress: String
 }
 
 /// 지금 쓰는 입력 소스를 사실대로 말하기 위한 분류. (리뷰 app-ui-F-7)

@@ -41,6 +41,10 @@ func runSupportLinkTests() {
     expect(readSource(".github/FUNDING.yml")?.contains("github: \(SupportLink.account)") == true, "FUNDING.yml이 앱과 같은 계정")
     expect(readSource("PRIVACY.md")?.contains(SupportLink.sponsors.absoluteString) == true, "개인정보 문서가 앱과 같은 주소")
     expect(readSource("README.md")?.contains(SupportLink.sponsors.absoluteString) == true, "README가 앱과 같은 주소")
+    // 2026-11-08 (#20): 응원 창 A안 — 후원처 목록. 첫 줄은 GitHub Sponsors이고 주소가 정본과 같다.
+    expectEqual(SupportLink.channels.first?.url, SupportLink.sponsors, "후원처 목록 첫 줄 = GitHub Sponsors")
+    expect(Set(SupportLink.channels.map(\.id)).count == SupportLink.channels.count, "후원처 id가 겹치지 않는다")
+    expect(SupportLink.channels.count <= 3, "응원 창에는 후원처가 3곳까지 들어간다")
 }
 
 // MARK: - 입력기 상태 표시 (리뷰 app-ui-F-1)
