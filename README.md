@@ -36,12 +36,12 @@
 | `how ㅁㄱㄷ you` | `how are you`. 영어 흐름을 이어서 읽습니다 |
 | 바뀐 단어 뒤에서 **Shift+Space** | 방금 바뀐 단어를 되돌립니다. 한 번 더 누르면 다시 영어로 바뀝니다 |
 | `레스토랑` + **Shift+Space** | `restaurant`. 등록된 한글 표기만 바꿉니다 |
-| `/help` | 슬래시 뒤에는 바로 영어가 나옵니다. Space·Return 뒤에는 한글로 돌아옵니다 |
+| `/help` | 슬래시 뒤에는 바로 영어가 나옵니다. Space·Enter 뒤에는 한글로 돌아옵니다 |
 | `10` + `ㅏㅎ` + Space | `10kg`. 숫자는 누르는 즉시 들어갑니다 |
 | `github에` | 영어 뒤에 조사를 붙여 쳐도 됩니다 |
 | **Caps Lock** | 한글 ↔ 영어를 전환합니다. 길게 누르면 대문자입니다 |
 
-딸 **하늘**이의 이름에서 따왔습니다.
+**하늘**키보드는 사랑하는 우리 딸 이름을 따왔습니다.
 
 ## 설치
 
@@ -67,7 +67,7 @@
 6. 슬래시 영어 입력
 7. 메뉴바와 응원하기
 
-3~6단계에서는 입력칸에 직접 쳐 볼 수 있습니다. 메뉴바 → **시작하기 다시 보기...**로 언제든 다시 열 수 있습니다. 손쉬운 사용의 **동작 줄이기**를 켜면 움직임 없이 보여 줍니다.
+3~6단계에서는 입력칸에 직접 쳐 볼 수 있습니다. 메뉴바 → **시작하기 다시 보기…**로 언제든 다시 열 수 있습니다. 손쉬운 사용의 **동작 줄이기**를 켜면 움직임 없이 보여 줍니다.
 
 ## 기능 자세히
 
@@ -75,19 +75,19 @@
 - 영어 사전, 한국어 사전(국립국어원 우리말샘), 앞 단어의 문맥을 함께 봅니다. 실제 한국어 단어, 초성체, 자모 이모티콘(`ㅋㅋ`, `ㅠㅠ`)과 겹치는 입력은 보호합니다.
 - 직접 누른 Space·문장부호에서 판정합니다. 클릭이나 앱 전환으로 끝난 입력은 보이는 그대로 둡니다.
 - 사전에 없는 철자(`aplle`)는 추측해서 고치지 않고 그대로 둡니다.
-- 다른 입력기(ABC)로 쓴 커서 앞 영어 단어도 문맥으로 쓸 수 있습니다. 사전에 있는 영어 두 단어를 붙여 쓴 것도 알아봅니다(각 4글자 이상). 둘 다 설정에서 끌 수 있습니다.
-- 전체 자동 변환을 끄거나, 앱마다 끌 수 있습니다.
+- ABC로 친 영어 바로 뒤에서는 한글로도 읽히는 짧은 영어까지 바꿉니다(`want 새` → `want to`). `helloworld`처럼 영어 단어 두 개를 붙여 쳐도 바꿉니다(두 단어 모두 네 글자 이상). 둘 다 설정에서 끌 수 있습니다.
+- 자동 변환은 전체로 끄거나 앱마다 끌 수 있습니다.
 
-### 되돌리기와 쳐 놓은 단어 바꾸기
+### 되돌리기와 미리 친 단어 바꾸기
 - **Shift+Space**로 방금 바뀐 단어를 되돌립니다. 다시 누르면 영어로 돌아갑니다.
-- 자동으로 바뀌지 않은 커서 앞 단어도 Shift+Space로 직접 바꿀 수 있습니다(`ㅡ5` ↔ `m5`).
-- 단축키는 Option+Space · Control+Shift+Space · Option+Shift+Space로 바꿀 수 있습니다.
+- 한/영 전환을 깜빡하고 친 단어도 Shift+Space로 바꿉니다(`dkssud` ↔ `안녕`).
+- 변환 단축키는 Option+Space · Control+Shift+Space · Option+Shift+Space로 바꿀 수 있습니다.
 
 ### 한글 단어를 영어로 바꾸기
-`레스토랑 → restaurant`, `애플 → Apple`, `축구 → football`, `색보정 → color grading`처럼 **정확히 등록된 한글 표기**만 변환 단축키로 바꿉니다. 일반 Space에서는 한글을 그대로 둡니다. 다시 누르면 처음 입력한 한글로 돌아옵니다. 번역기처럼 뜻을 추측하지는 않습니다. 범위는 [발음 변환 명세](docs/phonetic-conversion.md)와 [범주](docs/vocabulary-categories.md)에 있습니다.
+`레스토랑 → restaurant`, `애플 → Apple`, `축구 → football`, `색보정 → color grading`처럼 **정확히 등록된 한글 표기**만 변환 단축키로 바꿉니다. 일반 Space에서는 한글을 그대로 둡니다. 다시 누르면 처음 입력한 한글로 돌아옵니다. 범위는 [발음 변환 명세](docs/phonetic-conversion.md)와 [범주](docs/vocabulary-categories.md)에 있습니다.
 
 ### 슬래시 영어 입력
-`/help`, `/clear`처럼 슬래시 뒤에는 바로 영어가 나옵니다. Claude Code 같은 터미널 명령에 쓰기 좋습니다. Space, Return, 닫는 괄호 `) ] }` 뒤나 슬래시를 지우면 한글로 돌아옵니다. 설정에서 끌 수 있습니다.
+`/help`, `/clear`처럼 슬래시 뒤에는 바로 영어가 나옵니다. Claude Code 같은 터미널 명령에 쓰기 좋습니다. Space·Enter·닫는 괄호 `) ] }` 뒤나 Backspace로 슬래시를 지우면 한글로 돌아옵니다. 설정에서 끌 수 있습니다.
 
 ### 숫자·단위·이름
 - 숫자는 누르는 즉시 들어갑니다. 터미널의 `1. Yes / 2. No` 선택지도 한글 모드 그대로 고를 수 있습니다.
@@ -98,29 +98,27 @@
 **설정 → 개인 사전**에서 관리합니다. 이 Mac에만 저장됩니다.
 - **변환 추가:** 기본 사전에 없는 영어 단어·제품명
 - **변환 금지:** 바뀌지 않았으면 하는 단어. 추가와 겹치면 금지가 우선합니다
-- **최근 되돌린 변환:** 최근 50개. 금지로 돌리거나 단어 제안으로 보낼 수 있습니다
+- **되돌린 단어:** 직접 되돌린 단어 최근 50개. 변환 금지에 넣거나 단어 제안으로 보낼 수 있습니다
 
 조합 중인 글자에는 회색 밑줄이 그어집니다.
 
 ## 설정
 
-메뉴바 아이콘 → **설정...** 메뉴바 아이콘을 꺼 둔 경우에는 응용 프로그램 폴더에서 하늘키보드를 열면 설정이 열립니다.
-
-하늘키보드는 Mac에 로그인할 때 함께 열립니다. 원하지 않으면 **앱 관리**에서 끌 수 있고, 꺼도 한글 입력은 그대로 동작합니다.
+메뉴바 아이콘 → **설정…**에서 엽니다. 메뉴바 아이콘은 **앱 관리**에서 끌 수 있고, 꺼도 한글 입력은 그대로 동작합니다. 아이콘을 꺼 둔 경우에는 응용 프로그램 폴더에서 하늘키보드를 열면 설정이 열립니다.
 
 | 메뉴 | 들어 있는 것 |
 |---|---|
 | 자동 변환 | 영어 자동 변환·ABC로 친 영어 뒤에 이어 칠 때·영어 단어 두 개를 붙여 쳤을 때·앱별 끄기 |
-| 단축키·슬래시 | 변환 단축키·되돌리기·한글 단어를 영어로 바꾸기·쳐 놓은 단어 한/영 바꾸기·슬래시 |
-| 개인 사전 | 변환 추가·금지·최근 되돌린 변환·단어 제안 |
-| 설치·업데이트 | 한글 입력기 설치·제거, 설치된 버전과 최신 버전, 새 버전 알림 |
-| 앱 관리 | 로그인할 때 열기, 메뉴바 아이콘 켜고 끄기, 하늘키보드 전체 제거 |
+| 단축키·슬래시 | 변환 단축키·한글 단어를 영어로 바꾸기·미리 친 단어 한/영 바꾸기·슬래시 영어 입력 |
+| 개인 사전 | 변환 추가·변환 금지·되돌린 단어·단어 제안 |
+| 설치·업데이트 | 한글 입력기 설치, 설치된 버전과 최신 버전, 새 버전 알림 |
+| 앱 관리 | 메뉴바 아이콘 켜고 끄기, 하늘키보드 전체 제거 |
 
-**전체 제거**는 앱·입력기·설정을 정리합니다. 입력기 제거가 실패하거나 관리자 암호 창을 취소하면 개인 사전과 설정은 지우지 않습니다.
+**하늘키보드 전체 제거**는 앱·입력기·설정·개인 사전을 모두 지웁니다. 입력기를 지우지 못하면(관리자 암호 창을 취소한 경우 포함) 개인 사전과 설정은 남겨 둡니다.
 
 ## 업데이트와 버전
 
-- 새 버전은 하루에 한 번 GitHub에서 확인하고, 처음 발견했을 때 한 번 알려 드립니다. 설정에서 알림을 끄거나 **지금 확인**을 누를 수 있습니다.
+- 새 버전은 매월 1일에 GitHub에서 확인하고(그날 Mac을 켜지 않았으면 다음에 켤 때), 처음 발견했을 때 한 번 알려 드립니다. 설정에서 알림을 끄거나 **지금 확인**을 누를 수 있습니다.
 - 설치는 **새 버전 설치**를 눌렀을 때만 시작합니다. 서명·Apple 공증·버전 상승을 모두 확인하고, 하나라도 어긋나면 기존 앱을 그대로 둡니다.
 - 버전은 실제 배포 날짜입니다. 예를 들어 11월 4일에 배포하면 `2026.11.04`, 그 판의 급한 수정은 `2026.11.04_hotfix1`, `_hotfix2` …입니다. `2026.01`~`2026.07`은 순번으로 매긴 베타 이력입니다.
 
@@ -138,8 +136,8 @@
 
 - **macOS Sonoma 14 이상** · Apple Silicon과 Intel(Universal)
 - 지금은 **두벌식**만 지원합니다.
-- **터미널(Terminal·Ghostty 등)에서는 이미 들어간 글자를 바꿀 수 없어서 되돌리기·쳐 놓은 단어 바꾸기가 동작하지 않습니다.** 자동 변환과 슬래시 입력은 동작합니다. 원치 않으면 앱별로 꺼 주세요.
-- 웹의 비밀번호 칸이 보안 입력을 제대로 켜지 않으면 한글이 조합될 수 있습니다. 민감한 입력은 **ABC**로 해 주세요.
+- **터미널(Terminal·Ghostty 등)에서는 변환 단축키로 단어를 바꾸거나 되돌릴 수 없습니다.** 자동 변환과 슬래시 입력은 동작합니다.
+- 일부 웹사이트의 비밀번호 칸에서는 한글이 입력될 수 있으니, 비밀번호는 **ABC**로 쳐 주세요.
 - 앱이나 사이트의 입력 처리 방식에 따라 동작이 조금 다를 수 있습니다. 이상하면 [Issues](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues)로 알려 주세요.
 
 ## 개발
@@ -204,7 +202,7 @@ PACKAGE_ONLY=1 bash scripts/build_notarize_install.sh HaneulKeyboard
 
 # English
 
-**HaneulKeyboard** is a Korean input method for macOS that lets you type English without switching layouts. It is named after my daughter Haneul, which means "sky" in Korean.
+**HaneulKeyboard** is a Korean input method for macOS that lets you type English without switching layouts.
 
 > **The first stable release is in preparation.** Installers will be posted on the [Releases](https://github.com/Hyunjin-Cho/HaneulKeyboard/releases) page when ready. This README describes the stable version.
 
@@ -216,9 +214,11 @@ PACKAGE_ONLY=1 bash scripts/build_notarize_install.sh HaneulKeyboard
 | `how ㅁㄱㄷ you` | `how are you`. The English context carries over |
 | **Shift+Space** after a conversion | Reverts it. Press again to go back |
 | `레스토랑` + **Shift+Space** | `restaurant`. Only exact, curated Hangul spellings |
-| `/help` | English right after a slash. Korean resumes after Space or Return |
+| `/help` | English right after a slash. Korean resumes after Space or Enter |
 | `10` + `ㅏㅎ` + Space | `10kg`. Digits are sent immediately |
 | **Caps Lock** | Korean ↔ English. Long press for capitals |
+
+**Haneul**Keyboard is named after our beloved daughter, Haneul. Her name means "sky" in Korean.
 
 Real Korean words, initial-consonant slang and jamo emoticons are protected. Unknown misspellings are left as typed, not guessed. Automatic conversion can be turned off entirely or per app, and a personal dictionary lets you add or block words. Composing text is shown with a gray underline.
 
@@ -232,11 +232,11 @@ Users of the `2026.07` and older betas need to download the DMG once; those buil
 
 ## Getting started
 
-On first launch, the **시작하기** guide walks you through installation, choosing the input source and the main features in seven steps. Steps 3–6 have a field where you can try each feature. Reopen it any time from the menu bar with **시작하기 다시 보기...**.
+On first launch, the **시작하기** guide walks you through installation, choosing the input source and the main features in seven steps. Steps 3–6 have a field where you can try each feature. Reopen it any time from the menu bar with **시작하기 다시 보기…**.
 
 ## Updates and versions
 
-The menu bar app checks GitHub once a day and tells you once about a new version. It installs only when you click **새 버전 설치** (Install new version), after checking the signature, Apple notarization and that the version actually goes up. Versions are release dates: `2026.11.04` for a November 4 release, then `2026.11.04_hotfix1`, `_hotfix2` and so on for urgent fixes. `2026.01`–`2026.07` were sequential beta numbers.
+The menu bar app checks GitHub on the 1st of each month (or the next time you turn on your Mac, if it was off that day) and tells you once about a new version. It installs only when you click **새 버전 설치** (Install new version), after checking the signature, Apple notarization and that the version actually goes up. Versions are release dates: `2026.11.04` for a November 4 release, then `2026.11.04_hotfix1`, `_hotfix2` and so on for urgent fixes. `2026.01`–`2026.07` were sequential beta numbers.
 
 ## Privacy
 
@@ -246,8 +246,8 @@ Your typing and personal dictionary never leave your Mac. The input method has n
 
 - macOS Sonoma 14 or later, Universal (Apple Silicon and Intel)
 - Two-set (Dubeolsik) layout only
-- In terminals (Terminal, Ghostty and others), committed text cannot be replaced, so reverting and manual toggling do not work. Automatic conversion and slash input still do.
-- For sensitive input such as passwords, use **ABC** in case a site does not enable secure input.
+- In terminals (Terminal, Ghostty and others), the conversion shortcut cannot change or revert words. Automatic conversion and slash input still work.
+- Some websites' password fields may accept Hangul, so type passwords with **ABC**.
 
 ## License and credits
 
