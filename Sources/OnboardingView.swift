@@ -74,6 +74,8 @@ struct OnboardingView: View {
         // 2026-11-03 (#115 블로킹): 1~7 모두 같은 틀(위 무대 + 아래 종이 카드). 안의 내용만 페이지마다 바뀐다.
         framePage
         .font(AppFont.font(size: 15))
+        // 2026-11-08 (#209): 마루부리는 줄 사이가 좁아 두 줄 안내가 붙어 보였다(설정 창과 같은 3pt).
+        .lineSpacing(3)
         .foregroundStyle(.primary)
         .frame(width: windowSize.width, height: windowSize.height)
         .background { OnboardingRisoPaper().ignoresSafeArea() }
@@ -277,17 +279,18 @@ struct OnboardingView: View {
         }.fixedSize().frame(width: 190, height: 110, alignment: .top)
     }
 
+    /// 2026-11-08 (#209): 마루부리로 바꾸며 문장 중간에서 꺾던 두 줄(2페이지 미설치·7페이지)을 한 줄로 폈다. 두 문장이면 문장마다 줄을 나눈다.
     private var subtitle: String {
         switch step {
         case 0: "하늘키보드는 한글로 친 영어 단어를 알아보고 바꿔줘요.\n한/영 키를 누르지 않아도 돼요."
         case 1: core.imeInstalled
             ? "입력 소스에 하늘키보드가 추가됐어요.\n메뉴바의 입력 소스에서 하늘키보드를 선택해 주세요."
-            : "키보드 설정에 하늘키보드를 추가하고\n입력 소스로 선택해 주세요."
+            : "키보드 설정에 하늘키보드를 추가하고 입력 소스로 선택해 주세요."
         case 2: "한글 모드에서 apple을 입력해 보세요.\n영어로 바뀌어요. 한글 모드는 그대로예요."
         case 3: "방금 바뀐 영어를 \(shortcut.displayName)로 되돌려요.\n다시 누르면 영어로 돌아와요."
         case 4: "카메라를 쓰고 \(shortcut.displayName)를 누르면 camera.\n다시 누르면 내가 쓴 한글로 돌아와요."
         case 5: "한글 모드에서 /help를 입력해 보세요.\n슬래시 뒤에는 바로 영어가 나와요."
-        default: "설정을 열거나 이 안내를 다시 보고 싶을 때\n메뉴바의 하늘키보드를 눌러 주세요."
+        default: "설정을 열거나 이 안내를 다시 보고 싶을 때 메뉴바의 하늘키보드를 눌러 주세요."
         }
     }
 
@@ -348,7 +351,7 @@ struct OnboardingView: View {
     private var systemInstallNotice: String? {
         guard core.imeRefreshBlockedBySystemInstall, !core.isPreparingIME else { return nil }
         // 2026-11-08 오너(#201): '입력기 제거' 버튼을 없앴다. 입력기만 지울 일은 전체 제거가 맡는다.
-        return "이 Mac의 시스템 영역(/Library/Input Methods)에 이전 버전 입력기가 있어서 앱이 직접 바꿀 수 없어요. 설정 → 앱 관리의 ‘하늘키보드 전체 제거’로 지운 뒤 다시 설치해 주세요."
+        return "이 Mac의 시스템 영역(/Library/Input Methods)에 이전 버전 입력기가 있어서 앱이 직접 바꿀 수 없어요.\n설정 → 앱 관리의 ‘하늘키보드 전체 제거’로 지운 뒤 다시 설치해 주세요."
     }
     private var installPanel: OnboardingInstallPanel {
         .resolve(statusKnown: core.imeStatusKnown, busy: core.isPreparingIME,
@@ -363,7 +366,7 @@ struct OnboardingView: View {
             if core.imeRefreshNeeded { return "입력기를 새 버전으로 업데이트해 주세요" }
             if core.imeDisabled { return "설치되어 있어요 · 입력 소스를 다시 켜 주세요" }
             // 2026-11-07 오너(#187): 무엇을 눌러야 하는지 칸 안에서 바로 말한다.
-            return "아직 설치되지 않았어요. 오른쪽 버튼을 눌러 설치해 주세요."
+            return "아직 설치되지 않았어요.\n오른쪽 버튼을 눌러 설치해 주세요."
         }
     }
     private var sourceStep: some View {
@@ -460,15 +463,18 @@ struct OnboardingView: View {
                 // 터미널 안내는 아래 '개인 사전 열기' 줄 오른쪽으로 옮겼다.
                 Text("앱에 준비된 단어만 바꿔요. 그냥 Space로는 한글 그대로예요.")
                     .font(AppFont.font(size: adviceBodySize))
-                HStack(alignment: .center, spacing: 10) {
-                    // 2026-11-07 (#187): 개인 사전에는 한글 → 영어 규칙을 넣을 수 없다(`PersonalDictionary.isEnglishEntry`는 영문만 받는다).
-                    // 예전 문구 "나만의 변환 규칙은…"은 넣을 수 있는 것처럼 읽혔다. 단어 제안이 같은 탭 아래에 있다.
-                    Text("없는 단어는 개인 사전에서 제안해 주세요")
-                        .font(AppFont.font(size: adviceNoteSize))
-                    Button("개인 사전 열기") { onSettings(.personalDictionary) }
-                        .font(AppFont.font(size: adviceNoteSize))
-                    Spacer(minLength: 16)
-                    terminalShortcutNote
+                // 2026-11-08 (#209): 마루부리로 바꾸자 오른쪽 터미널 안내가 문장 중간에서 꺾였다. 한 줄에 다 들어가면 오른쪽에 두고(오너 #201),
+                // 긴 단축키(Control + Shift + Space)처럼 안 들어가면 다음 줄로 내린다. 어느 쪽이든 문장은 한 줄이다.
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .center, spacing: 10) {
+                        suggestDictionaryRow
+                        Spacer(minLength: 12)
+                        terminalShortcutNote.fixedSize()
+                    }
+                    VStack(alignment: .leading, spacing: 6) {
+                        suggestDictionaryRow
+                        terminalShortcutNote.fixedSize()
+                    }
                 }.padding(.top, 4)
             }.feedbackPanel(.information, fills: true)
         }
@@ -484,7 +490,7 @@ struct OnboardingView: View {
                 Text("/는 그대로 남고, 뒤에는 즉시 영어가 나와요.\nSpace나 Enter를 누르거나 Backspace로 /를 지우면 한글로 돌아와요.")
                     .font(AppFont.font(size: adviceBodySize)).lineSpacing(3)
                 HStack {
-                    Text("기본으로 켜져 있어요. 설정에서 끌 수 있어요.")
+                    Text("기본으로 켜져 있어요.\n설정에서 끌 수 있어요.")
                         .font(AppFont.font(size: adviceNoteSize))
                     Spacer(minLength: 4)
                     Button("슬래시 설정") { onSettings(.shortcuts) }
@@ -501,11 +507,23 @@ struct OnboardingView: View {
 
     private var terminalShortcutNote: some View {
         Label("터미널에서는 \(shortcut.displayName)로 되돌릴 수 없어요.", systemImage: "terminal")
-            .font(AppFont.font(size: adviceNoteSize)).padding(.horizontal, 8)
+            .font(AppFont.font(size: adviceNoteSize))
+    }
+
+    /// 2026-11-07 (#187): 개인 사전에는 한글 → 영어 규칙을 넣을 수 없다(`PersonalDictionary.isEnglishEntry`는 영문만 받는다).
+    /// 예전 문구 "나만의 변환 규칙은…"은 넣을 수 있는 것처럼 읽혔다. 단어 제안이 같은 탭 아래에 있다.
+    private var suggestDictionaryRow: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Text("없는 단어는 개인 사전에서 제안해 주세요")
+                .font(AppFont.font(size: adviceNoteSize)).fixedSize()
+            Button("개인 사전 열기") { onSettings(.personalDictionary) }
+                .font(AppFont.font(size: adviceNoteSize)).fixedSize()
+        }
     }
 
     /// 2026-11-07 오너(#187): 안 되는 곳을 정직하게 알린다. 터미널은 입력기를 못 받는 곳이 아니라 이미 들어간 글자를 바꿀 수 없는 곳이다
     /// (2026-07-28 실측, #30). 자동 변환과 슬래시는 되므로 그것도 같이 적는다. 작은 창은 띠 높이가 모자라 한 줄로 줄인다.
+    /// 2026-11-08 (#209): 마루부리는 넓어 두 문장을 한 줄에 두면 문장 중간에서 꺾였다. 문장마다 줄을 나눈다(작은 창은 두 줄).
     private var terminalLimitNote: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Image(systemName: "terminal")
@@ -513,12 +531,12 @@ struct OnboardingView: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 if compact {
-                    Text("터미널 앱에서는 \(shortcut.displayName)로 되돌릴 수 없어요. 자동 변환과 슬래시 입력은 돼요.")
+                    Text("터미널 앱에서는 \(shortcut.displayName)로 되돌릴 수 없어요.\n자동 변환과 슬래시 입력은 돼요.")
                         .fontWeight(.medium)
                 } else {
-                    Text("터미널 앱(Terminal, Ghostty 등)은 이미 들어간 글자를 바꿀 수 없어요. \(shortcut.displayName)를 눌러도 그대로예요.")
+                    Text("터미널 앱(Terminal, Ghostty 등)은 이미 들어간 글자를 바꿀 수 없어요.\n\(shortcut.displayName)를 눌러도 그대로예요.")
                         .fontWeight(.medium)
-                    Text("자동 변환과 슬래시 입력은 돼요. 잘못 바뀌는 일이 잦으면 설정에서 그 앱의 자동 변환만 꺼 주세요.")
+                    Text("자동 변환과 슬래시 입력은 돼요.\n잘못 바뀌는 일이 잦으면 설정에서 그 앱의 자동 변환만 꺼 주세요.")
                 }
             }
             .fixedSize(horizontal: false, vertical: true)
@@ -602,13 +620,13 @@ struct OnboardingView: View {
                         Text("현재 이 앱의 자동 변환이 꺼져 있어요.")
                     }
                     if lesson == .reversal && !allWordsEnabled {
-                        Text("‘쳐 놓은 단어 한/영 바꾸기’가 꺼져 있어요. 방금 자동으로 바뀐 단어는 그래도 되돌릴 수 있어요.")
+                        Text("‘쳐 놓은 단어 한/영 바꾸기’가 꺼져 있어요.\n방금 자동으로 바뀐 단어는 그래도 되돌릴 수 있어요.")
                     }
                     if lesson == .registeredWord && !phoneticEnabled {
-                        Text("카메라를 camera로 바꾸는 기능이 꺼져 있어요. 설정에서 ‘한글 단어를 영어로 바꾸기’를 켜 주세요.")
+                        Text("카메라를 camera로 바꾸는 기능이 꺼져 있어요.\n설정에서 ‘한글 단어를 영어로 바꾸기’를 켜 주세요.")
                     }
                     if lesson == .slash && !slashEnabled {
-                        Text("슬래시 영어 입력이 꺼져 있어요. 설정에서 켜고 연습해 주세요.")
+                        Text("슬래시 영어 입력이 꺼져 있어요.\n설정에서 켜고 연습해 주세요.")
                     }
                     if let sourceError {
                         Text(sourceError).foregroundStyle(FeedbackStatus.warning.color(in: colorScheme))
@@ -777,7 +795,7 @@ struct OnboardingView: View {
     @discardableResult private func selectHaneul() -> Bool {
         let success = InputSwitcher.selectKorean()
         refreshSelection()
-        sourceError = success || selectedHaneul ? nil : "하늘키보드를 선택하지 못했어요. 키보드 설정에서 입력 소스를 추가해 주세요."
+        sourceError = success || selectedHaneul ? nil : "하늘키보드를 선택하지 못했어요.\n키보드 설정에서 입력 소스를 추가해 주세요."
         return success || selectedHaneul
     }
 }
