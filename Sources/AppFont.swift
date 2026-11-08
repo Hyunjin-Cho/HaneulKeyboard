@@ -4,7 +4,7 @@ import SwiftUI
 
 /// 2026-11-08 오너(#209): 앱 글자를 전부 마루부리(네이버, 공개 글꼴)로 맞춘다.
 /// 고운바탕은 뺐다 — 큰 제목에서는 멋있지만 작은 머리글에서 둔하고, 시스템 고딕 내용과 부딪혔다("명조체로 전부 다").
-/// 굵기는 Regular·SemiBold·Bold 셋만 넣는다(공식 OTF, 합쳐 약 2MB). 라이선스 `Resources/Onboarding/MaruBuri-LICENSE.txt`.
+/// 굵기는 Regular·SemiBold·Bold 셋만 넣는다(공식 OTF, 합쳐 약 2MB). 라이선스 `Resources/Onboarding/MaruBuri-OFL.txt`.
 /// 이 앱 프로세스에만 등록한다. 파일을 못 읽으면 시스템 명조로 물러난다.
 /// 아이콘(SF Symbols) 크기 지정과 안내 화면 속 macOS 메뉴바 흉내(시계)는 시스템 글꼴을 그대로 쓴다.
 enum AppFont {

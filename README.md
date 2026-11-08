@@ -192,7 +192,7 @@ PACKAGE_ONLY=1 bash scripts/build_notarize_install.sh HaneulKeyboard
 | US Census·SSA 인명 데이터 | Public Domain |
 | GeoNames 지명 | CC BY 4.0 |
 | Wikidata 축구 클럽·선수 | CC0 1.0 |
-| 고운바탕·나눔손글씨 펜 | SIL Open Font License 1.1 |
+| 마루 부리(네이버)·나눔손글씨 펜 | SIL Open Font License 1.1 |
 
 [McBopomofo](https://github.com/openvanilla/McBopomofo)의 입력기 등록·설치 구조, 공개 사전과 글꼴, 오픈소스 기여자들에게 감사드립니다. **[Claude](https://claude.com/claude-code)(Anthropic)**와 **[Codex · ChatGPT](https://openai.com/codex/)(OpenAI)**가 설계·개발·검증·문서·그림 작업에 함께했습니다. 출처와 가공 방식은 [감사의 글](ACKNOWLEDGEMENTS.md)에 모았습니다.
 
@@ -251,6 +251,6 @@ Your typing and personal dictionary never leave your Mac. The input method has n
 
 ## License and credits
 
-App code is licensed under **Apache License 2.0** ([LICENSE](LICENSE), [NOTICE](NOTICE)). Earlier MIT releases keep their terms ([legacy notice](LICENSES/HaneulKeyboard-MIT-legacy.txt)). Bundled dictionaries and fonts keep their own licenses: Urimalsaem (CC BY-SA 2.0 KR), NGSL (CC BY-SA 4.0), SCOWL/ESDB (MIT-like), US Census/SSA (public domain), GeoNames (CC BY 4.0), Wikidata (CC0), Gowun Batang and Nanum Pen Script (OFL 1.1). See [Acknowledgements](ACKNOWLEDGEMENTS.md).
+App code is licensed under **Apache License 2.0** ([LICENSE](LICENSE), [NOTICE](NOTICE)). Earlier MIT releases keep their terms ([legacy notice](LICENSES/HaneulKeyboard-MIT-legacy.txt)). Bundled dictionaries and fonts keep their own licenses: Urimalsaem (CC BY-SA 2.0 KR), NGSL (CC BY-SA 4.0), SCOWL/ESDB (MIT-like), US Census/SSA (public domain), GeoNames (CC BY 4.0), Wikidata (CC0), MaruBuri (NAVER) and Nanum Pen Script (OFL 1.1). See [Acknowledgements](ACKNOWLEDGEMENTS.md).
 
 Thanks to [McBopomofo](https://github.com/openvanilla/McBopomofo), the open-source community, **[Claude](https://claude.com/claude-code) (Anthropic)** and **[Codex · ChatGPT](https://openai.com/codex/) (OpenAI)** for help with design, development and artwork. Report problems or suggest words in [Issues](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues).

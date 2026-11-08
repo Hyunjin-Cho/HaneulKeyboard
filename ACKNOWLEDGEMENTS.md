@@ -1,6 +1,6 @@
 # 감사의 글 (Acknowledgements)
 
-> 기준일: 2026-11-07 (2026-10-17 작성. 2026-11-07에 사전 탑재 방식·고지 원문·McBopomofo 고지를 고쳤습니다)
+> 기준일: 2026-11-08 (2026-10-17 작성. 2026-11-07에 사전 탑재 방식·고지 원문·McBopomofo 고지를, 2026-11-08에 글꼴을 고운바탕에서 마루 부리로 고쳤습니다)
 
 하늘키보드는 혼자 만든 것이 아닙니다. 앞서 길을 닦아준 수많은 오픈소스와 도구, 그리고 그것을 가능케 한 사람들의 어깨 위에 서 있습니다.
 
@@ -15,12 +15,12 @@
 ## 직접적으로 도움받은 프로젝트
 
 
-### 고운바탕 (Gowun Batang)
-- 출처: https://github.com/google/fonts/tree/main/ofl/gowunbatang / https://github.com/yangheeryu/Gowun-Batang
-- Copyright 2021 The Gowun Batang Project Authors. SIL Open Font License 1.1.
-- 5단계 리소그래프 안내의 제목에 수정하지 않은 Bold 원본을 사용합니다. 앱 내부에만 등록하며 시스템에는 설치하지 않습니다.
-- 원문 라이선스: `Resources/Onboarding/GowunBatang-OFL.txt`. 반영일: 2026-10-09.
-- 원본 TTF SHA256: `dbfcaa646e5831e7478524924f02906f550285a5050699b4e38c9950b3ec4b94`.
+### 마루 부리 (MaruBuri)
+- 출처: 네이버 한글한글 아름답게 https://hangeul.naver.com/font (공식 배포 파일 `maruburi.zip`).
+- Copyright © NAVER Corp. & NAVER Cultural Foundation. SIL Open Font License 1.1(네이버 글꼴 라이선스).
+- 앱 화면의 모든 글자(제목·설명·버튼)와 리소 그림 속 글자에 수정하지 않은 Regular·SemiBold·Bold OTF 원본을 사용합니다. 앱 내부에만 등록하며 시스템에는 설치하지 않습니다. 글꼴 파일을 따로 팔지 않습니다.
+- 원문 라이선스: `Resources/Onboarding/MaruBuri-OFL.txt`. 반영일: 2026-11-08(고운바탕을 대신함).
+- 원본 OTF SHA256: Regular `79451e27328ba230b6b39ab41ac039390fce3de41be2a3f745d5eb8b24f35b90`, SemiBold `18dfd1167d44877a5afc1386db5f09c3ea494ab83a5adf0a64953c43c208dd21`, Bold `8226dcc1e975ba48d8b34cc97417e26712a5a5c3d25a8b18844d72c046d6f85b`.
 
 ### 나눔손글씨 펜 (Nanum Pen Script)
 - 출처: https://github.com/google/fonts/tree/main/ofl/nanumpenscript
@@ -177,7 +177,7 @@ Current application code is licensed under Apache License 2.0. `NOTICE` identifi
 
 ## Direct help
 
-- **[Gowun Batang](https://github.com/yangheeryu/Gowun-Batang)** — Copyright 2021 The Gowun Batang Project Authors, SIL Open Font License 1.1. Unmodified Bold font for risograph onboarding headings, registered only within the app. Full license: `Resources/Onboarding/GowunBatang-OFL.txt` (2026-10-09).
+- **[MaruBuri](https://hangeul.naver.com/font)** — Copyright © NAVER Corp. & NAVER Cultural Foundation, SIL Open Font License 1.1 (NAVER font license). Unmodified Regular, SemiBold and Bold OTF files are used for all app text and the lettering inside the risograph artwork, registered only within the app. Full license: `Resources/Onboarding/MaruBuri-OFL.txt` (2026-11-08, replaces Gowun Batang).
 
 - **[Nanum Pen Script](https://github.com/google/fonts/tree/main/ofl/nanumpenscript)** — Copyright (c) 2010, NHN Corporation, SIL Open Font License 1.1. The unmodified font is bundled for brief handwritten onboarding cues, with the full license in `Resources/Onboarding/NanumPenScript-OFL.txt` (2026-10-07). Registered for this app process only.
 
