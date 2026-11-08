@@ -36,9 +36,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     // deinit(nonisolated)에서 해제하므로 actor 격리에서 제외.
     nonisolated(unsafe) private var sourceObserver: NSObjectProtocol?
     nonisolated(unsafe) private var enabledSourcesObserver: NSObjectProtocol?
-    /// 2026-11-07 (#177, 리뷰 app-ui-F-1): 지금 열려 있는 상태 아이콘 메뉴와 그 안의 입력기 상태 칸. 열린 동안 상태 읽기가 끝나면 칸만 고친다.
-    private weak var openMenu: NSMenu?
-    private var imeStatusItem: NSMenuItem?
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         // 응용 프로그램 폴더 밖이면 옮긴다(App Translocation 방지) — 메뉴바 생성보다 먼저.
@@ -93,7 +90,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         core.updater.onUpdateAvailable = { [weak self] update in
             self?.showUpdateNotice(update)
         }
-        // 실행 시/정기 틱에 마지막 성공 확인에서 24시간 경과 여부와 OFF 설정을 확인한다.
+        // 실행 시/정기 틱에 확인할 때가 됐는지(매월 1일 기준, 2026-11-08 #201)와 OFF 설정을 확인한다.
         // 토글 OFF면 네트워크에 나가지 않는다. 결과는 표시만 — 설치는 사용자 클릭.
         core.updater.startAutomaticChecks()
 
@@ -144,10 +141,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     }
 
     /// 2026-11-06 (#160): 실패해도 다시 시도하지 않는다. 사용자는 설정에서 직접 켤 수 있다.
+    /// 2026-11-08 (#201): 아이콘을 꺼 둔 채면 등록하지 않는다 — 아이콘 토글 하나가 둘 다 정한다.
     private func registerLoginItemIfNeeded() {
         let defaults = UserDefaults.standard
         guard LoginItemDecision.shouldAutoRegister(
             onboardingDone: defaults.bool(forKey: HaneulDefaultsKey.hasCompletedOnboarding),
+            iconVisible: menuBarIconVisible,
             alreadyTried: defaults.bool(forKey: LoginItemDecision.autoRegisteredKey),
             bundlePath: Bundle.main.bundlePath) else { return }
         defaults.set(true, forKey: LoginItemDecision.autoRegisteredKey)
@@ -207,40 +206,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         menu.removeAllItems()
         core.refreshInputSource()
         let hasCompleted = UserDefaults.standard.bool(forKey: HaneulDefaultsKey.hasCompletedOnboarding)
-        let version = Updater.currentVersion
 
-        addDisabled(menu, "하늘키보드 \(version)")
-        addDisabled(menu, core.inputSource.menuLine)
-        menu.addItem(.separator())
-
-        if !hasCompleted {
-            add(menu, "시작하기...", #selector(showOnboarding))
-            menu.addItem(.separator())
-        }
-
+        // 2026-11-08 오너(#201): 맨 위의 버전·현재 입력 소스 줄을 뺐다. 버전은 설정에 있고, 입력 소스는 여기서 볼 이유가 없다.
+        // (입력 소스 설명은 아이콘의 도움말·접근성 설명에 그대로 남는다 — `updateButtonDescription`.)
+        // 할 일이 있을 때만(입력기가 꺼졌거나 없을 때, 새 버전이 있을 때) 맨 위에 한 줄이 생긴다.
+        var hasNotice = false
         // 2026-11-05 오너(#142): "영어로 전환"을 뺐다. 한영 전환은 Caps Lock과 시스템 입력 메뉴가 맡는다.
-        // 2026-11-07 (#177, 리뷰 app-ui-F-1): 입력기 상태는 비동기로 읽는다. 예전엔 여기서 읽기를 시작하고 바로 뒤에 직전 값을 그려서,
-        // 시스템 설정에서 바꾼 뒤 메뉴를 한 번 더 열어야 맞았고 로그인 직후엔 설치된 입력기가 "미설치"로 보였다.
-        // 이제 칸을 하나 만들어 두고(`applyIMEStatus`), 메뉴가 열린 뒤 읽기가 끝나면 칸만 다시 채운다(`menuWillOpen`).
-        // 읽기 전·작업 중에는 "확인 중"이라고 말한다. (#32) 꺼진 상태는 한 번에 되살린다.
-        let imeItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
-        imeItem.target = self
-        menu.addItem(imeItem)
-        imeStatusItem = imeItem
-        applyIMEStatus(to: imeItem)
-
+        // 2026-11-07 (#177, 리뷰 app-ui-F-1): 입력기 상태는 비동기로 읽는다. 읽기 전·작업 중에는 틀린 말("미설치")을 하지 않는다. (#32) 꺼진 상태는 한 번에 되살린다.
+        // 2026-11-08 (#201): 열려 있는 메뉴를 나중에 고치지 않는다. 오너가 첫 설치 때 메뉴가 화면 끝까지 길게 나온 것을 봤다.
+        // 원인은 확인하지 못했지만(재현 못 함), 열린 메뉴의 줄을 숨기고 보이고 제목을 바꾸던 이 자리가 우리 코드의 유일한 의심 구조다.
+        // 그래서 상태를 아직 모르면 줄을 아예 넣지 않고, 메뉴를 열 때 읽기만 새로 시작해 다음에 열 때 반영한다.
+        let presentation = IMEStatusPresentation.resolve(
+            statusKnown: core.imeStatusKnown, busy: core.isPreparingIME,
+            installed: core.imeInstalled, disabled: core.imeDisabled)
+        if presentation != .checking, let title = presentation.menuTitle {
+            let imeItem = add(menu, title, #selector(reenableIME))
+            imeItem.isEnabled = presentation == .disabled
+            if presentation != .disabled { imeItem.action = nil }
+            hasNotice = true
+        }
         // 2026-10-24: 메뉴와 알림 모두 기존 버전·업데이트 화면으로 안내한다.
         if case .available(let update) = core.updater.phase {
             add(menu, "새 버전 \(update.tag) — \(SettingsTab.update.title)…", #selector(openUpdateSettings))
+            hasNotice = true
         }
+        if hasNotice { menu.addItem(.separator()) }
 
+        add(menu, hasCompleted ? "시작하기 다시 보기…" : "시작하기…", #selector(showOnboarding))
         menu.addItem(.separator())
-        add(menu, "설정...", #selector(openSettings))
+        add(menu, "설정…", #selector(openSettings))
         // 2026-11-05 오너(#142): "새 버전 확인…"을 뺐다. 설정 → 버전·업데이트의 「지금 확인」이 같은 일을 한다.
         add(menu, SupportView.title + "…", #selector(openSupport))
-        if hasCompleted {
-            add(menu, "시작하기 다시 보기...", #selector(showOnboarding))
-        }
+        menu.addItem(.separator())
         // 2026-11-05 오너(#142): 종료의 뜻을 분명히 한다 — 메뉴바 앱만 꺼진다. 입력기는 별도 프로세스라 계속 동작한다.
         let quitItem = add(menu, "메뉴바 앱 종료", #selector(quit), key: "q")
         // 2026-11-07 (#177, 리뷰 app-ui-F-4): 제거가 메인 스레드 밖에서 도는 동안 앱을 끝내면 반쯤 지워진 채 남는다.
@@ -249,29 +246,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     }
 
     func menuWillOpen(_ menu: NSMenu) {
-        openMenu = menu
-        Task { [weak self] in
-            guard let self else { return }
-            await core.refreshIMEStatusAndWait()
-            guard openMenu === menu, let item = imeStatusItem else { return }
-            applyIMEStatus(to: item)
-        }
-    }
-
-    func menuDidClose(_ menu: NSMenu) {
-        if openMenu === menu { openMenu = nil }
-    }
-
-    /// 입력기 상태 칸의 모양을 지금 상태에 맞춘다. 칸을 지우고 다시 넣지 않고 숨김·제목·동작만 바꿔, 열려 있는 메뉴에서도 안전하다.
-    private func applyIMEStatus(to item: NSMenuItem) {
-        let presentation = IMEStatusPresentation.resolve(
-            statusKnown: core.imeStatusKnown, busy: core.isPreparingIME,
-            installed: core.imeInstalled, disabled: core.imeDisabled)
-        guard let title = presentation.menuTitle else { item.isHidden = true; return }
-        item.isHidden = false
-        item.title = title
-        item.action = presentation == .disabled ? #selector(reenableIME) : nil
-        item.isEnabled = presentation == .disabled
+        // 2026-11-08 (#201): 다음에 열 때를 위해 읽기만 시작한다. 열린 메뉴는 고치지 않는다(위 menuNeedsUpdate 주석).
+        core.refreshIMEStatus()
     }
 
     @discardableResult
@@ -280,12 +256,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         item.target = self
         menu.addItem(item)
         return item
-    }
-
-    private func addDisabled(_ menu: NSMenu, _ title: String) {
-        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
-        item.isEnabled = false
-        menu.addItem(item)
     }
 
     // MARK: - Actions

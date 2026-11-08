@@ -75,6 +75,11 @@ final class UpdateReleaseStub: URLProtocol {
         let session = URLSession(configuration: config)
         defer { session.invalidateAndCancel() }
         var clock = Date(timeIntervalSince1970: 1_800_000_000)
+        // 2026-11-08 (#201): 자동 확인은 매월 1일 기준이다(예전 24시간). 시간을 '다음 달 1일 0시'로 옮겨 확인할 때를 만든다.
+        func nextMonthStart(_ date: Date) -> Date {
+            UpdateDecision.checkCalendar.date(byAdding: .month, value: 1,
+                to: UpdateDecision.startOfMonth(containing: date))!
+        }
         var notices: [String] = []
         var updater = Updater(defaults: defaults, session: session, now: { clock })
         updater.onUpdateAvailable = { notices.append($0.tag) }
@@ -90,24 +95,24 @@ final class UpdateReleaseStub: URLProtocol {
         else { check(false, "설치는 시작하지 않고 사용 가능 상태") }
 
         let firstCount = UpdateReleaseStub.requestCount
-        clock.addTimeInterval(24 * 60 * 60 - 1)
+        clock = nextMonthStart(clock).addingTimeInterval(-1)
         await updater.checkNow(forced: false)
-        check(UpdateReleaseStub.requestCount == firstCount, "24시간 전 요청 없음")
+        check(UpdateReleaseStub.requestCount == firstCount, "다음 달 1일 전에는 요청 없음")
         clock.addTimeInterval(1)
         await updater.checkNow(forced: false)
-        check(UpdateReleaseStub.requestCount == firstCount + 1, "24시간 경계에 요청")
+        check(UpdateReleaseStub.requestCount == firstCount + 1, "매월 1일 경계에 요청")
         check(notices.count == 1, "같은 버전 자동 알림 반복 없음")
 
         updater = Updater(defaults: defaults, session: session, now: { clock })
         updater.onUpdateAvailable = { notices.append($0.tag) }
         check(updater.latestVersion == "2099.1" && updater.lastCheck == clock, "재실행 정보 복원")
-        clock.addTimeInterval(24 * 60 * 60)
+        clock = nextMonthStart(clock)
         UpdateReleaseStub.respond(tag: "2099.01")
         await updater.checkNow(forced: false)
         check(notices.count == 1, "재실행·동등한 태그 표기에도 중복 알림 없음")
 
         updater.setAutoCheckEnabled(false)
-        clock.addTimeInterval(24 * 60 * 60)
+        clock = nextMonthStart(clock)
         let offCount = UpdateReleaseStub.requestCount
         await updater.checkNow(forced: false)
         check(UpdateReleaseStub.requestCount == offCount, "OFF면 요청 없음")
@@ -119,13 +124,13 @@ final class UpdateReleaseStub: URLProtocol {
         check(!Updater(defaults: defaults, session: session).autoCheckEnabled, "OFF 설정 보존")
 
         updater.setAutoCheckEnabled(true)
-        clock.addTimeInterval(24 * 60 * 60)
+        clock = nextMonthStart(clock)
         UpdateReleaseStub.respond(tag: "2099.2")
         await updater.checkNow(forced: false)
         check(notices.last == "2099.2" && notices.count == 4, "다른 새 버전 다시 안내")
 
         let successDate = updater.lastCheck
-        clock.addTimeInterval(24 * 60 * 60)
+        clock = nextMonthStart(clock)
         for status in [403, 404, 429, 500] {
             UpdateReleaseStub.respond(status: status)
             await updater.checkNow(forced: false)
@@ -165,7 +170,7 @@ final class UpdateReleaseStub: URLProtocol {
         await updater.checkNow(forced: false)
         check(defaults.string(forKey: Updater.lastNotifiedVersionKey) == nil, "창 연결 없으면 알렸다고 기록하지 않음")
         updater.onUpdateAvailable = { notices.append($0.tag) }
-        clock.addTimeInterval(24 * 60 * 60)
+        clock = nextMonthStart(clock)
         await updater.checkNow(forced: false)
         check(notices.last == "2099.5", "창 연결 후 안내 가능")
 
@@ -189,10 +194,10 @@ final class UpdateReleaseStub: URLProtocol {
         inlineUpdater.setAutoCheckEnabled(true)
         inlineUpdater = Updater(defaults: inlineDefaults, session: session, now: { clock })
         inlineUpdater.onUpdateAvailable = { inlineNotices.append($0.tag) }
-        clock.addTimeInterval(24 * 60 * 60)
+        clock = nextMonthStart(clock)
         await inlineUpdater.checkNow(forced: false)
         check(inlineNotices.isEmpty, "설정에서 확인한 버전은 재실행 후 자동 알림도 중복 없음")
-        clock.addTimeInterval(24 * 60 * 60)
+        clock = nextMonthStart(clock)
         UpdateReleaseStub.respond(tag: "2099.7")
         await inlineUpdater.checkNow(forced: false)
         check(inlineNotices == ["2099.7"], "다른 새 버전의 자동 알림은 유지")

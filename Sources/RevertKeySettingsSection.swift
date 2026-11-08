@@ -36,36 +36,31 @@ struct RevertKeySettingsSection: View {
                     Self.imeDefaults?.set(newValue.rawValue, forKey: RevertKey.defaultsKey)
                 }
                 .help("다른 앱의 단축키와 겹치면 다른 조합을 골라 주세요.")
-                Text("이 키 하나로 세 가지를 해요. 방금 영어로 바뀐 단어는 되돌리고, 목록에 있는 한글 단어는 영어로 바꾸고, 그 밖의 단어는 한/영을 바꿔요.")
-                    .font(SettingsTypography.body)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text("되돌리기")
-                Text("방금 영어로 잘못 바뀌었다면 눌러 주세요. 친 글자 그대로 돌아오고, 한 번 더 누르면 다시 영어로 바뀌어요.")
+                // 2026-11-08 오너(#201): 세 가지 동작을 나열하지 않고 사용자가 겪는 한 가지로 말한다. '되돌리기' 줄은 이 설명과 겹쳐 뺐다.
+                Text("단어 바로 뒤에서 누르면 한글과 영어가 서로 바뀌어요. 잘못 바뀐 단어도 눌러서 되돌려요.")
                     .font(SettingsTypography.body)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
             SettingsToggleRow(title: "한글 단어를 영어로 바꾸기",
-                detail: "바나나 → banana, 축구 → football처럼 앱에 준비된 단어를 바꿔요. 번역은 아니에요. 이 키를 눌렀을 때만 바뀌고 Space로는 안 바뀌어요.",
+                detail: "바나나 → banana, 축구 → football처럼 앱에 준비된 단어를 바꿔요.",
                 isOn: $phoneticEnabled)
                 .onChange(of: phoneticEnabled) { _, newValue in
                     Self.imeDefaults?.set(newValue, forKey: RevertKey.phoneticKey)
                 }
 
-            SettingsToggleRow(title: "쳐 놓은 단어 한/영 바꾸기",
-                detail: "한/영 전환을 깜빡하고 친 단어를 같은 키 자리의 글자로 바꿔요. 예: dkssud ↔ 안녕. 한글 모드에서 단어 뒤에 커서를 두고 눌러 주세요. 조사가 붙거나 목록에 없는 한글도 여기로 넘어가요.",
+            SettingsToggleRow(title: "미리 친 단어 한/영 바꾸기",
+                detail: "한/영 전환을 깜빡하고 친 단어를 바꿔요. 예: dkssud ↔ 안녕",
                 isOn: $manualToggleAllWords)
                 .onChange(of: manualToggleAllWords) { _, newValue in
                     Self.imeDefaults?.set(newValue, forKey: RevertKey.manualToggleAllWordsKey)
                 }
 
-            Label("터미널 앱(Terminal, Ghostty 등)은 이미 들어간 글자를 바꿀 수 없어서 이 키를 눌러도 그대로예요. 자동 변환과 슬래시 입력은 돼요.", systemImage: "terminal")
+            // 2026-11-08 오너(#201): '이 키'는 무엇인지 모호하다. 정확히 '변환 단축키'라고 쓰고, 안 되는 곳이라 빨간 글씨로 알린다.
+            Label("터미널 앱(Terminal, Ghostty 등)에서는 변환 단축키를 눌러도 바뀌지 않아요. 자동 변환과 슬래시 입력은 돼요.", systemImage: "terminal")
                 .font(SettingsTypography.body)
+                .foregroundStyle(.red)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

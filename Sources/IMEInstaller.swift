@@ -280,11 +280,7 @@ enum IMEInstaller {
         return installURL
     }
 
-    @MainActor
-    static func uninstall() async -> RemovalReport {
-        // 2026-11-07 (#177, 리뷰 app-ui-F-4): 제거 순서는 메인 스레드 밖에서 돈다. 관리자 인증(NSAppleScript)·TIS는 Uninstaller가 메인으로 돌아와 부른다.
-        await Uninstaller.removeInputMethod()
-    }
+    // 2026-11-08 (#201): 입력기만 지우는 `uninstall()`을 없앴다(설정의 '입력기 제거' 버튼 삭제). 지우기는 전체 제거(`Uninstaller.run()`)만 한다.
 
     /// `do shell script ... with administrator privileges` — shows the
     /// standard macOS admin password dialog. Throws if the user cancels.

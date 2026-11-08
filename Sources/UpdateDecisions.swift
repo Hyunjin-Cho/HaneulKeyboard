@@ -174,8 +174,18 @@ enum UpdateDecision {
     /// 교체 대상이 우리 앱인지 판별하는 기준 — `AppMoveDecision`과 같은 값.
     static let appBundleID = AppMoveDecision.mainAppBundleID
 
-    /// 백그라운드 확인 간격. 사용자에게 주기 설정을 요구하지 않는다.
-    static let checkInterval: TimeInterval = 24 * 60 * 60
+    /// 백그라운드 확인 주기는 달력의 달이다(아래 `shouldCheckNow`). 사용자에게 주기 설정을 요구하지 않는다.
+    /// 2026-11-08 오너(#201): 매일(24시간) → 매월 1일. 그날 Mac을 켜지 않았으면 그다음 처음 켤 때 확인한다.
+    static var checkCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        return calendar
+    }
+
+    /// `date`가 속한 달의 1일 0시(현재 시간대).
+    static func startOfMonth(containing date: Date, calendar: Calendar = checkCalendar) -> Date {
+        calendar.dateInterval(of: .month, for: date)?.start ?? date
+    }
 
     /// 자산 크기 상한. 다운로드가 끝나기 전에도 적용해 디스크를 채우는 응답은 거른다.
     static let maxAssetBytes = 200 * 1024 * 1024
@@ -298,13 +308,16 @@ enum UpdateDecision {
     /// 지금 서버에 물어봐도 되는가.
     /// - `forced`(사용자가 "지금 확인"을 누름): 토글·간격과 무관하게 true.
     /// - 토글 OFF: false — 자동으로는 네트워크에 나가지 않는다.
-    /// - 마지막 확인이 없거나 24시간이 지났으면 true. 시계가 뒤로 간 경우도 확인한다.
-    static func shouldCheckNow(autoCheckEnabled: Bool, lastCheck: Date?, now: Date, forced: Bool) -> Bool {
+    /// - 마지막 확인이 없거나 이번 달 1일 0시보다 앞이면 true. 1일에 Mac을 안 켰으면 그다음 처음 켤 때 확인한다.
+    ///   '지금 확인'도 마지막 확인을 바꾸므로 그 달에 직접 확인했으면 다음 달까지 자동으로는 묻지 않는다.
+    /// - 시계가 뒤로 간 경우(마지막 확인이 미래)도 확인한다.
+    static func shouldCheckNow(autoCheckEnabled: Bool, lastCheck: Date?, now: Date, forced: Bool,
+                               calendar: Calendar = checkCalendar) -> Bool {
         if forced { return true }
         guard autoCheckEnabled else { return false }
         guard let lastCheck else { return true }
         if lastCheck > now { return true }
-        return now.timeIntervalSince(lastCheck) >= checkInterval
+        return lastCheck < startOfMonth(containing: now, calendar: calendar)
     }
 
     /// 새 번들이 현재보다 새 것인가 — 버전(CalVer)도 크고 빌드번호(CFBundleVersion)도 커야

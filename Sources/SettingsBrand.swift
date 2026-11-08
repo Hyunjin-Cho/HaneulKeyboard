@@ -92,10 +92,13 @@ private extension SettingsTab {
 struct HaneulSettingsSection<Content: View>: View {
     /// 2026-11-07 (#189): 위 띠 제목과 같은 말이면 구획 제목을 뺀다(nil).
     let title: String?
+    /// 2026-11-08 오너(#201): 되돌릴 수 없는 구획(전체 제거)은 제목을 빨갛게 쓴다. nil이면 잉크색.
+    let titleColor: Color?
     let content: Content
     @Environment(\.colorScheme) private var scheme
-    init(_ title: String? = nil, @ViewBuilder content: () -> Content) {
+    init(_ title: String? = nil, titleColor: Color? = nil, @ViewBuilder content: () -> Content) {
         self.title = title
+        self.titleColor = titleColor
         self.content = content()
     }
     var body: some View {
@@ -106,7 +109,7 @@ struct HaneulSettingsSection<Content: View>: View {
         } header: {
             if let title {
                 Text(title).font(OnboardingRiso.titleFont(size: 20))
-                    .foregroundStyle(OnboardingRiso.ink(for: scheme))
+                    .foregroundStyle(titleColor ?? OnboardingRiso.ink(for: scheme))
                     .textCase(nil)
             }
         }

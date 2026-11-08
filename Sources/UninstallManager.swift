@@ -15,7 +15,7 @@ enum Uninstaller {
     typealias Outcome = UninstallOutcome
 
     static func run() async -> Outcome { Outcome(report: await run(mode: .wholeProduct)) }
-    static func removeInputMethod() async -> RemovalReport { await run(mode: .inputMethod) }
+    // 2026-11-08 (#201): 입력기만 지우는 `removeInputMethod()`는 호출처(설정의 '입력기 제거')와 함께 없앴다. `.inputMethod` 모드는 CLI·테스트가 쓴다.
 
     /// 협력 스레드 풀을 막지 않으려고 GCD 스레드에서 돌린다(관리자 암호창을 기다리는 동안 스레드 하나가 묶인다).
     private static func run(mode: RemovalReport.Mode) async -> RemovalReport {

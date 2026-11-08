@@ -95,6 +95,8 @@ struct RisoRegistrationMark: View {
 
 struct OnboardingRisoButtonStyle: ButtonStyle {
     var prominent = true
+    /// 주 버튼의 잉크. 2026-11-08 (#201): 전체 제거 확인의 '모두 삭제'는 빨간 잉크로 칠한다.
+    var tint: Color = OnboardingRiso.actionBlue
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.appearsActive) private var appearsActive
     @Environment(\.colorScheme) private var scheme
@@ -108,7 +110,7 @@ struct OnboardingRisoButtonStyle: ButtonStyle {
             .background {
                 if colored && prominent {
                     Capsule().fill(OnboardingRiso.pink.opacity(0.8)).offset(x: 1.5, y: 2)
-                    Capsule().fill(OnboardingRiso.actionBlue)
+                    Capsule().fill(tint)
                     RisoInkGrain().clipShape(Capsule())
                 } else {
                     Capsule().fill(.primary.opacity(prominent ? 0.16 : 0.045))

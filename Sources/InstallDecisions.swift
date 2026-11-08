@@ -118,11 +118,13 @@ struct UninstallOutcome {
 /// 자동 등록은 안내를 끝낸 뒤 **한 번만** 한다. 그래야 사용자가 끈 것을 되돌리지 않는다.
 /// 실행할 때마다 등록을 부르면 macOS 알림이 매번 뜬다는 보고가 있다(sindresorhus/LaunchAtLogin #100).
 /// 응용 프로그램 폴더 밖의 사본(개발 빌드, 받은 그대로의 앱)은 등록하지 않는다.
+/// 2026-11-08 오너(#201): 설정의 `로그인할 때 열기` 토글을 없애고 `메뉴바에 아이콘 보기` 하나로 합쳤다.
+/// 켜면 아이콘과 로그인 항목을 함께 켜고, 끄면 함께 끈다. 그래서 아이콘을 꺼 둔 채로는 자동 등록하지 않는다.
 enum LoginItemDecision {
     static let autoRegisteredKey = "haneul.loginItemAutoRegistered"
 
-    static func shouldAutoRegister(onboardingDone: Bool, alreadyTried: Bool, bundlePath: String) -> Bool {
-        onboardingDone && !alreadyTried && AppMoveDecision.isAlreadyInPlace(bundlePath: bundlePath)
+    static func shouldAutoRegister(onboardingDone: Bool, iconVisible: Bool, alreadyTried: Bool, bundlePath: String) -> Bool {
+        onboardingDone && iconVisible && !alreadyTried && AppMoveDecision.isAlreadyInPlace(bundlePath: bundlePath)
     }
 }
 
