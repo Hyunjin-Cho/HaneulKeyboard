@@ -49,6 +49,7 @@ struct SupportView: View {
                 .padding(.top, 4)
             }
             .font(AppFont.font(size: 14))
+            .lineSpacing(3)  // 2026-11-08 (#209): 마루부리는 줄 사이가 좁다.
             .padding(.horizontal, 24).padding(.top, 16).padding(.bottom, 20)
         }
         .frame(width: Self.size.width)
