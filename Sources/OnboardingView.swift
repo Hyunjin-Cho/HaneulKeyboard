@@ -75,7 +75,7 @@ struct OnboardingView: View {
         framePage
         .font(AppFont.font(size: 15))
         // 2026-11-08 (#209): 마루부리는 줄 사이가 좁아 두 줄 안내가 붙어 보였다(설정 창과 같은 3pt).
-        .lineSpacing(3)
+        .lineSpacing(AppFont.lineSpacing)
         .foregroundStyle(.primary)
         .frame(width: windowSize.width, height: windowSize.height)
         .background { OnboardingRisoPaper().ignoresSafeArea() }
@@ -183,7 +183,7 @@ struct OnboardingView: View {
                     .padding(.horizontal, 10).padding(.vertical, 3)
                     .background(OnboardingRiso.yellow.opacity(colorScheme == .dark ? 0.10 : 0.24), in: Capsule())
             }
-            Text(subtitle).font(AppFont.font(size: 14)).lineSpacing(3)
+            Text(subtitle).font(AppFont.font(size: 14)).lineSpacing(AppFont.lineSpacing)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -244,7 +244,7 @@ struct OnboardingView: View {
                     .frame(width: compact ? 40 : 52, height: compact ? 36 : 46)
                     .background(tint.opacity(colorScheme == .dark ? 0.26 : 0.24), in: RoundedRectangle(cornerRadius: 10))
                 Text(title).font(AppFont.font(size: compact ? 15 : 17, weight: .semibold))
-                Text(detail).font(AppFont.font(size: compact ? 13 : 14)).lineSpacing(2)
+                Text(detail).font(AppFont.font(size: compact ? 13 : 14)).lineSpacing(AppFont.lineSpacing)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -446,7 +446,7 @@ struct OnboardingView: View {
                     Text("방금 변환한 단어를 다시 한글로")
                         .font(AppFont.font(size: adviceTitleSize, weight: .semibold))
                     Text("apple을 친 뒤 Space → \(shortcut.displayName)를 눌러보세요.\n같은 단축키를 한 번 더 누르면 영어로 돌아와요.")
-                        .font(AppFont.font(size: adviceBodySize)).lineSpacing(3)
+                        .font(AppFont.font(size: adviceBodySize)).lineSpacing(AppFont.lineSpacing)
                 }
                 terminalLimitNote
             }.feedbackPanel(.advice, fills: true)
@@ -488,7 +488,7 @@ struct OnboardingView: View {
                 // 2026-11-08 오너(#201): 키 이름은 맥 자판 표기(Return·delete)가 아니라 표준 이름(Enter·Backspace)으로 쓴다.
                 // 닫는 괄호로 끝나는 동작은 그대로 두고 문장에서만 뺐다(설정 설명과 같은 말).
                 Text("/는 그대로 남고, 뒤에는 즉시 영어가 나와요.\nSpace나 Enter를 누르거나 Backspace로 /를 지우면 한글로 돌아와요.")
-                    .font(AppFont.font(size: adviceBodySize)).lineSpacing(3)
+                    .font(AppFont.font(size: adviceBodySize)).lineSpacing(AppFont.lineSpacing)
                 HStack {
                     Text("기본으로 켜져 있어요.\n설정에서 끌 수 있어요.")
                         .font(AppFont.font(size: adviceNoteSize))
@@ -761,7 +761,7 @@ struct OnboardingView: View {
                 .background(tint.opacity(colorScheme == .dark ? 0.23 : 0.20), in: RoundedRectangle(cornerRadius: 10))
             VStack(alignment: .leading, spacing: 4) {
                 Text(title).font(AppFont.font(size: compact ? 15 : 17, weight: .semibold))
-                Text(detail).font(AppFont.font(size: compact ? 13 : 14)).lineSpacing(2)
+                Text(detail).font(AppFont.font(size: compact ? 13 : 14)).lineSpacing(AppFont.lineSpacing)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }.frame(maxWidth: .infinity, alignment: .leading)

@@ -126,7 +126,8 @@ struct SettingsToggleRow: View {
     @Binding var isOn: Bool
     var body: some View {
         Toggle(isOn: $isOn) {
-            VStack(alignment: .leading, spacing: 3) {
+            // 2026-11-08 (#209): 설명 줄 간격(6pt)을 넓히며 제목과 첫 줄 사이도 3→5pt로 맞췄다.
+            VStack(alignment: .leading, spacing: 5) {
                 Text(title)
                 Text(detail).font(SettingsTypography.body).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

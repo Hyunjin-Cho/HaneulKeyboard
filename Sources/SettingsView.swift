@@ -117,7 +117,7 @@ struct SettingsView: View {
         .disabled(core.isRemovingProduct)
         // 2026-11-08 오너(#209): 따로 정하지 않은 글자(입력란·목록 등)도 마루부리로.
         .font(SettingsTypography.body)
-        .lineSpacing(3)  // 마루부리는 줄 사이가 좁아 두 줄 설명이 붙어 보였다.
+        .lineSpacing(AppFont.lineSpacing)
         // 2026-11-07 (#189): 제목 막대 겹침으로 창이 688 + 안전 영역 32 = 720pt가 되는데, 예전엔 내용을 688로 묶은 뒤 위로 붙여
         // 아래 32pt가 빈 종이로 남고 글이 창 중간에서 잘렸다(오너 스크린샷 실측: 창 719, 구분선 끝 686). 안전 영역을 먼저 무시해 바닥까지 채운다.
         .frame(maxWidth: .infinity, maxHeight: .infinity)

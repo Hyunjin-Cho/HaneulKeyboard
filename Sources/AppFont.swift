@@ -30,6 +30,9 @@ enum AppFont {
         return .regular
     }
 
+    /// 2026-11-08 오너(#209): 마루부리는 줄 사이가 좁아 두 줄 설명이 붙어 보였다(3pt로도 "왜 이렇게 가깝지"). 여러 줄 글은 이 간격을 쓴다.
+    static let lineSpacing: CGFloat = 6
+
     static func font(size: CGFloat, weight: Font.Weight = .regular) -> Font {
         let w = Self.weight(weight)
         if let name = postScriptNames[w] { return .custom(name, fixedSize: size) }
