@@ -44,7 +44,7 @@ enum AppFont {
 
 extension Button where Label == Text {
     /// 2026-11-08 (#209): 시스템 버튼(.bordered 등)은 환경 글꼴을 따르지 않는다. 글자에 마루부리를 직접 준다.
-    init(maru title: String, role: ButtonRole? = nil, action: @escaping () -> Void) {
-        self.init(role: role, action: action) { Text(title).font(AppFont.font(size: 14)) }
+    init(maru title: String, size: CGFloat = 14, role: ButtonRole? = nil, action: @escaping () -> Void) {
+        self.init(role: role, action: action) { Text(title).font(AppFont.font(size: size)) }
     }
 }

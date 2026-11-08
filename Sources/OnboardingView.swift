@@ -223,7 +223,7 @@ struct OnboardingView: View {
                     HStack(spacing: 10) {
                         Text("시작하기를 누르면 입력기 설치·설정을 이어갈 수 있어요.")
                         Spacer(minLength: 4)
-                        Button("설치 단계로 이동") { go(to: 0) }.fixedSize()
+                        Button(maru: "설치 단계로 이동") { go(to: 0) }.fixedSize()
                     }
                 }
             }
@@ -493,7 +493,7 @@ struct OnboardingView: View {
                     Text("기본으로 켜져 있어요.\n설정에서 끌 수 있어요.")
                         .font(AppFont.font(size: adviceNoteSize))
                     Spacer(minLength: 4)
-                    Button("슬래시 설정") { onSettings(.shortcuts) }
+                    Button(maru: "슬래시 설정", size: adviceNoteSize) { onSettings(.shortcuts) }
                         .font(AppFont.font(size: adviceNoteSize))
                 }
             }.feedbackPanel(.advice, fills: true)
@@ -516,7 +516,7 @@ struct OnboardingView: View {
         HStack(alignment: .center, spacing: 10) {
             Text("없는 단어는 개인 사전에서 제안해 주세요")
                 .font(AppFont.font(size: adviceNoteSize)).fixedSize()
-            Button("개인 사전 열기") { onSettings(.personalDictionary) }
+            Button(maru: "개인 사전 열기", size: adviceNoteSize) { onSettings(.personalDictionary) }
                 .font(AppFont.font(size: adviceNoteSize)).fixedSize()
         }
     }
@@ -578,7 +578,7 @@ struct OnboardingView: View {
                     completedText: "하늘키보드 선택됨", pendingText: "하늘키보드를 선택해 주세요")
                     .font(AppFont.font(size: 14)).fixedSize()
                 if !selectedHaneul {
-                    Button("하늘키보드 선택") {
+                    Button(maru: "하늘키보드 선택") {
                         if selectHaneul() { focusRequest = UUID() }
                     }.disabled(!core.imeInstalled).fixedSize()
                 }
@@ -620,7 +620,7 @@ struct OnboardingView: View {
                         Text("현재 이 앱의 자동 변환이 꺼져 있어요.")
                     }
                     if lesson == .reversal && !allWordsEnabled {
-                        Text("‘쳐 놓은 단어 한/영 바꾸기’가 꺼져 있어요.\n방금 자동으로 바뀐 단어는 그래도 되돌릴 수 있어요.")
+                        Text("‘미리 친 단어 한/영 바꾸기’가 꺼져 있어요.\n방금 자동으로 바뀐 단어는 그래도 되돌릴 수 있어요.")
                     }
                     if lesson == .registeredWord && !phoneticEnabled {
                         Text("카메라를 camera로 바꾸는 기능이 꺼져 있어요.\n설정에서 ‘한글 단어를 영어로 바꾸기’를 켜 주세요.")
@@ -633,7 +633,7 @@ struct OnboardingView: View {
                     }
                     if lessonDisabled(lesson) {
                         // 2026-11-07 (#189): 꺼진 항목이 있는 메뉴로 바로 보낸다. 자동 변환이 꺼진 게 먼저다(되돌리기 연습은 둘 다 꺼질 수 있다).
-                        Button("설정 열기") { onSettings((lesson == .automatic || lesson == .reversal) && !autoEnabled ? .automatic : .shortcuts) }
+                        Button(maru: "설정 열기") { onSettings((lesson == .automatic || lesson == .reversal) && !autoEnabled ? .automatic : .shortcuts) }
                     }
                 }.font(AppFont.font(size: 14)).feedbackPanel(.warning)
                     .fixedSize(horizontal: false, vertical: true)
