@@ -733,14 +733,16 @@ func runSortedWordTableTests() {
 
 func runLoginItemTests() {
     let app = "/Applications/HaneulKeyboard.app"
-    func auto(_ done: Bool, _ tried: Bool, _ path: String) -> Bool {
-        LoginItemDecision.shouldAutoRegister(onboardingDone: done, alreadyTried: tried, bundlePath: path)
+    func auto(_ done: Bool, _ tried: Bool, _ path: String, icon: Bool = true) -> Bool {
+        LoginItemDecision.shouldAutoRegister(onboardingDone: done, iconVisible: icon, alreadyTried: tried, bundlePath: path)
     }
     expect(auto(true, false, app), true, "로그인 항목: 안내를 끝낸 설치본은 자동으로 켠다")
     expect(auto(false, false, app), false, "로그인 항목: 안내 전에는 켜지 않는다")
     expect(auto(true, true, app), false, "로그인 항목: 한 번 시도했으면 다시 켜지 않는다(사용자가 끈 것 존중)")
     expect(auto(true, false, "/Users/a/Downloads/HaneulKeyboard.app"), false, "로그인 항목: 응용 프로그램 밖이면 켜지 않는다")
     expect(auto(true, false, "/Users/a/Library/Developer/Xcode/DerivedData/x/HaneulKeyboard.app"), false, "로그인 항목: 개발 빌드는 켜지 않는다")
+    // 2026-11-08 (#201): 아이콘 토글 하나가 로그인 항목까지 정한다.
+    expect(auto(true, false, app, icon: false), false, "로그인 항목: 아이콘을 꺼 둔 채면 켜지 않는다")
 }
 
 func runAppBundleWatchTests() {

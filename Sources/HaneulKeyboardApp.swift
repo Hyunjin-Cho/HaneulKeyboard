@@ -141,10 +141,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     }
 
     /// 2026-11-06 (#160): 실패해도 다시 시도하지 않는다. 사용자는 설정에서 직접 켤 수 있다.
+    /// 2026-11-08 (#201): 아이콘을 꺼 둔 채면 등록하지 않는다 — 아이콘 토글 하나가 둘 다 정한다.
     private func registerLoginItemIfNeeded() {
         let defaults = UserDefaults.standard
         guard LoginItemDecision.shouldAutoRegister(
             onboardingDone: defaults.bool(forKey: HaneulDefaultsKey.hasCompletedOnboarding),
+            iconVisible: menuBarIconVisible,
             alreadyTried: defaults.bool(forKey: LoginItemDecision.autoRegisteredKey),
             bundlePath: Bundle.main.bundlePath) else { return }
         defaults.set(true, forKey: LoginItemDecision.autoRegisteredKey)
