@@ -10,7 +10,8 @@ struct SupportView: View {
     static let size = NSSize(width: 520, height: 148)
     let onClose: () -> Void
     @Environment(\.colorScheme) private var scheme
-    @State private var openFailed = false
+    /// 브라우저로 열지 못한 후원처. nil이면 문제없음.
+    @State private var openFailed: SupportChannel?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -23,16 +24,18 @@ struct SupportView: View {
                     .foregroundStyle(OnboardingRiso.ink(for: scheme))
                 Text("하늘키보드는 무료예요. 후원해도 안 해도 기능은 똑같아요.")
                     .fixedSize(horizontal: false, vertical: true)
-                Text("도움이 되었다면 GitHub Sponsors에서 응원해 주세요.\n한 번만 또는 매달 후원할 수 있고, GitHub 계정이 필요해요.")
+                // 2026-11-08 오너(#20): A안 — 후원처를 목록으로 똑같이 보여 준다(B안 'GitHub 중심 + 다른 방법 한 줄'은 반려).
+                Text("도움이 되었다면 편한 곳에서 응원해 주세요.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(SupportLink.displayAddress)
-                    .font(AppFont.font(size: 13))
-                    .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
-                if openFailed {
-                    Text("브라우저를 열지 못했어요.\n위 주소를 복사해 브라우저에 붙여 넣어 주세요.")
+                VStack(spacing: 8) {
+                    ForEach(SupportLink.channels) { channel in channelRow(channel) }
+                }
+                if let failed = openFailed {
+                    // 주소 줄을 따로 두지 않으므로, 열지 못했을 때 복사할 주소를 여기 보인다.
+                    Text("브라우저를 열지 못했어요.\n이 주소를 브라우저에 붙여 넣어 주세요: \(failed.displayAddress)")
                         .foregroundStyle(FeedbackStatus.warning.color(in: scheme))
+                        .textSelection(.enabled)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 HStack(spacing: 10) {
@@ -40,11 +43,6 @@ struct SupportView: View {
                     Button("닫기", action: onClose)
                         .buttonStyle(OnboardingRisoButtonStyle(prominent: false))
                         .keyboardShortcut(.cancelAction)
-                    Button("GitHub에서 후원하기") {
-                        openFailed = !NSWorkspace.shared.open(SupportLink.sponsors)
-                    }
-                    .buttonStyle(OnboardingRisoButtonStyle(prominent: true))
-                    .keyboardShortcut(.defaultAction)
                 }
                 .padding(.top, 4)
             }
@@ -54,6 +52,23 @@ struct SupportView: View {
         }
         .frame(width: Self.size.width)
         .haneulWindowAppearance()
+    }
+
+    private func channelRow(_ channel: SupportChannel) -> some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(channel.name).font(AppFont.font(size: 15, weight: .semibold))
+                Text(channel.detail).font(AppFont.font(size: 13)).foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 8)
+            Button("후원하기") {
+                openFailed = NSWorkspace.shared.open(channel.url) ? nil : channel
+            }
+            .buttonStyle(OnboardingRisoButtonStyle(prominent: true))
+            .accessibilityLabel("\(channel.name)에서 후원하기")
+        }
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 10).fill(Color.primary.opacity(0.05)))
     }
 }
 
