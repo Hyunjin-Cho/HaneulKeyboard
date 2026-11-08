@@ -77,9 +77,10 @@ struct AppManagementSettingsTab: View {
 
     /// 2026-11-08 오너(#201): 아이콘을 켜면 로그인 항목도 켜고, 끄면 함께 끈다. 실패해도 아이콘은 그대로 바뀐다.
     /// 응용 프로그램 폴더 밖의 사본(개발 빌드)은 자동 등록과 같은 기준으로 넣지 않는다.
+    /// (Codex 리뷰) 폴더 밖 사본이 자동 등록 기회를 써 버리지 않게, 경로를 먼저 보고 나서 시도했다고 적는다.
     private func followIconWithLoginItem(_ visible: Bool) {
-        UserDefaults.standard.set(true, forKey: LoginItemDecision.autoRegisteredKey)
         if visible && !AppMoveDecision.isAlreadyInPlace(bundlePath: Bundle.main.bundlePath) { return }
+        UserDefaults.standard.set(true, forKey: LoginItemDecision.autoRegisteredKey)
         try? LoginItem.set(enabled: visible)
         loginItem = LoginItem.state
     }

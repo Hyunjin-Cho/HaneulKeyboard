@@ -168,6 +168,9 @@ struct SettingsView: View {
                                 NSApp.terminate(nil)
                             }
                         })
+                        // 2026-11-08 (#201, Codex 리뷰): Esc로 닫히면 onDone을 거치지 않아 다 지운 뒤에도 앱이 남는다.
+                        // 결과 창은 버튼으로만 닫는다.
+                        .interactiveDismissDisabled()
                     }
                 }
         }
