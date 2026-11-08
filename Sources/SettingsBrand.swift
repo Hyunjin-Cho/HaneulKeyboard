@@ -2,10 +2,12 @@ import SwiftUI
 
 /// 2026-10-10 (#88): Studio Display에서 읽기 쉽게 설명 14pt / 항목 17pt로 구분한다.
 enum SettingsTypography {
-    static let body = Font.system(size: 14, weight: .regular)
-    static let control = Font.system(size: 17, weight: .semibold)
+    static let body = AppFont.font(size: 14, weight: .regular)
+    static let control = AppFont.font(size: 17, weight: .semibold)
     // 2026-10-11 (#88): 번호는 둥근 일반체로 표시해 항목 이름과 무게를 구분한다.
-    static let version = Font.system(size: 17, weight: .regular, design: .rounded)
+    static let version = AppFont.font(size: 17, weight: .regular)
+    // 2026-11-08 오너(#209): 색·아이콘이 붙은 상태 줄은 같은 17pt여도 커 보인다. 2pt 줄였다.
+    static let status = AppFont.font(size: 15, weight: .semibold)
 }
 
 enum SettingsLayout {
@@ -28,7 +30,7 @@ struct SettingsBand: View {
             .accessibilityHidden(true)
             .overlay(alignment: .leading) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("하늘키보드 설정").font(.system(size: 13, weight: .medium))
+                    Text("하늘키보드 설정").font(AppFont.font(size: 13, weight: .medium))
                     Text(tab.title).font(OnboardingRiso.titleFont(size: 31))
                 }
                 .foregroundStyle(OnboardingRiso.ink(for: scheme))
@@ -88,7 +90,8 @@ private extension SettingsTab {
     }
 }
 
-/// 2026-11-05 (#135): 구획 이름은 안내 제목과 같은 고운바탕이다(그 전에는 손글씨). 설명·목록·입력란은 시스템 글꼴을 유지한다.
+/// 2026-11-05 (#135): 구획 이름은 안내 제목과 같은 글꼴이다(그 전에는 손글씨).
+/// 2026-11-08 오너(#209): 제목·구획 이름·설명·목록 모두 마루부리로 맞췄다(`AppFont`). 고운바탕은 뺐다.
 struct HaneulSettingsSection<Content: View>: View {
     /// 2026-11-07 (#189): 위 띠 제목과 같은 말이면 구획 제목을 뺀다(nil).
     let title: String?
@@ -123,7 +126,8 @@ struct SettingsToggleRow: View {
     @Binding var isOn: Bool
     var body: some View {
         Toggle(isOn: $isOn) {
-            VStack(alignment: .leading, spacing: 3) {
+            // 2026-11-08 (#209): 설명 줄 간격(6pt)을 넓히며 제목과 첫 줄 사이도 3→5pt로 맞췄다.
+            VStack(alignment: .leading, spacing: 5) {
                 Text(title)
                 Text(detail).font(SettingsTypography.body).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

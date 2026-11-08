@@ -84,8 +84,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         // 2026-11-06 (#154): 메뉴바 아이콘을 꺼도 메뉴에 있던 일은 설정에서 할 수 있어야 한다.
         NotificationCenter.default.addObserver(self, selector: #selector(applyMenuBarIconPreference),
                                                name: .haneulMenuBarIconChanged, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(showOnboarding),
-                                               name: .haneulOnboardingRequested, object: nil)
+        // 2026-11-08 (#209): 앱 관리의 `시작하기 다시 보기` 버튼을 빼서 그 알림도 지웠다. 안내는 메뉴바 메뉴에서 연다.
 
         core.updater.onUpdateAvailable = { [weak self] update in
             self?.showUpdateNotice(update)

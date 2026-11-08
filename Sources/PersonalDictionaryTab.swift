@@ -19,7 +19,7 @@ struct PersonalDictionaryTab: View {
             PersonalDictionarySettingsSection(isSelected: isSelected)
 
             HaneulSettingsSection("단어 제안") {
-                Text("기본 사전에 넣었으면 하는 단어를 알려 주세요. ‘영상 편집 용어’처럼 분야만 알려 주셔도 좋아요. 살펴보고, 넣을 수 있는 말은 이후 버전에 넣을게요.")
+                Text("기본 사전에 넣었으면 하는 단어를 알려 주세요.\n‘영상 편집 용어’처럼 분야만 알려 주셔도 좋아요.\n살펴보고, 넣을 수 있는 말은 이후 버전에 넣을게요.")
                     .font(SettingsTypography.body)
                     .foregroundStyle(.secondary)
                 Text("나만 쓸 단어라면 위의 개인 사전에 넣어 주세요. 바로 적용돼요.")
@@ -28,7 +28,7 @@ struct PersonalDictionaryTab: View {
 
                 HStack {
                     Spacer()
-                    Button("단어 제안하기...") { showingSuggestionSheet = true }
+                    Button(maru: "단어 제안하기...") { showingSuggestionSheet = true }
                 }
             }
         }

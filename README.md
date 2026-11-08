@@ -75,7 +75,7 @@
 - 영어 사전, 한국어 사전(국립국어원 우리말샘), 앞 단어의 문맥을 함께 봅니다. 실제 한국어 단어, 초성체, 자모 이모티콘(`ㅋㅋ`, `ㅠㅠ`)과 겹치는 입력은 보호합니다.
 - 직접 누른 Space·문장부호에서 판정합니다. 클릭이나 앱 전환으로 끝난 입력은 보이는 그대로 둡니다.
 - 사전에 없는 철자(`aplle`)는 추측해서 고치지 않고 그대로 둡니다.
-- ABC로 친 영어 바로 뒤에서는 한글로도 읽히는 짧은 영어까지 바꿉니다(`want 새` → `want to`). `helloworld`처럼 영어 단어 두 개를 붙여 쳐도 바꿉니다(두 단어 모두 네 글자 이상). 둘 다 설정에서 끌 수 있습니다.
+- 영타로 친 영어 바로 뒤에서는 한글로도 읽히는 짧은 영어까지 바꿉니다(`want 새` → `want to`). `helloworld`처럼 영어 단어 두 개를 붙여 쳐도 바꿉니다(두 단어 모두 네 글자 이상). 둘 다 설정에서 끌 수 있습니다.
 - 자동 변환은 전체로 끄거나 앱마다 끌 수 있습니다.
 
 ### 되돌리기와 미리 친 단어 바꾸기
@@ -108,7 +108,7 @@
 
 | 메뉴 | 들어 있는 것 |
 |---|---|
-| 자동 변환 | 영어 자동 변환·ABC로 친 영어 뒤에 이어 칠 때·영어 단어 두 개를 붙여 쳤을 때·앱별 끄기 |
+| 자동 변환 | 영어 자동 변환·영타로 친 영어 뒤에 이어 칠 때·영어 단어 두 개를 붙여 쳤을 때·앱별 끄기 |
 | 단축키·슬래시 | 변환 단축키·한글 단어를 영어로 바꾸기·미리 친 단어 한/영 바꾸기·슬래시 영어 입력 |
 | 개인 사전 | 변환 추가·변환 금지·되돌린 단어·단어 제안 |
 | 설치·업데이트 | 한글 입력기 설치, 설치된 버전과 최신 버전, 새 버전 알림 |
@@ -192,7 +192,7 @@ PACKAGE_ONLY=1 bash scripts/build_notarize_install.sh HaneulKeyboard
 | US Census·SSA 인명 데이터 | Public Domain |
 | GeoNames 지명 | CC BY 4.0 |
 | Wikidata 축구 클럽·선수 | CC0 1.0 |
-| 고운바탕·나눔손글씨 펜 | SIL Open Font License 1.1 |
+| 마루 부리(네이버)·나눔손글씨 펜 | SIL Open Font License 1.1 |
 
 [McBopomofo](https://github.com/openvanilla/McBopomofo)의 입력기 등록·설치 구조, 공개 사전과 글꼴, 오픈소스 기여자들에게 감사드립니다. **[Claude](https://claude.com/claude-code)(Anthropic)**와 **[Codex · ChatGPT](https://openai.com/codex/)(OpenAI)**가 설계·개발·검증·문서·그림 작업에 함께했습니다. 출처와 가공 방식은 [감사의 글](ACKNOWLEDGEMENTS.md)에 모았습니다.
 
@@ -251,6 +251,6 @@ Your typing and personal dictionary never leave your Mac. The input method has n
 
 ## License and credits
 
-App code is licensed under **Apache License 2.0** ([LICENSE](LICENSE), [NOTICE](NOTICE)). Earlier MIT releases keep their terms ([legacy notice](LICENSES/HaneulKeyboard-MIT-legacy.txt)). Bundled dictionaries and fonts keep their own licenses: Urimalsaem (CC BY-SA 2.0 KR), NGSL (CC BY-SA 4.0), SCOWL/ESDB (MIT-like), US Census/SSA (public domain), GeoNames (CC BY 4.0), Wikidata (CC0), Gowun Batang and Nanum Pen Script (OFL 1.1). See [Acknowledgements](ACKNOWLEDGEMENTS.md).
+App code is licensed under **Apache License 2.0** ([LICENSE](LICENSE), [NOTICE](NOTICE)). Earlier MIT releases keep their terms ([legacy notice](LICENSES/HaneulKeyboard-MIT-legacy.txt)). Bundled dictionaries and fonts keep their own licenses: Urimalsaem (CC BY-SA 2.0 KR), NGSL (CC BY-SA 4.0), SCOWL/ESDB (MIT-like), US Census/SSA (public domain), GeoNames (CC BY 4.0), Wikidata (CC0), MaruBuri (NAVER) and Nanum Pen Script (OFL 1.1). See [Acknowledgements](ACKNOWLEDGEMENTS.md).
 
 Thanks to [McBopomofo](https://github.com/openvanilla/McBopomofo), the open-source community, **[Claude](https://claude.com/claude-code) (Anthropic)** and **[Codex · ChatGPT](https://openai.com/codex/) (OpenAI)** for help with design, development and artwork. Report problems or suggest words in [Issues](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues).

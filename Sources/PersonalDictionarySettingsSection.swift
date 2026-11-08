@@ -82,7 +82,7 @@ struct PersonalDictionarySettingsSection: View {
 
     @ViewBuilder
     private var forceRows: some View {
-        Text("자동으로 안 바뀌는 영어 단어·제품명을 적어 두세요. 한글 단어와 겹쳐도 영어로 바꿔요. 변환 금지에도 있으면 금지가 먼저예요.")
+        Text("자동으로 안 바뀌는 영어 단어·제품명을 적어 두세요.\n한글 단어와 겹쳐도 영어로 바꿔요.\n변환 금지에도 있으면 금지가 먼저예요.")
             .font(SettingsTypography.body)
             .foregroundStyle(.secondary)
             .lineLimit(Self.captionLines, reservesSpace: true)
@@ -95,7 +95,7 @@ struct PersonalDictionarySettingsSection: View {
 
     @ViewBuilder
     private var blockRows: some View {
-        Text("자꾸 잘못 바뀌는 단어를 적어 두면 자동으로 바꾸지 않아요. 영어(apple)로도, 화면에 보인 글자(메ㅔㅣㄷ)로도 적을 수 있어요.")
+        Text("자꾸 잘못 바뀌는 단어를 적어 두면 자동으로 바꾸지 않아요.\n영어(apple)로도, 화면에 보인 글자(메ㅔㅣㄷ)로도 적을 수 있어요.")
             .font(SettingsTypography.body)
             .foregroundStyle(.secondary)
             .lineLimit(Self.captionLines, reservesSpace: true)
@@ -108,29 +108,30 @@ struct PersonalDictionarySettingsSection: View {
 
     @ViewBuilder
     private var recentRows: some View {
-        Text("영어로 바뀌었다가 직접 되돌린 단어예요. 이 Mac에만 최근 \(RecentReverts.maxCount)개까지 남아요. ‘변환 금지 추가’를 누르면 다음부터 자동으로 바꾸지 않아요.")
+        Text("영어로 바뀌었다가 직접 되돌린 단어예요.\n이 Mac에만 최근 \(RecentReverts.maxCount)개까지 남아요.\n‘변환 금지 추가’를 누르면 다음부터 자동으로 바꾸지 않아요.")
             .font(SettingsTypography.body)
             .foregroundStyle(.secondary)
             .lineLimit(Self.captionLines, reservesSpace: true)
 
         List {
             if recent.isEmpty {
-                Text("되돌린 단어가 없어요.")
+                // 2026-11-08 (#209): 목록 행은 List에 준 글꼴을 따르지 않아 글자마다 준다.
+                Text("되돌린 단어가 없어요.").font(SettingsTypography.body)
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(recent, id: \.self) { entry in
                     HStack {
-                        Text(entry.hangul)
+                        Text(entry.hangul).font(SettingsTypography.body)
                         Image(systemName: "arrow.right")
                             .foregroundStyle(.tertiary)
                             .accessibilityHidden(true)
-                        Text(entry.english)
+                        Text(entry.english).font(SettingsTypography.body)
                         Spacer()
-                        Button("변환 금지 추가") { blockRecent(entry) }
+                        Button(maru: "변환 금지 추가") { blockRecent(entry) }
                             .buttonStyle(.bordered)
                             .controlSize(.small)
                             .accessibilityLabel("\(entry.english) 변환 금지")
-                        Button("제안…") { suggestRecent(entry) }
+                        Button(maru: "제안…") { suggestRecent(entry) }
                             .buttonStyle(.bordered)
                             .controlSize(.small)
                             .accessibilityLabel("\(entry.english) 변환 금지 제안하기")
@@ -145,7 +146,7 @@ struct PersonalDictionarySettingsSection: View {
 
         HStack {
             Spacer()
-            Button("최근 기록 지우기", role: .destructive, action: clearRecent)
+            Button(maru: "최근 기록 지우기", role: .destructive, action: clearRecent)
                 .controlSize(.small)
                 .disabled(recent.isEmpty)
         }
@@ -157,7 +158,8 @@ struct PersonalDictionarySettingsSection: View {
     private static let listHeight: CGFloat = 220
     /// 2026-09-21 (#60): 캡션 줄 수도 고정한다. 목록 높이만 맞춰 놔도 캡션이 1줄·2줄로 갈리면
     /// 절 전체가 10pt씩 들썩인다(실측). 세 문구 모두 640pt 폭에서 2줄 안에 들어간다.
-    private static let captionLines = 2
+    /// 2026-11-08 (#209): 설명을 문장마다 줄로 나눠(최대 세 문장) 2줄이면 마지막 문장이 잘렸다.
+    private static let captionLines = 3
 
     private func addRow(
         text: Binding<String>, prompt: String, error: String?, fieldLabel: String,
@@ -175,7 +177,7 @@ struct PersonalDictionarySettingsSection: View {
                     .autocorrectionDisabled()
                     .onSubmit(action)
                     .accessibilityLabel(fieldLabel)
-                Button("추가", action: action)
+                Button(maru: "추가", action: action)
                     .disabled(text.wrappedValue.trimmingCharacters(in: .whitespaces).isEmpty)
                     .accessibilityLabel(addLabel)
             }
@@ -194,12 +196,12 @@ struct PersonalDictionarySettingsSection: View {
         // 빈 상태 색은 `.tertiary` → `.secondary`(다크 모드 + 교대 행 배경에서 대비가 안 남았다).
         List {
             if words.isEmpty {
-                Text(emptyText)
+                Text(emptyText).font(SettingsTypography.body)
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(words, id: \.self) { word in
                     HStack {
-                        Text(word)
+                        Text(word).font(SettingsTypography.body)
                         Spacer()
                         Button {
                             remove(word)
@@ -230,7 +232,7 @@ struct PersonalDictionarySettingsSection: View {
 
     private func addForce() {
         guard let updated = PersonalDictionary.addingForceEntry(forceInput, to: force) else {
-            forceError = "영어 단어 하나만 띄어쓰기 없이 적어 주세요. 숫자도 괜찮고, '는 한 번만 넣을 수 있어요. 예: a7r, don't"
+            forceError = "영어 단어 하나만 띄어쓰기 없이 적어 주세요.\n숫자도 괜찮고, '는 한 번만 넣을 수 있어요.\n예: a7r, don't"
             return
         }
         forceError = nil
@@ -249,7 +251,7 @@ struct PersonalDictionarySettingsSection: View {
 
     private func addBlock() {
         guard let word = PersonalDictionary.normalizedBlockEntry(blockInput) else {
-            blockError = "영어(apple)나 화면에 보인 글자(메ㅔㅣㄷ) 중 하나만 적어 주세요. 섞거나 띄어 쓰면 안 돼요."
+            blockError = "영어(apple)나 화면에 보인 글자(메ㅔㅣㄷ) 중 하나만 적어 주세요.\n섞거나 띄어 쓰면 안 돼요."
             return
         }
         blockError = nil

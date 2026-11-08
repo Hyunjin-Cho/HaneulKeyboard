@@ -18,6 +18,7 @@ enum OnboardingRiso {
     // 2026-11-04 오너 결정(#137): 창 바탕 = 새 한지 '또렷'. 10월 외부 생성 사진(DancheongPaper)을 창 크기로 늘려 쓰던 것을 바꿨다 —
     // 섬유가 가로로 번지고, 다크에서는 결 세기가 라이트의 1/8로 죽었다(밝기 표준편차 3.78 → 0.49).
     // 라이트·다크가 같은 결 구조를 쓰고(생성 코드: 비공개 haneul-art paper/), 늘리지 않고 1024pt 타일로 깐다.
+    // 2026-11-08 오너(#209, #203): 한지를 r2b로 바꿨다 — r2(흰 섬유·솜결)에서 섬유만 70% 남긴 판. 생성기는 비공개 haneul-art `paper/hanji_v3.py --variant r2b`.
     // 2026-11-06 (#156): 앱은 창 없이 뒤에 남으므로 전역에 쥐지 않는다. 2048px 한지는 풀면 한 장에 16MB다.
     @MainActor private static let hanjiShelf = WindowArtShelf()
     @MainActor static func hanji(dark: Bool) -> NSImage {
@@ -36,16 +37,9 @@ enum OnboardingRiso {
         return image
     }
 
-    private static let titleFontName: String? = {
-        guard let url = Bundle.main.url(forResource: "GowunBatang-Bold", withExtension: "ttf") else { return nil }
-        CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
-        let descriptors = CTFontManagerCreateFontDescriptorsFromURL(url as CFURL) as? [CTFontDescriptor]
-        return descriptors?.first.flatMap { CTFontDescriptorCopyAttribute($0, kCTFontNameAttribute) as? String }
-    }()
-
+    /// 2026-11-08 오너(#209): 제목도 마루부리 Bold다. 고운바탕은 뺐다(`AppFont`).
     static func titleFont(size: CGFloat) -> Font {
-        if let titleFontName { return .custom(titleFontName, size: size) }
-        return .system(size: size, weight: .semibold, design: .serif)
+        AppFont.font(size: size, weight: .bold)
     }
 
     static func ink(for scheme: ColorScheme) -> Color {
@@ -104,7 +98,7 @@ struct OnboardingRisoButtonStyle: ButtonStyle {
     private var colored: Bool { isEnabled && appearsActive }
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 15, weight: .semibold))
+            .font(AppFont.font(size: 15, weight: .semibold))
             .foregroundStyle(colored && prominent ? .white : .primary)
             .padding(.horizontal, prominent ? 18 : 13).frame(minHeight: prominent ? 36 : 32)
             .background {

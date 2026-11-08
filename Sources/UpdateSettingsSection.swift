@@ -28,7 +28,7 @@ struct UpdateSettingsSection: View {
                     .font(SettingsTypography.body)
                     .foregroundStyle(.secondary)
                 Spacer(minLength: 12)
-                Button("지금 확인") {
+                Button(maru: "지금 확인") {
                     Task { await updater.checkNow(forced: true, showNotice: false) }
                 }
                 .disabled(isBusy || core.isPreparingIME)
@@ -44,7 +44,7 @@ struct UpdateSettingsSection: View {
                     }
                     Spacer(minLength: 12)
                     if case .available = updater.phase {
-                        Button("새 버전 설치") {
+                        Button(maru: "새 버전 설치") {
                             Task { await updater.installAvailableUpdate() }
                         }
                         .buttonStyle(.borderedProminent)
@@ -68,8 +68,8 @@ struct UpdateSettingsSection: View {
                     // 아니다 — 시스템 도메인 설치 안내는 README/체크리스트가 맡는다.
                     // 2026-11-08 (#201): '입력기 제거' 버튼이 없어져 해결 경로를 바꿨다.
                     Text(core.imeRefreshBlockedBySystemInstall
-                         ? "앱은 새 버전인데 입력기는 아직 이전 버전이에요. 앱 관리의 ‘하늘키보드 전체 제거’로 지운 뒤 다시 설치해 주세요."
-                         : "앱은 새 버전인데 입력기는 아직 이전 버전이에요. 위 ‘입력기 업데이트’를 눌러 주세요.")
+                         ? "앱은 새 버전인데 입력기는 아직 이전 버전이에요.\n앱 관리의 ‘하늘키보드 전체 제거’로 지운 뒤 다시 설치해 주세요."
+                         : "앱은 새 버전인데 입력기는 아직 이전 버전이에요.\n위 ‘입력기 업데이트’를 눌러 주세요.")
                         .font(SettingsTypography.body)
                         .foregroundStyle(.secondary)
                 }

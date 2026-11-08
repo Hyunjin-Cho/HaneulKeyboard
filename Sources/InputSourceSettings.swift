@@ -78,11 +78,11 @@ enum InputSourceSettingsCache {
         var errorDescription: String? {
             switch self {
             case .unsafeCache, .cacheChanged:
-                "키보드 설정의 입력기 목록을 안전하게 새로고치지 못했어요. 로그아웃 후 다시 확인해 주세요."
+                "키보드 설정의 입력기 목록을 안전하게 새로고치지 못했어요.\n로그아웃 후 다시 확인해 주세요."
             case .settingsBusy:
-                "시스템 설정이 닫히지 않았어요. 시스템 설정을 ⌘Q로 종료한 뒤 ‘키보드 설정 열기’를 다시 눌러 주세요."
+                "시스템 설정이 닫히지 않았어요.\n시스템 설정을 ⌘Q로 종료한 뒤 ‘키보드 설정 열기’를 다시 눌러 주세요."
             case .openFailed:
-                "키보드 설정을 열지 못했어요. 시스템 설정 → 키보드 → 텍스트 입력을 열어 주세요."
+                "키보드 설정을 열지 못했어요.\n시스템 설정 → 키보드 → 텍스트 입력을 열어 주세요."
             }
         }
     }
@@ -106,7 +106,7 @@ enum InputSourceSettingsCache {
             return nil
         } catch {
             haneulLog("HaneulKeyboard: input-source settings refresh failed — \(error.localizedDescription)")
-            return "입력기는 준비됐지만 설정 목록 갱신을 마치지 못했어요. \(error.localizedDescription)"
+            return "입력기는 준비됐지만 설정 목록 갱신을 마치지 못했어요.\n\(error.localizedDescription)"
         }
     }
 

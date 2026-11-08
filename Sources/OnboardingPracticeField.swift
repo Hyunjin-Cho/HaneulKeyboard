@@ -127,7 +127,7 @@ final class OnboardingPracticeTextView: NSTextView {
         isAutomaticTextReplacementEnabled = false
         isContinuousSpellCheckingEnabled = false
         allowsUndo = true
-        font = .systemFont(ofSize: 23)
+        font = AppFont.nsFont(size: 23)  // 2026-11-08 (#209): 마루부리
         textColor = .labelColor
         drawsBackground = false
         textContainerInset = NSSize(width: 12, height: 12)
@@ -180,6 +180,6 @@ final class OnboardingPracticeTextView: NSTextView {
         (placeholder as NSString).draw(
             in: NSRect(x: origin.x + padding, y: origin.y + 3,
                        width: max(0, bounds.width - 2 * (origin.x + padding)), height: 44),
-            withAttributes: [.font: NSFont.systemFont(ofSize: 14), .foregroundColor: NSColor.placeholderTextColor])
+            withAttributes: [.font: AppFont.nsFont(size: 14), .foregroundColor: NSColor.placeholderTextColor])
     }
 }

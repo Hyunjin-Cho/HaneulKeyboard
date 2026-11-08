@@ -22,21 +22,23 @@ struct EnglishConversionSettingsTab: View {
     // 예시는 줄 끝에서 쪼개지지 않게 붙임표 없는 공백(U+00A0)으로 묶는다.
     var body: some View {
         Form {
+            // 2026-11-08 오너(#209): 마루부리는 시스템 고딕보다 넓어 문장 중간에서 줄이 갈렸다. 문장마다 줄을 나눈다.
             HaneulSettingsSection {
                 SettingsToggleRow(title: "영어 자동 변환",
-                    detail: "한글 모드에서 영어 단어를 치면 Space를 누를 때 영어로 바꿔요. 예: ㅠ무뭄 → banana",
+                    detail: "한글 모드에서 영어 단어를 치면 Space를 누를 때 영어로 바꿔요.\n예: ㅠ무뭄 → banana",
                     isOn: $autoEnglishEnabled)
                     .onChange(of: autoEnglishEnabled) { _, newValue in
                         Self.imeDefaults?.set(newValue, forKey: HaneulDefaultsKey.autoEnglishEnabled)
                     }
-                SettingsToggleRow(title: "ABC로 친 영어 뒤에 이어 칠 때",
-                    detail: "ABC로 친 영어 바로 뒤에서는 한글로도 읽히는 짧은 영어까지 바꿔요. 예:\u{00A0}want\u{00A0}새\u{00A0}→\u{00A0}want\u{00A0}to",
+                // 2026-11-08 오너(#209): 'ABC로 친'은 입력 소스 이름이라 헷갈린다 → '영타로 친'.
+                SettingsToggleRow(title: "영타로 친 영어 뒤에 이어 칠 때",
+                    detail: "영타로 친 영어 바로 뒤에서는 한글로도 읽히는 짧은 영어까지 바꿔요.\n예:\u{00A0}want\u{00A0}새\u{00A0}→\u{00A0}want\u{00A0}to",
                     isOn: $externalEnglishContextEnabled)
                     .onChange(of: externalEnglishContextEnabled) { _, value in
                         Self.imeDefaults?.set(value, forKey: InputInferencePolicy.externalEnglishContextKey)
                     }
                 SettingsToggleRow(title: "영어 단어 두 개를 붙여 쳤을 때",
-                    detail: "helloworld처럼 영어 단어 두 개를 붙여 쳐도 바꿔요. 두 단어 모두 네 글자 이상이어야 해요.",
+                    detail: "helloworld처럼 영어 단어 두 개를 붙여 쳐도 바꿔요.\n두 단어 모두 네 글자 이상이어야 해요.",
                     isOn: $dictionaryCompoundEnabled)
                     .onChange(of: dictionaryCompoundEnabled) { _, value in
                         Self.imeDefaults?.set(value, forKey: InputInferencePolicy.dictionaryCompoundKey)

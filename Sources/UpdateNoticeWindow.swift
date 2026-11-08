@@ -63,25 +63,25 @@ private struct UpdateNoticeView: View {
                 .resizable().scaledToFit().frame(width: 64, height: 64)
                 .accessibilityHidden(true)
             Text("새로운 하늘키보드가 나왔어요")
-                .font(.system(size: 21, weight: .semibold))
+                .font(AppFont.font(size: 21, weight: .semibold))
             HStack(spacing: 32) {
                 VStack(spacing: 5) {
-                    Text("현재 버전").font(.system(size: 13))
-                    Text(currentVersion).font(.system(size: 17, weight: .semibold))
+                    Text("현재 버전").font(AppFont.font(size: 13))
+                    Text(currentVersion).font(AppFont.font(size: 17, weight: .semibold))
                 }
                 Image(systemName: "arrow.right").accessibilityHidden(true)
                 VStack(spacing: 5) {
-                    Text("새 버전").font(.system(size: 13))
-                    Text(version).font(.system(size: 17, weight: .semibold))
+                    Text("새 버전").font(AppFont.font(size: 13))
+                    Text(version).font(AppFont.font(size: 17, weight: .semibold))
                 }
             }
             Text("‘\(SettingsTab.update.title)’에서 변경 내용을 확인하고\n원할 때 새 버전을 설치해 주세요.")
-                .font(.system(size: 14))
+                .font(AppFont.font(size: 14))
                 .multilineTextAlignment(.center)
             HStack(spacing: 12) {
-                Button("나중에", action: onLater)
+                Button(maru: "나중에", action: onLater)
                     .keyboardShortcut(.cancelAction)
-                Button("\(SettingsTab.update.title) 열기", action: onShowUpdate)
+                Button(maru: "\(SettingsTab.update.title) 열기", action: onShowUpdate)
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
             }

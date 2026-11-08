@@ -4,7 +4,6 @@ extension Notification.Name {
     static let haneulSettingsTabRequested = Notification.Name("haneul.settingsTabRequested")
     /// 2026-11-06 (#154): 설정의 메뉴바 아이콘 항목이 AppDelegate에 알린다.
     static let haneulMenuBarIconChanged = Notification.Name("haneul.menuBarIconChanged")
-    static let haneulOnboardingRequested = Notification.Name("haneul.onboardingRequested")
 }
 
 /// 2026-10-11 (#88): 일반을 정리한 메뉴. 응원하기는 본문 선택과 별도인 버튼이다.
@@ -116,6 +115,9 @@ struct SettingsView: View {
             }
         }
         .disabled(core.isRemovingProduct)
+        // 2026-11-08 오너(#209): 따로 정하지 않은 글자(입력란·목록 등)도 마루부리로.
+        .font(SettingsTypography.body)
+        .lineSpacing(AppFont.lineSpacing)
         // 2026-11-07 (#189): 제목 막대 겹침으로 창이 688 + 안전 영역 32 = 720pt가 되는데, 예전엔 내용을 688로 묶은 뒤 위로 붙여
         // 아래 32pt가 빈 종이로 남고 글이 창 중간에서 잘렸다(오너 스크린샷 실측: 창 719, 구분선 끝 686). 안전 영역을 먼저 무시해 바닥까지 채운다.
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -208,7 +210,7 @@ private struct SettingsMenuRow: View {
                 Image(systemName: symbol).resizable().scaledToFit().frame(width: 18, height: 18)
                 Text(title).lineLimit(1)
             }
-            .font(.system(size: 14, weight: selected ? .semibold : .regular))
+            .font(AppFont.font(size: 14, weight: selected ? .semibold : .regular))
             .foregroundStyle(selected && appearsActive ? .white : .primary)
             .padding(.horizontal, 10)
             .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)

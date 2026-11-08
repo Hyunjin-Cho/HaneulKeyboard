@@ -27,7 +27,8 @@ struct RemovalConfirmSheet: View {
             }
             .padding(.top, 6)
         }
-        .font(.system(size: 14))
+        .font(AppFont.font(size: 14))
+        .lineSpacing(AppFont.lineSpacing)
         .padding(.horizontal, 24).padding(.top, 22).padding(.bottom, 20)
         .frame(width: 420, alignment: .leading)
         .haneulWindowAppearance()
@@ -62,7 +63,8 @@ struct RemovalResultSheet: View {
             }
             .padding(.top, 6)
         }
-        .font(.system(size: 14))
+        .font(AppFont.font(size: 14))
+        .lineSpacing(AppFont.lineSpacing)
         .padding(.horizontal, 24).padding(.top, 22).padding(.bottom, 20)
         .frame(width: 420, alignment: .leading)
         .haneulWindowAppearance()
