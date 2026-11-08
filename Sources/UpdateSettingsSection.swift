@@ -15,26 +15,19 @@ struct UpdateSettingsSection: View {
         }
     }
 
+    // 2026-11-08 오너(#201): 설치된 버전 → 최신 버전 → 마지막 확인(날짜만)과 지금 확인 한 줄 → 새 버전 알림.
+    // 숫자 두 줄로 알 수 있는 '최신 버전이에요'·'설치된 버전이 더 새로워요'는 빼고, 할 일이 있을 때(새 버전·진행·오류)만 상태 줄을 보인다.
+    // 새 버전 알림의 설명도 뺐다.
     var body: some View {
         HaneulSettingsSection("버전·업데이트") {
-            versionRow("최신 버전", value: updater.latestVersion ?? "확인 전")
             versionRow("설치된 버전", value: Updater.currentVersion)
+            versionRow("최신 버전", value: updater.latestVersion ?? "확인 전")
 
             HStack(spacing: 12) {
-                statusLine
+                Text(lastCheckText)
+                    .font(SettingsTypography.body)
+                    .foregroundStyle(.secondary)
                 Spacer(minLength: 12)
-
-                // 새 버전이 있을 때만 나타나므로 강조가 과하지 않다.
-                if case .available = updater.phase {
-                    Button("새 버전 설치") {
-                        Task { await updater.installAvailableUpdate() }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(isBusy || core.isPreparingIME)
-                    .fixedSize()
-                }
-
                 Button("지금 확인") {
                     Task { await updater.checkNow(forced: true, showNotice: false) }
                 }
@@ -42,24 +35,30 @@ struct UpdateSettingsSection: View {
                 .fixedSize()
             }
 
-            if case .available(let update) = updater.phase, let page = update.pageURL {
-                Link("바뀐 내용 보기", destination: page)
-                    .font(SettingsTypography.body)
-            }
-
-            if let lastCheck = updater.lastCheck {
-                Text("마지막 확인: \(lastCheck.formatted(date: .abbreviated, time: .shortened))")
-                    .font(SettingsTypography.body)
-                    .foregroundStyle(.secondary)
+            if hasStatusToShow {
+                HStack(spacing: 12) {
+                    statusLine
+                    if case .available(let update) = updater.phase, let page = update.pageURL {
+                        Link("바뀐 내용 보기", destination: page)
+                            .font(SettingsTypography.body)
+                    }
+                    Spacer(minLength: 12)
+                    if case .available = updater.phase {
+                        Button("새 버전 설치") {
+                            Task { await updater.installAvailableUpdate() }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .keyboardShortcut(.defaultAction)
+                        .disabled(isBusy || core.isPreparingIME)
+                        .fixedSize()
+                    }
+                }
             }
 
             Toggle("새 버전 알림", isOn: Binding(
                 get: { updater.autoCheckEnabled },
                 set: { updater.setAutoCheckEnabled($0) }
             ))
-            Text("하루에 한 번 새 버전을 확인하고, 나오면 한 번만 알려 드려요. 끄면 ‘지금 확인’을 누를 때만 확인해요. 설치는 ‘새 버전 설치’를 눌러야 시작해요.")
-                .font(SettingsTypography.body)
-                .foregroundStyle(.secondary)
 
             if core.imeRefreshNeeded {
                 VStack(alignment: .leading, spacing: 4) {
@@ -67,11 +66,34 @@ struct UpdateSettingsSection: View {
                         .foregroundStyle(.orange)
                     // 2026-09-21 (#60): 설정 창을 보는 사람은 빌드 스크립트를 돌리는 사람이
                     // 아니다 — 시스템 도메인 설치 안내는 README/체크리스트가 맡는다.
-                    Text("앱은 새 버전인데 입력기는 아직 이전 버전이에요. 위 ‘입력기 제거’로 지운 뒤 다시 설치해 주세요.")
+                    // 2026-11-08 (#201): '입력기 제거' 버튼이 없어져 해결 경로를 바꿨다.
+                    Text(core.imeRefreshBlockedBySystemInstall
+                         ? "앱은 새 버전인데 입력기는 아직 이전 버전이에요. 앱 관리의 ‘하늘키보드 전체 제거’로 지운 뒤 다시 설치해 주세요."
+                         : "앱은 새 버전인데 입력기는 아직 이전 버전이에요. 위 ‘입력기 업데이트’를 눌러 주세요.")
                         .font(SettingsTypography.body)
                         .foregroundStyle(.secondary)
                 }
             }
+        }
+    }
+
+    /// 2026-11-08 오너(#201): 시간은 빼고 날짜만. 앱의 언어 설정과 상관없이 한국어로 쓴다(예전엔 "Nov 8, 2026 at 10:09"로 나왔다).
+    private var lastCheckText: String {
+        guard let lastCheck = updater.lastCheck else { return "아직 확인하지 않았어요" }
+        return "마지막 확인: " + lastCheck.formatted(
+            Date.FormatStyle(date: .long, time: .omitted).locale(Locale(identifier: "ko_KR")))
+    }
+
+    /// 할 일이 있을 때만 상태 줄을 보인다. 최신·더 새로움은 위 두 숫자로 알 수 있다.
+    private var hasStatusToShow: Bool {
+        switch updater.phase {
+        case .checking, .available, .downloading, .verifying, .installing, .failed: return true
+        case .upToDate: return false
+        case .idle:
+            if let latest = updater.latestVersion.flatMap(CalVer.init), let current = CalVer(Updater.currentVersion) {
+                return current < latest
+            }
+            return false
         }
     }
 

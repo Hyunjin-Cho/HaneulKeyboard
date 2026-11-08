@@ -18,23 +18,25 @@ struct EnglishConversionSettingsTab: View {
         EnglishConversionSettingsTab.imeDefaults.map { InputInferencePolicy.dictionaryCompoundEnabled(in: $0) }
             ?? InputInferencePolicy.dictionaryCompoundDefault
 
+    // 2026-11-08 오너(#201): 설명은 그 기능이 무엇을 하는지만 짧게 말한다. 끄라고 권하거나 세부 조건을 늘어놓지 않는다.
+    // 예시는 줄 끝에서 쪼개지지 않게 붙임표 없는 공백(U+00A0)으로 묶는다.
     var body: some View {
         Form {
             HaneulSettingsSection {
                 SettingsToggleRow(title: "영어 자동 변환",
-                    detail: "한글 모드에서 banana를 치면 화면에 ㅠ무뭄으로 보여요. Space를 누르면 banana로 바뀌어요. 한글 단어는 되도록 그대로 두고, 틀린 철자(aplle)는 고치지 않아요.",
+                    detail: "한글 모드에서 영어 단어를 치면 Space를 누를 때 영어로 바꿔요. 예: ㅠ무뭄 → banana",
                     isOn: $autoEnglishEnabled)
                     .onChange(of: autoEnglishEnabled) { _, newValue in
                         Self.imeDefaults?.set(newValue, forKey: HaneulDefaultsKey.autoEnglishEnabled)
                     }
                 SettingsToggleRow(title: "ABC로 친 영어 뒤에 이어 칠 때",
-                    detail: "ABC로 I를 치고 Space를 누른 뒤, 한글 모드에서 새를 치면 to로 바꿔요. 커서 앞 글자를 잠깐 읽어 바로 앞 영어 단어를 확인하고, 저장하지 않아요.",
+                    detail: "ABC로 친 영어 바로 뒤에서는 한글로도 읽히는 짧은 영어까지 바꿔요. 예:\u{00A0}want\u{00A0}새\u{00A0}→\u{00A0}want\u{00A0}to",
                     isOn: $externalEnglishContextEnabled)
                     .onChange(of: externalEnglishContextEnabled) { _, value in
                         Self.imeDefaults?.set(value, forKey: InputInferencePolicy.externalEnglishContextKey)
                     }
                 SettingsToggleRow(title: "영어 단어 두 개를 붙여 쳤을 때",
-                    detail: "helloworld처럼 사전에 있는 영어 단어 두 개를 띄지 않고 쳐도 바꿔요. 두 단어 모두 네 글자 이상이어야 하고, 철자가 틀리면 그대로 둬요. 바꾼 설정은 다음 단어부터 적용돼요.",
+                    detail: "helloworld처럼 영어 단어 두 개를 붙여 쳐도 바꿔요. 두 단어 모두 네 글자 이상이어야 해요.",
                     isOn: $dictionaryCompoundEnabled)
                     .onChange(of: dictionaryCompoundEnabled) { _, value in
                         Self.imeDefaults?.set(value, forKey: InputInferencePolicy.dictionaryCompoundKey)

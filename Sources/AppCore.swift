@@ -32,10 +32,7 @@ final class AppCore {
         operationGate.operation == .removingInputMethod || operationGate.operation == .removingProduct
     }
     private(set) var imeOnDisk = false
-    private(set) var lastInputRemovalReport: RemovalReport?
     private var statusRefreshGeneration = 0
-    /// 2026-11-07 (#177): 결과가 실제로 반영된 가장 최근 읽기 번호. 더 늦게 시작한 읽기에 밀린 읽기는 반영되지 않는다.
-    private var statusAppliedGeneration = 0
     /// 자동 업데이트(#19). 스케줄 시작은 `AppDelegate.applicationDidFinishLaunching`에서.
     let updater: Updater
 
@@ -157,18 +154,8 @@ final class AppCore {
         }
     }
 
-    /// 2026-10-10 (#88): 앱 관리에서도 설치/갱신과 같은 실행 잠금을 공유한다.
-    /// 2026-11-07 (#177, 리뷰 app-ui-F-4): 제거의 ps·lsregister·defaults 대기는 메인 스레드 밖에서 돈다(`Uninstaller`). 그동안 UI가
-    /// 멈추지 않고, 작업권을 잡은 직후라 "입력기를 관리하는 중…" 표시가 먼저 그려진다.
-    func uninstallIME() async -> Error? {
-        guard !removalPendingExit, let token = operationGate.begin(.removingInputMethod) else { return ProductOperationError.busy }
-        defer { operationGate.finish(token) }
-        let report = await IMEInstaller.uninstall()
-        lastInputRemovalReport = report
-        await updateIMEStatus()
-        if report.complete { imeActivationError = nil; imeSettingsRefreshWarning = nil; return nil }
-        return IMEInstallError.uninstallFailed(report.statusText)
-    }
+    // 2026-11-08 오너(#201): 입력기만 지우는 경로(`uninstallIME`)를 없앴다. 설정의 '입력기 제거' 버튼이 유일한 호출처였다.
+    // 입력기 삭제는 전체 제거(`removeFullProduct` → `Uninstaller`)가 맡는다.
 
     func removeFullProduct() async -> Uninstaller.Outcome {
         guard !removalPendingExit, let token = operationGate.begin(.removingProduct) else {
@@ -200,24 +187,13 @@ final class AppCore {
         }
     }
 
-    /// 2026-11-07 (#177, 리뷰 app-ui-F-1): 열려 있는 메뉴가 갱신이 끝난 뒤 칸을 다시 그리려고 완료를 기다린다.
-    /// 앱 활성화·입력 소스 알림이 같은 때 새 읽기를 시작하면 내 읽기는 반영되지 않고 끝난다(`updateIMEStatus`의 세대 확인) —
-    /// 그러면 가장 늦게 시작한 읽기가 반영될 때까지 잠깐(최대 2초) 더 기다린다. 아니면 메뉴가 읽기 전 값으로 그려진다.
-    func refreshIMEStatusAndWait() async {
-        await updateIMEStatus()
-        var waits = 0
-        while statusAppliedGeneration < statusRefreshGeneration, waits < 40 {
-            try? await Task.sleep(for: .milliseconds(50))
-            waits += 1
-        }
-    }
+    // 2026-11-08 (#201): 열린 메뉴를 다시 그리려고 읽기 완료를 기다리던 `refreshIMEStatusAndWait`를 없앴다. 메뉴는 이제 열린 동안 고치지 않는다.
 
     private func updateIMEStatus() async {
         statusRefreshGeneration += 1
         let generation = statusRefreshGeneration
         let state = await IMEInstaller.installationState()
         guard generation == statusRefreshGeneration else { return }
-        statusAppliedGeneration = generation
         imeOnDisk = [RemovalObservation.userIME, RemovalObservation.systemIME].contains { RemovalObservation.absence(at: $0) != .alreadyAbsent }
         let ready = state == .ready
         let disabled = state == .installedDisabled

@@ -50,10 +50,8 @@ struct AppManagementSettingsTab: View {
                     .onChange(of: showsMenuBarIcon) { _, _ in
                         NotificationCenter.default.post(name: .haneulMenuBarIconChanged, object: nil)
                     }
-                Text("아이콘을 꺼도 한글 입력과 영어 자동 변환은 그대로 돼요. 설정을 다시 열려면 응용 프로그램 폴더에서 하늘키보드를 열어 주세요.")
-                    .font(SettingsTypography.body)
-                    .foregroundStyle(.secondary)
-                Text("아이콘을 꺼도 앱은 뒤에서 새 버전 알림을 받아요. ‘메뉴바 앱 종료’는 메뉴바 앱만 꺼요. 한글 입력은 계속 돼요. 로그인할 때 열기가 켜져 있으면 다음 로그인 때 다시 열려요.")
+                // 2026-11-08 오너(#201): 두 문단을 한 문단으로 줄였다. 아이콘을 끈 뒤 돌아오는 길(응용 프로그램 폴더에서 열면 앱 관리가 열린다)만 남긴다.
+                Text("아이콘을 꺼도 한글 입력과 영어 자동 변환은 그대로 돼요. 다시 켜려면 응용 프로그램 폴더에서 하늘키보드를 열어 주세요.")
                     .font(SettingsTypography.body)
                     .foregroundStyle(.secondary)
                 HStack(spacing: 12) {
@@ -66,14 +64,17 @@ struct AppManagementSettingsTab: View {
                 }
             }
 
-            HaneulSettingsSection("하늘키보드 전체 제거") {
-                Text("앱·입력기·설정·개인 사전을 모두 지워요. 다시 쓰려면 새로 내려받아 설치해야 해요.")
+            // 2026-11-08 오너(#201): 되돌릴 수 없는 일이라 제목과 버튼 글자를 빨갛게 쓴다. 설명은 한 문장으로 줄였다.
+            HaneulSettingsSection("하늘키보드 전체 제거", titleColor: .red) {
+                Text("앱과 개인 사전을 모두 지워요.")
                     .font(SettingsTypography.body)
                     .foregroundStyle(.secondary)
                 HStack {
                     Spacer()
-                    Button("하늘키보드 전체 제거…", role: .destructive) {
+                    Button(role: .destructive) {
                         showingUninstallConfirm = true
+                    } label: {
+                        Text("하늘키보드 전체 제거…").foregroundStyle(.red)
                     }
                     .disabled(isBusy)
                 }

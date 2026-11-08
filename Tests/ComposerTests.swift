@@ -2912,19 +2912,31 @@ struct ComposerTests {
         expect(UpdateDecision.availableUpdate(currentVersion: "2026.08", release: release!)?.asset.downloadURL.absoluteString ?? "",
                "https://github.com/Hyunjin-Cho/HaneulKeyboard/releases/download/2026.09/HaneulKeyboard_2026.09.zip", "업데이트: 다운로드 URL 전달")
 
-        // ── 24시간 throttle ──
-        let now = Date(timeIntervalSince1970: 1_800_000_000)
-        let day: TimeInterval = 24 * 60 * 60
-        expect(UpdateDecision.checkInterval == day, true, "throttle: 간격 24시간")
-        expect(UpdateDecision.shouldCheckNow(autoCheckEnabled: true, lastCheck: nil, now: now, forced: false), true, "throttle: 처음이면 확인")
-        expect(UpdateDecision.shouldCheckNow(autoCheckEnabled: true, lastCheck: now.addingTimeInterval(-day), now: now, forced: false), true, "throttle: 정확히 24시간이면 확인")
-        expect(UpdateDecision.shouldCheckNow(autoCheckEnabled: true, lastCheck: now.addingTimeInterval(-day + 1), now: now, forced: false), false, "throttle: 24시간 1초 전이면 대기")
-        expect(UpdateDecision.shouldCheckNow(autoCheckEnabled: true, lastCheck: now.addingTimeInterval(-day - 1), now: now, forced: false), true, "throttle: 24시간 1초 뒤면 확인")
-        expect(UpdateDecision.shouldCheckNow(autoCheckEnabled: true, lastCheck: now, now: now, forced: false), false, "throttle: 방금 확인했으면 대기")
-        expect(UpdateDecision.shouldCheckNow(autoCheckEnabled: true, lastCheck: now.addingTimeInterval(3600), now: now, forced: false), true, "throttle: 마지막 확인이 미래(시계 되감김)면 확인")
-        expect(UpdateDecision.shouldCheckNow(autoCheckEnabled: false, lastCheck: nil, now: now, forced: false), false, "throttle: 토글 OFF면 자동 확인 안 함(네트워크 0)")
-        expect(UpdateDecision.shouldCheckNow(autoCheckEnabled: false, lastCheck: nil, now: now, forced: true), true, "throttle: 토글 OFF여도 '지금 확인'은 확인")
-        expect(UpdateDecision.shouldCheckNow(autoCheckEnabled: true, lastCheck: now, now: now, forced: true), true, "throttle: '지금 확인'은 간격 무시")
+        // ── 매월 1일 확인 (2026-11-08 #201, 예전 24시간) ──
+        var seoul = Calendar(identifier: .gregorian)
+        seoul.timeZone = TimeZone(identifier: "Asia/Seoul")!
+        func at(_ y: Int, _ m: Int, _ d: Int, _ h: Int = 0, _ min: Int = 0, _ sec: Int = 0) -> Date {
+            seoul.date(from: DateComponents(year: y, month: m, day: d, hour: h, minute: min, second: sec))!
+        }
+        func due(_ last: Date?, _ now: Date, auto: Bool = true, forced: Bool = false) -> Bool {
+            UpdateDecision.shouldCheckNow(autoCheckEnabled: auto, lastCheck: last, now: now, forced: forced, calendar: seoul)
+        }
+        let now = at(2026, 11, 8, 12, 0)
+        expect(due(nil, now), true, "월간 확인: 처음이면 확인")
+        expect(due(at(2026, 11, 1, 0, 0, 0), now), false, "월간 확인: 이번 달 1일 0시에 확인했으면 대기")
+        expect(due(at(2026, 10, 31, 23, 59, 59), now), true, "월간 확인: 지난달 마지막 순간이면 확인")
+        expect(due(at(2026, 10, 1, 9), at(2026, 11, 1, 0, 0, 0)), true, "월간 확인: 1일 0시가 되면 확인")
+        expect(due(at(2026, 10, 1, 9), at(2026, 10, 31, 23, 59, 59)), false, "월간 확인: 1일 전 마지막 순간엔 대기")
+        expect(due(at(2026, 10, 2, 9), at(2026, 11, 5, 9)), true, "월간 확인: 1일에 안 켰으면 그다음 켤 때 확인")
+        expect(due(at(2026, 11, 5, 9), at(2026, 11, 5, 10)), false, "월간 확인: 같은 달에 이미 확인했으면 대기")
+        expect(due(at(2026, 11, 3, 9), at(2026, 11, 30, 23)), false, "월간 확인: 같은 달 말일까지 대기")
+        expect(due(at(2026, 12, 15), at(2027, 1, 1, 0, 0, 1)), true, "월간 확인: 해가 바뀌어도 1일에 확인")
+        expect(due(now, now), false, "월간 확인: 방금 확인했으면 대기")
+        expect(due(now.addingTimeInterval(3600), now), true, "월간 확인: 마지막 확인이 미래(시계 되감김)면 확인")
+        expect(due(nil, now, auto: false), false, "월간 확인: 토글 OFF면 자동 확인 안 함(네트워크 0)")
+        expect(due(nil, now, auto: false, forced: true), true, "월간 확인: 토글 OFF여도 '지금 확인'은 확인")
+        expect(due(now, now, forced: true), true, "월간 확인: '지금 확인'은 주기 무시")
+        expect(UpdateDecision.startOfMonth(containing: at(2026, 2, 28, 23), calendar: seoul) == at(2026, 2, 1), true, "월간 확인: 달의 시작")
 
         // ── 버전 상승(다운그레이드·재설치 금지) ──
         expect(UpdateDecision.isVersionIncrease(currentVersion: "2026.08", currentBuild: 50, newVersion: "2026.09", newBuild: 51), true, "버전 상승: 버전·빌드 모두 큼")

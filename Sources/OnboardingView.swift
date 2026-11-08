@@ -314,8 +314,8 @@ struct OnboardingView: View {
                 if !ready {
                     if core.imeRefreshBlockedBySystemInstall && !core.isPreparingIME {
                         // 2026-11-07 (#177, 리뷰 app-ui-F-3): 설치 버튼은 시스템 영역 입력기를 바꾸지 못하고 재등록만 한다 — 눌러도 그대로라
-                        // 막다른 길이었다. 해결이 있는 앱 관리로 바로 보낸다.
-                        OnboardingButton("설치·업데이트 열기") { onSettings(.update) }.fixedSize()
+                        // 막다른 길이었다. 해결이 있는 곳으로 바로 보낸다. 2026-11-08 (#201): 입력기 제거 버튼이 없어져 해결은 앱 관리의 전체 제거다.
+                        OnboardingButton("앱 관리 열기") { onSettings(.appManagement) }.fixedSize()
                     } else {
                         // 2026-11-07 오너(#187): 이 페이지에서 사용자가 꼭 눌러야 하는 버튼이라 주 버튼 잉크로 칠한다.
                         OnboardingButton(core.isPreparingIME ? "확인·설치 중…" : "하늘키보드 설치", navigation: true) {
@@ -334,13 +334,13 @@ struct OnboardingView: View {
                     .fixedSize(horizontal: false, vertical: true).feedbackPanel(.warning)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            VStack(alignment: .leading, spacing: 8) {
-                Label("메뉴바 앱과 입력기는 하나의 하늘키보드예요.", systemImage: "link")
-                HStack {
-                    Text("함께 지울 때는 설정 → 앱 관리 → 하늘키보드 전체 제거")
-                    Spacer()
-                    Button("앱 관리 열기") { onSettings(.appManagement) }
-                }
+            // 2026-11-08 오너(#201): 설치한 사람에게 첫 화면부터 지우는 법을 알려 주던 줄을 뺐다. 대신 안 되는 곳을 먼저 알린다.
+            // 아직 단축키를 배우기 전이라 단축키 이름 없이 쓴다. 자세한 안내는 4페이지(`terminalLimitNote`).
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Image(systemName: "terminal")
+                    .foregroundStyle(FeedbackStatus.warning.color(in: colorScheme))
+                    .accessibilityHidden(true)
+                Text("터미널 앱(Terminal, Ghostty 등)에서는 바뀐 단어를 되돌릴 수 없어요.")
             }.font(.system(size: 14)).padding(.horizontal, 4)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -349,7 +349,8 @@ struct OnboardingView: View {
     /// 왜 안 되는지와 무엇을 할지를 함께 적는다. 이전엔 이 해결법이 설정 → 버전·업데이트에만 있었다.
     private var systemInstallNotice: String? {
         guard core.imeRefreshBlockedBySystemInstall, !core.isPreparingIME else { return nil }
-        return "이 Mac의 시스템 영역(/Library/Input Methods)에 이전 버전 입력기가 있어서 앱이 직접 바꿀 수 없어요. ‘설치·업데이트 열기’에서 ‘입력기 제거’를 누른 뒤 ‘하늘키보드 설치’를 눌러 주세요."
+        // 2026-11-08 오너(#201): '입력기 제거' 버튼을 없앴다. 입력기만 지울 일은 전체 제거가 맡는다.
+        return "이 Mac의 시스템 영역(/Library/Input Methods)에 이전 버전 입력기가 있어서 앱이 직접 바꿀 수 없어요. 설정 → 앱 관리의 ‘하늘키보드 전체 제거’로 지운 뒤 다시 설치해 주세요."
     }
     private var installPanel: OnboardingInstallPanel {
         .resolve(statusKnown: core.imeStatusKnown, busy: core.isPreparingIME,
@@ -395,11 +396,12 @@ struct OnboardingView: View {
                 }.font(.system(size: 15))
             }
             VStack(alignment: .leading, spacing: compact ? 6 : 10) {
-                Label("기존 Apple ‘두벌식’은 빼고, ‘ABC’는 남겨 주세요.", systemImage: "keyboard")
-                Text("Caps Lock을 짧게 누르면 한글과 영어가 바뀌어요.\n키보드 설정의 ‘Caps Lock 키로 ABC 입력 소스 전환’도 확인해 주세요.")
-                    .lineSpacing(4)
+                // 2026-11-08 오너(#201): ABC는 macOS가 빼지 못하게 막아 두어 '남겨 주세요'가 필요 없다. Caps Lock 전환 설정은 맥 사용자가 다 안다.
+                Label("기존 Apple ‘두벌식’은 빼 주세요.", systemImage: "keyboard")
+                Text("Caps Lock을 누르면 한글과 영어가 바뀌어요.")
                 // 2026-11-07 (#187): 입력기라 가장 정직해야 하는 대목이다. 근거는 PRIVACY.md 4번과 README 알려진 한계.
-                Label("비밀번호는 ABC로 쳐 주세요. 일부 웹사이트의 비밀번호 칸에서는 한글이 입력될 수 있어요.", systemImage: "lock")
+                // 2026-11-08 오너(#201): 이유를 먼저, 할 일을 뒤에 쓴다.
+                Label("일부 웹사이트의 비밀번호 칸에서는 한글이 입력될 수 있으니 비밀번호는 영문(ABC)으로 쳐 주세요.", systemImage: "lock")
                 if let message = sourceError ?? core.imeSettingsRefreshWarning {
                     Text(message).foregroundStyle(FeedbackStatus.warning.color(in: colorScheme))
                         .textSelection(.enabled)
@@ -456,22 +458,20 @@ struct OnboardingView: View {
                 // 예시 줄은 띠 전체 폭을 쓴다. 터미널 안내와 한 줄에 두면 큰 글자에서 두 줄로 꺾인다.
                 Text("렌즈 → lens · 옷 → clothes · 세탁기 → washing machine")
                     .font(.system(size: adviceTitleSize - 1, weight: .medium))
-                HStack(alignment: .bottom, spacing: 16) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("앱에 준비된 단어만 바꿔요. 그냥 Space로는 한글 그대로예요.")
-                            .font(.system(size: adviceBodySize))
-                        HStack(spacing: 10) {
-                            // 2026-11-07 (#187): 개인 사전에는 한글 → 영어 규칙을 넣을 수 없다(`PersonalDictionary.isEnglishEntry`는 영문만 받는다).
-                            // 예전 문구 "나만의 변환 규칙은…"은 넣을 수 있는 것처럼 읽혔다. 단어 제안이 같은 탭 아래에 있다.
-                            Text("없는 단어는 개인 사전에서 제안해 주세요")
-                                .font(.system(size: adviceNoteSize))
-                            Button("개인 사전 열기") { onSettings(.personalDictionary) }
-                                .font(.system(size: adviceNoteSize))
-                        }.padding(.top, 4)
-                    }
-                    Spacer(minLength: 0)
+                // 2026-11-08 오너(#201): 이 문장이 오른쪽 터미널 안내에 밀려 두 줄로 꺾였다. 띠 전체 폭을 쓰는 줄로 올리고
+                // 터미널 안내는 아래 '개인 사전 열기' 줄 오른쪽으로 옮겼다.
+                Text("앱에 준비된 단어만 바꿔요. 그냥 Space로는 한글 그대로예요.")
+                    .font(.system(size: adviceBodySize))
+                HStack(alignment: .center, spacing: 10) {
+                    // 2026-11-07 (#187): 개인 사전에는 한글 → 영어 규칙을 넣을 수 없다(`PersonalDictionary.isEnglishEntry`는 영문만 받는다).
+                    // 예전 문구 "나만의 변환 규칙은…"은 넣을 수 있는 것처럼 읽혔다. 단어 제안이 같은 탭 아래에 있다.
+                    Text("없는 단어는 개인 사전에서 제안해 주세요")
+                        .font(.system(size: adviceNoteSize))
+                    Button("개인 사전 열기") { onSettings(.personalDictionary) }
+                        .font(.system(size: adviceNoteSize))
+                    Spacer(minLength: 16)
                     terminalShortcutNote
-                }
+                }.padding(.top, 4)
             }.feedbackPanel(.information, fills: true)
         }
     }
@@ -481,7 +481,9 @@ struct OnboardingView: View {
             VStack(alignment: .leading, spacing: 7) {
                 Text("/help → Space → 다시 한글 입력")
                     .font(.system(size: adviceTitleSize, weight: .semibold))
-                Text("/는 그대로 남고, 뒤에는 즉시 영어가 나와요.\nSpace·Return을 누르거나, /를 지우거나, 닫는 괄호를 치면 한글로 돌아와요.")
+                // 2026-11-08 오너(#201): 키 이름은 맥 자판 표기(Return·delete)가 아니라 표준 이름(Enter·Backspace)으로 쓴다.
+                // 닫는 괄호로 끝나는 동작은 그대로 두고 문장에서만 뺐다(설정 설명과 같은 말).
+                Text("/는 그대로 남고, 뒤에는 즉시 영어가 나와요.\nSpace나 Enter를 누르거나 Backspace로 /를 지우면 한글로 돌아와요.")
                     .font(.system(size: adviceBodySize)).lineSpacing(3)
                 HStack {
                     Text("기본으로 켜져 있어요. 설정에서 끌 수 있어요.")

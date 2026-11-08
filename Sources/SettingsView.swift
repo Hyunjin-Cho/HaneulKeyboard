@@ -131,50 +131,45 @@ struct SettingsView: View {
         .sheet(isPresented: $showingSupport) {
             SupportView { showingSupport = false }
         }
-        .alert("하늘키보드를 모두 지울까요?", isPresented: $showingUninstallConfirm) {
-            Button("취소", role: .cancel) { }
-            Button("모두 지우기", role: .destructive) {
-                Task { uninstallResult = await core.removeFullProduct() }
-            }
-        } message: {
-            Text("앱·입력기·설정·개인 사전을 모두 지워요. 되돌릴 수 없어요. 입력기를 지우지 못했거나 관리자 암호 창을 취소하면 개인 사전과 설정은 그대로 남아요.")
-        }
-        .alert("제거 결과", isPresented: Binding(
-            get: { uninstallResult != nil },
-            set: { if !$0 { uninstallResult = nil } }
-        )) {
-            Button("확인", role: .cancel) {
-                let canExit = uninstallResult?.fullyRemoved == true
-                uninstallResult = nil
-                // 전체 제거 후 앱 자신(메뉴바)도 종료 — 파일만 지우면 실행 중인
-                // 프로세스가 남아 메뉴바가 그대로 보인다(#11).
-                // (review-0712 P2-2) 단, IME 삭제가 실패해 메인 앱을 일부러
-                // 남긴 경우엔 종료하지 않는다 — 바로 다시 시도할 수 있어야 한다.
-                if canExit {
-                    NSApp.terminate(nil)
-                }
-            }
-            if uninstallResult?.stillEnabledInPicker == true {
-                Button("시스템 설정 열기") {
-                    let canExit = uninstallResult?.fullyRemoved == true
-                    IMEInstaller.openInputSourcesSettings()
-                    uninstallResult = nil
-                    // 설정 창이 뜬 뒤 앱 종료(메뉴바 정리).
-                    // (review-0712 P2-2) 재시도용으로 앱을 남긴 경우는 종료 안 함.
-                    guard canExit else { return }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                        NSApp.terminate(nil)
+        // 2026-11-08 오너(#201): 시스템 경고창(.alert) 대신 한지 바탕의 앱 창으로 묻고 알린다(`RemovalSheets.swift`).
+        // 동작은 예전 경고창과 같다. 확인 창은 응원하기 시트와 다른 뷰에 붙여 두 시트가 한 뷰에서 겹치지 않게 한다.
+        .background {
+            Color.clear
+                .sheet(isPresented: $showingUninstallConfirm) {
+                    RemovalConfirmSheet(onCancel: { showingUninstallConfirm = false }) {
+                        showingUninstallConfirm = false
+                        Task { uninstallResult = await core.removeFullProduct() }
                     }
                 }
-            }
-        } message: {
-            if let r = uninstallResult {
-                // (review-0712 P3-8) 문구 생성은 `UninstallOutcome.statusText`
-                // (InstallDecisions.swift)에 있다 — 테스트 하네스가 검증한다.
-                Text(r.statusText)
-            } else {
-                Text("")
-            }
+        }
+        .overlay {
+            Color.clear.allowsHitTesting(false)
+                .sheet(isPresented: Binding(
+                    get: { uninstallResult != nil },
+                    set: { if !$0 { uninstallResult = nil } }
+                )) {
+                    if let outcome = uninstallResult {
+                        RemovalResultSheet(outcome: outcome, onDone: {
+                            let canExit = uninstallResult?.fullyRemoved == true
+                            uninstallResult = nil
+                            // 전체 제거 후 앱 자신(메뉴바)도 종료 — 파일만 지우면 실행 중인
+                            // 프로세스가 남아 메뉴바가 그대로 보인다(#11).
+                            // (review-0712 P2-2) 단, IME 삭제가 실패해 메인 앱을 일부러
+                            // 남긴 경우엔 종료하지 않는다 — 바로 다시 시도할 수 있어야 한다.
+                            if canExit { NSApp.terminate(nil) }
+                        }, onOpenInputSettings: {
+                            let canExit = uninstallResult?.fullyRemoved == true
+                            IMEInstaller.openInputSourcesSettings()
+                            uninstallResult = nil
+                            // 설정 창이 뜬 뒤 앱 종료(메뉴바 정리).
+                            // (review-0712 P2-2) 재시도용으로 앱을 남긴 경우는 종료 안 함.
+                            guard canExit else { return }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                                NSApp.terminate(nil)
+                            }
+                        })
+                    }
+                }
         }
     }
     private func moveMenu(by offset: Int) -> KeyPress.Result {
