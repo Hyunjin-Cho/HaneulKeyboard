@@ -57,9 +57,38 @@ private func runLivePreviewHoldTests() {
     }
 }
 
+/// 2026-11-08 (#202, 오너): I(ㅑ) 뒤 조사. 예전엔 ㅑ를은 한글로 남고 ㅑ가·ㅑ는은 Irk·Isms가 됐다.
+private func runPronounIParticleTests() {
+    func keys(_ english: String, _ particle: String) -> String { english + ManualToggle.hangulToKeys(particle)! }
+    for particle in ["는", "가", "를", "의", "에", "도", "와", "랑", "에게", "보다", "처럼", "로", "만", "에서"] {
+        expect(type(keys("I", particle)).committedText, "I" + particle, "#202 I+\(particle)")
+        expect(type(keys("i", particle)).committedText, "i" + particle, "#202 i+\(particle) — 친 대소문자 그대로")
+    }
+    // 단어 전체가 영어 사전 낱말로 바뀌던 두 경우. 이제는 I+조사로 읽는다.
+    expect(type("Irk").committedText, "I가", "#202 Irk가 아니라 I가")
+    expect(type("Isms").committedText, "I는", "#202 Isms가 아니라 I는")
+    // 입력 중에도 I는으로 보인다.
+    let composer = KoreanComposer(); let client = FakeClient()
+    for key in keys("I", "는") { _ = composer.handleInput(String(key), client: client) }
+    expect(client.marked, "I는", "#202 입력 중 미리보기")
+    // I 단독과 문맥 변환은 그대로다.
+    expect(type("I").committedText, "I", "#202 I 단독")
+    expect(typeWords(["I", "go", "to"]) == ["I", "go", "to"], true, "#202 I 뒤 문맥 변환 유지(해→go, 새→to)")
+    // 다른 한 글자(A·B 같은 변수)는 조사를 떼지 않는다. ㅠ는(우는 표정) 같은 한글 입력과 겹친다.
+    // (bsms·ark처럼 단어 전체가 영어 낱말이면 예전처럼 그 낱말로 바뀐다 — 이번 변경과 무관.)
+    expect(type(keys("b", "는")).committedText != "b는", true, "#202 한 글자 b는 조사 분리 안 함")
+    expect(type(keys("a", "가")).committedText != "a가", true, "#202 한 글자 a는 조사 분리 안 함")
+    // 단어 전체가 영어 낱말이면 조사를 떼지 않는 관문은 I 말고는 그대로다.
+    expect(type("smirk").committedText, "smirk", "#202 smirk는 smi가가 아니다")
+    // 앞이 우리말이면 그대로다(한글 표제어 거부는 I에도 같다).
+    expect(EnglishParticleSplitter.allowsPrefix("I"), true, "#202 I 허용")
+    expect(EnglishParticleSplitter.allowsPrefix("a"), false, "#202 a 불허")
+}
+
 func runEnglishParticleTests() {
     runEnglishRulesTests()
     runLivePreviewHoldTests()
+    runPronounIParticleTests()
     runExpandedParticleTests()
     func raw(_ english: String, _ particle: String) -> String {
         english + ManualToggle.hangulToKeys(particle)!

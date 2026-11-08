@@ -90,16 +90,33 @@ enum EnglishParticleSplitter {
 
     private static func maySplit(keys: [Character], hangul: String,
                                  personalDictionary: PersonalDictionary) -> Bool {
-        guard keys.count >= 4, keys.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber) }),
+        // 2026-11-08 (#202): I(ㅑ)+두 키 조사(ㅑ가 = Irk)가 들어오도록 3키부터 본다. 한 글자 앞부분은 `allowsPrefix`가 I만 받는다.
+        guard keys.count >= 3, keys.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber) }),
               KoreanDictionary.isLoaded else { return false }
         let typed = String(keys)
         return personalDictionary.decision(word: typed, hangul: hangul) == nil
             && !KoreanDictionary.contains(hangul)
             && !AlphanumericWords.contains(typed)
-            && !EnglishDetector.isExplicitEnglishContextWord(typed.lowercased())
+            && (!EnglishDetector.isExplicitEnglishContextWord(typed.lowercased()) || isPronounIWithParticle(keys))
+    }
+
+    /// I(ㅑ) 바로 뒤가 완성된 조사 하나뿐인가. 단어 전체가 영어 낱말이면 조사를 떼지 않는 관문(smirk가 smi가로 깨지지 않게)의
+    /// 유일한 예외다. 2026-11-08 (#202): irk(ㅑ가)·isms(ㅑ는)·irp(ㅑ께)는 영어 낱말이지만 한글 모드에서는 I+조사로 읽는다.
+    private static func isPronounIWithParticle(_ keys: [Character]) -> Bool {
+        guard let first = keys.first, first == "I" || first == "i" else { return false }
+        let rest = String(keys.dropFirst().map(canonicalParticleKey))
+        return endings.contains { $0.keys == rest }
     }
 
     private enum PrefixDecision { case accept, reject, block }
+
+    /// 앞부분은 두 글자 이상이다. 한 글자는 대명사 I(ㅑ)만 받는다 — A는·B가 같은 한 글자 변수는 ㅠ는(우는 표정)처럼
+    /// 흔한 한글 입력과 겹쳐 넣지 않았다(P2).
+    /// 2026-11-08 (#202, 오너): 예전엔 I 뒤 조사가 안 붙었다. ㅑ를·ㅑ에는 한글로 남고, ㅑ가·ㅑ는은 키열 irk·isms가 영어 사전에 있어
+    /// Irk·Isms가 됐다. i+조사 키가 영어 낱말과 겹치는 것은 irk·isms·irp 3개뿐이다(전수 확인).
+    static func allowsPrefix(_ prefix: String) -> Bool {
+        prefix.count >= 2 || prefix == "I" || prefix == "i"
+    }
 
     /// 숫자 접두어는 등록 제품명 또는 개인 사전 전체 일치만 허용한다.
     /// 일반 영어의 문맥/복합어 추론, 수량이나 임의 영숫자를 새 근거로 쓰지 않는다.
@@ -140,7 +157,7 @@ enum EnglishParticleSplitter {
         var hasForcedPrefix = false
         for ending in endings where matchingKeys.hasSuffix(ending.keys) {
             let prefix = String(typed.dropLast(ending.keys.count))
-            guard prefix.count >= 2,
+            guard allowsPrefix(prefix),
                   let prefixHangul = ManualToggle.keysToHangul(prefix) else { continue }
 
             switch prefixDecision(prefix, hangul: prefixHangul, personalDictionary: personalDictionary) {
