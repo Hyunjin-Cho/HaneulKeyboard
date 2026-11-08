@@ -29,8 +29,9 @@ struct EnglishConversionSettingsTab: View {
                     .onChange(of: autoEnglishEnabled) { _, newValue in
                         Self.imeDefaults?.set(newValue, forKey: HaneulDefaultsKey.autoEnglishEnabled)
                     }
-                SettingsToggleRow(title: "ABC로 친 영어 뒤에 이어 칠 때",
-                    detail: "ABC로 친 영어 바로 뒤에서는 한글로도 읽히는 짧은 영어까지 바꿔요. 예:\u{00A0}want\u{00A0}새\u{00A0}→\u{00A0}want\u{00A0}to",
+                // 2026-11-08 오너(#209): 'ABC로 친'은 입력 소스 이름이라 헷갈린다 → '영타로 친'.
+                SettingsToggleRow(title: "영타로 친 영어 뒤에 이어 칠 때",
+                    detail: "영타로 친 영어 바로 뒤에서는 한글로도 읽히는 짧은 영어까지 바꿔요. 예:\u{00A0}want\u{00A0}새\u{00A0}→\u{00A0}want\u{00A0}to",
                     isOn: $externalEnglishContextEnabled)
                     .onChange(of: externalEnglishContextEnabled) { _, value in
                         Self.imeDefaults?.set(value, forKey: InputInferencePolicy.externalEnglishContextKey)

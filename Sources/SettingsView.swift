@@ -4,7 +4,6 @@ extension Notification.Name {
     static let haneulSettingsTabRequested = Notification.Name("haneul.settingsTabRequested")
     /// 2026-11-06 (#154): 설정의 메뉴바 아이콘 항목이 AppDelegate에 알린다.
     static let haneulMenuBarIconChanged = Notification.Name("haneul.menuBarIconChanged")
-    static let haneulOnboardingRequested = Notification.Name("haneul.onboardingRequested")
 }
 
 /// 2026-10-11 (#88): 일반을 정리한 메뉴. 응원하기는 본문 선택과 별도인 버튼이다.

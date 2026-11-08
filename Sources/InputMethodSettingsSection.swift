@@ -5,6 +5,7 @@ import SwiftUI
 /// 설치/제거 상태는 AppCore가 맡는다.
 /// 2026-11-08 오너(#201): '입력기 제거' 버튼을 뺐다. 입력기만 지울 일은 없고, 지우는 일은 앱 관리의 전체 제거가 맡는다.
 /// 입력기가 앱보다 낡았으면 '입력기 업데이트'로 바로 바꾼다(사용자 폴더 설치본). 시스템 폴더 설치본은 전체 제거 뒤 다시 설치한다.
+/// 2026-11-08 오너(#209): 상태 줄(설치됨·두벌식 빼기 등)은 다른 줄보다 커 보여 `SettingsTypography.status`(15pt)로 줄였다.
 struct InputMethodSettingsSection: View {
     @Bindable var core: AppCore
     @State private var operationError: String?
@@ -27,20 +28,24 @@ struct InputMethodSettingsSection: View {
         HaneulSettingsSection("한글 입력기") {
             if core.imeInstalled {
                 Label("한글 입력기가 설치되어 있어요.", systemImage: "checkmark.circle.fill")
+                    .font(SettingsTypography.status)
                     .foregroundStyle(.green)
                 VStack(alignment: .leading, spacing: 6) {
                     // 2026-11-08 오너(#201): 부연 설명("그쪽으로 바뀌면…")은 뺐다.
                     Label("기존 Apple ‘두벌식’은 입력 소스에서 빼 주세요.", systemImage: "exclamationmark.triangle.fill")
+                        .font(SettingsTypography.status)
                         .foregroundStyle(.orange)
                 }
             } else if imeStatus == .checking {
                 Label("한글 입력기 상태를 확인하고 있어요.", systemImage: "hourglass")
+                    .font(SettingsTypography.status)
                     .foregroundStyle(.secondary)
             } else {
                 Label(core.imeDisabled
                     ? "시스템 입력 소스에서 하늘키보드가 꺼져 있어요."
                     : "한글 입력기가 설치되어 있지 않아요.",
                     systemImage: "exclamationmark.triangle.fill")
+                    .font(SettingsTypography.status)
                     .foregroundStyle(.orange)
                 Text("‘입력기 설치’를 누른 뒤, 시스템 설정에서 입력 소스로 추가해 주세요.")
                     .font(SettingsTypography.body)
@@ -62,6 +67,7 @@ struct InputMethodSettingsSection: View {
             if core.imeRefreshBlockedBySystemInstall {
                 VStack(alignment: .leading, spacing: 6) {
                     Label("시스템 폴더에 이전 버전 입력기가 남아 있어요.", systemImage: "exclamationmark.triangle.fill")
+                        .font(SettingsTypography.status)
                         .foregroundStyle(.orange)
                     Text("앱이 직접 바꿀 수 없어요. 앱 관리의 ‘하늘키보드 전체 제거’로 지운 뒤 다시 설치해 주세요.")
                         .font(SettingsTypography.body)

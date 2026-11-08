@@ -6,6 +6,8 @@ enum SettingsTypography {
     static let control = Font.system(size: 17, weight: .semibold)
     // 2026-10-11 (#88): 번호는 둥근 일반체로 표시해 항목 이름과 무게를 구분한다.
     static let version = Font.system(size: 17, weight: .regular, design: .rounded)
+    // 2026-11-08 오너(#209): 색·아이콘이 붙은 상태 줄은 같은 17pt여도 커 보인다. 2pt 줄였다.
+    static let status = Font.system(size: 15, weight: .semibold)
 }
 
 enum SettingsLayout {

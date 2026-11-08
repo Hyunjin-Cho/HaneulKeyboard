@@ -43,14 +43,7 @@ struct AppManagementSettingsTab: View {
                         Button("로그인 항목 열기") { LoginItem.openSystemSettings() }
                     }
                 }
-                HStack(spacing: 12) {
-                    Button("시작하기 다시 보기") {
-                        NotificationCenter.default.post(name: .haneulOnboardingRequested, object: nil)
-                    }
-                    Spacer()
-                    Button("메뉴바 앱 종료") { NSApp.terminate(nil) }
-                        .disabled(isBusy)
-                }
+                // 2026-11-08 오너(#209): `시작하기 다시 보기`·`메뉴바 앱 종료` 버튼을 뺐다. 둘 다 메뉴바 메뉴에 있다.
             }
 
             // 2026-11-08 오너(#201): 되돌릴 수 없는 일이라 제목과 버튼 글자를 빨갛게 쓴다. 설명은 한 문장으로 줄였다.
