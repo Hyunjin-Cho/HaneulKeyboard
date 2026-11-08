@@ -40,7 +40,7 @@ struct WordSuggestionSettingsSection: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("단어 제안")
                 .font(SettingsTypography.control)
-            Text("기본 사전에 넣었으면 하는 단어나 분야를 알려 주세요. 살펴보고, 넣을 수 있는 말은 이후 버전에 넣을게요. 나만 쓸 단어라면 개인 사전에 넣어 주세요.")
+            Text("기본 사전에 넣었으면 하는 단어나 분야를 알려 주세요.\n살펴보고, 넣을 수 있는 말은 이후 버전에 넣을게요.\n나만 쓸 단어라면 개인 사전에 넣어 주세요.")
                 .font(SettingsTypography.body)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -68,7 +68,7 @@ struct WordSuggestionSettingsSection: View {
             }
             .font(SettingsTypography.body)
 
-            Text("이메일은 메일 앱의 작성창을, GitHub는 브라우저의 등록 화면을 열어요. 내용을 확인한 뒤 직접 보내 주세요. GitHub는 계정이 필요해요.")
+            Text("이메일은 메일 앱의 작성창을, GitHub는 브라우저의 등록 화면을 열어요.\n내용을 확인한 뒤 직접 보내 주세요.\nGitHub는 계정이 필요해요.")
                 .font(SettingsTypography.body)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -83,12 +83,12 @@ struct WordSuggestionSettingsSection: View {
 
             HStack {
                 Spacer()
-                Button("취소") { dismiss() }
+                Button(maru: "취소") { dismiss() }
                     .keyboardShortcut(.cancelAction)
-                Button("이메일로 제안") { open(emailURL, email: true) }
+                Button(maru: "이메일로 제안") { open(emailURL, email: true) }
                     .buttonStyle(.borderedProminent).tint(.blue).foregroundStyle(.white)
                     .disabled(emailURL == nil)
-                Button("GitHub에서 등록") { open(url, email: false) }
+                Button(maru: "GitHub에서 등록") { open(url, email: false) }
                     .buttonStyle(.borderedProminent).tint(.blue).foregroundStyle(.white)
                     .keyboardShortcut(.defaultAction)
                     .disabled(url == nil)
@@ -105,7 +105,7 @@ struct WordSuggestionSettingsSection: View {
     private func open(_ url: URL?, email: Bool) {
         guard let url else { return }
         guard NSWorkspace.shared.open(url) else {
-            openError = email ? "메일 작성창을 열지 못했어요. Mac의 기본 메일 앱 설정을 확인해 주세요." : "등록 화면을 열지 못했어요. 기본 브라우저 설정을 확인해 주세요."
+            openError = email ? "메일 작성창을 열지 못했어요.\nMac의 기본 메일 앱 설정을 확인해 주세요." : "등록 화면을 열지 못했어요.\n기본 브라우저 설정을 확인해 주세요."
             return
         }
         typed = ""

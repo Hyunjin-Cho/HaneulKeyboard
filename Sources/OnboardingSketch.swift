@@ -115,14 +115,14 @@ struct OnboardingConversionDemo: View {
             VStack(alignment: .leading, spacing: 6) {
                 // 2026-11-05 (#145): 큰 창에서는 남는 높이만큼 글자를 키운다.
                 Text(showsResult ? "메ㅔㅣㄷ → apple" : words[frame])
-                    .font(.system(size: showsResult ? (compact ? 34 : 40) : (compact ? 48 : 62), weight: .medium))
+                    .font(AppFont.font(size: showsResult ? (compact ? 34 : 40) : (compact ? 48 : 62), weight: .medium))
                     .contentTransition(.numericText())
                     .lineLimit(1).minimumScaleFactor(0.7)
-                Label("한글 모드 유지", systemImage: "checkmark.circle").font(.system(size: 14))
+                Label("한글 모드 유지", systemImage: "checkmark.circle").font(AppFont.font(size: 14))
             }.frame(maxWidth: .infinity, alignment: .leading)
             // 2026-11-07 오너(#187): 다시 보기를 Space 키와 같은 세로축에 놓는다. 오른쪽 맞춤이면 폭이 달라 어긋나 보였다.
             VStack(alignment: .center, spacing: 10) {
-                Text("Space").font(.system(size: 15, weight: .medium))
+                Text("Space").font(AppFont.font(size: 15, weight: .medium))
                     .frame(width: 124, height: 32)
                     .background(OnboardingRiso.yellow.opacity(frame == 5 ? 0.6 : 0.2), in: RoundedRectangle(cornerRadius: 7))
                     .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(OnboardingRiso.yellow.opacity(0.5)))

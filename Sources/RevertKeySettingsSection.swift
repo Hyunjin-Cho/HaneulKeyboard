@@ -51,14 +51,14 @@ struct RevertKeySettingsSection: View {
                 }
 
             SettingsToggleRow(title: "미리 친 단어 한/영 바꾸기",
-                detail: "한/영 전환을 깜빡하고 친 단어를 바꿔요. 예: dkssud ↔ 안녕",
+                detail: "한/영 전환을 깜빡하고 친 단어를 바꿔요.\n예: dkssud ↔ 안녕",
                 isOn: $manualToggleAllWords)
                 .onChange(of: manualToggleAllWords) { _, newValue in
                     Self.imeDefaults?.set(newValue, forKey: RevertKey.manualToggleAllWordsKey)
                 }
 
             // 2026-11-08 오너(#201): '이 키'는 무엇인지 모호하다. 정확히 '변환 단축키'라고 쓰고, 안 되는 곳이라 빨간 글씨로 알린다.
-            Label("터미널 앱(Terminal, Ghostty 등)에서는 변환 단축키를 눌러도 바뀌지 않아요. 자동 변환과 슬래시 입력은 돼요.", systemImage: "terminal")
+            Label("터미널 앱(Terminal, Ghostty 등)에서는 변환 단축키를 눌러도 바뀌지 않아요.\n자동 변환과 슬래시 입력은 돼요.", systemImage: "terminal")
                 .font(SettingsTypography.body)
                 .foregroundStyle(.red)
                 .fixedSize(horizontal: false, vertical: true)
@@ -79,7 +79,7 @@ struct AppAutoConversionSettingsSection: View {
 
     var body: some View {
         HaneulSettingsSection("앱별 자동 변환 끄기") {
-            Text("여기 넣은 앱에서는 영어로 자동 변환하지 않아요. 한글 입력과 단축키, 슬래시 입력은 그대로 돼요. 위 ‘영어 자동 변환’을 끄면 모든 앱에서 꺼져요.")
+            Text("여기 넣은 앱에서는 영어로 자동 변환하지 않아요.\n한글 입력과 단축키, 슬래시 입력은 그대로 돼요.\n위 ‘영어 자동 변환’을 끄면 모든 앱에서 꺼져요.")
                 .font(SettingsTypography.body)
                 .foregroundStyle(.secondary)
 
@@ -87,14 +87,15 @@ struct AppAutoConversionSettingsSection: View {
             // 절 높이가 달라지면 화면이 덜컥거린다.
             List {
                 if disabledIDs.isEmpty {
-                    Text("아직 넣은 앱이 없어요.")
+                    // 2026-11-08 (#209): 목록 행은 List에 준 글꼴을 따르지 않아 글자마다 준다.
+                    Text("아직 넣은 앱이 없어요.").font(SettingsTypography.body)
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(disabledIDs, id: \.self) { bundleID in
                         let name = Self.displayName(forBundleID: bundleID)
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(name ?? bundleID)
+                                Text(name ?? bundleID).font(SettingsTypography.body)
                                 if name != nil {
                                     Text(bundleID)
                                         .font(SettingsTypography.body)
@@ -119,7 +120,7 @@ struct AppAutoConversionSettingsSection: View {
             .frame(height: 104)
 
             HStack {
-                Button("실행 중인 앱에서 추가...") {
+                Button(maru: "실행 중인 앱에서 추가...") {
                     appPickerSnapshot = RunningAppPickerSnapshot(apps: RunningApp.snapshot())
                 }
                 .sheet(item: $appPickerSnapshot) { snapshot in
@@ -190,7 +191,7 @@ private struct RunningAppPickerSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("실행 중인 앱")
                 .font(SettingsTypography.control)
-            Text("지금 열려 있고 Dock에 보이는 앱만 나와요. 넣을 앱을 먼저 열어 주세요.")
+            Text("지금 열려 있고 Dock에 보이는 앱만 나와요.\n넣을 앱을 먼저 열어 주세요.")
                 .font(SettingsTypography.body)
                 .foregroundStyle(.secondary)
 
@@ -215,7 +216,7 @@ private struct RunningAppPickerSheet: View {
                                 Text("추가됨")
                                     .foregroundStyle(.secondary)
                             } else {
-                                Button("추가") { onAdd(app.bundleID) }
+                                Button(maru: "추가") { onAdd(app.bundleID) }
                                     .accessibilityLabel("\(app.name) 자동 변환 끄기 목록에 추가")
                             }
                         }
@@ -229,7 +230,7 @@ private struct RunningAppPickerSheet: View {
 
             HStack {
                 Spacer()
-                Button("닫기") { dismiss() }
+                Button(maru: "닫기") { dismiss() }
                     .keyboardShortcut(.cancelAction)
             }
         }

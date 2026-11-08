@@ -51,7 +51,7 @@ struct InputMethodSettingsSection: View {
                     .font(SettingsTypography.body)
                     .foregroundStyle(.secondary)
                     .help("~/Library/Input Methods/에 설치돼요.")
-                Button("입력기 설치") {
+                Button(maru: "입력기 설치") {
                     Task {
                         operationError = nil
                         if let error = await core.installIME() {
@@ -69,7 +69,7 @@ struct InputMethodSettingsSection: View {
                     Label("시스템 폴더에 이전 버전 입력기가 남아 있어요.", systemImage: "exclamationmark.triangle.fill")
                         .font(SettingsTypography.status)
                         .foregroundStyle(.orange)
-                    Text("앱이 직접 바꿀 수 없어요. 앱 관리의 ‘하늘키보드 전체 제거’로 지운 뒤 다시 설치해 주세요.")
+                    Text("앱이 직접 바꿀 수 없어요.\n앱 관리의 ‘하늘키보드 전체 제거’로 지운 뒤 다시 설치해 주세요.")
                         .font(SettingsTypography.body)
                         .foregroundStyle(.secondary)
                 }
@@ -91,14 +91,14 @@ struct InputMethodSettingsSection: View {
             }
 
             HStack(spacing: 12) {
-                Button("입력 소스 설정 열기") {
+                Button(maru: "입력 소스 설정 열기") {
                     IMEInstaller.openInputSourcesSettings()
                 }
                 .disabled(isBusy)
                 Spacer()
                 // 앱을 시작할 때 사용자 폴더의 낡은 입력기는 저절로 바뀐다(`AppCore.ensureIMEActive`). 그게 실패했을 때만 보인다.
                 if core.imeInstalled, core.imeRefreshNeeded, !core.imeRefreshBlockedBySystemInstall {
-                    Button("입력기 업데이트") {
+                    Button(maru: "입력기 업데이트") {
                         Task {
                             operationError = nil
                             if let error = await core.installIME() {

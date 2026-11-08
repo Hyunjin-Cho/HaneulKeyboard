@@ -1,12 +1,14 @@
-Copyright 2021 The Gowun Batang Project Authors (https://github.com/yangheeryu/Gowun-Batang)
+MaruBuri (마루 부리) — Copyright © NAVER Corp. & NAVER Cultural Foundation (https://hangeul.naver.com/font)
+
+Bundled unmodified: MaruBuri-Regular.otf, MaruBuri-SemiBold.otf, MaruBuri-Bold.otf
+from the official NAVER distribution (maruburi.zip, 2026-11-08). Used only inside the
+HaneulKeyboard app (registered for this process only); the font files are not sold.
+
+NAVER fonts (Nanum and MaruBuri) are distributed under an open font license. This Font
+Software is licensed under the SIL Open Font License, Version 1.1. This license is copied
+below, and is also available with a FAQ at: http://scripts.sil.org/OFL
 
 
-This Font Software is licensed under the SIL Open Font License, Version 1.1.
-This license is copied below, and is also available with a FAQ at:
-http://scripts.sil.org/OFL
-
-
------------------------------------------------------------
 SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
 -----------------------------------------------------------
 

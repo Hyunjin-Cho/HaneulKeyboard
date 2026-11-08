@@ -31,7 +31,7 @@ struct AppManagementSettingsTab: View {
                         followIconWithLoginItem(visible)
                     }
                 // 2026-11-08 오너(#201): 두 문단을 한 문단으로 줄였다. 아이콘을 끈 뒤 돌아오는 길(응용 프로그램 폴더에서 열면 앱 관리가 열린다)만 남긴다.
-                Text("아이콘을 꺼도 한글 입력과 영어 자동 변환은 그대로 돼요. 다시 켜려면 응용 프로그램 폴더에서 하늘키보드를 열어 주세요.")
+                Text("아이콘을 꺼도 한글 입력과 영어 자동 변환은 그대로 돼요.\n다시 켜려면 응용 프로그램 폴더에서 하늘키보드를 열어 주세요.")
                     .font(SettingsTypography.body)
                     .foregroundStyle(.secondary)
                 // 시스템 설정에서 로그인 항목을 막아 둔 경우에만 보인다(macOS가 허용을 요구할 때).
@@ -40,7 +40,7 @@ struct AppManagementSettingsTab: View {
                         Label("시스템 설정에서 허용해 주세요.", systemImage: "exclamationmark.triangle.fill")
                             .foregroundStyle(.orange)
                         Spacer()
-                        Button("로그인 항목 열기") { LoginItem.openSystemSettings() }
+                        Button(maru: "로그인 항목 열기") { LoginItem.openSystemSettings() }
                     }
                 }
                 // 2026-11-08 오너(#209): `시작하기 다시 보기`·`메뉴바 앱 종료` 버튼을 뺐다. 둘 다 메뉴바 메뉴에 있다.
@@ -56,7 +56,7 @@ struct AppManagementSettingsTab: View {
                     Button(role: .destructive) {
                         showingUninstallConfirm = true
                     } label: {
-                        Text("하늘키보드 전체 제거…").foregroundStyle(.red)
+                        Text("하늘키보드 전체 제거…").font(SettingsTypography.body).foregroundStyle(.red)
                     }
                     .disabled(isBusy)
                 }

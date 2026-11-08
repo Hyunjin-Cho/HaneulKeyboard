@@ -23,15 +23,15 @@ struct SupportView: View {
                     .foregroundStyle(OnboardingRiso.ink(for: scheme))
                 Text("하늘키보드는 무료예요. 후원해도 안 해도 기능은 똑같아요.")
                     .fixedSize(horizontal: false, vertical: true)
-                Text("도움이 되었다면 GitHub Sponsors에서 응원해 주세요. 한 번만 또는 매달 후원할 수 있고, GitHub 계정이 필요해요.")
+                Text("도움이 되었다면 GitHub Sponsors에서 응원해 주세요.\n한 번만 또는 매달 후원할 수 있고, GitHub 계정이 필요해요.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Text(SupportLink.displayAddress)
-                    .font(.system(size: 13))
+                    .font(AppFont.font(size: 13))
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
                 if openFailed {
-                    Text("브라우저를 열지 못했어요. 위 주소를 복사해 브라우저에 붙여 넣어 주세요.")
+                    Text("브라우저를 열지 못했어요.\n위 주소를 복사해 브라우저에 붙여 넣어 주세요.")
                         .foregroundStyle(FeedbackStatus.warning.color(in: scheme))
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -48,7 +48,7 @@ struct SupportView: View {
                 }
                 .padding(.top, 4)
             }
-            .font(.system(size: 14))
+            .font(AppFont.font(size: 14))
             .padding(.horizontal, 24).padding(.top, 16).padding(.bottom, 20)
         }
         .frame(width: Self.size.width)
