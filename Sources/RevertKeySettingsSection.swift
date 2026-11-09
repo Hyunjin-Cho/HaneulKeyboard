@@ -58,12 +58,19 @@ struct RevertKeySettingsSection: View {
                 }
 
             // 2026-11-08 오너(#201): '이 키'는 무엇인지 모호하다. 정확히 '변환 단축키'라고 쓰고, 안 되는 곳이라 빨간 글씨로 알린다.
-            Label("터미널 앱(Terminal, Ghostty 등)에서는 변환 단축키를 눌러도 바뀌지 않아요.\n자동 변환과 슬래시 입력은 돼요.", systemImage: "terminal")
+            // 2026-11-09 오너(#216): 두 줄은 길다. 안 되는 것 하나만 한 줄로 쓴다. 괄호 안은 지금 고른 단축키다.
+            Label(revertKey.terminalLimitNotice, systemImage: "terminal")
                 .font(SettingsTypography.body)
                 .foregroundStyle(.red)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
+}
+
+extension RevertKey {
+    /// 2026-11-09 오너(#216): 설정(변환 단축키 카드)과 안내 5페이지가 같은 문장을 같은 빨간 글씨로 쓴다.
+    /// 터미널은 이미 들어간 글자를 바꿀 수 없다(2026-07-28 실측, #30). 자동 변환·슬래시가 된다는 덧말은 뺐다.
+    var terminalLimitNotice: String { "터미널 앱에서는 변환 단축키(\(displayName))를 사용할 수 없어요." }
 }
 
 /// 2026-10-11 (#88): 자동 변환 화면에 앱별 예외를 모은다. 저장 키와 추가/제거 동작은 유지한다.
