@@ -27,18 +27,9 @@ enum RevertKey: String, CaseIterable {
     /// Space의 가상 키코드(kVK_Space). 되돌리기 후보는 전부 Space 조합이다.
     static let spaceKeyCode: UInt16 = 49
 
-    /// 2026-09-21 (#15): "되돌리기 키를 모든 단어로 확대" 설정(Bool, 기본 켜짐). 꺼 두면
-    /// 종전처럼 **직전 자동변환**만 되돌린다.
-    ///
-    /// 동작 본문은 `IMESources/ManualToggle.swift`인데 저장 키만 여기 있는 이유: ManualToggle은
-    /// 조합을 `KoreanComposer`에 위임하느라 IME 코어 전체를 끌고 와서 설정 앱 타겟에 넣을 수
-    /// 없다. 키 이름은 설정 앱도 써야 하므로, 이미 양쪽 타겟에 들어가는 이 파일에 둔다
-    /// (사본을 두면 반드시 어긋난다 — 되돌리기 키 설정이라 자리도 맞다).
-    /// "전체 제거"의 `haneul.*` 일괄 삭제에 함께 포함된다.
-    static let manualToggleAllWordsKey = "haneul.manualToggleAllWords"
-
-    /// 저장값이 없을 때의 기본값 — **켜짐**(오너 확정, #15).
-    static let manualToggleAllWordsDefault = true
+    /// 2026-11-10 오너(#216, 6차): `미리 친 단어 한/영 바꾸기` 토글을 없앴다 — 변환 단축키가 하는 일의 하나라 따로 끌 이유가 없다.
+    /// 이제 늘 켜져 있다. 옛 버전이 남긴 `haneul.manualToggleAllWords` 값은 더 읽지 않는다(전체 제거의 `haneul.*` 일괄 삭제가 지운다).
+    /// 2026-09-21 (#15)에 기본 켜짐 토글로 만들었었다.
 
     /// #84 · 2026-10-09: 같은 단축키에서 등록된 한글 발음의 영문 표기를 우선한다.
     /// 기존 자판 토글과 독립적으로 끌 수 있다. 일반 Space 자동 변환과는 무관하다.

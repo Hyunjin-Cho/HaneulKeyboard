@@ -115,9 +115,11 @@ final class ProbeClient: NSObject, IMKTextInput {
     static var scenarios: [[String: Any]] = []
     static var hostLabel = ""
     static func check(_ value: Bool, _ id: String) { checks += 1; if !value { failures.append(hostLabel + id) } }
+    /// 2026-11-10 (#216): 없앤 `미리 친 단어 한/영 바꾸기` 토글이 남긴 옛 값. 입력기는 이 값을 더 읽지 않는다 — false로 남아 있어도 수동 변환이 된다.
+    static let legacyManualToggleKey = "haneul.manualToggleAllWords"
     static func fresh(key: RevertKey = .shiftSpace, keyboard: Bool = true) -> (HaneulInputController, ProbeClient) {
         probeDefaults.values = [RevertKey.defaultsKey: key.rawValue, RevertKey.phoneticKey: true,
-            RevertKey.manualToggleAllWordsKey: keyboard, SlashEnglishSession.defaultsKey: true,
+            legacyManualToggleKey: keyboard, SlashEnglishSession.defaultsKey: true,
             "haneul.autoEnglishEnabled": true]
         let controller = HaneulInputController(), client = ProbeClient()
         controller.activateServer(client)
@@ -918,11 +920,11 @@ final class ProbeClient: NSObject, IMKTextInput {
             check(c.probeComposer.lastConversion == nil && c.probeComposer.lastEnglishWord == nil,"pair_blocked_clears_stale_state")
             result("pair_blocked",c,h)
         }
-        do { // 설정으로 수동 변환이 꺼져 있으면 스페이스.
+        do { // 2026-11-10 (#216): 옛 버전에서 토글을 꺼 둔 값이 남아 있어도 수동 변환은 늘 켜져 있다.
             let (c,h) = fresh(keyboard:false); typeKeys("apple",c,h); press(c,h," ",code:49)
             h.text = "Apple "; moveCaretToEnd(h)
-            check(!shift(c,h) && h.text == "Apple  ","pair_mismatch_keyboard_off_space")
-            result("pair_mismatch_keyboard_off",c,h)
+            check(shift(c,h) && h.text == "메ㅔㅣㄷ ","pair_mismatch_legacy_off_still_toggles")
+            result("pair_mismatch_legacy_off",c,h)
         }
         do { // 대조: 쌍이 맞으면 수동 경로를 타지 않고 저장 쌍으로 왕복한다.
             let (c,h) = fresh(); typeKeys("apple",c,h); press(c,h," ",code:49)

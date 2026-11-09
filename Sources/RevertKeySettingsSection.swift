@@ -3,7 +3,7 @@ import SwiftUI
 
 /// 2026-10-11 (#88): 단축키 변환 화면의 단축키·수동 변환·되돌리기. 저장 규약은 유지한다.
 ///
-/// 기존 단축키와 자판 변환·등록 단어 변환의 독립 설정을 보존한다.
+/// 기존 단축키와 등록 단어 변환 설정을 보존한다. 자판 변환(미리 친 단어 한/영)은 2026-11-10(#216)부터 토글 없이 늘 켜져 있다.
 ///
 /// 저장 키·후보 목록·판정은 IME와 공유하는 `IMESources/RevertKey.swift`·
 /// `IMESources/AutoConvertPolicy.swift`(양쪽 타겟에 포함)가 단일 진실이고, 여기는 화면과
@@ -15,11 +15,6 @@ struct RevertKeySettingsSection: View {
 
     @State private var revertKey: RevertKey = RevertKey.resolve(
         rawValue: RevertKeySettingsSection.imeDefaults?.string(forKey: RevertKey.defaultsKey))
-    /// 2026-09-21 (#60): 흡수된 `ManualToggleSettingsSection`의 상태 — 키·기본값은 그대로다.
-    @State private var manualToggleAllWords: Bool =
-        RevertKeySettingsSection.imeDefaults?
-            .object(forKey: RevertKey.manualToggleAllWordsKey) as? Bool
-            ?? RevertKey.manualToggleAllWordsDefault
     @State private var phoneticEnabled: Bool =
         RevertKeySettingsSection.imeDefaults?.object(forKey: RevertKey.phoneticKey) as? Bool
             ?? RevertKey.phoneticDefault
@@ -53,13 +48,8 @@ struct RevertKeySettingsSection: View {
                     Self.imeDefaults?.set(newValue, forKey: RevertKey.phoneticKey)
                 }
 
-            SettingsToggleRow(title: "미리 친 단어 한/영 바꾸기",
-                detail: "한/영 전환을 깜빡하고 친 단어를 바꿔요.\n예: dkssud ↔ 안녕",
-                isOn: $manualToggleAllWords)
-                .onChange(of: manualToggleAllWords) { _, newValue in
-                    Self.imeDefaults?.set(newValue, forKey: RevertKey.manualToggleAllWordsKey)
-                }
-
+            // 2026-11-10 오너(#216, 6차): `미리 친 단어 한/영 바꾸기` 토글을 뺐다. 변환 단축키가 하는 일이라 따로 끄지 않는다
+            // ("변환 단축키를 끄는 게 결국 한/영 바꾸기를 끄는 것"). 기능은 늘 켜져 있다.
             // 2026-11-08 오너(#201): '이 키'는 무엇인지 모호하다. 정확히 '변환 단축키'라고 쓰고, 안 되는 곳이라 빨간 글씨로 알린다.
             // 2026-11-09 오너(#216): 두 줄은 길다. 안 되는 것 하나만 한 줄로 쓴다. 괄호 안은 지금 고른 단축키다.
             Label(revertKey.terminalLimitNotice, systemImage: "terminal")

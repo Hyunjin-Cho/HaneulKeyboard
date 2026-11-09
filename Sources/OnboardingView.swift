@@ -31,7 +31,6 @@ struct OnboardingView: View {
     @State private var practiceStage: OnboardingPracticeStage = .empty
     @State private var shortcut = RevertKey.default
     @State private var autoEnabled = true
-    @State private var allWordsEnabled = true
     @State private var phoneticEnabled = RevertKey.phoneticDefault
     @State private var slashEnabled = SlashEnglishSession.defaultEnabled
 
@@ -523,7 +522,6 @@ struct OnboardingView: View {
 
     private func lessonDisabled(_ lesson: PracticeLesson) -> Bool {
         (lesson == .automatic || lesson == .reversal) && !autoEnabled
-            || lesson == .reversal && !allWordsEnabled
             || lesson == .registeredWord && !phoneticEnabled
             || lesson == .slash && !slashEnabled
     }
@@ -596,9 +594,7 @@ struct OnboardingView: View {
                     if (lesson == .automatic || lesson == .reversal) && !autoEnabled {
                         Text("현재 이 앱의 자동 변환이 꺼져 있어요.")
                     }
-                    if lesson == .reversal && !allWordsEnabled {
-                        Text("‘미리 친 단어 한/영 바꾸기’가 꺼져 있어요.\n방금 자동으로 바꾼 단어는 그래도 되돌릴 수 있어요.")
-                    }
+                    // 2026-11-10 오너(#216, 6차): `미리 친 단어 한/영 바꾸기` 토글이 없어져 그 경고도 뺐다.
                     if lesson == .registeredWord && !phoneticEnabled {
                         Text("카메라를 camera로 바꾸는 기능이 꺼져 있어요.\n설정에서 ‘한글 단어를 영어로 바꾸기’를 켜 주세요.")
                     }
@@ -750,8 +746,6 @@ struct OnboardingView: View {
         refreshSelection()
         let defaults = UserDefaults(suiteName: IMEInstaller.imeBundleID)
         shortcut = RevertKey.resolve(rawValue: defaults?.string(forKey: RevertKey.defaultsKey))
-        allWordsEnabled = defaults?.object(forKey: RevertKey.manualToggleAllWordsKey) as? Bool
-            ?? RevertKey.manualToggleAllWordsDefault
         phoneticEnabled = defaults?.object(forKey: RevertKey.phoneticKey) as? Bool ?? RevertKey.phoneticDefault
         slashEnabled = defaults?.object(forKey: SlashEnglishSession.defaultsKey) as? Bool
             ?? SlashEnglishSession.defaultEnabled
