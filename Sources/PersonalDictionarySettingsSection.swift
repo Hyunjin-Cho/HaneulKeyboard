@@ -82,7 +82,7 @@ struct PersonalDictionarySettingsSection: View {
 
     @ViewBuilder
     private var forceRows: some View {
-        Text("자동으로 안 바뀌는 영어 단어·제품명을 적어 두세요.\n한글 단어와 겹쳐도 영어로 바꿔요.\n변환 금지에도 있으면 금지가 먼저예요.")
+        Text("자동으로 안 바꾸는 영어 단어·제품명을 적어 두세요.\n한글 단어와 겹쳐도 영어로 바꿔요.\n변환 금지에도 있으면 금지가 먼저예요.")
             .font(SettingsTypography.body)
             .foregroundStyle(.secondary)
             .lineLimit(Self.captionLines, reservesSpace: true)
@@ -95,7 +95,7 @@ struct PersonalDictionarySettingsSection: View {
 
     @ViewBuilder
     private var blockRows: some View {
-        Text("자꾸 잘못 바뀌는 단어를 적어 두면 자동으로 바꾸지 않아요.\n영어(apple)로도, 화면에 보인 글자(메ㅔㅣㄷ)로도 적을 수 있어요.")
+        Text("자꾸 잘못 바꾸는 단어를 적어 두면 자동으로 바꾸지 않아요.\n영어(apple)로도, 화면에 보인 글자(메ㅔㅣㄷ)로도 적을 수 있어요.")
             .font(SettingsTypography.body)
             .foregroundStyle(.secondary)
             .lineLimit(Self.captionLines, reservesSpace: true)
@@ -108,7 +108,7 @@ struct PersonalDictionarySettingsSection: View {
 
     @ViewBuilder
     private var recentRows: some View {
-        Text("영어로 바뀌었다가 직접 되돌린 단어예요.\n이 Mac에만 최근 \(RecentReverts.maxCount)개까지 남아요.\n‘변환 금지 추가’를 누르면 다음부터 자동으로 바꾸지 않아요.")
+        Text("자동으로 영어로 바꿨다가 직접 되돌린 단어예요.\n이 Mac에만 최근 \(RecentReverts.maxCount)개까지 남아요.\n‘변환 금지 추가’를 누르면 다음부터 자동으로 바꾸지 않아요.")
             .font(SettingsTypography.body)
             .foregroundStyle(.secondary)
             .lineLimit(Self.captionLines, reservesSpace: true)

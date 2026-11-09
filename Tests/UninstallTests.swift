@@ -80,6 +80,12 @@ import Carbon
                     if mode == .wholeProduct {
                         let outcome = UninstallOutcome(report: report)
                         check(outcome.fullyRemoved == complete && outcome.keptMainAppForRetry == !complete, "\(prefix): UI 종료/재시도 판정")
+                        // 2026-11-09 (#216): 결과 창은 제목이 결과를 말하고, 단계 기록(`—`가 든 줄)은 `자세히`에만 둔다.
+                        check(outcome.headline == (complete ? "하늘키보드를 모두 지웠어요" : "다 지우지 못했어요")
+                              && (outcome.details == nil) == complete && !outcome.message.contains(" — "), "\(prefix): 결과 창 제목·문장")
+                        if scenario == "source-enabled" {
+                            check(outcome.message.contains("설정에서 제거.") && outcome.message.contains("남겨 뒀어요"), "\(prefix): 사용자가 할 일을 문장으로")
+                        }
                     } else { check(RemovalCommand.exitCode(report) == (complete ? 0 : 1), "\(prefix): CLI 실패는 nonzero") }
                 }
                 if ["cancel", "file-failed"].contains(scenario) {
@@ -100,6 +106,11 @@ import Carbon
         let restored = OrphanRemovalSequence.run(operations: .init(recheck: { .unknown("앱 복원/조회 실패") }, remove: { removed = true; return .removed }, unregister: { .removed }))
         check(!removed && !restored.complete, "자동 정리: 최종 관찰 불명 때 파일 삭제 미호출")
         fileAndPreferenceChecks(check)
+        // 2026-11-09 (#216): 다른 작업 중이라 시작하지 못한 제거는 이유 한 문장만 보이고 단계 기록이 없다.
+        let blocked = UninstallOutcome(report: .blocked(mode: .wholeProduct, reason: "업데이트를 설치하는 중이에요. 끝난 뒤 다시 시도해 주세요"))
+        check(!blocked.fullyRemoved && blocked.keptMainAppForRetry && blocked.headline == "지금은 지울 수 없어요"
+              && blocked.message == "업데이트를 설치하는 중이에요. 끝난 뒤 다시 시도해 주세요." && blocked.details == nil,
+              "제거 결과: 시작 전에 막히면 이유 한 문장")
         let gate = ProductOperationGate()
         let install = gate.begin(.installing)!
         check(gate.begin(.removingProduct) == nil && gate.begin(.updating) == nil, "작업권: 설치 도중 제거/업데이트 차단")

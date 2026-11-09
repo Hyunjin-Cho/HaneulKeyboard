@@ -24,10 +24,11 @@ struct SupportView: View {
                 VStack(alignment: .leading, spacing: AppFont.lineSpacing) {
                     Text(Self.title).font(OnboardingRiso.titleFont(size: 24))
                         .foregroundStyle(OnboardingRiso.ink(for: scheme))
-                    Text("하늘키보드는 무료예요. 후원해도 안 해도 기능은 똑같아요.")
+                    // 2026-11-09 오너(#216, 4차): 문구를 조금 더 감성적으로 — 오너 초안을 띄어쓰기만 다듬어 넣었다.
+                    Text("하늘키보드는 무료예요. 후원은 선택이에요.\n이 작은 앱이 여러분에게 많은 도움이 되었으면 좋겠어요.")
                         .fixedSize(horizontal: false, vertical: true)
                     // 2026-11-08 오너(#20): A안 — 후원처를 목록으로 똑같이 보여 준다(B안 'GitHub 중심 + 다른 방법 한 줄'은 반려).
-                    Text("도움이 되었다면 편한 곳에서 응원해 주세요.")
+                    Text("도움이 되었다면 응원해 주세요. 이용해 주셔서 감사합니다.")
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }

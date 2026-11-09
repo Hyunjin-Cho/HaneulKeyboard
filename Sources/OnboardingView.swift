@@ -221,14 +221,8 @@ struct OnboardingView: View {
                 Text("설정 → 앱 관리에서 끌 수 있고, 아이콘이 없을 때는 앱에서 하늘키보드를 실행해 주세요.")
                     .padding(.leading, AdviceLabelStyle.iconWidth + AdviceLabelStyle.spacing)
                 // 2026-11-08 오너(#201): 로그인할 때 열기를 아이콘 토글에 합쳐 따로 알리던 줄을 지웠다.
-                // 2026-11-09 (#216): 버튼이 줄보다 키가 커 이 줄 위만 3pt 더 벌어졌다(캡처 실측). 버튼은 줄 높이에 넣지 않고 오른쪽에 얹는다.
-                if !ready {
-                    Text("시작하기를 누르면 입력기 설치·설정을 이어갈 수 있어요.")
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .overlay(alignment: .trailing) {
-                            Button(maru: "설치 단계로 이동") { go(to: 0) }.fixedSize()
-                        }
-                }
+                // 2026-11-09 오너(#216, 4차): 미설치일 때만 보이던 `시작하기를 누르면 입력기 설치·설정을 이어갈 수 있어요.`와
+                // `설치 단계로 이동` 버튼(2026-10-10부터)을 뺐다 — "아예 빼버리자". 설치는 1페이지로 돌아가서 한다.
             }
             .labelStyle(AdviceLabelStyle())
             .font(AppFont.font(size: 14)).padding(.horizontal, 4)
@@ -293,8 +287,8 @@ struct OnboardingView: View {
         case 1: core.imeInstalled
             ? "입력 소스에 하늘키보드가 추가됐어요.\n메뉴바의 입력 소스에서 하늘키보드를 선택해 주세요."
             : "키보드 설정에 하늘키보드를 추가하고 입력 소스로 선택해 주세요."
-        case 2: "한글 모드에서 apple을 입력해 보세요.\n영어로 바뀌어요. 한글 모드는 그대로예요."
-        case 3: "방금 바뀐 영어를 \(shortcut.displayName)로 되돌려요.\n다시 누르면 영어로 돌아와요."
+        case 2: "한글 모드에서 apple을 입력해 보세요.\n영어로 바꿔요. 한글 모드는 그대로예요."
+        case 3: "방금 바꾼 영어를 \(shortcut.displayName)로 되돌려요.\n다시 누르면 영어로 돌아와요."
         case 4: "카메라를 쓰고 \(shortcut.displayName)를 누르면 camera.\n다시 누르면 내가 쓴 한글로 돌아와요."
         case 5: "한글 모드에서 /help를 입력해 보세요.\n슬래시 뒤에는 바로 영어가 나와요."
         default: "설정을 열거나 이 안내를 다시 보고 싶을 때 메뉴바의 하늘키보드를 눌러 주세요."
@@ -327,12 +321,18 @@ struct OnboardingView: View {
                         OnboardingButton("앱 관리 열기") { onSettings(.appManagement) }.fixedSize()
                     } else {
                         // 2026-11-07 오너(#187): 이 페이지에서 사용자가 꼭 눌러야 하는 버튼이라 주 버튼 잉크로 칠한다.
-                        OnboardingButton(core.isPreparingIME ? "확인·설치 중…" : "하늘키보드 설치", navigation: true) {
-                            Task {
-                                installError = nil
-                                if let error = await core.installIME() { installError = error.localizedDescription }
+                        // 2026-11-09 오너(#216, 4차): 버튼 왼쪽에 깜빡이는 손그림 화살표를 둔다. 설치 중(.checking)에는 숨긴다.
+                        HStack(spacing: 10) {
+                            if installPanel == .actionNeeded {
+                                OnboardingNudgeArrow().foregroundStyle(OnboardingRiso.ink(for: colorScheme))
                             }
-                        }.disabled(core.isPreparingIME).fixedSize()
+                            OnboardingButton(core.isPreparingIME ? "확인·설치 중…" : "하늘키보드 설치", navigation: true) {
+                                Task {
+                                    installError = nil
+                                    if let error = await core.installIME() { installError = error.localizedDescription }
+                                }
+                            }.disabled(core.isPreparingIME).fixedSize()
+                        }
                     }
                 }
             }.feedbackPanel(installPanel == .actionNeeded ? .actionNeeded : .information).fixedSize(horizontal: false, vertical: true)
@@ -343,9 +343,8 @@ struct OnboardingView: View {
                     .fixedSize(horizontal: false, vertical: true).feedbackPanel(.warning)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            // 2026-11-08 오너(#201): 설치한 사람에게 첫 화면부터 지우는 법을 알려 주던 줄을 뺐다. 대신 안 되는 곳을 먼저 알린다.
-            // 2026-11-09 오너(#216): "터미널 앱 표시는 전부 빨간색, 문장도 동일하게" — 4·5페이지·설정과 같은 한 줄을 쓴다.
-            terminalShortcutNote.padding(.horizontal, 4)
+            // 2026-11-08 오너(#201): 설치한 사람에게 첫 화면부터 지우는 법을 알려 주던 줄을 뺐다.
+            // 2026-11-09 오너(#216, 4차): 터미널 안내도 뺐다 — "터미널 앱에서 안 된다는 말이 너무 많다. Shift+Space를 소개하는 곳에서만."
         }
     }
     /// 2026-11-07 (#177, 리뷰 app-ui-F-3): 시스템 영역(/Library/Input Methods)의 낡은 입력기는 앱이 직접 바꿀 수 없다.
@@ -468,7 +467,7 @@ struct OnboardingView: View {
                 Text("앱에 준비된 단어만 바꿔요. 그냥 Space로는 한글 그대로예요.")
                     .font(AppFont.font(size: adviceBodySize))
                 suggestDictionaryLine
-                terminalShortcutNote
+                // 2026-11-09 오너(#216, 4차): 터미널 안내는 단축키를 처음 소개하는 4페이지에만 둔다.
             }.feedbackPanel(.information, fills: true)
         }
     }
@@ -502,7 +501,8 @@ struct OnboardingView: View {
     /// 한 Text 안의 줄 간격(`AppFont.lineSpacing`)과 같게 둬서 따로 쓴 줄과 이어 쓴 줄이 구분되지 않게 한다.
     private var adviceLineGap: CGFloat { AppFont.lineSpacing }
 
-    /// 2026-11-09 오너(#216): 설정 변환 단축키 카드와 같은 문장, 같은 빨간 글씨(`RevertKey.terminalLimitNotice`). 안내 1·4·5페이지가 쓴다.
+    /// 2026-11-09 오너(#216): 설정 변환 단축키 카드와 같은 문장, 같은 빨간 글씨(`RevertKey.terminalLimitNotice`).
+    /// 4차에서 단축키를 처음 소개하는 4페이지에만 남겼다(1·5페이지는 뺐다 — "너무 많다").
     /// 터미널은 입력기를 못 받는 곳이 아니라 이미 들어간 글자를 바꿀 수 없는 곳이다(2026-07-28 실측, #30). 예전 4페이지의 네 줄 설명(`terminalLimitNote`)은 지웠다.
     private var terminalShortcutNote: some View {
         Label(shortcut.terminalLimitNotice, systemImage: "terminal")
@@ -597,7 +597,7 @@ struct OnboardingView: View {
                         Text("현재 이 앱의 자동 변환이 꺼져 있어요.")
                     }
                     if lesson == .reversal && !allWordsEnabled {
-                        Text("‘미리 친 단어 한/영 바꾸기’가 꺼져 있어요.\n방금 자동으로 바뀐 단어는 그래도 되돌릴 수 있어요.")
+                        Text("‘미리 친 단어 한/영 바꾸기’가 꺼져 있어요.\n방금 자동으로 바꾼 단어는 그래도 되돌릴 수 있어요.")
                     }
                     if lesson == .registeredWord && !phoneticEnabled {
                         Text("카메라를 camera로 바꾸는 기능이 꺼져 있어요.\n설정에서 ‘한글 단어를 영어로 바꾸기’를 켜 주세요.")
@@ -648,15 +648,15 @@ struct OnboardingView: View {
         if lesson == .slash { return "/help를 쓰고 Space를 누른 뒤, 한글도 이어서 쳐보세요." }
         if lesson.manual {
             switch practiceStage {
-            case .reverted: return "한글로 바뀌었어요. 한 번 더 누르면 영어로 돌아가요."
-            case .converted: return "영어로 바뀌었어요. 다시 눌러 한글로 바꿔보세요."
+            case .reverted: return "한글로 바꿨어요. 한 번 더 누르면 영어로 돌아가요."
+            case .converted: return "영어로 바꿨어요. 다시 눌러 한글로 바꿔 보세요."
             default: return lesson == .registeredWord
                 ? "카메라를 입력한 뒤 \(shortcut.displayName)를 눌러보세요."
                 : "apple을 입력하고 Space → \(shortcut.displayName)를 눌러보세요."
             }
         }
         switch practiceStage {
-        case .converted: return "영어로 바뀌었어요. 계속 한글로 입력할 수 있어요."
+        case .converted: return "영어로 바꿨어요. 계속 한글로 입력할 수 있어요."
         case .english: return "영어가 입력됐어요. 한글 모드에서 입력하면 자동 변환을 체험해요."
         case .readyToCommit: return "이제 Space를 누르면 영어 단어를 확인해요."
         case .other: return "자유롭게 입력해도 좋아요. 단어를 쓴 뒤 Space를 눌러보세요."
