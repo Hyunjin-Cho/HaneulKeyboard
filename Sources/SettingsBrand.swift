@@ -132,7 +132,8 @@ struct SettingsToggleRow: View {
     var body: some View {
         Toggle(isOn: $isOn) {
             // 2026-11-08 (#209): 설명 줄 간격(6pt)을 넓히며 제목과 첫 줄 사이도 3→5pt로 맞췄다.
-            VStack(alignment: .leading, spacing: 5) {
+            // 2026-11-09 오너(#216): 제목 → 설명도 설명 줄 사이와 같은 6pt(`AppFont.lineSpacing`). 앱 전체의 '제목 → 설명' 규칙이다.
+            VStack(alignment: .leading, spacing: AppFont.lineSpacing) {
                 Text(title)
                 Text(detail).font(SettingsTypography.body).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

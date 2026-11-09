@@ -12,11 +12,16 @@ struct RemovalConfirmSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("하늘키보드를 모두 지울까요?")
-                .font(OnboardingRiso.titleFont(size: 22))
-                .foregroundStyle(OnboardingRiso.ink(for: scheme))
-            Text("앱·입력기·설정·개인 사전을 모두 지워요. 되돌릴 수 없어요.")
-                .fixedSize(horizontal: false, vertical: true)
+            // 2026-11-09 오너(#216): 제목 → 설명은 6pt(앱 전체 규칙). 버튼 줄까지는 그대로 띄운다.
+            VStack(alignment: .leading, spacing: AppFont.lineSpacing) {
+                Text("하늘키보드를 모두 지울까요?")
+                    .font(OnboardingRiso.titleFont(size: 22))
+                    .foregroundStyle(OnboardingRiso.ink(for: scheme))
+                // 2026-11-09 오너(#216): 삭제 쪽 글은 전부 굵게 — 설정의 전체 제거 구획과 같은 무게.
+                Text("앱·입력기·설정·개인 사전을 모두 지워요. 되돌릴 수 없어요.")
+                    .font(AppFont.font(size: 14, weight: .bold))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             HStack(spacing: 10) {
                 Spacer()
                 Button("취소", action: onCancel)
@@ -45,12 +50,15 @@ struct RemovalResultSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("제거 결과")
-                .font(OnboardingRiso.titleFont(size: 22))
-                .foregroundStyle(OnboardingRiso.ink(for: scheme))
-            Text(outcome.statusText)
-                .textSelection(.enabled)
-                .fixedSize(horizontal: false, vertical: true)
+            // 2026-11-09 오너(#216): 제목 → 설명은 6pt(앱 전체 규칙, 확인 창과 같다).
+            VStack(alignment: .leading, spacing: AppFont.lineSpacing) {
+                Text("제거 결과")
+                    .font(OnboardingRiso.titleFont(size: 22))
+                    .foregroundStyle(OnboardingRiso.ink(for: scheme))
+                Text(outcome.statusText)
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             HStack(spacing: 10) {
                 Spacer()
                 if outcome.stillEnabledInPicker {

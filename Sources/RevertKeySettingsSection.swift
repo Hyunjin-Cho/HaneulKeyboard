@@ -26,7 +26,8 @@ struct RevertKeySettingsSection: View {
     var body: some View {
         // 2026-11-07 오너(#189): 키 하나로 하는 세 가지를 한 카드에 모은다. 이름과 설명은 사용자가 겪는 상황으로 다시 썼다.
         HaneulSettingsSection {
-            VStack(alignment: .leading, spacing: 3) {
+            // 2026-11-09 오너(#216): 고르기 칸은 글자보다 키가 커서, 다른 토글 행(6pt)과 같은 빈 공간으로 보이려면 2pt면 된다(캡처 실측).
+            VStack(alignment: .leading, spacing: 2) {
                 Picker("변환 단축키", selection: $revertKey) {
                     ForEach(RevertKey.allCases, id: \.self) { key in
                         Text(key.displayName).tag(key)

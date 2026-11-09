@@ -175,7 +175,8 @@ struct OnboardingView: View {
     }
 
     private var cardTitle: some View {
-        VStack(alignment: .leading, spacing: compact ? 6 : 9) {
+        // 2026-11-09 오너(#216): 제목 → 부제도 6pt(앱 전체 '제목 → 설명' 규칙). 예전 9pt(큰 창)는 부제 두 줄 사이보다 넓었다.
+        VStack(alignment: .leading, spacing: adviceLineGap) {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 Text(titles[step]).font(OnboardingRiso.titleFont(size: 27))
                 Text(String(format: "%02d", step + 1) + "  " + sections[step])
@@ -213,20 +214,23 @@ struct OnboardingView: View {
                          symbol: "heart", tint: OnboardingRiso.pink) { onSupport() }
             }
             .frame(maxHeight: .infinity)
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: adviceLineGap) {
                 // 2026-11-06 (#154): 설정에서 아이콘을 끌 수 있게 되어 문구를 맞췄다.
                 Label("메뉴바 아이콘을 꺼도 입력기는 그대로 동작해요.", systemImage: "menubar.rectangle")
-                Text("설정 → 앱 관리에서 끌 수 있고, 아이콘이 없을 때는 응용 프로그램에서 하늘키보드를 열어 주세요.")
-                    .padding(.leading, 28)
+                // 2026-11-09 오너(#216): 돌아오는 길을 설정·메뉴바 툴팁과 같은 말(`앱`에서 실행)로 맞췄다.
+                Text("설정 → 앱 관리에서 끌 수 있고, 아이콘이 없을 때는 앱에서 하늘키보드를 실행해 주세요.")
+                    .padding(.leading, AdviceLabelStyle.iconWidth + AdviceLabelStyle.spacing)
                 // 2026-11-08 오너(#201): 로그인할 때 열기를 아이콘 토글에 합쳐 따로 알리던 줄을 지웠다.
+                // 2026-11-09 (#216): 버튼이 줄보다 키가 커 이 줄 위만 3pt 더 벌어졌다(캡처 실측). 버튼은 줄 높이에 넣지 않고 오른쪽에 얹는다.
                 if !ready {
-                    HStack(spacing: 10) {
-                        Text("시작하기를 누르면 입력기 설치·설정을 이어갈 수 있어요.")
-                        Spacer(minLength: 4)
-                        Button(maru: "설치 단계로 이동") { go(to: 0) }.fixedSize()
-                    }
+                    Text("시작하기를 누르면 입력기 설치·설정을 이어갈 수 있어요.")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .overlay(alignment: .trailing) {
+                            Button(maru: "설치 단계로 이동") { go(to: 0) }.fixedSize()
+                        }
                 }
             }
+            .labelStyle(AdviceLabelStyle())
             .font(AppFont.font(size: 14)).padding(.horizontal, 4)
             .fixedSize(horizontal: false, vertical: true)
         }
@@ -243,10 +247,13 @@ struct OnboardingView: View {
                     .symbolRenderingMode(.monochrome).foregroundStyle(.primary)
                     .frame(width: compact ? 40 : 52, height: compact ? 36 : 46)
                     .background(tint.opacity(colorScheme == .dark ? 0.26 : 0.24), in: RoundedRectangle(cornerRadius: 10))
-                Text(title).font(AppFont.font(size: compact ? 15 : 17, weight: .semibold))
-                Text(detail).font(AppFont.font(size: compact ? 13 : 14)).lineSpacing(AppFont.lineSpacing)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                // 2026-11-09 오너(#216): 제목 → 설명은 6pt(앱 전체 규칙). 예전엔 아이콘 → 제목과 같은 12pt였다.
+                VStack(alignment: .leading, spacing: adviceLineGap) {
+                    Text(title).font(AppFont.font(size: compact ? 15 : 17, weight: .semibold))
+                    Text(detail).font(AppFont.font(size: compact ? 13 : 14)).lineSpacing(AppFont.lineSpacing)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             .padding(compact ? 12 : 16)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
@@ -304,7 +311,8 @@ struct OnboardingView: View {
             HStack(spacing: 14) {
                 Image(systemName: installPanel.symbol).font(.system(size: 25))
                     .foregroundStyle(installPanel.iconStatus.color(in: colorScheme))
-                VStack(alignment: .leading, spacing: 5) {
+                // 2026-11-09 (#216): 제목 → 상태도 6pt(앱 전체 규칙).
+                VStack(alignment: .leading, spacing: adviceLineGap) {
                     Text("하늘키보드 두벌식").font(AppFont.font(size: 17, weight: .semibold))
                         .foregroundStyle(.primary)
                     // 2026-11-07 (#187): 빨간 칸 위에서는 빨간 글자가 안 읽힌다. 설치가 필요하면 본문색으로 또렷하게 쓴다.
@@ -336,14 +344,8 @@ struct OnboardingView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             // 2026-11-08 오너(#201): 설치한 사람에게 첫 화면부터 지우는 법을 알려 주던 줄을 뺐다. 대신 안 되는 곳을 먼저 알린다.
-            // 아직 단축키를 배우기 전이라 단축키 이름 없이 쓴다. 자세한 안내는 4페이지(`terminalLimitNote`).
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Image(systemName: "terminal")
-                    .foregroundStyle(FeedbackStatus.warning.color(in: colorScheme))
-                    .accessibilityHidden(true)
-                Text("터미널 앱(Terminal, Ghostty 등)에서는 바뀐 단어를 되돌릴 수 없어요.")
-            }.font(AppFont.font(size: 14)).padding(.horizontal, 4)
-                .fixedSize(horizontal: false, vertical: true)
+            // 2026-11-09 오너(#216): "터미널 앱 표시는 전부 빨간색, 문장도 동일하게" — 4·5페이지·설정과 같은 한 줄을 쓴다.
+            terminalShortcutNote.padding(.horizontal, 4)
         }
     }
     /// 2026-11-07 (#177, 리뷰 app-ui-F-3): 시스템 영역(/Library/Input Methods)의 낡은 입력기는 앱이 직접 바꿀 수 없다.
@@ -443,12 +445,15 @@ struct OnboardingView: View {
     private var reversalStep: some View {
         practiceBands(.reversal) {
             // 2026-11-09 오너(#216): 제목·문장·터미널 안내 사이를 다른 칸과 같은 간격으로 둔다(예전엔 안쪽 6·바깥 8/12로 달랐다).
+            // 2026-11-09 오너(#216): 터미널 설명이 이 페이지만 네 줄이었다. 순서 = 제목 → 해 보기 → 설정 한 줄 → 터미널 한 줄(빨강, 모든 페이지 같은 문장).
             VStack(alignment: .leading, spacing: adviceLineGap) {
                 Text("방금 변환한 단어를 다시 한글로")
                     .font(AppFont.font(size: adviceTitleSize, weight: .semibold))
                 Text("apple을 친 뒤 Space → \(shortcut.displayName)를 눌러보세요.\n같은 단축키를 한 번 더 누르면 영어로 돌아와요.")
                     .font(AppFont.font(size: adviceBodySize)).lineSpacing(AppFont.lineSpacing)
-                terminalLimitNote
+                Text("설정에서 자동 변환만 끌 수도 있어요.")
+                    .font(AppFont.font(size: adviceNoteSize))
+                terminalShortcutNote
             }.feedbackPanel(.advice, fills: true)
         }
     }
@@ -497,7 +502,8 @@ struct OnboardingView: View {
     /// 한 Text 안의 줄 간격(`AppFont.lineSpacing`)과 같게 둬서 따로 쓴 줄과 이어 쓴 줄이 구분되지 않게 한다.
     private var adviceLineGap: CGFloat { AppFont.lineSpacing }
 
-    /// 2026-11-09 오너(#216): 설정 변환 단축키 카드와 같은 문장, 같은 빨간 글씨(`RevertKey.terminalLimitNotice`).
+    /// 2026-11-09 오너(#216): 설정 변환 단축키 카드와 같은 문장, 같은 빨간 글씨(`RevertKey.terminalLimitNotice`). 안내 1·4·5페이지가 쓴다.
+    /// 터미널은 입력기를 못 받는 곳이 아니라 이미 들어간 글자를 바꿀 수 없는 곳이다(2026-07-28 실측, #30). 예전 4페이지의 네 줄 설명(`terminalLimitNote`)은 지웠다.
     private var terminalShortcutNote: some View {
         Label(shortcut.terminalLimitNotice, systemImage: "terminal")
             .labelStyle(AdviceLabelStyle())
@@ -513,30 +519,6 @@ struct OnboardingView: View {
         Text("없는 단어는 개인 사전에서 제안해 주세요.")
             .font(AppFont.font(size: adviceNoteSize))
             .fixedSize(horizontal: false, vertical: true)
-    }
-
-    /// 2026-11-07 오너(#187): 안 되는 곳을 정직하게 알린다. 터미널은 입력기를 못 받는 곳이 아니라 이미 들어간 글자를 바꿀 수 없는 곳이다
-    /// (2026-07-28 실측, #30). 자동 변환과 슬래시는 되므로 그것도 같이 적는다. 작은 창은 띠 높이가 모자라 한 줄로 줄인다.
-    /// 2026-11-08 (#209): 마루부리는 넓어 두 문장을 한 줄에 두면 문장 중간에서 꺾였다. 문장마다 줄을 나눈다(작은 창은 두 줄).
-    private var terminalLimitNote: some View {
-        HStack(alignment: .firstTextBaseline, spacing: AdviceLabelStyle.spacing) {
-            Image(systemName: "terminal")
-                .foregroundStyle(FeedbackStatus.warning.color(in: colorScheme))
-                .frame(width: AdviceLabelStyle.iconWidth)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: adviceLineGap) {
-                if compact {
-                    Text("터미널 앱에서는 \(shortcut.displayName)로 되돌릴 수 없어요.\n자동 변환과 슬래시 입력은 돼요.")
-                        .fontWeight(.medium)
-                } else {
-                    Text("터미널 앱(Terminal, Ghostty 등)은 이미 들어간 글자를 바꿀 수 없어요.\n\(shortcut.displayName)를 눌러도 그대로예요.")
-                        .fontWeight(.medium)
-                    Text("자동 변환과 슬래시 입력은 돼요.\n잘못 바뀌는 일이 잦으면 설정에서 그 앱의 자동 변환만 꺼 주세요.")
-                }
-            }
-            .fixedSize(horizontal: false, vertical: true)
-        }
-        .font(AppFont.font(size: adviceNoteSize))
     }
 
     private func lessonDisabled(_ lesson: PracticeLesson) -> Bool {
@@ -804,7 +786,8 @@ private struct AdviceLabelStyle: LabelStyle {
     static let spacing: CGFloat = 8
     func makeBody(configuration: Configuration) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: Self.spacing) {
-            configuration.icon.frame(width: Self.iconWidth)
+            // 높이 0 틀: 아이콘은 같은 자리에 그려지지만 줄 높이에는 들어가지 않는다. 아이콘 줄만 1.5pt 더 떨어지던 것(캡처 실측)을 막는다.
+            configuration.icon.frame(width: Self.iconWidth).frame(height: 0)
             configuration.title
         }
     }
