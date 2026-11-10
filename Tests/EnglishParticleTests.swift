@@ -85,11 +85,57 @@ private func runPronounIParticleTests() {
     expect(EnglishParticleSplitter.allowsPrefix("a"), false, "#202 a 불허")
 }
 
+/// 2026-11-10 (#220): 서술격 조사 '이다'의 꼴. 단위·영어 뒤 `예요`·`이에요`·`야`·`라`가 자모로 남았다(20ㅡㅠ예요).
+/// 목록 전체 × github(확정·미리보기·Shift 동등)와 × T800·a24는 아래 기존 반복이 이미 본다. 여기선 숫자+단위 경로와 우리말 보호를 본다.
+private func runCopulaParticleTests() {
+    func raw(_ prefix: String, _ particle: String) -> String { prefix + ManualToggle.hangulToKeys(particle)! }
+    func hangul(_ keys: String) -> String { ManualToggle.keysToHangul(keys)! }
+    // 숫자+단위: 실제 컨트롤러처럼 숫자를 먼저 앱에 넣고 단위+조사를 조합한다.
+    for (prefix, particle) in [("20MB", "예요"), ("20MB", "라"), ("20MB", "야"), ("20MB", "입니다"), ("20MB", "라서"),
+                               ("10kg", "이에요"), ("10kg", "이야"), ("10kg", "인데"), ("10kg", "인데요"), ("3km", "예요"),
+                               ("100ml", "이라고"), ("1.5kg", "이에요")] {
+        expect(typeViaController(raw(prefix, particle)).committedText, prefix + particle, "#220 단위+이다 꼴: \(prefix)\(particle)")
+    }
+    // 숫자 덕에만 단위로 읽히는 표기(16GB의 GB=휴, 35mm의 mm=ㅡㅡ)는 조사가 붙으면 예전부터 한글이다(16휴에, 아래 #106 검사와 같은 규칙).
+    // 이다 꼴도 다른 조사와 같은 결과를 내는지만 본다 — 이번에 규칙을 넓히지 않았다.
+    for prefix in ["16GB", "35mm"] {
+        expect(typeViaController(raw(prefix, "예요")).committedText == prefix + "예요",
+               typeViaController(raw(prefix, "에")).committedText == prefix + "에", "#220 수량 전용 단위는 다른 조사와 같은 결과: \(prefix)")
+    }
+    // 숫자 없는 단위·영어 단어 뒤도 같다.
+    for (english, particle) in [("meeting", "이에요"), ("API", "예요"), ("email", "이야"), ("CSV", "라서"),
+                                ("hello", "라고"), ("kg", "이에요"), ("github", "입니다")] {
+        expect(type(raw(english, particle)).committedText, english + particle, "#220 영어+이다 꼴: \(english)\(particle)")
+    }
+    // 입력 중 미리보기가 github이 → github이에 → github이에요로 이어진다(예전엔 이에에서 한글로 돌아갔다).
+    let composer = KoreanComposer(); let client = FakeClient()
+    var shown: [String] = []
+    for key in raw("github", "이에요") { _ = composer.handleInput(String(key), client: client); shown.append(client.marked) }
+    expect(shown.contains("github이에"), true, "#220 미리보기 연장 중 영어 유지")
+    expect(shown.last ?? "", "github이에요", "#220 미리보기 완성")
+    // 같은 끝을 가진 우리말은 그대로다(앞말이 표제어이거나 영어가 아니다).
+    for word in ["뭐야", "해야", "봐야", "돼야", "써야", "가야", "와야", "줘야", "아니야", "진짜야", "누구야", "나야", "거야",
+                 "그거야", "학교야", "가라", "해라", "봐라", "와라", "먹어라", "몰라", "달라", "빨라", "놀라", "올라", "골라",
+                 "그런데", "아닌데", "학생인데", "뭔데", "감사합니다", "학생입니다", "고맙습니다", "사람이라서", "몰라서",
+                 "친구라고", "오라고", "하라고", "뭐예요", "아니에요", "학생이에요", "사과예요", "어디야", "그래야"] {
+        expect(type(ManualToggle.hangulToKeys(word)!).committedText, word, "#220 우리말 보호: \(word)")
+    }
+    // 개인 사전 금지와 자동 변환 OFF가 우선한다.
+    for blocked in ["github", hangul("github")] {
+        let result = typeWithPersonalDictionary(raw("github", "이에요"), PersonalDictionary(block: [blocked]))
+        expect(result.client.committedText, hangul(raw("github", "이에요")), "#220 접두어 금지 우선: \(blocked)")
+    }
+    expect(type(raw("github", "예요"), autoEnglish: false).committedText, hangul(raw("github", "예요")), "#220 자동 변환 OFF")
+    expect(typeViaController(raw("20MB", "예요"), autoEnglish: false).committedText, "20" + hangul(raw("MB", "예요")),
+           "#220 단위 자동 변환 OFF")
+}
+
 func runEnglishParticleTests() {
     runEnglishRulesTests()
     runLivePreviewHoldTests()
     runPronounIParticleTests()
     runExpandedParticleTests()
+    runCopulaParticleTests()
     func raw(_ english: String, _ particle: String) -> String {
         english + ManualToggle.hangulToKeys(particle)!
     }
