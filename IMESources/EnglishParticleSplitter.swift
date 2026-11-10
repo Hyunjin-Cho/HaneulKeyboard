@@ -41,18 +41,31 @@ enum EnglishParticleSplitter {
         // 대화체의 '를요', '에서요', '에서부터는요'도 입력한 그대로 보존한다.
         // 조사 '뿐' 뒤의 서술 표현(뿐이요/뿐이에요)은 별도 활용형이다.
         forms.formUnion(forms.filter { $0 != "뿐" }.map { $0 + "요" })
-        // 2026-11-10 (#220): 서술격 조사 '이다'의 자주 쓰는 꼴. `20MB예요`·`10kg이에요`가 자모로 남았다(#218 대본 시험에서 발견).
-        // 받침에 맞춰 고르지 않고 친 꼴을 그대로 남긴다(예요·이에요 둘 다). 위 '요' 결합 뒤에 넣어 '예요요'처럼 겹치지 않게 한다.
-        forms.formUnion(["이에요", "예요", "이야", "야", "이라", "라", "이라서", "라서", "이라고", "라고",
-                         "입니다", "인데", "인데요"])
+        // '이다' 꼴은 위 '요' 결합 뒤에 넣어 '예요요'처럼 겹치지 않게 한다.
+        return forms.union(copulaForms)
+    }()
+
+    /// 서술격 조사 '이다'의 꼴(#220). 받침에 맞춰 고르지 않고 친 꼴을 그대로 남긴다(예요·이에요 둘 다).
+    /// `split`의 한 글자 관문이 이 꼴에만 걸리므로 따로 둔다.
+    static let copulaForms: Set<String> = {
+        // 2026-11-10 (#220): 자주 쓰는 꼴. `20MB예요`·`10kg이에요`가 자모로 남았다(#218 대본 시험에서 발견).
+        var forms: Set<String> = ["이에요", "예요", "이야", "야", "이라", "라", "이라서", "라서", "이라고", "라고",
+                                  "입니다", "인데", "인데요"]
         // 2026-11-10 (#220 2차, 오너 "과거형이랑 '일거에요' 같은 미래형도"): 과거형은 받침 뒤 '이었-', 모음 뒤 '였-'을 둘 다 받는다.
         // 추측·관형형은 '일'·'인'(띄어 쓴 `github일 거예요`·`20MB인 파일`)과 붙여 쓰는 흔한 꼴. `일거에요`는 표준이 아니지만
         // 친 꼴을 고치지 않는 원칙대로 그대로 받는다.
+        // 2026-11-10 (#220 3차, 오너 "더 넣자 … 우리 조건상 이상이 없다면"): 비표준 '이였-'도 '이었-'과 같은 끝으로 받는다.
         for ending in ["다", "어", "어요", "습니다", "는데", "고", "지만", "으면"] {
             forms.insert("이었" + ending)
             forms.insert("였" + ending)
+            forms.insert("이였" + ending)
         }
         forms.formUnion(["인", "일", "일거예요", "일거에요", "일거야", "일걸", "일걸요", "일까", "일까요", "일지도", "일텐데", "일듯"])
+        // 2026-11-10 (#220 3차): 연결·조건·인용 꼴(Fable 검수가 문서 빈도로 고른 묶음 + 받침 짝)과 비표준 표기.
+        // 넣지 않은 것: 다·이다·요·서(`갠다`→`ros다`·`좨요`가 깨진다), 인지·인가(`새주인지`→`town인지`).
+        forms.formUnion(["면", "이면", "며", "이며", "고", "이고", "라는", "이라는", "므로", "이므로", "지만", "이지만",
+                         "여야", "이어야", "여서", "이어서", "여도", "이어도", "거나", "이거나", "든", "이든", "라면", "이라면",
+                         "이예요", "일꺼야", "일꺼예요", "일꺼에요", "일껄", "일껄요"])
         return forms
     }()
 
@@ -167,10 +180,18 @@ enum EnglishParticleSplitter {
         // 부메(qnap)+랑은으로 끊겨 qnap랑은이 됐다. 사용자가 그 앞말을 직접 추가했으면 그 뜻이 우선이다.
         var hasKoreanReading = false
         var hasForcedPrefix = false
-        for ending in endings where matchingKeys.hasSuffix(ending.keys) {
+        let matched = endings.filter { matchingKeys.hasSuffix($0.keys) }
+        // 2026-11-10 (#220 3차): 한 글자 뒤 전체가 조사로 읽히면(C+이고·A+라고·I+까지만) 그 조사 첫 음절을 앞말에 붙여
+        // '이다' 꼴로 끊지 않는다. cdl·afk·irk 같은 broad 낱말이 앞말이 되어 Cdl고·Afk고·IRk지만이 됐다.
+        // 한 글자 앞말은 I만 받으므로 C이고는 main처럼 한글로 남고 I까지만은 I까지만이다.
+        // 예전 조사에는 걸지 않는다 — gdp만(g+에만)이 ㅎ에만으로 깨지는 것처럼 원래 맞던 약어가 깨진다(시험으로 확인).
+        let singleLetterReading = matched.contains { typed.count - $0.keys.count == 1 }
+        for ending in matched {
             let prefix = String(typed.dropLast(ending.keys.count))
             guard allowsPrefix(prefix),
                   let prefixHangul = ManualToggle.keysToHangul(prefix) else { continue }
+            if singleLetterReading, prefix.count > 1, copulaForms.contains(ending.text),
+               personalDictionary.decision(word: prefix, hangul: prefixHangul) != .forceConvert { continue }
 
             switch prefixDecision(prefix, hangul: prefixHangul, personalDictionary: personalDictionary) {
             case .block:
