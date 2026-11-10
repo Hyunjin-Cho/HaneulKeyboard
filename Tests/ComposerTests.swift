@@ -3144,10 +3144,12 @@ struct ComposerTests {
         // ── 2026-10-07 (#82): 단위·수량 — 실제 컨트롤러와 같은 키 분배 ──
         // 검역에서 확인한 실제 한글 충돌은 숫자 뒤에서도 그대로 남긴다.
         let quantityKoreanCollisions = ["dm": "으", "dl": "이", "cl": "치", "wk": "자", "em": "드"]
+        // 2026-11-10 오너 결정(#222): 소문자 gb(휴)·tb(슈)는 숫자에 붙여 쓸 때만 단위다. 띄어 쓴 `100 휴`는 한글.
+        let spacedKoreanCollisions = ["gb": "휴", "tb": "슈"]
         for unit in MeasurementUnits.symbols.sorted() {
-            let expected = quantityKoreanCollisions[unit] ?? unit
             let raw = typeViaController(unit, autoEnglish: false).committedText
             for (amount, separator) in [("100", ""), ("100", " "), ("1.25", "")] {
+                let expected = quantityKoreanCollisions[unit] ?? (separator == " " ? spacedKoreanCollisions[unit] : nil) ?? unit
                 expect(typeViaController(amount + separator + unit).committedText, amount + separator + expected,
                        "단위 전수 수량: \(amount)\(separator)\(unit)")
             }
