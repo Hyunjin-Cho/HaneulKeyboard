@@ -17,7 +17,7 @@ enum MeasurementUnits {
         W mW kW MW GW Wh mWh kWh MWh
         A mA uA nA Ah mAh C V mV kV F uF nF pF ohm kohm Mohm S mS H mH
         Wb T mT lm lx Bq kBq MBq Gy mGy Sv mSv uSv kat ha acre
-        bit B KB MB GB TB PB KiB MiB GiB TiB PiB
+        bit B KB MB GB TB PB KiB MiB GiB TiB PiB kb mb gb tb pb
         bps kbps Mbps Gbps mbps gbps dpi ppi px mp MP Mp em rem dB dBA ppm ppb ppt
         """.split(whereSeparator: \.isWhitespace).map(String.init))
 
@@ -25,7 +25,13 @@ enum MeasurementUnits {
 
     /// 2026-11-08 오너 결정(#194): 숫자가 붙을 때만 바꾸는 단위. 단독 `nm`(ㅜㅡ)은 그대로 두고 `10nm`·`10 nm`·`1.5nm`은 바꾼다.
     /// 숫자 뒤 판정은 `allowsAfterQuantity`가 맡으므로 이 목록을 보지 않는다.
-    static let quantityOnlySymbols: Set<String> = ["nm"]
+    /// 2026-11-10 오너 결정(#222): 소문자 바이트 단위(kb·mb·gb·tb·pb)도 숫자가 붙을 때만 바꾼다. 단독 `ㅡㅠ`(우는 표정)·`휴`·`슈`는 그대로다.
+    static let quantityOnlySymbols: Set<String> = ["nm", "kb", "mb", "gb", "tb", "pb"]
+
+    /// 2026-11-10 오너 결정(#222, "숫자를 앞에 쓰고 뒤에 '슈'를 쓰는 일은 거의 없긴하거든"): 소문자 gb·tb의 한글(휴·슈)은 표제어지만
+    /// 숫자에 **붙여 쓴** 경우에는 바이트 단위로 본다(이 Mac 문서·오너 메시지에서 숫자+휴·슈 우리말 0건). 띄어 쓴 `20 휴`는 그대로다.
+    /// 붙여 쓴 `3휴가`도 `3gb가`가 된다(Shift+Space로 되돌린다). 휴가·휴일만 막아 보면 더 흔한 `16gb가`·`16gb일`이 깨져서 막지 않았다(2026-11-10 시험).
+    static let attachedOverKoreanWord: Set<String> = ["gb", "tb"]
 
     /// 정수 또는 소수. 부호는 기존 구두점 경로에 남긴다. `1.`은 수량으로 확정하지 않는다.
     static func isQuantity(_ raw: String) -> Bool {
@@ -45,9 +51,11 @@ enum MeasurementUnits {
     /// 숫자가 있어도 `10이(dl)`·`3치(cl)`처럼 실제 한글은 보호한다.
     /// GB/dB/dL의 Shift처럼 한글 자모를 바꾸지 않는 명시적 대문자가 있으면
     /// 숫자 + 정확한 단위 기호를 영어 의도로 인정한다. QWERTOP Shift는 한글 의도다.
-    static func allowsAfterQuantity(_ unit: String, hangul: String) -> Bool {
+    /// `attached`: 숫자에 바로 붙여 친 단위인가(`20gb`). 띄어 쓴 단위(`20 gb`)는 false.
+    static func allowsAfterQuantity(_ unit: String, hangul: String, attached: Bool = false) -> Bool {
         guard contains(unit), KoreanDictionary.isLoaded else { return false }
         return !KoreanDictionary.contains(hangul)
+            || (attached && attachedOverKoreanWord.contains(unit))
             || unit.contains { $0.isUppercase && !"QWERTOP".contains($0) }
     }
 }

@@ -102,11 +102,11 @@ private func runCopulaParticleTests() {
                                ("100ml", "이라면"), ("20MB", "여도"), ("10kg", "이어서"), ("10kg", "이였어요"), ("20MB", "일꺼야")] {
         expect(typeViaController(raw(prefix, particle)).committedText, prefix + particle, "#220 단위+이다 꼴: \(prefix)\(particle)")
     }
-    // 숫자 덕에만 단위로 읽히는 표기(16GB의 GB=휴, 35mm의 mm=ㅡㅡ)는 조사가 붙으면 예전부터 한글이다(16휴에, 아래 #106 검사와 같은 규칙).
-    // 이다 꼴도 다른 조사와 같은 결과를 내는지만 본다 — 이번에 규칙을 넓히지 않았다.
+    // 숫자 덕에만 단위로 읽히는 표기(16GB의 GB=휴, 35mm의 mm=ㅡㅡ)도 이다 꼴은 다른 조사와 같은 결과를 낸다.
+    // (2026-11-10 #222 B안부터 둘 다 바뀐다 — 예전엔 둘 다 한글이었다.)
     for prefix in ["16GB", "35mm"] {
-        expect(typeViaController(raw(prefix, "예요")).committedText == prefix + "예요",
-               typeViaController(raw(prefix, "에")).committedText == prefix + "에", "#220 수량 전용 단위는 다른 조사와 같은 결과: \(prefix)")
+        expect(typeViaController(raw(prefix, "예요")).committedText, prefix + "예요", "#220·#222 수량 단위 + 이다 꼴: \(prefix)")
+        expect(typeViaController(raw(prefix, "에")).committedText, prefix + "에", "#220·#222 수량 단위 + 조사: \(prefix)")
     }
     // 숫자 없는 단위·영어 단어 뒤도 같다.
     for (english, particle) in [("meeting", "이에요"), ("API", "예요"), ("email", "이야"), ("CSV", "라서"),
@@ -192,12 +192,46 @@ private func runCopulaParticleTests() {
            "#220 단위 자동 변환 OFF")
 }
 
+/// 2026-11-10 오너 결정(#222 B안): 숫자 바로 뒤에 친 단위는 조사가 붙어도 단위로 본다. 소문자 바이트 단위(kb·mb·gb·tb·pb)는 숫자 뒤에서만.
+/// 예전엔 20mb→20ㅡㅠ, 16GB에→16휴에, 1TB에서→1쓔에서, 5m는→5msms였다.
+private func runQuantityUnitParticleTests() {
+    func raw(_ prefix: String, _ particle: String) -> String { prefix + ManualToggle.hangulToKeys(particle)! }
+    func hangul(_ keys: String) -> String { ManualToggle.keysToHangul(keys)! }
+    for word in ["20mb", "1tb", "20gb", "20kb", "3pb"] {
+        expect(typeViaController(word).committedText, word, "#222 숫자+소문자 바이트 단위: \(word)")
+    }
+    for (prefix, particle) in [("20mb", "는"), ("20mb", "예요"), ("20mb", "로"), ("16gb", "는"), ("16gb", "가"), ("16gb", "로"),
+                               ("1tb", "에서"), ("1TB", "에서"), ("2TB", "예요"), ("16GB", "에"), ("35mm", "는"), ("100g", "을"),
+                               ("5m", "는"), ("10s", "야"), ("60W", "야"), ("20kb", "에"), ("100mm", "에")] {
+        expect(typeViaController(raw(prefix, particle)).committedText, prefix + particle, "#222 숫자+단위+조사: \(prefix)\(particle)")
+    }
+    // 괄호 뒤 조사(홍보 영상 대본 #218)
+    expect(typeViaController("(20mb)" + ManualToggle.hangulToKeys("는")!).committedText, "(20mb)는", "#222 (20mb)는")
+    // 숫자 없이 친 우는 표정·한숨은 그대로다(#194). 숫자 뒤 진짜 한글도 그대로다(allowsAfterQuantity).
+    for keys in ["mb", "gb", "tb"] {
+        expect(type(keys).committedText, hangul(keys), "#222 숫자 없는 소문자 단위는 한글: \(hangul(keys))")
+    }
+    for keys in ["10dl", "3cl", "2wk", "5em"] {
+        expect(typeViaController(keys).committedText, String(keys.prefix { $0.isNumber }) + hangul(String(keys.drop { $0.isNumber })),
+               "#222 숫자 뒤 우리말 보호: \(keys)")
+    }
+    // 휴·슈 예외는 붙여 쓴 경우만이다. 띄어 쓴 `20 휴`는 한글, `20 mb`·`20 GB`는 종전대로 바뀐다.
+    expect(typeViaController("20 gb").committedText, "20 휴", "#222 띄어 쓴 휴는 한글")
+    expect(typeViaController("20 mb").committedText, "20 mb", "#222 띄어 쓴 mb")
+    expect(typeViaController("20 GB").committedText, "20 GB", "#222 띄어 쓴 GB")
+    // 개인 사전 금지와 자동 변환 OFF가 우선한다.
+    expect(typeViaControllerWithPersonalDictionary(raw("20mb", "예요"), PersonalDictionary(block: ["mb"])).committedText == "20mb예요",
+           false, "#222 단위 금지는 조사 결합도 막음")
+    expect(typeViaController(raw("20mb", "예요"), autoEnglish: false).committedText, "20" + hangul(raw("mb", "예요")), "#222 자동 변환 OFF")
+}
+
 func runEnglishParticleTests() {
     runEnglishRulesTests()
     runLivePreviewHoldTests()
     runPronounIParticleTests()
     runExpandedParticleTests()
     runCopulaParticleTests()
+    runQuantityUnitParticleTests()
     func raw(_ english: String, _ particle: String) -> String {
         english + ManualToggle.hangulToKeys(particle)!
     }
@@ -581,7 +615,10 @@ private func runExpandedParticleTests() {
     // 수량만으로는 제품명을 새로 추정하지 않으며 개인 force도 단위 금지를 우회하지 못한다.
     // 2026-11-01 (#106): ml이 단독 변환 단어가 되어 100ml에는 mg와 같이 "영어+조사"로
     // 바뀐다. 수량 추론 금지는 단독으로는 보호되는 mm(ㅡㅡ)으로 확인한다.
-    for prefix in ["100mm", "z9", "123"] {
+    // 2026-11-10 오너 결정(#222 B안): 숫자 바로 뒤의 정확한 단위 기호는 조사가 붙어도 단위다 — 100mm에는 이제 100mm에(아래 #222 검사).
+    // 단위가 아닌 숫자 접두어(z9·123)의 추론 금지는 그대로다.
+    expect(typeViaController(raw("100mm", "에")).committedText, "100mm에", "#222 숫자+단위+조사(예전 #101 고정 단언을 뒤집음)")
+    for prefix in ["z9", "123"] {
         let keys = raw(prefix, "에")
         let (composer, client) = live(keys)
         expect(client.committedText + client.marked, hangul(keys), "미등록 숫자 접두어 조사 표시 보존")

@@ -647,7 +647,7 @@ final class KoreanComposer {
             personalDictionary.decision(word: $0.unit, hangul: unitHangul) == .block
         } ?? false
         let quantityMatches = quantity.map {
-            MeasurementUnits.allowsAfterQuantity($0.unit, hangul: unitHangul)
+            MeasurementUnits.allowsAfterQuantity($0.unit, hangul: unitHangul, attached: true)
         } ?? false
         let matched = decision == .forceConvert || AlphanumericWords.contains(raw) || quantityMatches
         let text: String

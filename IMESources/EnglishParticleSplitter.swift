@@ -143,8 +143,9 @@ enum EnglishParticleSplitter {
         prefix.count >= 2 || prefix == "I" || prefix == "i"
     }
 
-    /// 숫자 접두어는 등록 제품명 또는 개인 사전 전체 일치만 허용한다.
-    /// 일반 영어의 문맥/복합어 추론, 수량이나 임의 영숫자를 새 근거로 쓰지 않는다.
+    /// 숫자 접두어는 등록 제품명, 개인 사전 전체 일치, 숫자 바로 뒤의 정확한 단위 기호만 허용한다.
+    /// 일반 영어의 문맥/복합어 추론이나 임의 영숫자를 새 근거로 쓰지 않는다.
+    /// (2026-11-10 오너 결정 #222: 예전엔 수량+단위도 근거로 쓰지 않았다(#101) — `16GB`는 되는데 `16GB에`는 `16휴에`였다.)
     private static func prefixDecision(_ prefix: String, hangul: String,
                                        personalDictionary: PersonalDictionary) -> PrefixDecision {
         let preference = personalDictionary.decision(word: prefix, hangul: hangul)
@@ -154,6 +155,11 @@ enum EnglishParticleSplitter {
             if let quantity = MeasurementUnits.splitQuantity(prefix),
                personalDictionary.decision(word: quantity.unit,
                    hangul: String(hangul.dropFirst(quantity.amount.count))) == .block { return .block }
+            // 2026-11-10 오너 결정(#222 B안): 숫자 바로 뒤의 정확한 단위 기호는 조사가 붙어도 단위로 본다 — 붙여 쓴 수량 경로와 같은 조건.
+            // `20mb예요`·`16GB에`·`35mm는`·`1TB에서`가 바뀌고 `5m는`→`5msms` 같은 쓰레기가 사라진다. `10이`(dl)·`3치`(cl)는 계속 한글이다.
+            if let quantity = MeasurementUnits.splitQuantity(prefix),
+               MeasurementUnits.allowsAfterQuantity(quantity.unit, hangul: String(hangul.dropFirst(quantity.amount.count)),
+                                                    attached: true) { return .accept }
             guard prefix.contains(where: { $0.isASCII && $0.isLetter }),
                   preference == .forceConvert || AlphanumericWords.contains(prefix) else { return .reject }
             return .accept
