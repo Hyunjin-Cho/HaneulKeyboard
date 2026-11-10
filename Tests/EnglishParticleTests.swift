@@ -128,6 +128,18 @@ private func runCopulaParticleTests() {
                  "있을까요", "아닐까요", "좋을거예요", "사람인데", "학생일까", "사과일걸", "그였다", "이었다", "였다"] {
         expect(type(ManualToggle.hangulToKeys(word)!).committedText, word, "#220 우리말 보호: \(word)")
     }
+    // 2026-11-10 (#220 검수 — Fable 변이 시험): 꼴 하나를 지워도, 꼴 추가를 '요' 결합 앞으로 옮겨 '예요요'가 생겨도 실패가 0이었다.
+    // 41꼴을 못 박고 '요' 겹침이 없는지 본다.
+    var copula: Set<String> = ["이에요", "예요", "이야", "야", "이라", "라", "이라서", "라서", "이라고", "라고", "입니다", "인데", "인데요",
+                               "인", "일", "일거예요", "일거에요", "일거야", "일걸", "일걸요", "일까", "일까요", "일지도", "일텐데", "일듯"]
+    for ending in ["다", "어", "어요", "습니다", "는데", "고", "지만", "으면"] { copula.insert("이었" + ending); copula.insert("였" + ending) }
+    expect(copula.count, 41, "#220 이다 꼴 수")
+    for form in copula.sorted() {
+        expect(EnglishParticleSplitter.particles.contains(form), true, "#220 이다 꼴 목록에 있음: \(form)")
+    }
+    for doubled in ["예요요", "이에요요", "야요", "이야요", "라요", "이라요", "인요", "일요", "입니다요", "였다요", "일까요요"] {
+        expect(EnglishParticleSplitter.particles.contains(doubled), false, "#220 '요' 겹침 없음: \(doubled)")
+    }
     // 개인 사전 금지와 자동 변환 OFF가 우선한다.
     for blocked in ["github", hangul("github")] {
         let result = typeWithPersonalDictionary(raw("github", "이에요"), PersonalDictionary(block: [blocked]))
