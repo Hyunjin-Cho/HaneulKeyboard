@@ -85,11 +85,119 @@ private func runPronounIParticleTests() {
     expect(EnglishParticleSplitter.allowsPrefix("a"), false, "#202 a 불허")
 }
 
+/// 2026-11-10 (#220): 서술격 조사 '이다'의 꼴. 단위·영어 뒤 `예요`·`이에요`·`야`·`라`가 자모로 남았다(20ㅡㅠ예요).
+/// 목록 전체 × github(확정·미리보기·Shift 동등)와 × T800·a24는 아래 기존 반복이 이미 본다. 여기선 숫자+단위 경로와 우리말 보호를 본다.
+private func runCopulaParticleTests() {
+    func raw(_ prefix: String, _ particle: String) -> String { prefix + ManualToggle.hangulToKeys(particle)! }
+    func hangul(_ keys: String) -> String { ManualToggle.keysToHangul(keys)! }
+    // 숫자+단위: 실제 컨트롤러처럼 숫자를 먼저 앱에 넣고 단위+조사를 조합한다.
+    for (prefix, particle) in [("20MB", "예요"), ("20MB", "라"), ("20MB", "야"), ("20MB", "입니다"), ("20MB", "라서"),
+                               ("10kg", "이에요"), ("10kg", "이야"), ("10kg", "인데"), ("10kg", "인데요"), ("3km", "예요"),
+                               ("100ml", "이라고"), ("1.5kg", "이에요"),
+                               // 2026-11-10 (#220 2차): 과거형·추측·관형형
+                               ("20MB", "였어요"), ("10kg", "이었어요"), ("20MB", "일거예요"), ("20MB", "인"), ("10kg", "일걸요"),
+                               ("3km", "였다"), ("100ml", "일까요"),
+                               // 2026-11-10 (#220 3차): 연결·조건·인용 꼴과 비표준 표기
+                               ("20MB", "면"), ("10kg", "이면"), ("20MB", "지만"), ("10kg", "이지만"), ("3km", "라는"),
+                               ("100ml", "이라면"), ("20MB", "여도"), ("10kg", "이어서"), ("10kg", "이였어요"), ("20MB", "일꺼야")] {
+        expect(typeViaController(raw(prefix, particle)).committedText, prefix + particle, "#220 단위+이다 꼴: \(prefix)\(particle)")
+    }
+    // 숫자 덕에만 단위로 읽히는 표기(16GB의 GB=휴, 35mm의 mm=ㅡㅡ)는 조사가 붙으면 예전부터 한글이다(16휴에, 아래 #106 검사와 같은 규칙).
+    // 이다 꼴도 다른 조사와 같은 결과를 내는지만 본다 — 이번에 규칙을 넓히지 않았다.
+    for prefix in ["16GB", "35mm"] {
+        expect(typeViaController(raw(prefix, "예요")).committedText == prefix + "예요",
+               typeViaController(raw(prefix, "에")).committedText == prefix + "에", "#220 수량 전용 단위는 다른 조사와 같은 결과: \(prefix)")
+    }
+    // 숫자 없는 단위·영어 단어 뒤도 같다.
+    for (english, particle) in [("meeting", "이에요"), ("API", "예요"), ("email", "이야"), ("CSV", "라서"),
+                                ("hello", "라고"), ("kg", "이에요"), ("github", "입니다"),
+                                ("meeting", "이었어요"), ("API", "였다"), ("github", "일거에요"), ("email", "일까요"),
+                                ("CSV", "인"), ("github", "이었는데"), ("API", "일지도"),
+                                // 2026-11-10 (#220 3차)
+                                ("github", "이면"), ("API", "면"), ("Mac", "이고"), ("API", "고"), ("github", "이며"), ("API", "며"),
+                                ("github", "이라는"), ("CSV", "라는"), ("github", "이므로"), ("API", "므로"), ("Swift", "지만"),
+                                ("github", "이지만"), ("API", "여야"), ("github", "이어야"), ("API", "여서"), ("github", "이어서"),
+                                ("API", "여도"), ("github", "이어도"), ("API", "거나"), ("github", "이거나"), ("API", "든"),
+                                ("github", "이든"), ("API", "라면"), ("github", "이라면"), ("github", "이였어요"), ("API", "이예요"),
+                                ("github", "일꺼야"), ("API", "일껄")] {
+        expect(type(raw(english, particle)).committedText, english + particle, "#220 영어+이다 꼴: \(english)\(particle)")
+    }
+    // 2026-11-10 (#220 3차): 한 글자 뒤 전체가 조사로 읽히면 그 첫 음절을 앞말에 붙인 broad 낱말(cdl·afk·irk·cgk)로 끊지 않는다.
+    // 예전엔 C이고→Cdl고, C이야→Cdl야, A라고→Afk고, I까지만→ㅑ까지만이었다. 한 글자 앞말은 I만 받으므로 나머지는 한글로 남는다.
+    for keys in [raw("C", "이고"), raw("C", "이야"), raw("R", "이라"), raw("H", "이면"), raw("K", "이지만"), raw("A", "라고"),
+                 raw("A", "라면"), raw("C", "하고"), raw("A", "까지만")] {
+        expect(type(keys).committedText, hangul(keys), "#220 한 글자 + 조사 첫 음절을 앞말로 먹지 않음: \(hangul(keys))")
+    }
+    expect(type(raw("I", "까지만")).committedText, "I까지만", "#220 I+까지만(irk+지만 아님)")
+    expect(type(raw("I", "이므로")).committedText, "I이므로", "#220 I+이므로")
+    // 예전 조사에는 이 관문을 걸지 않는다 — g+에만으로 읽혀 gdp만이 ㅎ에만으로 깨지면 안 된다(모든 조사에 건 시험판에서 확인).
+    // (대문자 GDP는 다른 경로로 바뀌어 이 검사가 안 된다.)
+    for (english, particle) in [("gdp", "만"), ("gdp", "도"), ("gdp", "는")] {
+        expect(type(raw(english, particle)).committedText, english + particle, "#220 관문은 이다 꼴에만: \(english)\(particle)")
+    }
+    // 사용자가 그 앞말을 직접 추가했으면 그 뜻이 우선이다.
+    expect(typeWithPersonalDictionary(raw("cdl", "고"), PersonalDictionary(force: ["cdl"])).client.committedText, "cdl고",
+           "#220 개인 추가 앞말은 한 글자 관문보다 우선")
+    // 입력 중 미리보기가 github이 → github이에 → github이에요로 이어진다(예전엔 이에에서 한글로 돌아갔다).
+    let composer = KoreanComposer(); let client = FakeClient()
+    var shown: [String] = []
+    for key in raw("github", "이에요") { _ = composer.handleInput(String(key), client: client); shown.append(client.marked) }
+    expect(shown.contains("github이에"), true, "#220 미리보기 연장 중 영어 유지")
+    expect(shown.last ?? "", "github이에요", "#220 미리보기 완성")
+    // 같은 끝을 가진 우리말은 그대로다(앞말이 표제어이거나 영어가 아니다).
+    for word in ["뭐야", "해야", "봐야", "돼야", "써야", "가야", "와야", "줘야", "아니야", "진짜야", "누구야", "나야", "거야",
+                 "그거야", "학교야", "가라", "해라", "봐라", "와라", "먹어라", "몰라", "달라", "빨라", "놀라", "올라", "골라",
+                 "그런데", "아닌데", "학생인데", "뭔데", "감사합니다", "학생입니다", "고맙습니다", "사람이라서", "몰라서",
+                 "친구라고", "오라고", "하라고", "뭐예요", "아니에요", "학생이에요", "사과예요", "어디야", "그래야",
+                 // 2026-11-10 (#220 2차): 과거형·'일'·'인'과 끝이 같은 우리말
+                 "생일", "매일", "할일", "개인", "주인", "누구였어요", "뭐였어", "어디였는데", "학생이었어요", "친구였다",
+                 "있을까요", "아닐까요", "좋을거예요", "사람인데", "학생일까", "사과일걸", "그였다", "이었다", "였다",
+                 // 2026-11-10 (#220 3차): 연결·조건·인용 꼴과 비표준 표기와 끝이 같은 우리말
+                 "그러면", "하면", "보면", "사람이면", "학생이고", "먹고", "하며", "사람이며", "그러므로", "하므로", "하지만",
+                 "그렇지만", "사람이지만", "학생이어야", "학생이어서", "그래도", "사람이어도", "하거나", "사람이거나", "뭐든",
+                 "어디든", "누구든", "사람이든", "그렇다면", "사람이라면", "학생이라는", "친구라는", "사람이예요",
+                 "학생이였어요", "생일이였다", "그럴꺼야", "있을껄", "좋을껄요", "가려면", "오면", "작지만", "무엇이든"] {
+        expect(type(ManualToggle.hangulToKeys(word)!).committedText, word, "#220 우리말 보호: \(word)")
+    }
+    // 2026-11-10 (#220 검수 — Fable 변이 시험): 꼴 하나를 지워도, 꼴 추가를 '요' 결합 앞으로 옮겨 '예요요'가 생겨도 실패가 0이었다.
+    // 꼴 목록을 통째로 못 박고(빠지거나 더해지면 실패) '요' 겹침이 없는지 본다. 2026-11-10 3차에 38꼴을 더해 79꼴.
+    var copula: Set<String> = ["이에요", "예요", "이야", "야", "이라", "라", "이라서", "라서", "이라고", "라고", "입니다", "인데", "인데요",
+                               "인", "일", "일거예요", "일거에요", "일거야", "일걸", "일걸요", "일까", "일까요", "일지도", "일텐데", "일듯",
+                               "면", "이면", "며", "이며", "고", "이고", "라는", "이라는", "므로", "이므로", "지만", "이지만",
+                               "여야", "이어야", "여서", "이어서", "여도", "이어도", "거나", "이거나", "든", "이든", "라면", "이라면",
+                               "이예요", "일꺼야", "일꺼예요", "일꺼에요", "일껄", "일껄요"]
+    for ending in ["다", "어", "어요", "습니다", "는데", "고", "지만", "으면"] {
+        copula.insert("이었" + ending); copula.insert("였" + ending); copula.insert("이였" + ending)
+    }
+    expect(copula.count, 79, "#220 이다 꼴 수")
+    expect(EnglishParticleSplitter.copulaForms == copula, true, "#220 이다 꼴 목록 그대로: 더함 \(EnglishParticleSplitter.copulaForms.subtracting(copula).sorted()) 빠짐 \(copula.subtracting(EnglishParticleSplitter.copulaForms).sorted())")
+    for form in copula.sorted() {
+        expect(EnglishParticleSplitter.particles.contains(form), true, "#220 이다 꼴 목록에 있음: \(form)")
+    }
+    // 넣지 않기로 한 꼴(우리말이 깨진다 — docs/input-conversion-rules.md)
+    for excluded in ["다", "이다", "요", "서", "인지", "인가"] {
+        expect(EnglishParticleSplitter.particles.contains(excluded), false, "#220 넣지 않은 꼴: \(excluded)")
+    }
+    for doubled in ["예요요", "이에요요", "야요", "이야요", "라요", "이라요", "인요", "일요", "입니다요", "였다요", "일까요요",
+                    "면요", "지만요", "라는요", "이였다요"] {
+        expect(EnglishParticleSplitter.particles.contains(doubled), false, "#220 '요' 겹침 없음: \(doubled)")
+    }
+    // 개인 사전 금지와 자동 변환 OFF가 우선한다.
+    for blocked in ["github", hangul("github")] {
+        let result = typeWithPersonalDictionary(raw("github", "이에요"), PersonalDictionary(block: [blocked]))
+        expect(result.client.committedText, hangul(raw("github", "이에요")), "#220 접두어 금지 우선: \(blocked)")
+    }
+    expect(type(raw("github", "예요"), autoEnglish: false).committedText, hangul(raw("github", "예요")), "#220 자동 변환 OFF")
+    expect(typeViaController(raw("20MB", "예요"), autoEnglish: false).committedText, "20" + hangul(raw("MB", "예요")),
+           "#220 단위 자동 변환 OFF")
+}
+
 func runEnglishParticleTests() {
     runEnglishRulesTests()
     runLivePreviewHoldTests()
     runPronounIParticleTests()
     runExpandedParticleTests()
+    runCopulaParticleTests()
     func raw(_ english: String, _ particle: String) -> String {
         english + ManualToggle.hangulToKeys(particle)!
     }
