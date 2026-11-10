@@ -11,11 +11,17 @@ enum FeedbackTone {
         case .warning, .actionNeeded: Color(red: 0.85, green: 0.16, blue: 0.20)
         }
     }
-    func fillOpacity(in scheme: ColorScheme) -> Double {
-        if self == .actionNeeded { return scheme == .dark ? 0.48 : 0.36 }
-        return scheme == .dark ? 0.16 : 0.10
+    /// 2026-11-09 오너(#216, 4차): `actionNeeded`는 투명도를 뺐다 — 반투명 빨강(36%)이 한지 무늬와 섞여 탁한 분홍으로 보였다("opacity를 빼볼래?").
+    /// 꽉 찬 빨강은 "너무 진하다"여서, 같은 빨강을 밝게 미리 섞은 불투명 색으로 칠한다. 바탕 무늬가 비치지 않아 맑게 보인다.
+    /// 2026-11-09 오너(#216, 5차): "50% 더 연하게", "다크 모드는 왜 이렇게 진해? 둘이 같아야지" — 두 모드 모두 바탕에 빨강을 11%만 섞는다
+    /// (라이트 = 흰색, 다크 = 창 바탕 실측 (0.149, 0.144, 0.131)). 예전 다크(0.36, 0.12, 0.14)는 바탕보다 훨씬 진하게 튀었다.
+    func fill(in scheme: ColorScheme) -> Color {
+        if self == .actionNeeded {
+            return scheme == .dark ? Color(red: 0.226, green: 0.146, blue: 0.139) : Color(red: 0.98, green: 0.91, blue: 0.91)
+        }
+        return tint.opacity(scheme == .dark ? 0.16 : 0.10)
     }
-    var strokeOpacity: Double { self == .actionNeeded ? 0.85 : 0.40 }
+    var strokeOpacity: Double { self == .actionNeeded ? 0.70 : 0.40 }
 }
 
 enum FeedbackStatus {
@@ -45,7 +51,7 @@ private struct FeedbackPanel: ViewModifier {
             .frame(maxWidth: .infinity, maxHeight: fills ? .infinity : nil, alignment: .leading)
             .padding(14)
             .foregroundStyle(scheme == .dark ? Color(white: 0.94) : Color(white: 0.10))
-            .background(tone.tint.opacity(tone.fillOpacity(in: scheme)), in: RoundedRectangle(cornerRadius: 15))
+            .background(tone.fill(in: scheme), in: RoundedRectangle(cornerRadius: 15))
             .overlay(RoundedRectangle(cornerRadius: 15).strokeBorder(tone.tint.opacity(tone.strokeOpacity), lineWidth: 1))
             .overlay(alignment: .topLeading) {
                 RisoRegistrationMark().padding(.leading, 18).offset(y: -6.3)

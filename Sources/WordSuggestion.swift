@@ -35,7 +35,7 @@ enum WordSuggestion {
         var expectedLabel: String {
             switch self {
             case .add: return "기대한 결과"
-            case .block: return "바뀐 결과 (원치 않음)"
+            case .block: return "바꾼 결과 (원치 않음)"
             case .field: return "필요한 용어 (선택)"
             }
         }

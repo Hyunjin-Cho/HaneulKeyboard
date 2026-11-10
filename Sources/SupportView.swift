@@ -20,14 +20,16 @@ struct SupportView: View {
                 .frame(width: Self.size.width, height: Self.size.height)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 12) {
-                Text(Self.title).font(OnboardingRiso.titleFont(size: 24))
-                    .foregroundStyle(OnboardingRiso.ink(for: scheme))
-                Text("하늘키보드는 무료예요. 후원해도 안 해도 기능은 똑같아요.")
-                    .fixedSize(horizontal: false, vertical: true)
-                // 2026-11-08 오너(#20): A안 — 후원처를 목록으로 똑같이 보여 준다(B안 'GitHub 중심 + 다른 방법 한 줄'은 반려).
-                Text("도움이 되었다면 편한 곳에서 응원해 주세요.")
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                // 2026-11-09 오너(#216): 제목 → 문장, 문장 → 문장은 6pt(앱 전체 규칙). 예전엔 12pt라 두 문장이 다른 문단처럼 떨어져 보였다.
+                VStack(alignment: .leading, spacing: AppFont.lineSpacing) {
+                    Text(Self.title).font(OnboardingRiso.titleFont(size: 24))
+                        .foregroundStyle(OnboardingRiso.ink(for: scheme))
+                    // 2026-11-09 오너(#216, 5차): 오너 문구 세 줄, 글자색은 전부 본문색(셋째 줄만 회색이던 것을 바꿨다).
+                    // `무료예요`(명사 뒤 `-예요`)·`응원해 주세요`(앱 전체 띄어쓰기)는 맞춤법대로 쓴다.
+                    // 2026-11-08 오너(#20): A안 — 후원처를 목록으로 똑같이 보여 준다(B안 'GitHub 중심 + 다른 방법 한 줄'은 반려).
+                    Text("하늘키보드는 무료예요. 후원은 선택이에요.\n작은 앱이지만 여러분에게 많은 도움이 되었으면 좋겠어요.\n도움이 되었다면 응원해 주세요. 정말 감사합니다.")
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 VStack(spacing: 8) {
                     ForEach(SupportLink.channels) { channel in channelRow(channel) }
                 }
@@ -56,7 +58,8 @@ struct SupportView: View {
 
     private func channelRow(_ channel: SupportChannel) -> some View {
         HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
+            // 2026-11-09 (#216): 이름 → 설명도 설정 토글 행과 같은 6pt.
+            VStack(alignment: .leading, spacing: AppFont.lineSpacing) {
                 Text(channel.name).font(AppFont.font(size: 15, weight: .semibold))
                 Text(channel.detail).font(AppFont.font(size: 13)).foregroundStyle(.secondary)
             }

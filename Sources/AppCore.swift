@@ -163,7 +163,7 @@ final class AppCore {
         }
         defer { operationGate.finish(token) }
         guard updater.pauseForRemoval() else {
-            return Uninstaller.Outcome(report: .blocked(mode: .wholeProduct, reason: "업데이트 교체가 진행 중이에요. 끝난 뒤 다시 시도해 주세요"))
+            return Uninstaller.Outcome(report: .blocked(mode: .wholeProduct, reason: "업데이트를 설치하는 중이에요. 끝난 뒤 다시 시도해 주세요"))
         }
         // 2026-11-07 (#177, 리뷰 app-ui-F-4): 예전엔 `Task.yield()`로 진행 표시를 먼저 그리게 했지만 같은 런루프 턴에 재개될 수 있었다.
         // 이제 제거 순서 전체가 메인 스레드 밖에서 돌아(관리자 암호창·입력 소스 조작만 메인으로 돌아온다) 메인이 비어 표시가 그려진다.

@@ -2545,7 +2545,7 @@ struct ComposerTests {
             expect(unknown.contains("- 하늘키보드: (알 수 없음)"), true, "WS 본문: 앱 버전 미상")
             expect(unknown.contains("- macOS: (알 수 없음)"), true, "WS 본문: macOS 버전 미상")
             expect(unknown.contains("### 메모\n(없음)"), true, "WS 본문: 메모 없음")
-            expect(unknown.contains("- **바뀐 결과 (원치 않음):** and"), true, "WS 본문: 금지 제안은 두 번째 값의 라벨이 다르다")
+            expect(unknown.contains("- **바꾼 결과 (원치 않음):** and"), true, "WS 본문: 금지 제안은 두 번째 값의 라벨이 다르다")
         }
 
         // MARK: 되돌리기 키를 모든 단어로 — 수동 한↔영 토글 (#15, 2026-09-21)
@@ -2668,12 +2668,8 @@ struct ComposerTests {
                 expect(composer.hasPendingComposition, false, "hasPendingComposition: 확정 후 false")
             }
 
-            // (j) 설정 키 — 기본은 켜짐. 꺼 두면 컨트롤러가 새 경로로 가지 않는다.
-            expect(RevertKey.manualToggleAllWordsKey, "haneul.manualToggleAllWords",
-                   "#15: 설정 키 이름")
-            expect(RevertKey.manualToggleAllWordsDefault, true, "#15: 기본값 켜짐")
-            expect(RevertKey.manualToggleAllWordsKey.hasPrefix("haneul."), true,
-                   "#15: 전체 제거의 haneul.* 일괄 삭제에 포함되는 접두어")
+            // (j) 2026-11-10 (#216): `미리 친 단어 한/영 바꾸기` 토글을 없앴다 — 설정 키가 더는 없다(입력기는 늘 수동 변환한다).
+            //     옛 값을 무시하는지는 InputControllerSessionTests의 `pair_mismatch_legacy_off`가 본다.
 
             // (k) 값싼 사전 필터 — 맨 스페이스는 defaults를 읽지 않는다.
             let plain = RevertKey.Modifiers([]).rawValue

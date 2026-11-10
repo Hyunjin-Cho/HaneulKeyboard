@@ -3,7 +3,7 @@ import SwiftUI
 
 /// 2026-10-11 (#88): 단축키 변환 화면의 단축키·수동 변환·되돌리기. 저장 규약은 유지한다.
 ///
-/// 기존 단축키와 자판 변환·등록 단어 변환의 독립 설정을 보존한다.
+/// 기존 단축키와 등록 단어 변환 설정을 보존한다. 자판 변환(미리 친 단어 한/영)은 2026-11-10(#216)부터 토글 없이 늘 켜져 있다.
 ///
 /// 저장 키·후보 목록·판정은 IME와 공유하는 `IMESources/RevertKey.swift`·
 /// `IMESources/AutoConvertPolicy.swift`(양쪽 타겟에 포함)가 단일 진실이고, 여기는 화면과
@@ -15,18 +15,14 @@ struct RevertKeySettingsSection: View {
 
     @State private var revertKey: RevertKey = RevertKey.resolve(
         rawValue: RevertKeySettingsSection.imeDefaults?.string(forKey: RevertKey.defaultsKey))
-    /// 2026-09-21 (#60): 흡수된 `ManualToggleSettingsSection`의 상태 — 키·기본값은 그대로다.
-    @State private var manualToggleAllWords: Bool =
-        RevertKeySettingsSection.imeDefaults?
-            .object(forKey: RevertKey.manualToggleAllWordsKey) as? Bool
-            ?? RevertKey.manualToggleAllWordsDefault
     @State private var phoneticEnabled: Bool =
         RevertKeySettingsSection.imeDefaults?.object(forKey: RevertKey.phoneticKey) as? Bool
             ?? RevertKey.phoneticDefault
     var body: some View {
         // 2026-11-07 오너(#189): 키 하나로 하는 세 가지를 한 카드에 모은다. 이름과 설명은 사용자가 겪는 상황으로 다시 썼다.
         HaneulSettingsSection {
-            VStack(alignment: .leading, spacing: 3) {
+            // 2026-11-09 오너(#216): 고르기 칸은 글자보다 키가 커서, 다른 토글 행(6pt)과 같은 빈 공간으로 보이려면 2pt면 된다(캡처 실측).
+            VStack(alignment: .leading, spacing: 2) {
                 Picker("변환 단축키", selection: $revertKey) {
                     ForEach(RevertKey.allCases, id: \.self) { key in
                         Text(key.displayName).tag(key)
@@ -37,7 +33,9 @@ struct RevertKeySettingsSection: View {
                 }
                 .help("다른 앱의 단축키와 겹치면 다른 조합을 골라 주세요.")
                 // 2026-11-08 오너(#201): 세 가지 동작을 나열하지 않고 사용자가 겪는 한 가지로 말한다. '되돌리기' 줄은 이 설명과 겹쳐 뺐다.
-                Text("단어 바로 뒤에서 누르면 한글과 영어가 서로 바뀌어요. 잘못 바뀐 단어도 눌러서 되돌려요.")
+                // 2026-11-09 오너(#216, 4차): 문장을 오너 문구로 바꾸고 둘째 문장(잘못 바뀐 단어…)을 뺐다. 앱 문구는 `바꿔요`로 통일한다
+                // (`바꾸다`는 목적어를 받아 `한글과 영어를`로 쓴다).
+                Text("단어 바로 뒤에서 변환하면 한글과 영어를 서로 바꿔요.")
                     .font(SettingsTypography.body)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -50,20 +48,22 @@ struct RevertKeySettingsSection: View {
                     Self.imeDefaults?.set(newValue, forKey: RevertKey.phoneticKey)
                 }
 
-            SettingsToggleRow(title: "미리 친 단어 한/영 바꾸기",
-                detail: "한/영 전환을 깜빡하고 친 단어를 바꿔요.\n예: dkssud ↔ 안녕",
-                isOn: $manualToggleAllWords)
-                .onChange(of: manualToggleAllWords) { _, newValue in
-                    Self.imeDefaults?.set(newValue, forKey: RevertKey.manualToggleAllWordsKey)
-                }
-
+            // 2026-11-10 오너(#216, 6차): `미리 친 단어 한/영 바꾸기` 토글을 뺐다. 변환 단축키가 하는 일이라 따로 끄지 않는다
+            // ("변환 단축키를 끄는 게 결국 한/영 바꾸기를 끄는 것"). 기능은 늘 켜져 있다.
             // 2026-11-08 오너(#201): '이 키'는 무엇인지 모호하다. 정확히 '변환 단축키'라고 쓰고, 안 되는 곳이라 빨간 글씨로 알린다.
-            Label("터미널 앱(Terminal, Ghostty 등)에서는 변환 단축키를 눌러도 바뀌지 않아요.\n자동 변환과 슬래시 입력은 돼요.", systemImage: "terminal")
+            // 2026-11-09 오너(#216): 두 줄은 길다. 안 되는 것 하나만 한 줄로 쓴다. 괄호 안은 지금 고른 단축키다.
+            Label(revertKey.terminalLimitNotice, systemImage: "terminal")
                 .font(SettingsTypography.body)
                 .foregroundStyle(.red)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
+}
+
+extension RevertKey {
+    /// 2026-11-09 오너(#216): 설정(변환 단축키 카드)과 안내 4페이지가 같은 문장을 같은 빨간 글씨로 쓴다(4차부터 이 두 곳만).
+    /// 터미널은 이미 들어간 글자를 바꿀 수 없다(2026-07-28 실측, #30). 자동 변환·슬래시가 된다는 덧말은 뺐다.
+    var terminalLimitNotice: String { "터미널 앱에서는 변환 단축키(\(displayName))를 사용할 수 없어요." }
 }
 
 /// 2026-10-11 (#88): 자동 변환 화면에 앱별 예외를 모은다. 저장 키와 추가/제거 동작은 유지한다.

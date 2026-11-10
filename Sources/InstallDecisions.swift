@@ -109,8 +109,41 @@ struct UninstallOutcome {
         report.steps.contains { if case .needsUserAction = $0.state { return $0.id == "input" || $0.id == "sources" }; return false }
     }
     var fullyRemoved: Bool { report.mode == .wholeProduct && report.complete && removedMainApp }
-    var statusText: String {
-        report.statusText + (fullyRemoved ? "\n\n필수 정리를 모두 확인했어요. 확인을 누르면 실행 중인 앱도 종료해요." : "\n\n완료되지 않은 항목을 확인한 뒤 이 앱에서 다시 시도해 주세요.")
+
+    /// 2026-11-09 오너(#216, 4차): 결과 창이 단계 기록(`제거 준비: 보존 — …`)을 그대로 보여 "도대체 무슨 말이야?"였다.
+    /// 무슨 일이 있었는지 제목 한 줄과 할 일 한두 문장으로 먼저 말하고, 단계 기록은 `자세히`(`details`)에만 둔다.
+    var headline: String {
+        if fullyRemoved { return "하늘키보드를 모두 지웠어요" }
+        if blockedReason != nil { return "지금은 지울 수 없어요" }
+        return "다 지우지 못했어요"
+    }
+    var message: String {
+        if fullyRemoved { return (userActions + ["확인을 누르면 앱을 닫아요."]).joined(separator: "\n") }
+        if let blockedReason { return blockedReason }
+        let kept = removedMainApp ? "일부를 지우지 못했어요."
+            : report.succeeded("settings") ? "개인 사전·설정은 지웠지만 앱은 남겨 뒀어요."
+            : "앱과 개인 사전은 그대로 남겨 뒀어요."
+        let next = userActions.isEmpty ? ["이 앱에서 다시 시도해 주세요."] : userActions
+        return ([kept] + next).joined(separator: "\n")
+    }
+    /// 단계 기록. 다 지웠거나 시작 전에 막혔으면 더 볼 것이 없어 nil이다.
+    var details: String? { fullyRemoved || blockedReason != nil ? nil : report.statusText }
+
+    /// `RemovalReport.blocked` — 다른 작업 중이라 시작하지 않았다(아무것도 지우지 않았다).
+    private var blockedReason: String? {
+        guard report.steps.count == 1, let step = report.steps.first, step.id == "prepare",
+              case .preserved(let reason) = step.state else { return nil }
+        return Self.sentence(reason)
+    }
+    /// 사용자가 직접 해야 하는 일(입력 소스 전환·제거, 다른 계정 로그아웃).
+    private var userActions: [String] {
+        report.steps.compactMap { step in
+            if case .needsUserAction(let reason) = step.state { return Self.sentence(reason) }
+            return nil
+        }
+    }
+    private static func sentence(_ text: String) -> String {
+        text.hasSuffix(".") || text.hasSuffix("?") || text.hasSuffix("!") ? text : text + "."
     }
 }
 

@@ -65,6 +65,57 @@ private struct SketchDownArrow: Shape {
     }
 }
 
+/// 2026-11-09 오너(#216, 4차): 1페이지 `하늘키보드 설치` 버튼을 가리키는 손그림 화살표. 같은 페이지의 `한/영 키는 그대로 두세요`
+/// 화살표와 같은 펜 느낌·같은 남색 잉크로, 모양은 따로 그렸다("비슷한 화살표, 똑같은 거 말고"). 색은 부르는 쪽이 정한다.
+/// 깜빡임은 오너 지정 — 0.5초 안에 두 번 깜빡이고 3초 쉰 뒤 되풀이한다. 동작 줄이기를 켜면 깜빡이지 않고 그대로 보인다.
+struct OnboardingNudgeArrow: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var visible = true
+
+    var body: some View {
+        NudgeArrowShape()
+            .stroke(style: StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
+            .frame(width: 58, height: 28)
+            .opacity(visible ? 1 : 0)
+            .accessibilityHidden(true)
+            .task(id: reduceMotion) {
+                visible = true
+                guard !reduceMotion else { return }
+                do {
+                    // 페이지가 넘어오는 동안은 쉬고, 자리를 잡은 뒤 첫 깜빡임을 보인다.
+                    try await Task.sleep(for: .milliseconds(700))
+                    while true {
+                        for _ in 0..<2 {
+                            visible = false
+                            try await Task.sleep(for: .milliseconds(125))
+                            visible = true
+                            try await Task.sleep(for: .milliseconds(125))
+                        }
+                        try await Task.sleep(for: .seconds(3))
+                    }
+                } catch {
+                    visible = true
+                }
+            }
+    }
+}
+
+/// 왼쪽 아래에서 위로 휘었다가 오른쪽 버튼으로 내려앉는 한 획 + 끝의 두 획. 좌표는 위에서 아래 방향이다.
+private struct NudgeArrowShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        func at(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+            CGPoint(x: rect.minX + x * rect.width, y: rect.minY + y * rect.height)
+        }
+        var p = Path()
+        p.move(to: at(0.04, 0.80))
+        p.addCurve(to: at(0.93, 0.52), control1: at(0.26, 0.02), control2: at(0.62, 0.30))
+        p.move(to: at(0.83, 0.27))
+        p.addLine(to: at(0.93, 0.52))
+        p.addLine(to: at(0.78, 0.60))
+        return p
+    }
+}
+
 /// 일부러 닫히지 않는 두 획으로 색연필 표시처럼 아이콘을 강조한다.
 struct OnboardingPencilRing: Shape {
     func path(in rect: CGRect) -> Path {

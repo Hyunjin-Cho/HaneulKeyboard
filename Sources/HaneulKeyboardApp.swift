@@ -241,7 +241,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         let quitItem = add(menu, "메뉴바 앱 종료", #selector(quit), key: "q")
         // 2026-11-07 (#177, 리뷰 app-ui-F-4): 제거가 메인 스레드 밖에서 도는 동안 앱을 끝내면 반쯤 지워진 채 남는다.
         quitItem.isEnabled = !core.isRemovalInProgress
-        quitItem.toolTip = "메뉴바 아이콘만 사라져요. 한글 입력과 영어 자동 변환은 그대로 돼요. 응용 프로그램 폴더에서 다시 열 수 있어요."
+        // 2026-11-09 오너(#216): 돌아오는 길을 설정 → 앱 관리 설명과 같은 말(`앱`에서 실행)로 맞춘다.
+        quitItem.toolTip = "메뉴바 아이콘만 사라져요. 한글 입력과 영어 자동 변환은 그대로 돼요. 다시 켜려면 앱에서 하늘키보드를 실행해 주세요."
     }
 
     func menuWillOpen(_ menu: NSMenu) {

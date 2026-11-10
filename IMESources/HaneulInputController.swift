@@ -460,17 +460,14 @@ final class HaneulInputController: IMKInputController {
                .matches(keyCode: event.keyCode, modifierFlagsRaw: mods.rawValue) {
             let phoneticEnabled = UserDefaults.standard.object(forKey: RevertKey.phoneticKey) as? Bool
                 ?? RevertKey.phoneticDefault
-            let keyboardEnabled = UserDefaults.standard.object(forKey: RevertKey.manualToggleAllWordsKey) as? Bool
-                ?? RevertKey.manualToggleAllWordsDefault
             if composer.hasPendingComposition {
                 if phoneticEnabled, handlePendingPhonetic(client: client, generation: eventSession) {
                     guard eventSession == sessionGeneration else { return true }
                     externalContextPending = false
                     return true
                 }
-            } else if (phoneticEnabled || keyboardEnabled),
-                      handleManualToggle(client: client, phoneticEnabled: phoneticEnabled,
-                                         keyboardEnabled: keyboardEnabled, generation: eventSession, inputSequence: eventSequence) {
+            } else if handleManualToggle(client: client, phoneticEnabled: phoneticEnabled,
+                                         generation: eventSession, inputSequence: eventSequence) {
                 guard eventSession == sessionGeneration else { return true }
                 externalContextPending = false
                 return true
@@ -755,7 +752,8 @@ final class HaneulInputController: IMKInputController {
 
     /// 커서 앞 확정 단어: 등록 발음 우선, 미등록이면 기존 자판 배열 토글.
     /// 읽기 길이·선택·교체 거부 방어선은 기존 수동 토글과 동일하다.
-    private func handleManualToggle(client: IMKTextInput, phoneticEnabled: Bool, keyboardEnabled: Bool,
+    /// 2026-11-10 오너(#216): 자판 배열 토글은 늘 켜져 있다(설정 토글 삭제 — `RevertKey` 주석).
+    private func handleManualToggle(client: IMKTextInput, phoneticEnabled: Bool,
                                     generation: UInt, inputSequence eventSequence: UInt) -> Bool {
         let sel = tracedSelection(client)
         guard generation == sessionGeneration else { return true }
@@ -795,7 +793,7 @@ final class HaneulInputController: IMKInputController {
         guard generation == sessionGeneration else { return true }
         guard let result = ManualToggle.resolve(word: target.word,
             phoneticEnabled: phoneticEnabled && PhoneticDictionary.isBoundary(right),
-            keyboardEnabled: keyboardEnabled) else { return false }
+            keyboardEnabled: true) else { return false }
         let toggled = result.text
         let wordLength = (target.word as NSString).length
         let start = sel.location - wordLength - target.trailing
