@@ -29,6 +29,50 @@
 
 set -euo pipefail
 
+# >>> release gates (2026-11-12 #228 — scripts/test_build_release_gates.py가 이 구간을 떼어 시험한다)
+# 리뷰 build-release-docs-F-1: 정식 배포 경로가 내부 후보 번호(2026.9)와 빌드 번호 상승을 사람 눈에만 맡겼다.
+release_version_ok() {   # $1 = 공개 버전(접미어 포함). 0을 채운 실제 날짜 YYYY.MM.DD + 선택 _hotfix1~999 (#131)
+    local v="$1" base
+    [[ "$v" =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}(_hotfix[1-9][0-9]{0,2})?$ ]] || return 1
+    base="${v%%_*}"
+    [[ "$(/bin/date -j -f "%Y.%m.%d" "$base" "+%Y.%m.%d" 2>/dev/null)" == "$base" ]]
+}
+release_build_increases() {   # $1 = 새 빌드 번호, $2 = 직전 공개 릴리스의 빌드 번호
+    [[ "$1" =~ ^[0-9]+$ && "$2" =~ ^[0-9]+$ ]] && (( 10#$1 > 10#$2 ))
+}
+previous_release_build() {   # 직전 공개 릴리스 태그(2026.07 · 2026.11.04 · …_hotfixN)의 project.yml 빌드 번호. 못 찾으면 빈 값.
+    local root="${1:-.}" tag
+    tag=$(git -C "$root" tag --list | grep -E '^[0-9]{4}\.[0-9]{2}(\.[0-9]{2}(_hotfix[1-9][0-9]{0,2})?)?$' | sort -V | tail -1)
+    [[ -n "$tag" ]] || return 0
+    git -C "$root" show "$tag:project.yml" 2>/dev/null \
+        | sed -nE 's/^[[:space:]]*CURRENT_PROJECT_VERSION:[[:space:]]*"?([0-9]+)"?.*/\1/p' | head -1
+}
+# 리뷰 build-release-docs-F-3: `X=$(notarytool …)`가 set -e 아래 비-0이면 출력·제출 ID·안내 없이 스크립트가 끝났다.
+notary_submit() {   # $1 = 올릴 파일, $2 = 이름(로그용). 출력은 늘 보여 주고, Accepted일 때만 0.
+    local file="$1" label="$2" output rc=0 sid
+    output=$(xcrun notarytool submit "$file" --keychain-profile "$NOTARY_PROFILE" --wait 2>&1) || rc=$?
+    echo "$output" | sed 's/^/  /'
+    if [[ $rc -eq 0 ]] && echo "$output" | grep -q "status: Accepted"; then return 0; fi
+    echo "  ✗ $label notarization was not accepted (notarytool exit $rc)." >&2
+    sid=$(echo "$output" | awk '/id:/ {print $2; exit}')
+    if [[ -n "$sid" ]]; then
+        echo "    Inspect: xcrun notarytool log $sid --keychain-profile \"$NOTARY_PROFILE\"" >&2
+    else
+        echo "    No submission ID — check the network, the '$NOTARY_PROFILE' keychain profile, and the message above." >&2
+    fi
+    return 1
+}
+# <<< release gates
+
+# >>> mode flags (2026-11-12 #228, 리뷰 build-release-docs-F-2: PACKAGE_ONLY=true 같은 오타가 설치(sudo) 경로로 갔다)
+for mode_flag in PACKAGE_ONLY ZIP_ONLY; do
+    case "${!mode_flag:-0}" in
+        0|1) ;;
+        *) echo "$mode_flag must be 0 or 1." >&2; exit 2 ;;
+    esac
+done
+# <<< mode flags
+
 case "${LOCAL_BUILD_ONLY:-0}" in
     0) ;;
     1)
@@ -45,6 +89,9 @@ case "${CANDIDATE_ONLY:-0}" in
     1) export PACKAGE_ONLY=1 ;;
     *) echo "CANDIDATE_ONLY must be 0 or 1." >&2; exit 2 ;;
 esac
+# 2026-11-12 (#228): 예전 조건 `${PACKAGE_ONLY:-${ZIP_ONLY:-0}}`은 PACKAGE_ONLY=0 ZIP_ONLY=1이면 설치 경로로 갔다 — 둘 중 하나라도 1이면 포장만.
+PACKAGE_MODE=0
+if [[ "${PACKAGE_ONLY:-0}" == "1" || "${ZIP_ONLY:-0}" == "1" ]]; then PACKAGE_MODE=1; fi
 
 TARGET="${1:-}"
 if [[ -z "$TARGET" ]]; then
@@ -311,6 +358,21 @@ if [[ "${CANDIDATE_ONLY:-0}" == "1" ]]; then
         echo "✗ Invalid candidate version/build." >&2; exit 1;
     }
     PACKAGE_OUTPUT_DIR="$PROJECT_ROOT/.build/candidates/${VERSION}-b${BUILD_NUMBER}"
+else
+    # 2026-11-12 (#228, 리뷰 build-release-docs-F-1): 정식 배포 이름은 되돌릴 수 없다(같은 번호 재게시 금지) — 서명·공증 전에 막는다.
+    release_version_ok "$VERSION" || {
+        echo "✗ 정식 배포 버전은 0을 채운 실제 날짜 YYYY.MM.DD(핫픽스는 _hotfix1~)여야 합니다: '$VERSION'." >&2
+        echo "  내부 후보(예: 2026.9)는 CANDIDATE_ONLY=1로 만드세요. project.yml의 MARKETING_VERSION·HANEUL_RELEASE_SUFFIX를 확인하세요." >&2
+        exit 1
+    }
+    BUILD_NUMBER=$(defaults read "$RELEASE_APP/Contents/Info.plist" CFBundleVersion)
+    PREVIOUS_BUILD=$(previous_release_build "$PROJECT_ROOT")
+    if [[ -z "$PREVIOUS_BUILD" ]]; then
+        echo "⚠ 직전 공개 릴리스 태그의 빌드 번호를 찾지 못해 빌드 번호 상승은 확인하지 못했습니다(태그·project.yml 확인)." >&2
+    elif ! release_build_increases "$BUILD_NUMBER" "$PREVIOUS_BUILD"; then
+        echo "✗ 빌드 번호 $BUILD_NUMBER가 직전 공개 릴리스($PREVIOUS_BUILD)보다 크지 않습니다 — 앱 안 업데이트가 거부됩니다. CURRENT_PROJECT_VERSION을 올리세요." >&2
+        exit 1
+    fi
 fi
 FINAL_ZIP="$PACKAGE_OUTPUT_DIR/${TARGET}_${VERSION}.zip"
 FINAL_DMG="$PACKAGE_OUTPUT_DIR/${TARGET}_${VERSION}.dmg"
@@ -331,14 +393,7 @@ echo
 echo "→ Notarize (zip → submit --wait)"
 ZIP="$PACKAGE_STAGE/notarization-upload.zip"
 ditto -c -k --keepParent "$RELEASE_APP" "$ZIP"
-SUBMIT_OUTPUT=$(xcrun notarytool submit "$ZIP" --keychain-profile "$NOTARY_PROFILE" --wait 2>&1)
-echo "$SUBMIT_OUTPUT" | sed 's/^/  /'
-if ! echo "$SUBMIT_OUTPUT" | grep -q "status: Accepted"; then
-    echo "  ✗ Notarization rejected. Inspect with:"
-    SUBMISSION_ID=$(echo "$SUBMIT_OUTPUT" | awk '/id:/ {print $2; exit}')
-    echo "    xcrun notarytool log $SUBMISSION_ID --keychain-profile \"$NOTARY_PROFILE\""
-    exit 1
-fi
+notary_submit "$ZIP" "App" || exit 1
 echo "  ✓ Accepted"
 echo
 
@@ -373,12 +428,7 @@ if [[ "$IS_MAIN_APP" == "1" ]]; then
     codesign --force --timestamp --sign "$DEVID_CERT_PATTERN" "$STAGED_DMG"
     codesign --verify --strict "$STAGED_DMG"
     echo "→ Notarize DMG"
-    DMG_SUBMIT=$(xcrun notarytool submit "$STAGED_DMG" --keychain-profile "$NOTARY_PROFILE" --wait 2>&1)
-    echo "$DMG_SUBMIT" | sed 's/^/  /'
-    if ! echo "$DMG_SUBMIT" | grep -q "status: Accepted"; then
-        echo "✗ DMG notarization was not accepted; packages remain unpublished." >&2
-        exit 1
-    fi
+    notary_submit "$STAGED_DMG" "DMG" || { echo "✗ Packages remain unpublished." >&2; exit 1; }
     xcrun stapler staple "$STAGED_DMG"
     xcrun stapler validate "$STAGED_DMG"
     codesign --verify --strict "$STAGED_DMG"
@@ -403,7 +453,7 @@ fi
 # 설치(sudo)는 건너뛴다 — 자격(notarytool profile)은 있으나 sudo 비번을
 # 비대화형으로 넣을 수 없는 환경이나, 배포용 산출물만 필요할 때 쓴다.
 # 결과물은 같은 공개 이름의 .dmg(첫 설치)와 .zip(앱 안 업데이트)다.
-if [[ "${PACKAGE_ONLY:-${ZIP_ONLY:-0}}" == "1" ]]; then
+if [[ "$PACKAGE_MODE" == "1" ]]; then
     unregister_build_products   # 2026-09-21 (#52): 설치를 건너뛰어도 산출물 등록은 뺀다
     echo "════════════════════════════════════════════"
     if [[ "${CANDIDATE_ONLY:-0}" == "1" ]]; then
