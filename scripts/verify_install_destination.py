@@ -28,10 +28,14 @@ def signing_team(bundle):
     return team.group(1)
 
 
-def verify_signature(bundle, team):
+def verify_signature(bundle, team, strict=True):
     requirement = f'anchor apple generic and certificate leaf[subject.OU] = "{team}"'
     # The '=' selects an inline requirement; plain -R treats its value as a file.
-    result = subprocess.run(["/usr/bin/codesign", "--verify", "--strict", "--all-architectures",
+    # 2026-11-12 (#228, review install-update-F-2): an app dragged from the DMG in Finder carries a
+    # com.apple.FinderInfo attribute, and `--strict` rejects it as "detritus" although the signature is
+    # intact. The existing installation is therefore checked without --strict; the requirement stays.
+    flags = ["--strict"] if strict else []
+    result = subprocess.run(["/usr/bin/codesign", "--verify", *flags, "--all-architectures",
                              "-R=" + requirement, str(bundle)], capture_output=True, text=True)
     if result.returncode:
         raise ValueError("app is not Apple-trusted and signed by the incoming Team")
@@ -51,7 +55,7 @@ def verify_destination(destination, incoming, expected_id):
         raise ValueError("existing and incoming bundle IDs must match the expected product")
     team = signing_team(incoming)
     verify_signature(incoming, team)
-    verify_signature(destination, team)
+    verify_signature(destination, team, strict=False)
 
 
 def main():
