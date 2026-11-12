@@ -136,9 +136,10 @@ final class TransferStub: URLProtocol, @unchecked Sendable {
         }
 
         // 실제 Updater의 실패 상태/마지막 성공 정보 보존도 확인한다.
-        let suite = "haneul.security-tests.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suite)!
-        defer { defaults.removePersistentDomain(forName: suite) }
+        // 2026-11-13 (#226, 리뷰 install-update-F-5): 고정 이름 도메인(`TestPreferenceDomains`). 끝에서도 비운다.
+        let suite = TestPreferenceDomains.security
+        let defaults = TestPreferenceDomains.fresh(suite)
+        defer { TestPreferenceDomains.clear(suite) }
         let previous = Date(timeIntervalSince1970: 1)
         defaults.set(previous, forKey: Updater.lastCheckKey)
         let session = URLSession(configuration: config)

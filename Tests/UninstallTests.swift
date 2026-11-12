@@ -120,7 +120,8 @@ import Carbon
 
     private static func fileAndPreferenceChecks(_ check: (Bool, String) -> Void) {
         let fm = FileManager.default
-        let root = URL(fileURLWithPath: fm.currentDirectoryPath).appendingPathComponent(".tmp").appendingPathComponent("HaneulRemovalTests-\(UUID().uuidString)")
+        // 2026-11-13 (#226, 리뷰 install-update-F-5): 저장소의 `.tmp` 대신 링크를 푼 시스템 임시 폴더를 쓴다.
+        guard let root = resolvedTemporaryRoot("HaneulRemovalTests") else { check(false, "임시 폴더 경로를 풀지 못함"); return }
         let id = "com.hyunjincho.inputmethod.haneul"
         let trust: (URL) -> Bool = { _ in true } // OS 서명만 대체. 제품 ID/path/inode/삭제는 실제 함수.
         func fixture(_ name: String, identifier: String = "com.hyunjincho.inputmethod.haneul") throws -> URL {
@@ -245,9 +246,10 @@ import Carbon
             check((try? Data(contentsOf: sentinel)) == Data("keep".utf8), "번들 내부 링크: 외부 파일 내용 보존")
             try fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: outside.path)
             let supportLink = root.appendingPathComponent("Application Support"); try fm.createSymbolicLink(at: supportLink, withDestinationURL: outside)
-            let suite = "haneul.removal-tests.\(UUID().uuidString)"
-            let domains = [suite + ".main", suite + ".ime", suite + ".global"]
-            defer { for name in domains { UserDefaults.standard.removePersistentDomain(forName: name) } }
+            let suite = TestPreferenceDomains.removal[0]
+            let domains = TestPreferenceDomains.removal
+            domains.forEach(TestPreferenceDomains.clear)
+            defer { domains.forEach(TestPreferenceDomains.clear) }
             let guarded = RemovalObservation.clearProductSettings(mainDomain: domains[0], inputDomain: domains[1], globalDomain: domains[2], supportURL: supportLink.appendingPathComponent("HaneulKeyboard"))
             check(!guarded.reachedGoal && fm.fileExists(atPath: sentinel.path), "설정: 부모 symlink 바깥 파일 보존")
             for name in domains { let defaults = UserDefaults(suiteName: name)!; defaults.set(["fixture"], forKey: "haneul.personalDict.force"); defaults.set(1, forKey: "haneul.fixture.v2"); defaults.synchronize() }

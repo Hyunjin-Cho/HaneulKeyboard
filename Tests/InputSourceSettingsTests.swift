@@ -4,7 +4,8 @@ import Foundation
 enum InputSourceSettingsTests {
     static func run(_ check: (Bool, String) -> Void) {
         let fm = FileManager.default
-        let root = URL(fileURLWithPath: fm.currentDirectoryPath).appendingPathComponent(".tmp/InputSourceSettingsTests-\(UUID().uuidString)")
+        // 2026-11-13 (#226, 리뷰 install-update-F-5): 저장소의 `.tmp` 대신 링크를 푼 시스템 임시 폴더를 쓴다.
+        guard let root = resolvedTemporaryRoot("InputSourceSettingsTests") else { check(false, "임시 폴더 경로를 풀지 못함"); return }
         let directory = root.appendingPathComponent(InputSourceSettingsCache.directoryName)
         let cache = directory.appendingPathComponent(InputSourceSettingsCache.fileName)
         defer { try? fm.removeItem(at: root) }

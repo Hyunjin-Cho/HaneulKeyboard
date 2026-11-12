@@ -59,6 +59,39 @@ final class UpdateReleaseStub: URLProtocol {
     override func stopLoading() {}
 }
 
+/// 2026-11-13 (#226, 리뷰 install-update-F-5): 시험이 쓰는 설정 도메인은 고정 이름이다. 예전엔 실행마다 UUID 이름을 써서
+/// `removePersistentDomain` 뒤에도 남는 빈 plist(42바이트)가 실행 횟수만큼 ~/Library/Preferences에 쌓였고(1,512개),
+/// `main`이 `exit()`로 끝나 defer가 돌지 않아 updater 계열 세 도메인은 값이 든 채 남았다. `SlashEnglishTests`(2026-11-07)와 같은 방식이다:
+/// 시작할 때 비워 앞서 중단된 실행의 값이 섞이지 않게 하고, 끝날 때 `exit` 앞에서 직접 비운다.
+/// 같은 Mac에서 이 시험을 동시에 두 번 돌리지 않는다(두 실행이 같은 도메인을 쓴다).
+enum TestPreferenceDomains {
+    static let prefix = "com.hyunjincho.haneulkeyboard."
+    static let updater = prefix + "updater-tests"
+    static let inline = prefix + "updater-inline-tests"
+    static let offDuringCheck = prefix + "updater-off-during-check"
+    static let security = prefix + "update-security-tests"
+    static let removal = [prefix + "removal-tests.main", prefix + "removal-tests.ime", prefix + "removal-tests.global"]
+    static var all: [String] { [updater, inline, offDuringCheck, security] + removal }
+
+    /// 지운 뒤 같은 이름으로 새로 만든 저장소를 돌려준다.
+    static func fresh(_ name: String) -> UserDefaults {
+        clear(name)
+        return UserDefaults(suiteName: name)!
+    }
+    static func clear(_ name: String) {
+        UserDefaults(suiteName: name)?.removePersistentDomain(forName: name)
+    }
+    static func clearAll() { all.forEach(clear) }
+}
+
+/// 2026-11-13 (#226, 리뷰 install-update-F-5): 임시 번들은 현재 폴더의 `.tmp`가 아니라 시스템 임시 폴더의 실제 경로(`/var` → `/private/var`)에 만든다.
+/// 저장소 루트가 아닌 곳에서 돌려도 대상 저장소에 흔적을 남기지 않는다. 경로 검사가 조상 링크를 거부하므로 링크를 푼 경로를 쓴다.
+func resolvedTemporaryRoot(_ name: String) -> URL? {
+    guard let resolved = realpath(FileManager.default.temporaryDirectory.path, nil) else { return nil }
+    defer { free(resolved) }
+    return URL(fileURLWithPath: String(cString: resolved)).appendingPathComponent("\(name)-\(UUID().uuidString)")
+}
+
 @main @MainActor enum UpdaterTests {
     static var passed = 0
     static var failed = 0
@@ -67,9 +100,9 @@ final class UpdateReleaseStub: URLProtocol {
     }
 
     static func main() async {
-        let suite = "haneul.updater-tests.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suite)!
-        defer { defaults.removePersistentDomain(forName: suite) }
+        TestPreferenceDomains.clearAll()
+        let suite = TestPreferenceDomains.updater
+        let defaults = TestPreferenceDomains.fresh(suite)
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [UpdateReleaseStub.self]
         let session = URLSession(configuration: config)
@@ -175,9 +208,7 @@ final class UpdateReleaseStub: URLProtocol {
         check(notices.last == "2099.5", "창 연결 후 안내 가능")
 
         // 2026-10-24: 버전·업데이트의 직접 확인은 화면에 결과를 남기고 팝업을 겹쳐 띄우지 않는다.
-        let inlineSuite = "haneul.updater-inline-tests.\(UUID().uuidString)"
-        let inlineDefaults = UserDefaults(suiteName: inlineSuite)!
-        defer { inlineDefaults.removePersistentDomain(forName: inlineSuite) }
+        let inlineDefaults = TestPreferenceDomains.fresh(TestPreferenceDomains.inline)
         var inlineNotices: [String] = []
         var inlineUpdater = Updater(defaults: inlineDefaults, session: session, now: { clock })
         inlineUpdater.onUpdateAvailable = { inlineNotices.append($0.tag) }
@@ -203,9 +234,7 @@ final class UpdateReleaseStub: URLProtocol {
         check(inlineNotices == ["2099.7"], "다른 새 버전의 자동 알림은 유지")
 
         // 2026-10-25 (#83): 조회 중 알림을 OFF로 바꾸면 늦은 응답도 창을 띄우지 않는다.
-        let offDuringCheckSuite = "haneul.updater-off-during-check.\(UUID().uuidString)"
-        let offDuringCheckDefaults = UserDefaults(suiteName: offDuringCheckSuite)!
-        defer { offDuringCheckDefaults.removePersistentDomain(forName: offDuringCheckSuite) }
+        let offDuringCheckDefaults = TestPreferenceDomains.fresh(TestPreferenceDomains.offDuringCheck)
         let offDuringCheckUpdater = Updater(defaults: offDuringCheckDefaults, session: session, now: { clock })
         var offDuringCheckNotices: [String] = []
         offDuringCheckUpdater.onUpdateAvailable = { offDuringCheckNotices.append($0.tag) }
@@ -267,6 +296,8 @@ final class UpdateReleaseStub: URLProtocol {
         UninstallTests.run { check($0, $1) }
         InputSourceSettingsTests.run { check($0, $1) }
         await InstallFlowTests.run { check($0, $1) }
+        // `exit`는 defer를 돌리지 않는다. 시험 도메인은 여기서 직접 비운다.
+        TestPreferenceDomains.clearAll()
         print("Updater: \(passed) passed, \(failed) failed")
         exit(failed == 0 ? 0 : 1)
     }
