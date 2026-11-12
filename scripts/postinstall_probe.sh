@@ -46,7 +46,9 @@ done
 echo "■ 2. 서명·Gatekeeper·staple"
 for b in "$APP" "$IME"; do
   [ -d "$b" ] || continue
-  if codesign --verify --deep --strict "$b" 2>/dev/null; then ok "codesign  $b"; else ng "codesign  $b"; fi
+  # 2026-11-12 (#228, 리뷰 install-update-F-2): DMG에서 Finder로 끌어 설치한 앱에는 FinderInfo 속성이 붙어
+  # --strict가 서명이 멀쩡해도 'detritus'로 실패한다(설치본에서 확인). 설치본 점검은 --strict 없이 한다.
+  if codesign --verify --deep "$b" 2>/dev/null; then ok "codesign  $b"; else ng "codesign  $b"; fi
   if spctl -a -t exec "$b" 2>/dev/null; then ok "Gatekeeper $b"; else ng "Gatekeeper $b (노타리 미완?)"; fi
 done
 # staple은 최상위 앱에만 붙는다(내부 IME 번들은 별도 staple 불가).

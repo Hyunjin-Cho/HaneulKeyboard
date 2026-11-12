@@ -52,6 +52,18 @@ class DestinationTests(unittest.TestCase):
             self.assertIn('-R=anchor apple generic and certificate leaf[subject.OU] = "ABCDEFGHIJ"', call)
         self.assert_preserved()
 
+    def test_existing_install_is_checked_without_strict_detritus_rule(self):
+        # 2026-11-12 (#228, 리뷰 install-update-F-2): Finder로 DMG에서 끌어 설치한 앱 폴더에는 FinderInfo 속성이 붙어
+        # `codesign --strict`가 'Finder information … not allowed'로 실패한다(이 Mac의 설치본에서 확인). 서명·Team 요구는 그대로 두고
+        # 기존 설치본 검사에서만 --strict를 뺀다. 새로 만든 incoming은 지금처럼 --strict.
+        self.verify()
+        incoming_call, existing_call = self.calls[1], self.calls[2]
+        self.assertIn(str(self.incoming), incoming_call)
+        self.assertIn("--strict", incoming_call)
+        self.assertIn(str(self.existing), existing_call)
+        self.assertNotIn("--strict", existing_call)
+        self.assertIn('-R=anchor apple generic and certificate leaf[subject.OU] = "ABCDEFGHIJ"', existing_call)
+
     def test_clean_install_needs_no_existing_signature(self):
         self.existing = self.root / "absent.app"
         self.verify()

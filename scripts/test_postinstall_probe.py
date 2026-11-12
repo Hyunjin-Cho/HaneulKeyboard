@@ -44,4 +44,22 @@ for name, fixture, passed, failed in cache_fixtures:
     assert f"── 집계: ✓ {passed} / ✗ {failed}" in result.stdout, (name, result.stdout, result.stderr)
     assert result.returncode == (1 if failed else 0), (name, result.returncode, result.stdout)
     print(f"PASS: {name} — ✓ {passed} / ✗ {failed}, exit {result.returncode}")
-print(f"Postinstall probe: {len(fixtures) + len(cache_fixtures)} passed, 0 failed")
+# 2026-11-12 (#228, 리뷰 install-update-F-2): DMG에서 Finder로 설치한 앱(FinderInfo 속성)은 `codesign --strict`만 실패한다.
+# 가짜 codesign(인자에 --strict가 있으면 실패)으로 2번 블록을 돌려, 정상 설치본이 ✗로 세어지지 않는지 고정한다.
+import tempfile
+signing = source[source.index('echo "■ 2.'):source.index("# 3·4는")]
+with tempfile.TemporaryDirectory(prefix="haneul-probe-sign-") as work:
+    bin_dir = Path(work, "bin"); bin_dir.mkdir()
+    for tool, body in (("codesign", 'for a in "$@"; do [ "$a" = "--strict" ] && exit 1; done; exit 0'),
+                       ("spctl", "exit 0"), ("xcrun", "exit 0")):
+        path = bin_dir / tool
+        path.write_text("#!/bin/bash\n" + body + "\n"); path.chmod(0o755)
+    app, ime = Path(work, "HaneulKeyboard.app"), Path(work, "HaneulKeyboardIM.app")
+    app.mkdir(); ime.mkdir()
+    sign_script = "set -uo pipefail\n" + counters + "\n" + signing + summary
+    result = subprocess.run(["/bin/bash", "-c", sign_script], capture_output=True, text=True,
+                            env={**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "APP": str(app), "IME": str(ime)})
+    assert "── 집계: ✓ 5 / ✗ 0" in result.stdout, ("finder-installed signature", result.stdout, result.stderr)
+    assert result.returncode == 0, ("finder-installed signature", result.returncode)
+    print("PASS: Finder 설치본(FinderInfo) 서명 — ✓ 5 / ✗ 0, exit 0")
+print(f"Postinstall probe: {len(fixtures) + len(cache_fixtures) + 1} passed, 0 failed")

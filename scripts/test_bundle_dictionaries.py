@@ -107,12 +107,16 @@ def fake_ime(root, executable, drop=None, stale=None):
     return root / "HaneulKeyboardIM.app"
 
 
-def fake_app(root, executable, **ime):
+def fake_app(root, executable, drop_license=None, **ime):
     app = root / "HaneulKeyboard.app"
     resources = app / "Contents/Resources"
     resources.mkdir(parents=True)
     for name, source in FILES.items():
         (resources / name).write_bytes(source.read_bytes())
+    # 2026-11-12 (#228): 메인 앱에는 글꼴 OFL 사본도 실린다(verify_license_resources가 같은 바이트인지 본다).
+    for source in sorted((ROOT / "Resources/Onboarding").glob("*-OFL.txt")):
+        if source.name != drop_license:
+            (resources / source.name).write_bytes(source.read_bytes())
     helpers = app / "Contents/Helpers"
     helpers.mkdir()
     fake_ime(helpers, executable, **ime)
@@ -137,6 +141,7 @@ def check_verifier():
 
         check(verifies(fake_ime(fresh("ok-ime"), benign)), "검증: 온전한 입력기 통과")
         check(verifies(fake_app(fresh("ok-app"), benign)), "검증: 온전한 앱 + 내장 입력기 통과")
+        check(not verifies(fake_app(fresh("no-ofl-app"), benign, drop_license="MaruBuri-OFL.txt")), "검증: 앱에 글꼴 OFL 사본이 없으면 실패")
         check(not verifies(fake_ime(fresh("no-table"), benign, drop="english_bundled.txt")), "검증: 입력기에 표가 없으면 실패")
         check(not verifies(fake_app(fresh("no-table-app"), benign, drop="english_bundled.txt")), "검증: 내장 입력기에 표가 없으면 실패")
         check(not verifies(fake_ime(fresh("stale"), benign, stale="english_bundled.txt")), "검증: 낡은 표면 실패")

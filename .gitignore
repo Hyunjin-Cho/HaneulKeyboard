@@ -47,6 +47,8 @@ WORKLOG.md
 /HaneulKeyboard-설치.zip
 /HaneulKeyboard_*.zip
 /HaneulKeyboard_*.dmg
+# 2026-11-12 (#228): 빌드 스크립트가 루트에 쓰는 해시 파일(.zip.sha256·.dmg.sha256)도 커밋하지 않는다.
+/HaneulKeyboard_*.sha256
 /.tools/
 /HaneulKeyboard.app
 

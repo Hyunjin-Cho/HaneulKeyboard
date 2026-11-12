@@ -12,6 +12,12 @@ python3 scripts/test_bundle_dictionaries.py
 # 실제로 잡는지(일부러 URLSession·소켓·Network.framework를 쓴 작은 실행 파일로 대조), 공개 문서의 상대 링크가 추적 파일을 가리키는지.
 python3 scripts/test_ime_no_network.py
 python3 scripts/check_doc_links.py
+# 2026-11-12 (#228): 배포 스크립트의 정식 버전·빌드 번호·모드 값·공증 실패 안내 구간을 실제 bash로 돌린다(서명·공증 없음).
+python3 scripts/test_build_release_gates.py
+# 2026-11-12 (#228): 글꼴마다 OFL 사본이 짝으로 있는지 검사하는 함수의 대조군.
+python3 scripts/test_font_licenses.py
+# 2026-11-12 (#228): 문서 링크 검사기의 대조군(HTML 속성·참조식 링크까지).
+python3 scripts/test_doc_links.py
 
 BIN="$(mktemp -d)/haneul_ime_tests"
 
