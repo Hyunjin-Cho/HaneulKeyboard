@@ -42,9 +42,10 @@ release_build_increases() {   # $1 = 새 빌드 번호, $2 = 직전 공개 릴�
 }
 previous_release_build() {   # 직전 공개 릴리스 태그(2026.07 · 2026.11.04 · …_hotfixN)의 project.yml 빌드 번호. 못 찾으면 빈 값.
     local root="${1:-.}" tag
-    tag=$(git -C "$root" tag --list | grep -E '^[0-9]{4}\.[0-9]{2}(\.[0-9]{2}(_hotfix[1-9][0-9]{0,2})?)?$' | sort -V | tail -1)
+    # 태그가 없으면 grep이 1로 끝난다 — set -euo pipefail 아래에서 스크립트가 통째로 멈추지 않게 || true.
+    tag=$(git -C "$root" tag --list | grep -E '^[0-9]{4}\.[0-9]{2}(\.[0-9]{2}(_hotfix[1-9][0-9]{0,2})?)?$' | sort -V | tail -1 || true)
     [[ -n "$tag" ]] || return 0
-    git -C "$root" show "$tag:project.yml" 2>/dev/null \
+    { git -C "$root" show "$tag:project.yml" 2>/dev/null || true; } \
         | sed -nE 's/^[[:space:]]*CURRENT_PROJECT_VERSION:[[:space:]]*"?([0-9]+)"?.*/\1/p' | head -1
 }
 # 리뷰 build-release-docs-F-3: `X=$(notarytool …)`가 set -e 아래 비-0이면 출력·제출 ID·안내 없이 스크립트가 끝났다.
