@@ -5,6 +5,8 @@
 GitHub에서 열었을 때 깨진 링크가 된다(리뷰 docs-license-F-3). 링크 대상은 **추적 중인 파일이나 폴더**여야 한다.
 
 무엇을 본다: `git ls-files`의 .md 문서 안 `[글](상대경로)` 링크. http(s)·mailto·`#쪽지`만 있는 링크는 보지 않는다.
+2026-11-12 (#228, 리뷰 build-release-docs-F-6): README 배너처럼 HTML 속성(`<img src="…">`·`<a href="…">`)으로 건 경로와
+참조식 링크 정의(`[이름]: 경로`)도 본다 — 예전에는 `[글](경로)` 꼴만 봐서 HTML 이미지가 깨져도 통과했다.
 무엇을 안 본다: 코드 블록 안의 글, 링크 아닌 백틱 경로 표기, 실제 쪽지(#anchor) 존재 여부.
 Resources/IM·LICENSES 아래 데이터·원문 고지는 문서가 아니라서 훑지 않는다.
 
@@ -22,6 +24,8 @@ from pathlib import Path
 sys.dont_write_bytecode = True
 
 LINK = re.compile(r'\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)')
+HTML_ATTR = re.compile(r"""\b(?:src|href)\s*=\s*(?:"([^"]+)"|'([^']+)')""", re.IGNORECASE)
+REFERENCE = re.compile(r'^\s{0,3}\[[^\]]+\]:\s*<?([^\s>]+)>?')
 SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 SKIP_PREFIXES = ("Resources/IM/", "LICENSES/")
 
@@ -57,17 +61,21 @@ def broken_links(root: Path, files):
                 continue
             if in_fence:
                 continue
-            for match in LINK.finditer(line):
-                target = match.group(1)
-                if SCHEME.match(target) or target.startswith("#"):
+            targets = [match.group(1) for match in LINK.finditer(line)]
+            targets += [match.group(1) or match.group(2) for match in HTML_ATTR.finditer(line)]
+            reference = REFERENCE.match(line)
+            if reference:
+                targets.append(reference.group(1))
+            for original in targets:
+                if SCHEME.match(original) or original.startswith("#"):
                     continue
-                target = target.split("#")[0].split("?")[0]
+                target = original.split("#")[0].split("?")[0]
                 if not target:
                     continue
                 checked += 1
                 resolved = os.path.normpath(os.path.join(os.path.dirname(name), target))
                 if resolved not in tracked and resolved not in folders:
-                    broken.append((name, number, match.group(1)))
+                    broken.append((name, number, original))
     return checked, broken
 
 

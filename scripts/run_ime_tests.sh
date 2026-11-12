@@ -16,6 +16,8 @@ python3 scripts/check_doc_links.py
 python3 scripts/test_build_release_gates.py
 # 2026-11-12 (#228): 글꼴마다 OFL 사본이 짝으로 있는지 검사하는 함수의 대조군.
 python3 scripts/test_font_licenses.py
+# 2026-11-12 (#228): 문서 링크 검사기의 대조군(HTML 속성·참조식 링크까지).
+python3 scripts/test_doc_links.py
 
 BIN="$(mktemp -d)/haneul_ime_tests"
 
