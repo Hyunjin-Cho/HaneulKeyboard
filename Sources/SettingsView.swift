@@ -6,37 +6,7 @@ extension Notification.Name {
     static let haneulMenuBarIconChanged = Notification.Name("haneul.menuBarIconChanged")
 }
 
-/// 2026-10-11 (#88): 일반을 정리한 메뉴. 응원하기는 본문 선택과 별도인 버튼이다.
-/// 2026-11-07 오너(#189): 「입력 기능」을 자동 변환과 단축키·슬래시로 나눠 다섯 메뉴가 됐다. 저장 값은 그대로다.
-enum SettingsTab: Hashable, CaseIterable, Identifiable {
-    case automatic
-    case shortcuts
-    case personalDictionary
-    case update
-    case appManagement
-
-    var id: Self { self }
-
-    var title: String {
-        switch self {
-        case .automatic: return "자동 변환"
-        case .shortcuts: return "단축키·슬래시"
-        case .personalDictionary: return "개인 사전"
-        case .update: return "설치·업데이트"
-        case .appManagement: return "앱 관리"
-        }
-    }
-
-    var symbol: String {
-        switch self {
-        case .automatic: return "wand.and.stars"
-        case .shortcuts: return "command"
-        case .personalDictionary: return "character.book.closed"
-        case .update: return "arrow.down.circle"
-        case .appManagement: return "wrench.and.screwdriver"
-        }
-    }
-}
+// 2026-11-13 (#227, 리뷰 app-ui-F-10): 메뉴 목록 `SettingsTab`은 `AppUIDecisions.swift`로 옮겼다(설정을 어느 메뉴로 열지 시험하려고).
 
 /// 2026-10-10 (#88): 왼쪽 메뉴 160pt + 기존 본문 너비를 확보한 설정 창.
 /// 2026-11-05 (#135): 그림이 창 맨 위까지 올라가게 제목 막대를 겹쳤다. 660 + 제목 막대 28 = 전체 688이라 창 크기는 그대로다.

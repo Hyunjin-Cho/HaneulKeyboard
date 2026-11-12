@@ -124,8 +124,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     /// 2026-11-05 (#142): 메뉴바 아이콘에 기대지 않는다(HIG "Avoid relying on the presence of menu bar extras").
     /// macOS 26부터 사용자가 시스템 설정 → 메뉴 막대에서 아이콘을 끌 수 있다. 실행 중에 앱을 다시 열면 설정으로 안내한다.
     /// 2026-11-06 (#154): 설정에서 아이콘을 꺼 둔 상태라면 다시 켜는 항목이 있는 앱 관리로 바로 간다.
+    /// 2026-11-13 (#227, 리뷰 app-ui-F-4): 설치가 필요하면 「설치·업데이트」로 연다(`SettingsEntryDecision`, 아이콘을 껐으면 종전대로 앱 관리).
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        if !flag { showSettings(tab: menuBarIconVisible ? nil : .appManagement) }
+        if !flag { showSettings(tab: preferredSettingsTab) }
         return true
     }
 
@@ -218,16 +219,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         let presentation = IMEStatusPresentation.resolve(
             statusKnown: core.imeStatusKnown, busy: core.isPreparingIME,
             installed: core.imeInstalled, disabled: core.imeDisabled)
+        // 2026-11-13 (#227, 리뷰 app-ui-F-4): 미설치 줄도 누를 수 있다 — 설정의 「설치·업데이트」를 연다. 예전엔 회색 줄이라 막다른 길이었다.
+        // 줄을 만들 때 동작만 다르게 준다(열린 메뉴는 고치지 않는다는 #201 원칙과 무관).
         if presentation != .checking, let title = presentation.menuTitle {
-            let imeItem = add(menu, title, #selector(reenableIME))
-            imeItem.isEnabled = presentation == .disabled
-            if presentation != .disabled { imeItem.action = nil }
+            switch presentation.menuAction {
+            case .reenable: add(menu, title, #selector(reenableIME))
+            case .openInstallSettings: add(menu, title, #selector(openInstallSettings))
+            case .none:
+                let item = add(menu, title, #selector(reenableIME))
+                item.isEnabled = false
+                item.action = nil
+            }
             hasNotice = true
         }
         // 2026-10-24: 메뉴와 알림 모두 기존 버전·업데이트 화면으로 안내한다.
-        if case .available(let update) = core.updater.phase {
-            add(menu, "새 버전 \(update.tag) — \(SettingsTab.update.title)…", #selector(openUpdateSettings))
-            hasNotice = true
+        // 2026-11-13 (#227, 리뷰 app-ui-F-2): 앱을 다시 켜 저장된 최신 번호만 남은 때도 같은 줄을 보인다(설정의 판단과 같다).
+        let update = core.updater.presentation
+        if update.showsMenuNotice {
+            let version: String? = if case .available(let available) = core.updater.phase { available.tag } else { core.updater.latestVersion }
+            if let version {
+                add(menu, UpdateStatusPresentation.menuTitle(version: version), #selector(openUpdateSettings))
+                hasNotice = true
+            }
         }
         if hasNotice { menu.addItem(.separator()) }
 
@@ -277,7 +290,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     }
 
     @objc private func openSettings() {
-        showSettings(tab: nil)
+        // 2026-11-13 (#227, 리뷰 app-ui-F-4): 설치가 필요하면 마지막 메뉴(처음엔 자동 변환) 대신 설치 버튼이 있는 곳으로 연다.
+        showSettings(tab: preferredSettingsTab)
+    }
+
+    @objc private func openInstallSettings() {
+        showSettings(tab: .update)
+    }
+
+    /// 메뉴 `설정…`·앱 다시 열기에서 처음 보일 메뉴. nil이면 마지막으로 본 메뉴.
+    private var preferredSettingsTab: SettingsTab? {
+        SettingsEntryDecision.preferredTab(
+            imeStatus: .resolve(statusKnown: core.imeStatusKnown, busy: core.isPreparingIME,
+                                installed: core.imeInstalled, disabled: core.imeDisabled),
+            refreshNeeded: core.imeRefreshNeeded, iconVisible: menuBarIconVisible)
     }
 
     @objc private func openUpdateSettings() {

@@ -11,10 +11,9 @@ struct InputMethodSettingsSection: View {
     @State private var operationError: String?
 
     /// 2026-11-07 (#177, 리뷰 app-ui-F-1): 읽기 전·작업 중에는 캐시된 false를 "설치되어 있지 않아요"로 말하지 않는다.
-    private var imeStatus: IMEStatusPresentation {
-        .resolve(statusKnown: core.imeStatusKnown, busy: core.isPreparingIME,
-                 installed: core.imeInstalled, disabled: core.imeDisabled)
-    }
+    /// 2026-11-13 (#227, 리뷰 app-ui-F-3·F-10): 무엇을 보일지(상태·버튼)는 `InputMethodSectionPresentation`이 정한다.
+    /// 아래 「버전·업데이트」의 갱신 안내가 같은 판단으로 버튼 이름을 고른다.
+    private var presentation: InputMethodSectionPresentation { core.inputMethodSection }
 
     private var isBusy: Bool {
         if core.isPreparingIME { return true }
@@ -27,7 +26,8 @@ struct InputMethodSettingsSection: View {
     // 2026-11-13 (#227, 리뷰 app-ui-F-5): 시스템 초록·주황·빨강 글자는 밝은 화면에서 대비가 2~3.6:1이었다. 같은 계열의 진한 상태색(`FeedbackStatus`, 4.5:1 이상)을 쓴다.
     var body: some View {
         HaneulSettingsSection("한글 입력기") {
-            if core.imeInstalled {
+            switch presentation.status {
+            case .installed:
                 Label("한글 입력기가 설치되어 있어요.", systemImage: "checkmark.circle.fill")
                     .font(SettingsTypography.status)
                     .foregroundStyle(FeedbackStatus.success.adaptiveColor)
@@ -37,22 +37,24 @@ struct InputMethodSettingsSection: View {
                         .font(SettingsTypography.status)
                         .foregroundStyle(FeedbackStatus.pending.adaptiveColor)
                 }
-            } else if imeStatus == .checking {
+            case .checking:
                 Label("한글 입력기 상태를 확인하고 있어요.", systemImage: "hourglass")
                     .font(SettingsTypography.status)
                     .foregroundStyle(.secondary)
-            } else {
-                Label(core.imeDisabled
+            case .disabled, .notInstalled:
+                Label(presentation.status == .disabled
                     ? "시스템 입력 소스에서 하늘키보드가 꺼져 있어요."
                     : "한글 입력기가 설치되어 있지 않아요.",
                     systemImage: "exclamationmark.triangle.fill")
                     .font(SettingsTypography.status)
                     .foregroundStyle(FeedbackStatus.pending.adaptiveColor)
-                Text("‘입력기 설치’를 누른 뒤, 시스템 설정에서 입력 소스로 추가해 주세요.")
+                Text("‘\(InputMethodSectionPresentation.installButtonTitle)’를 누른 뒤, 시스템 설정에서 입력 소스로 추가해 주세요.")
                     .font(SettingsTypography.body)
                     .foregroundStyle(.secondary)
                     .help("~/Library/Input Methods/에 설치돼요.")
-                Button(maru: "입력기 설치") {
+            }
+            if presentation.showsInstallButton {
+                Button(maru: InputMethodSectionPresentation.installButtonTitle) {
                     Task {
                         operationError = nil
                         if let error = await core.installIME() {
@@ -98,8 +100,8 @@ struct InputMethodSettingsSection: View {
                 .disabled(isBusy)
                 Spacer()
                 // 앱을 시작할 때 사용자 폴더의 낡은 입력기는 저절로 바뀐다(`AppCore.ensureIMEActive`). 그게 실패했을 때만 보인다.
-                if core.imeInstalled, core.imeRefreshNeeded, !core.imeRefreshBlockedBySystemInstall {
-                    Button(maru: "입력기 업데이트") {
+                if presentation.showsUpdateButton {
+                    Button(maru: InputMethodSectionPresentation.updateButtonTitle) {
                         Task {
                             operationError = nil
                             if let error = await core.installIME() {
@@ -112,5 +114,13 @@ struct InputMethodSettingsSection: View {
                 }
             }
         }
+    }
+}
+
+extension AppCore {
+    /// 2026-11-13 (#227, 리뷰 app-ui-F-3): 「한글 입력기」 구획과 「버전·업데이트」의 갱신 안내가 함께 쓰는 판단.
+    var inputMethodSection: InputMethodSectionPresentation {
+        .resolve(statusKnown: imeStatusKnown, busy: isPreparingIME, installed: imeInstalled, disabled: imeDisabled,
+                 refreshNeeded: imeRefreshNeeded, blockedBySystemInstall: imeRefreshBlockedBySystemInstall)
     }
 }

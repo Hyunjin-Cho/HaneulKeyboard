@@ -210,6 +210,113 @@ func runStatusContrastTests() {
     expect(strays.isEmpty, "시스템 초록·주황·빨강 글자 없음 \(strays)")
 }
 
+// MARK: - 설치·업데이트 탭·메뉴의 상태 판단 (2026-11-13 #227, 리뷰 app-ui-F-2·F-3·F-4·F-10)
+
+func runInstallUpdatePresentationTests() {
+    typealias S = InputMethodSectionPresentation
+    let bools = [false, true]
+    // 갱신 안내는 위 구획에 실제로 보이는 버튼만 가리킨다(F-3). 모든 상태 조합을 돈다.
+    for known in bools { for busy in bools { for installed in bools { for disabled in bools {
+        for refresh in bools { for blocked in bools where !blocked || refresh {
+            let section = S.resolve(statusKnown: known, busy: busy, installed: installed, disabled: disabled,
+                                    refreshNeeded: refresh, blockedBySystemInstall: blocked)
+            let label = "known=\(known) busy=\(busy) installed=\(installed) disabled=\(disabled) refresh=\(refresh) blocked=\(blocked)"
+            let notice = section.refreshNotice(refreshNeeded: refresh, blockedBySystemInstall: blocked)
+            expectEqual(notice != nil, refresh, "갱신 안내는 낡았을 때만: \(label)")
+            if let notice {
+                if notice.contains("‘\(S.updateButtonTitle)’") { expect(section.showsUpdateButton, "안내가 가리킨 업데이트 버튼이 보인다: \(label)") }
+                if notice.contains("‘\(S.installButtonTitle)’") { expect(section.showsInstallButton, "안내가 가리킨 설치 버튼이 보인다: \(label)") }
+            }
+            expect(!(section.showsInstallButton && section.showsUpdateButton), "두 버튼이 함께 보이지 않는다: \(label)")
+            if section.status == .checking { expect(!section.showsInstallButton && !section.showsUpdateButton, "확인 중에는 버튼 없음: \(label)") }
+        }}
+    }}}}
+    // 리뷰 재현: 입력 소스가 꺼진 채 사용자 폴더 입력기가 낡음 → 위에는 `입력기 설치`만 있다.
+    let disabledStale = S.resolve(statusKnown: true, busy: false, installed: false, disabled: true, refreshNeeded: true, blockedBySystemInstall: false)
+    expectEqual(disabledStale.status, .disabled, "꺼짐 + 낡음 = 꺼짐")
+    expect(disabledStale.refreshNotice(refreshNeeded: true, blockedBySystemInstall: false)?.contains("‘입력기 설치’") == true,
+           "꺼짐 + 낡음: 안내가 `입력기 설치`를 가리킨다")
+    let stale = S.resolve(statusKnown: true, busy: false, installed: true, disabled: false, refreshNeeded: true, blockedBySystemInstall: false)
+    expect(stale.showsUpdateButton && stale.refreshNotice(refreshNeeded: true, blockedBySystemInstall: false)?.contains("‘입력기 업데이트’") == true,
+           "설치됨 + 낡음: `입력기 업데이트`")
+    let system = S.resolve(statusKnown: true, busy: false, installed: true, disabled: false, refreshNeeded: true, blockedBySystemInstall: true)
+    expect(!system.showsUpdateButton && system.refreshNotice(refreshNeeded: true, blockedBySystemInstall: true)?.contains("전체 제거") == true,
+           "시스템 폴더 입력기: 버튼 없이 전체 제거 안내")
+    expectEqual(S.resolve(statusKnown: false, busy: false, installed: false, disabled: false, refreshNeeded: false, blockedBySystemInstall: false).status,
+                .checking, "읽기 전 = 확인 중")
+    // 화면이 버튼 이름을 이 상수에서 가져오는지(문자열이 갈라지면 안내가 다시 없는 버튼을 가리킨다).
+    let section = readSource("Sources/InputMethodSettingsSection.swift") ?? ""
+    expect(section.contains("Button(maru: InputMethodSectionPresentation.installButtonTitle)")
+           && section.contains("Button(maru: InputMethodSectionPresentation.updateButtonTitle)"), "입력기 버튼 이름은 상수에서")
+    let updateSection = readSource("Sources/UpdateSettingsSection.swift") ?? ""
+    expect(updateSection.contains("refreshNotice(") && !updateSection.contains("위 ‘입력기 업데이트’"), "갱신 안내 문장은 판단 함수에서")
+
+    // 업데이트 상태 줄과 메뉴 줄(F-2).
+    typealias U = UpdateStatusPresentation
+    let phases: [UpdatePhaseKind] = [.idle, .checking, .upToDate, .available, .downloading, .verifying, .installing, .failed]
+    let orders: [ComparisonResult?] = [nil, .orderedAscending, .orderedSame, .orderedDescending]
+    for phase in phases {
+        for order in orders {
+            let p = U.resolve(phase: phase, storedLatestOrder: order)
+            let label = "\(phase) \(order.map { "\($0.rawValue)" } ?? "nil")"
+            expectEqual(p.showsInstallButton, p.line == .newVersion, "새 버전 줄에는 설치 버튼이 함께 있다: \(label)")
+            expectEqual(p.showsMenuNotice, p.line == .newVersion, "메뉴 줄은 새 버전일 때만: \(label)")
+            if p.installRechecksFirst { expectEqual(phase, .idle, "다시 묻고 설치는 재실행 뒤 상태에서만: \(label)") }
+            if phase == .upToDate { expectEqual(p.line, .none, "최신이면 숫자 두 줄로 충분(#201): \(label)") }
+        }
+    }
+    // 리뷰 재현: 알림을 '나중에'로 닫고 앱을 다시 켰다 — 저장된 최신 번호가 더 크다.
+    let relaunched = U.resolve(phase: .idle, storedLatestOrder: .orderedAscending)
+    expect(relaunched.line == .newVersion && relaunched.showsInstallButton && relaunched.installRechecksFirst && relaunched.showsMenuNotice,
+           "재실행 뒤에도 설치 버튼과 메뉴 줄이 보이고, 누르면 다시 물은 뒤 설치")
+    let fresh = U.resolve(phase: .available, storedLatestOrder: .orderedAscending)
+    expect(fresh.showsInstallButton && !fresh.installRechecksFirst, "막 확인한 새 버전은 바로 설치")
+    expectEqual(U.resolve(phase: .idle, storedLatestOrder: nil).line, .none, "확인 전에는 상태 줄 없음")
+    expectEqual(U.resolve(phase: .idle, storedLatestOrder: .orderedDescending).line, .none, "설치본이 더 새로우면 상태 줄 없음")
+    expectEqual(U.resolve(phase: .failed, storedLatestOrder: .orderedAscending).line, .failed, "오류는 오류로")
+    expectEqual(U.menuTitle(version: "2026.11.20"), "새 버전 2026.11.20 — 설치·업데이트…", "메뉴 줄 글자")
+
+    // 메뉴의 입력기 줄(F-4): 미설치 줄도 눌러서 설치 칸으로 간다.
+    typealias I = IMEStatusPresentation
+    expectEqual(I.notInstalled.menuAction, .openInstallSettings, "미설치 줄을 누르면 설치 칸")
+    expectEqual(I.disabled.menuAction, .reenable, "꺼짐 줄을 누르면 다시 켜기")
+    expectEqual(I.ready.menuAction, .none, "정상 = 줄 없음")
+    expectEqual(I.checking.menuAction, .none, "확인 중 = 줄 없음")
+    let app = readSource("Sources/HaneulKeyboardApp.swift") ?? ""
+    expect(app.contains("presentation.menuAction") && app.contains("#selector(openInstallSettings)"), "메뉴가 입력기 줄 동작을 판단 함수에서 고른다")
+    expect(app.contains("showsMenuNotice"), "메뉴의 새 버전 줄도 같은 판단을 쓴다")
+
+    // `설정…`·다시 열기에서 처음 보일 메뉴(F-4·F-8).
+    typealias E = SettingsEntryDecision
+    expectEqual(E.preferredTab(imeStatus: .notInstalled, refreshNeeded: false, iconVisible: true), .update, "미설치면 설치·업데이트로")
+    expectEqual(E.preferredTab(imeStatus: .ready, refreshNeeded: true, iconVisible: true), .update, "입력기가 낡았으면 설치·업데이트로")
+    expectEqual(E.preferredTab(imeStatus: .ready, refreshNeeded: false, iconVisible: true), nil, "정상이면 마지막 메뉴")
+    expectEqual(E.preferredTab(imeStatus: .disabled, refreshNeeded: false, iconVisible: true), nil, "꺼짐은 메뉴의 다시 켜기가 맡는다")
+    expectEqual(E.preferredTab(imeStatus: .checking, refreshNeeded: true, iconVisible: true), nil, "확인 중에는 정하지 않는다")
+    expectEqual(E.preferredTab(imeStatus: .notInstalled, refreshNeeded: false, iconVisible: false), .appManagement, "아이콘을 껐으면 앱 관리(#154)")
+
+    // 안내 1페이지 설치 칸 문장(옮기기 전과 같은 문장).
+    typealias O = OnboardingInstallPanel
+    expectEqual(O.statusText(panel: .checking, blockedBySystemInstall: false, refreshNeeded: false, disabled: false), "설치 상태를 확인하고 있어요", "안내 설치 칸: 확인 중")
+    expectEqual(O.statusText(panel: .ready, blockedBySystemInstall: false, refreshNeeded: false, disabled: false), "설치 완료", "안내 설치 칸: 완료")
+    expect(O.statusText(panel: .actionNeeded, blockedBySystemInstall: true, refreshNeeded: true, disabled: false).contains("지우고 다시 설치"), "안내 설치 칸: 시스템 폴더")
+    expect(O.statusText(panel: .actionNeeded, blockedBySystemInstall: false, refreshNeeded: true, disabled: true).contains("업데이트"), "안내 설치 칸: 낡음이 꺼짐보다 먼저")
+    expect(O.statusText(panel: .actionNeeded, blockedBySystemInstall: false, refreshNeeded: false, disabled: true).contains("다시 켜"), "안내 설치 칸: 꺼짐")
+    expect(O.statusText(panel: .actionNeeded, blockedBySystemInstall: false, refreshNeeded: false, disabled: false).contains("오른쪽 버튼"), "안내 설치 칸: 미설치")
+
+    // 안내 연습의 꺼진 기능 경고와 `설정 열기`가 가는 곳.
+    typealias L = OnboardingLesson
+    expect(L.automatic.isDisabled(autoEnabled: false, phoneticEnabled: true, slashEnabled: true), "자동 변환 꺼짐 → 3페이지 경고")
+    expect(L.reversal.isDisabled(autoEnabled: false, phoneticEnabled: true, slashEnabled: true), "자동 변환 꺼짐 → 4페이지 경고")
+    expect(!L.reversal.isDisabled(autoEnabled: true, phoneticEnabled: false, slashEnabled: false), "되돌리기 연습은 자동 변환만 본다")
+    expect(L.registeredWord.isDisabled(autoEnabled: true, phoneticEnabled: false, slashEnabled: true), "한글 단어 바꾸기 꺼짐 → 5페이지 경고")
+    expect(!L.registeredWord.isDisabled(autoEnabled: false, phoneticEnabled: true, slashEnabled: false), "5페이지는 한글 단어 바꾸기만 본다")
+    expect(L.slash.isDisabled(autoEnabled: true, phoneticEnabled: true, slashEnabled: false), "슬래시 꺼짐 → 6페이지 경고")
+    expectEqual(L.reversal.settingsTab(autoEnabled: false), .automatic, "자동 변환이 꺼졌으면 자동 변환 메뉴")
+    expectEqual(L.registeredWord.settingsTab(autoEnabled: false), .shortcuts, "한글 단어 바꾸기는 단축키·슬래시 메뉴")
+    expectEqual(L.slash.settingsTab(autoEnabled: true), .shortcuts, "슬래시는 단축키·슬래시 메뉴")
+}
+
 // MARK: - 두루마리 자원 (리뷰 app-ui-F-6)
 
 func runScrollResourceTests() {
@@ -277,6 +384,7 @@ struct AppUITests {
         runDefaultsKeyTests()
         runScrollResourceTests()
         runStatusContrastTests()
+        runInstallUpdatePresentationTests()
         print("AppUI: \(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
     }
