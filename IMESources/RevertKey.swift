@@ -98,6 +98,32 @@ enum RevertKey: String, CaseIterable {
         return mods == requiredModifiers
     }
 
+    /// 2026-11-12 (#224, 리뷰 input-core-F-1, 오너 결정 가): Shift 겹쳐 누름으로 보는 간격(초, NSEvent.timestamp 차이).
+    /// `세계`(ㅖ)·`밖`(ㄲ)·`안녕?`처럼 Shift로 끝나는 글자 뒤 Shift를 떼기 전에 누른 Space가 단축키로 읽혀 낱말이 영어로 바뀌고
+    /// 스페이스가 사라졌다. 입력기는 keyDown만 받는다(flagsChanged를 구독하면 쌍자음이 깨진다) — Shift를 뗐다 다시 눌렀는지는
+    /// 알 수 없어 직전 키와 시간 간격으로 판단한다. 좌·우 Shift는 구분하지 않는다(어느 쪽이든 겹침이 같다).
+    static let shiftRolloverWindow: TimeInterval = 0.35
+
+    /// 2026-11-12 (#224): 이 keyDown이 Shift가 붙은 **글자 키**인가 — 글자 하나를 내는 키(Space·Return·Tab·제어 문자·기능 키 제외),
+    /// Command·Control 단축키가 아닌 것. 키 내용은 판정에만 쓰고 남기지 않는다.
+    static func isShiftedCharacterKey(keyCode: UInt16, modifierFlagsRaw: UInt, characters: String?) -> Bool {
+        let mods = Modifiers(rawValue: modifierFlagsRaw).intersection(.deviceIndependentMask)
+        guard mods.contains(.shift), mods.isDisjoint(with: [.command, .control]),
+              keyCode != spaceKeyCode, keyCode != 36, keyCode != 76,   // Space·Return·키패드 Enter
+              let scalars = characters?.unicodeScalars, scalars.count == 1, let scalar = scalars.first else { return false }
+        return scalar.value > 0x20 && scalar.value != 0x7F && !(0xF700...0xF8FF).contains(scalar.value)
+    }
+
+    /// 2026-11-12 (#224): 이번 단축키 입력이 Shift 겹쳐 누름(직전 Shift 글자 키의 Shift를 떼기 전에 누른 Space)으로 보이는가.
+    /// Shift **하나만** 쓰는 단축키(Shift+Space)에만 해당한다. Option·Control을 함께 누르는 단축키는 일부러 누른 것이라 해당 없고,
+    /// Option+Space를 고른 경우 Shift+Space는 애초에 단축키가 아니다(일반 스페이스).
+    /// 시각을 모르면(직전이 Shift 글자가 아님) 거짓. 시계가 거꾸로 가면 판단하지 않는다(거짓).
+    func isShiftRollover(previousShiftedCharacterAt previous: TimeInterval?, now: TimeInterval) -> Bool {
+        guard requiredModifiers == [.shift], let previous else { return false }
+        let elapsed = now - previous
+        return elapsed >= 0 && elapsed < Self.shiftRolloverWindow
+    }
+
     /// 2026-09-21 (#15): defaults를 읽기 전에 거는 **값싼 사전 필터**.
     ///
     /// 종전엔 "Space 키코드 + 되돌릴 변환이 있을 때"만 defaults를 읽었는데, 모든 단어 토글이

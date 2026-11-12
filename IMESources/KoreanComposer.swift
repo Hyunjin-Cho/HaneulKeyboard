@@ -95,6 +95,20 @@ final class KoreanComposer {
         lastConversion = nil
     }
 
+    /// 2026-11-12 (#224, 리뷰 input-core-F-3): 커서 자리에 기대는 기억(영어 문맥·보낸 숫자·수량·숫자 뒤 표시·되돌림 쌍)이 남았는지.
+    /// 컨트롤러가 이 값이 참일 때만 경계 뒤 커서 자리를 적어 두고, 다음 키에서 커서가 그 자리인지 한 번 대조한다(위치만 — 글자는 읽지 않는다).
+    var hasCaretDependentState: Bool {
+        lastEnglishWord != nil || externalEnglishWord != nil || lastQuantity != nil || !sentDigits.isEmpty
+            || !alphanumericStartAllowed || lastConversion != nil
+    }
+
+    /// 2026-11-12 (#224, 리뷰 input-core-F-3): 지금 조합 중으로 보이는 글자의 UTF-16 길이(조합이 없으면 0).
+    /// 확정 직후 커서를 늦게 알려 주는 호스트를 위해, 확정 전후 길이 차이로 커서 자리 후보를 하나 더 만든다.
+    var displayedCompositionLength: Int {
+        guard hasPendingComposition else { return 0 }
+        return ((lastMarkedText ?? (wordText() + buffer.previewString())) as NSString).length
+    }
+
     /// 실제 비자모 경계를 지난 뒤 호출. 이미 밖으로 보낸 숫자 뒤에서는
     /// 새 후보를 시작하지 않아 123a24의 끝 a24만 바꾸지 않는다.
     func completeBoundary(_ character: Character?) {
@@ -227,8 +241,12 @@ final class KoreanComposer {
 
     /// 저장된 전체 변환 쌍을 먼저 대조한 뒤 경계 문자를 건너뛴다.
     /// 이 순서로 a24/800T뿐 아니라 i'처럼 끝의 아포스트로피도 되돌릴 수 있다.
+    /// 2026-11-12 (#224, 리뷰 input-core-F-6): `requireLeftBoundary: false`는 커서가 방금 우리가 넣은 자리 그대로라고 확인됐을 때만 쓴다
+    /// (컨트롤러의 커서 자리 대조). 그때 커서 앞 쌍은 방금 넣은 글자라 앞 글자가 숫자·영문이어도(`안녕1apple`·`APIapple`) 그 낱말만 바꿔도 안전하다.
+    /// 확인이 안 된 경우(기본값)는 지금처럼 왼쪽 경계를 묻는다 — `brand`의 `and`처럼 남의 낱말 끝을 바꾸지 않게.
     static func resolveToggle(before: String, english: String, hangul: String,
-                              atDocStart: Bool) -> (text: String, replaceLen: Int, offsetFromEnd: Int)? {
+                              atDocStart: Bool, requireLeftBoundary: Bool = true)
+        -> (text: String, replaceLen: Int, offsetFromEnd: Int)? {
         let s = before as NSString
         var end = s.length
         while end > 0 {
@@ -236,7 +254,7 @@ final class KoreanComposer {
                 let length = (original as NSString).length
                 let start = end - length
                 if length > 0, start >= 0,
-                   hasLeftBoundary(s, start: start, atDocStart: atDocStart),
+                   !requireLeftBoundary || hasLeftBoundary(s, start: start, atDocStart: atDocStart),
                    s.substring(with: NSRange(location: start, length: length)) == original {
                     return (replacement, length, s.length - start)
                 }
@@ -416,6 +434,12 @@ final class KoreanComposer {
     }
 
     /// 수량의 소수점 하나만 보관한다. 문장 마침표/제품명 속 점은 기존 경계로 둔다.
+    ///
+    /// 2026-11-12 (#224, 리뷰 input-core-F-11): **지금은 참이 되지 않는다(죽은 코드).** 2026-11-04에 낱말 첫머리 숫자를 앱으로 바로
+    /// 보내도록 바뀐 뒤로 조합 중 낱말은 늘 자모로 시작하고(handleDigit은 조합이 있어야 숫자를 받는다), Backspace는 뒤에서만 지워
+    /// 숫자만 남는 일도 없다(무작위 60,000회에서 참 0회). 소수점은 컨트롤러의 `pointRunAfterSending` 경로가 맡는다.
+    /// 컨트롤러·조합기 시험은 더 부르지 않는다. 남은 호출은 Tests/OnboardingPracticeTests.swift(묶음 D 영역) 한 줄뿐이라
+    /// 그 줄을 지울 때 이 함수도 함께 지운다.
     func handleQuantityPoint(client: ComposerClient) -> Bool {
         let keys = word.flatMap(\.keys) + pendingKeys
         guard !didSpillWord, !keys.isEmpty,
@@ -524,7 +548,8 @@ final class KoreanComposer {
             // 2026-11-04: 예전엔 숫자와 단어가 한 조합(10ㅏㅎ)이었다. 같은 판정(수량·영숫자 이름·개인 사전·조사)을 그대로 쓰려고
             // 앞에 보낸 숫자를 붙여 판정하고, 결과에서 숫자 부분만 떼어 넣는다. 숫자 부분이 달라지는 결과는 쓰지 않는다.
             let fullKeys = Array(digitsBefore) + keys
-            let text = commitAlphanumeric(convertible: convertible, hangul: digitsBefore + hangul, keys: fullKeys)
+            let text = commitAlphanumeric(convertible: convertible, hangul: digitsBefore + hangul, keys: fullKeys,
+                                          unitKeys: digitsBefore.map { [$0] } + word.map(\.keys))
             if text.hasPrefix(digitsBefore) {
                 // (Fable 리뷰 F7: 여기 있던 수량 전달 줄은 조합 중 단어에 자모가 늘 있어 도달하지 않았다 — 지웠다.
                 //  `10 kg`의 수량 전달은 completeBoundary(" ")가 맡는다.)
@@ -541,7 +566,7 @@ final class KoreanComposer {
         }
         if hasBufferedDigits {
             if convertible, MeasurementUnits.isQuantity(String(keys)) { nextQuantity = String(keys) }
-            return commitAlphanumeric(convertible: convertible, hangul: hangul, keys: keys)
+            return commitAlphanumeric(convertible: convertible, hangul: hangul, keys: keys, unitKeys: word.map(\.keys))
         }
         if let apostrophe = apostropheIndex {
             // 2026-09-19 (#34): `'`를 품은 단어는 축약형 경로로 판정한다.
@@ -619,7 +644,9 @@ final class KoreanComposer {
 
     /// 숫자 후보는 명시 목록/개인 사전 전체 일치만 영어로 확정한다.
     /// 후보에서 벗어나면 숫자마다 단어를 끝내던 기존 결과와 마지막 변환 상태를 재현한다.
-    private func commitAlphanumeric(convertible: Bool, hangul: String, keys: [Character]) -> String {
+    /// - unitKeys: 화면에 보이던 조합 단위별 키(보낸 숫자는 한 글자씩 한 단위). 이어 붙이면 `keys`와 같다.
+    private func commitAlphanumeric(convertible: Bool, hangul: String, keys: [Character],
+                                    unitKeys: [[Character]]) -> String {
         let raw = String(keys)
         let decision = personalDictionary.decision(word: raw, hangul: hangul)
         let mayConvert = convertible && KoreanDictionary.isLoaded
@@ -667,23 +694,31 @@ final class KoreanComposer {
             fallback.personalDictionary = personalDictionary
             fallback.dictionaryCompoundEnabled = dictionaryCompoundEnabled
             fallback.lastEnglishWord = lastEnglishWord
-            for key in keys {
-                if AlphanumericWords.isDigit(key) {
+            // 2026-11-12 (#224, 리뷰 input-core-F-7): 키를 처음부터 다시 넣으면 Backspace로 생긴 조합 단위의 끊김(한그|ㄹ·가|ㄴ·ㄱ|ㅏ)이
+            // 사라져 `6한그ㄹ`이 `6한글`로 확정됐다(보이던 글자와 다름). 단위마다 앞 음절을 닫고 그 단위의 키만 넣는다 —
+            // 한 단위의 키는 빈 버퍼에서 그 단위 글자를 그대로 만든다(조합기가 단위를 만든 키만 함께 보관한다). Backspace가 없던 입력은
+            // 예전 키 재생과 같은 단위가 나오므로 결과가 같다. 단위가 키열과 어긋나면(일어나지 않아야 한다) 예전처럼 키를 하나씩 넣는다.
+            let partitioned = unitKeys.flatMap { $0 } == keys
+            for unit in partitioned ? unitKeys : keys.map({ [$0] }) {
+                if unit.count == 1, let key = unit.first, AlphanumericWords.isDigit(key) {
                     fallback.commit(to: sink, convertEnglish: true)
                     sink.insertText(String(key))
                     fallback.resetEnglishContext()
-                } else if Contractions.isApostrophe(key) {
+                } else if unit.count == 1, let key = unit.first, Contractions.isApostrophe(key) {
                     if !fallback.handleApostrophe(key, client: sink) {
                         fallback.commit(to: sink, convertEnglish: true)
                         sink.insertText(String(key))
                         fallback.resetEnglishContext()
                     }
-                } else if KeyboardLayout2Set.jamo(for: key) != nil {
-                    _ = fallback.handleInput(String(key), client: sink)
+                } else if unit.allSatisfy({ KeyboardLayout2Set.jamo(for: $0) != nil }) {
+                    if partitioned { fallback.stashBuffer() }
+                    for key in unit { _ = fallback.handleInput(String(key), client: sink) }
                 } else {
-                    fallback.commit(to: sink, convertEnglish: true)
-                    sink.insertText(String(key))
-                    fallback.resetEnglishContext()
+                    for key in unit {
+                        fallback.commit(to: sink, convertEnglish: true)
+                        sink.insertText(String(key))
+                        fallback.resetEnglishContext()
+                    }
                 }
             }
             fallback.commit(to: sink, convertEnglish: true)

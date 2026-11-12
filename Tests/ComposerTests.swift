@@ -480,6 +480,109 @@ func runInputCoreReviewTests() {
     }
 }
 
+/// 2026-11-12 (#224): 입력 코어 리뷰 2차 — 컨트롤러 없이 볼 수 있는 조합 규칙. 컨트롤러 경로는 InputControllerSessionTests.
+func runInputCoreReview1112Tests() {
+    func composed(_ script: String) -> (client: FakeClient, composer: KoreanComposer) {
+        let client = FakeClient(), composer = KoreanComposer()
+        for ch in script {
+            if ch == "⌫" { deleteKeyViaController(composer: composer, client: client) }
+            else { typeKeyViaController(ch, composer: composer, client: client) }
+        }
+        return (client, composer)
+    }
+    func hasLatin(_ text: String) -> Bool { text.contains { $0.isASCII && $0.isLetter } }
+
+    // F-7: 숫자 뒤 낱말을 Backspace로 고친 뒤의 능동 경계는 보이던 한글 그대로다(숫자가 없을 때와 같다).
+    for (script, shown) in [("6gksrmfk⌫", "6한그ㄹ"), ("3rksk⌫", "3가ㄴ"), ("1rs⌫k", "1ㄱㅏ"),
+                            ("gksrmfk⌫", "한그ㄹ"), ("rksk⌫", "가ㄴ"), ("rs⌫k", "ㄱㅏ")] {
+        let (client, composer) = composed(script)
+        expect(client.committedText + client.marked, shown, "F-7 화면: \(script)")
+        typeKeyViaController(" ", composer: composer, client: client)
+        expect(client.committedText, shown + " ", "F-7 Space 뒤 보이던 그대로: \(script)")
+        if let pair = composer.lastConversion {
+            expect(shown.hasSuffix(pair.hangul), true, "F-7 되돌림 쌍의 한글도 보이던 그대로: \(script)")
+        }
+    }
+    // 대조: 숫자 뒤 낱말의 변환·단위·영숫자 이름은 그대로다.
+    for (script, expected) in [("10kg ", "10kg "), ("3d ", "3d "), ("10apple ", "10apple "), ("1dkssud ", "1안녕 "), ("a24 ", "a24 ")] {
+        let (client, _) = composed(script)
+        expect(client.committedText, expected, "F-7 대조: \(script)")
+    }
+    // 무작위: 숫자 + 자모 + Backspace를 섞어 Space로 확정한다. 영어로 바뀌지 않았으면 보이던 글자와 같아야 한다.
+    var rng = SeededGenerator(state: 0x2026_1112_0224_F007)
+    let letters = Array("abcdefghijklmnopqrstuvwxyzQWERTOP")
+    var trials = 0, mismatches = 0, pairMismatches = 0
+    var samples: [String] = []
+    for _ in 0..<20_000 {
+        var script = String(Character(String(Int.random(in: 0...9, using: &rng))))
+        for _ in 0..<Int.random(in: 1...10, using: &rng) {
+            let roll = Double.random(in: 0..<1, using: &rng)
+            if roll < 0.22 { script.append("⌫") }
+            else if roll < 0.30 { script.append(Character(String(Int.random(in: 0...9, using: &rng)))) }
+            else { script.append(letters.randomElement(using: &rng)!) }
+        }
+        let (client, composer) = composed(script)
+        let shown = client.committedText + client.marked
+        typeKeyViaController(" ", composer: composer, client: client)
+        let committed = client.committedText
+        trials += 1
+        guard !hasLatin(shown) else { continue }   // 조사 미리보기(github에)는 문서에 적힌 다른 동작이다
+        if !hasLatin(committed), committed != shown + " " {
+            mismatches += 1
+            if samples.count < 6 { samples.append("\(script.debugDescription): 화면 \(shown) → \(committed)") }
+        }
+        if let pair = composer.lastConversion, !shown.hasSuffix(pair.hangul) {
+            pairMismatches += 1
+            if samples.count < 6 { samples.append("쌍 \(script.debugDescription): 화면 \(shown) 쌍 \(pair.hangul)") }
+        }
+    }
+    samples.forEach { print("F-7 무작위 표본: \($0)") }
+    expect(trials, 20_000, "F-7 무작위: 시험 횟수")
+    expect(mismatches == 0 && pairMismatches == 0, true, "F-7 무작위: 표본 없음")
+    expect(mismatches, 0, "F-7 무작위: 영어로 안 바뀐 낱말은 보이던 그대로")
+    expect(pairMismatches, 0, "F-7 무작위: 되돌림 쌍의 한글은 보이던 그대로")
+
+    // F-6: 커서가 방금 넣은 자리 그대로라고 확인됐을 때만 왼쪽 경계를 묻지 않는다(기본값은 지금처럼 묻는다).
+    for (before, english, hangul, expected) in [("안녕1apple ", "apple", "메ㅔㅣㄷ", "메ㅔㅣㄷ"), ("APIapple ", "apple", "메ㅔㅣㄷ", "메ㅔㅣㄷ"),
+                                                ("버전2beta ", "beta", "ㅠㄷ싸", "ㅠㄷ싸"), ("안녕1메ㅔㅣㄷ ", "apple", "메ㅔㅣㄷ", "apple")] {
+        let found = KoreanComposer.resolveToggle(before: before, english: english, hangul: hangul, atDocStart: true,
+                                                 requireLeftBoundary: false)
+        expect(found?.text ?? "", expected, "F-6 붙여 친 낱말 되돌리기: \(before)")
+        expect(found?.replaceLen ?? -1, ((expected == hangul ? english : hangul) as NSString).length, "F-6 교체 길이: \(before)")
+        expect(found?.offsetFromEnd ?? -1, ((expected == hangul ? english : hangul) as NSString).length + 1, "F-6 커서 오프셋: \(before)")
+        expect(KoreanComposer.resolveToggle(before: before, english: english, hangul: hangul, atDocStart: true) == nil, true,
+               "F-6 대조: 기본값은 왼쪽 경계를 묻는다: \(before)")
+    }
+
+    // F-1 (오너 결정 가): Shift 겹쳐 누름 판정 — 순수 함수.
+    let mShift: UInt = 0x20000, mControl: UInt = 0x40000, mOption: UInt = 0x80000, mCommand: UInt = 0x100000
+    let mCapsLock: UInt = 0x10000, mFunction: UInt = 0x800000
+    for (text, code, mods, expected, label): (String?, UInt16, UInt, Bool, String) in [
+        ("P", 35, mShift, true, "Shift+ㅖ"), ("R", 15, mShift, true, "Shift+ㄲ"), ("?", 44, mShift, true, "물음표"),
+        ("!", 18, mShift, true, "느낌표"), (")", 29, mShift, true, "닫는 괄호"), ("\"", 39, mShift, true, "큰따옴표"),
+        ("P", 35, mShift | mCapsLock, true, "CapsLock 켠 한글 모드"), ("P", 35, mShift | 0x0002, true, "오른쪽 Shift 장치 비트"),
+        ("Ø", 31, mShift | mOption, true, "Option+Shift 글자"),
+        ("p", 35, 0, false, "Shift 없는 글자"), (" ", 49, mShift, false, "Shift+Space"), ("\r", 36, mShift, false, "Shift+Return"),
+        ("\u{3}", 76, mShift, false, "Shift+키패드 Enter"), ("\u{19}", 48, mShift, false, "Shift+Tab"),
+        ("P", 35, mShift | mCommand, false, "Cmd+Shift 단축키"), ("P", 35, mShift | mControl, false, "Ctrl+Shift 단축키"),
+        ("\u{f700}", 126, mShift | mFunction, false, "Shift+화살표"), (nil, 35, mShift, false, "문자 없음"), ("", 35, mShift, false, "빈 문자"),
+        ("\u{7f}", 51, mShift, false, "Shift+Backspace"), ("ab", 0, mShift, false, "두 글자"),
+    ] {
+        expect(RevertKey.isShiftedCharacterKey(keyCode: code, modifierFlagsRaw: mods, characters: text), expected,
+               "F-1 Shift 글자 키 판정: \(label)")
+    }
+    expect(RevertKey.shiftRolloverWindow == 0.35, true, "F-1 겹쳐 누름 간격 0.35초(오너 결정)")
+    for (elapsed, expected) in [(0.0, true), (0.05, true), (0.34, true), (0.36, false), (1.0, false), (-0.1, false)] {
+        expect(RevertKey.shiftSpace.isShiftRollover(previousShiftedCharacterAt: 100, now: 100 + elapsed), expected,
+               "F-1 Shift+Space 겹쳐 누름 \(elapsed)초")
+    }
+    expect(RevertKey.shiftSpace.isShiftRollover(previousShiftedCharacterAt: nil, now: 100), false, "F-1 직전이 Shift 글자가 아님")
+    for key in [RevertKey.optionSpace, .controlShiftSpace, .optionShiftSpace] {
+        expect(key.isShiftRollover(previousShiftedCharacterAt: 100, now: 100.05), false,
+               "F-1 다른 수정자를 일부러 누르는 단축키는 해당 없음: \(key.rawValue)")
+    }
+}
+
 // MARK: - 참조 자동기 무작위 시험 (2026-11-07, #173 리뷰 F-14)
 
 /// 고정 시드 난수(SplitMix64). 시스템 난수를 쓰면 실패가 재현되지 않는다.
@@ -3321,6 +3424,7 @@ struct ComposerTests {
         runLoginItemTests()
         runSortedWordTableTests()
         runInputCoreReviewTests()
+        runInputCoreReview1112Tests()
         runReferenceAutomatonFuzzTests()
         print("\(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
