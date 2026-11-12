@@ -26,6 +26,8 @@ import Foundation
             check(false, "설치 흐름 검사 준비·실행 실패: \(error)")
         }
         updateRefusalMessage(check)
+        appHandoff(check)
+        orphanProtectedFolders(check)
         launchSequence(check)
         launchOrder(check)
     }
@@ -108,6 +110,7 @@ import Foundation
         let adHoc = try signedBundle("real-codesign.app")
         check(runScript(adHoc, codesign: "/usr/bin/codesign") == 77 && fm.fileExists(atPath: adHoc.path),
               "관리자 제거: 실제 codesign이 Apple 서명이 아닌 번들을 거부")
+
     }
 
     /// 리뷰 B-P3-3: 순수 함수만이 아니라 실제 `ps` 출력에서 현재 계정 필터까지 이어지는지 본다.
@@ -134,6 +137,88 @@ import Foundation
         }
         check(direct, "프로세스: 실제 ps 출력에서 내 입력기 실행본을 찾음")
         check(found(RemovalObservation.ProcessControl().list()), "프로세스: 종료 경로의 기본 조회도 같은 목록을 씀")
+    }
+
+    /// 2026-11-13 (#226, 리뷰 install-update-F-7): 설치본이 이미 실행 중이면 앱 이동이 인스턴스를 하나 더 띄우지 않는다.
+    private static func appHandoff(_ check: (Bool, String) -> Void) {
+        typealias Instance = AppHandoffDecision.Instance
+        let destination = "/Applications/HaneulKeyboard.app"
+        let me: pid_t = 100
+        let installed = Instance(pid: 200, bundlePath: destination, terminated: false)
+        let elsewhere = Instance(pid: 300, bundlePath: "/Users/someone/Downloads/HaneulKeyboard.app", terminated: false)
+        let ended = Instance(pid: 400, bundlePath: destination, terminated: true)
+        let selfCopy = Instance(pid: me, bundlePath: destination, terminated: false)
+        func action(_ replaced: Bool, _ others: [Instance]) -> AppHandoffDecision.Action {
+            AppHandoffDecision.action(replacedInstalledCopy: replaced, others: others, destinationPath: destination, selfPID: me)
+        }
+        check(action(true, []) == .openNew && action(false, []) == .openNew, "앱 이동: 실행 중인 설치본이 없으면 새로 연다")
+        check(action(true, [installed]) == .quitThenOpen([200]), "앱 이동: 교체한 설치본이 옛 코드로 실행 중이면 끝낸 뒤 연다")
+        check(action(false, [installed]) == .activate(200), "앱 이동: 기존 최신 버전이 이미 실행 중이면 새로 띄우지 않고 앞으로")
+        check(action(true, [elsewhere, ended, selfCopy]) == .openNew && action(false, [elsewhere, ended, selfCopy]) == .openNew,
+              "앱 이동: 다른 위치의 사본·끝난 인스턴스·자기 자신은 셈하지 않음")
+        check(action(true, [Instance(pid: 201, bundlePath: destination + "/", terminated: false)]) == .quitThenOpen([201]),
+              "앱 이동: 경로 표기 차이(끝의 /)는 같은 설치본")
+        check(action(true, [Instance(pid: 202, bundlePath: nil, terminated: false)]) == .openNew, "앱 이동: 경로를 모르는 인스턴스는 끄지 않음")
+
+        var ticks = 0
+        check(AppHandoffDecision.waitUntilTerminated(timeout: 1, step: 0.25, isTerminated: { ticks >= 2 }, pause: { _ in ticks += 1 }),
+              "앱 이동: 끝날 때까지 기다림")
+        ticks = 0
+        check(!AppHandoffDecision.waitUntilTerminated(timeout: 1, step: 0.25, isTerminated: { false }, pause: { _ in ticks += 1 }) && ticks == 4,
+              "앱 이동: 끝나지 않으면 정해진 시간 뒤 포기(새로 띄우지 않음)")
+        let mover = (try? String(contentsOfFile: "Sources/AppMover.swift", encoding: .utf8)) ?? ""
+        check(mover.contains("handOff(to: destURL, replacedInstalledCopy: false") && mover.contains("handOff(to: destURL, replacedInstalledCopy: true")
+              && mover.components(separatedBy: "createsNewApplicationInstance = true").count - 1 == 1,
+              "앱 이동: 두 갈래 모두 같은 넘겨주기 판단을 거침")
+    }
+
+    /// 2026-11-13 (#226, 리뷰 install-update-F-8): 입력기의 고아 관찰은 보호 폴더 안 경로의 존재를 확인하지 않는다(권한 창 가능성 차단).
+    /// 보호 폴더 밖에서 살아 있는 사본을 찾으면 나머지는 보지 않고, 보호 폴더 안 경로만 남으면 '있을 수 있음'으로 정리를 미룬다.
+    private static func orphanProtectedFolders(_ check: (Bool, String) -> Void) {
+        let home = "/Users/fixture"
+        let roots = [home + "/Desktop", home + "/Documents", home + "/Downloads"]
+        func protected(_ path: String) -> Bool { OrphanDecision.isProtectedLocation(path, protectedRoots: roots) }
+        let realHome = FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL.path
+        check(OrphanDecision.protectedRoots() == ["Desktop", "Documents", "Downloads"].map { realHome + "/" + $0 },
+              "고아 관찰: 보호 폴더는 시스템이 알려 주는 이 계정의 데스크탑·문서·다운로드")
+        for path in [home + "/Downloads/HaneulKeyboard.app", home + "/Desktop/x/HaneulKeyboard.app", home + "/Documents/HaneulKeyboard.app",
+                     home + "/Downloads/../Downloads/HaneulKeyboard.app"] {
+            check(protected(path), "고아 관찰: 보호 폴더 \(path)")
+        }
+        for path in ["/Applications/HaneulKeyboard.app", home + "/Applications/HaneulKeyboard.app", home + "/DownloadsOld/HaneulKeyboard.app",
+                     home + "/.Trash/HaneulKeyboard.app", "/Users/other/Downloads/HaneulKeyboard.app"] {
+            check(!protected(path), "고아 관찰: 보호 폴더 아님 \(path)")
+        }
+        let installed = "/Applications/HaneulKeyboard.app"
+        let downloads = home + "/Downloads/HaneulKeyboard.app"
+        let trashed = home + "/.Trash/HaneulKeyboard.app"
+        func observe(_ paths: [String], existing: Set<String>, unreadable: Set<String> = []) -> (OrphanDecision.AppPresence?, [String]) {
+            var probed: [String] = []
+            let presence = OrphanDecision.observe(candidatePaths: paths, isProtected: protected) { path in
+                probed.append(path)
+                return unreadable.contains(path) ? nil : existing.contains(path)
+            }
+            return (presence, probed)
+        }
+        let normal = observe([downloads, installed], existing: [installed, downloads])
+        check(normal.0 == .present && normal.1 == [installed], "고아 관찰: 평소(설치본 있음)에는 다운로드 폴더 사본을 확인하지 않음")
+        let gone = observe([installed, downloads], existing: [])
+        check(gone.0 == nil && gone.1 == [installed], "고아 관찰: 설치본이 없어도 보호 폴더는 열지 않고 '있을 수 있음'으로 정리 미룸")
+        check(observe([installed, trashed], existing: [trashed]).0 == .trashed, "고아 관찰: 휴지통에만 있으면 trashed")
+        check(observe([installed], existing: []).0 == .missing, "고아 관찰: 어디에도 없으면 missing")
+        check(observe([installed], existing: [], unreadable: [installed]).0 == nil, "고아 관찰: 읽지 못하면 관찰 불가")
+        let trashFirst = observe([trashed, installed], existing: [trashed, installed])
+        check(trashFirst.0 == .present && trashFirst.1 == [installed], "고아 관찰: 휴지통 밖을 먼저 보고 살아 있으면 바로 present")
+        check(observe([installed, installed], existing: []).1 == [installed], "고아 관찰: 같은 경로는 한 번만 확인")
+        check(observe([downloads], existing: [downloads]).1.isEmpty, "고아 관찰: 기록된 경로가 보호 폴더여도 열지 않음")
+        // 자기 정리의 두 번 관찰·유예 규칙은 그대로다.
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        check(!OrphanDecision.shouldSelfRemove(current: .missing, previousAbsentAt: now.addingTimeInterval(-1799), now: now, trashedInterval: 120, missingInterval: 1800)
+              && OrphanDecision.shouldSelfRemove(current: .missing, previousAbsentAt: now.addingTimeInterval(-1800), now: now, trashedInterval: 120, missingInterval: 1800)
+              && !OrphanDecision.shouldSelfRemove(current: .trashed, previousAbsentAt: nil, now: now, trashedInterval: 120, missingInterval: 1800),
+              "고아 관찰: 30분·두 번 관찰 규칙 유지")
+        let watcher = (try? String(contentsOfFile: "IMESources/OrphanWatcher.swift", encoding: .utf8)) ?? ""
+        check(watcher.contains("OrphanDecision.observe(") && watcher.contains("isProtectedLocation"), "고아 관찰: 입력기가 같은 판단을 씀")
     }
 
     /// install-update-F-9: 옮기기 결과에 따라 입력기를 건드릴지 정한다. 곧 끝나는 인스턴스는 건드리지 않는다.

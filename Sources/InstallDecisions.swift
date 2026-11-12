@@ -45,6 +45,49 @@ enum AppMoveDecision {
     }
 }
 
+/// 2026-11-13 (#226, 리뷰 install-update-F-7): 앱 이동 뒤 설치본을 여는 방법. 예전엔 두 갈래('옮기고 다시 열기'·'기존 최신 버전 열기') 모두
+/// 무조건 새 인스턴스로 설치본을 열고 자기만 끝냈다. 응용 프로그램 폴더의 하늘키보드가 이미 실행 중이면(로그인 항목이라 보통 그렇다)
+/// 메뉴바 아이콘이 둘이 되고, 교체한 경우 한쪽은 옛 코드로 계속 돌며, 그 상태에서 전체 제거가 '다른 하늘키보드 앱을 종료해 주세요'로 막혔다.
+/// 설치 위치에서 실행 중인 다른 인스턴스(자기 제외, 끝나지 않은 것)만 센다. 다른 위치의 사본은 우리가 끄지 않는다.
+enum AppHandoffDecision {
+    struct Instance: Equatable {
+        let pid: pid_t
+        let bundlePath: String?
+        let terminated: Bool
+    }
+
+    enum Action: Equatable {
+        /// 설치 위치에서 실행 중인 인스턴스가 없다 — 새 인스턴스로 연다.
+        case openNew
+        /// 기존 최신 버전이 이미 실행 중이다 — 새로 띄우지 않고 그것을 앞으로 가져온다.
+        case activate(pid_t)
+        /// 방금 교체한 설치본이 옛 코드로 실행 중이다 — 정상 종료를 요청하고 끝난 것을 확인한 뒤 연다.
+        case quitThenOpen([pid_t])
+    }
+
+    static func action(replacedInstalledCopy: Bool, others: [Instance], destinationPath: String, selfPID: pid_t) -> Action {
+        let destination = URL(fileURLWithPath: destinationPath).standardizedFileURL.path
+        let running = others.filter { instance in
+            guard instance.pid != selfPID, !instance.terminated, let path = instance.bundlePath else { return false }
+            return URL(fileURLWithPath: path).standardizedFileURL.path == destination
+        }.map(\.pid)
+        guard let first = running.first else { return .openNew }
+        return replacedInstalledCopy ? .quitThenOpen(running) : .activate(first)
+    }
+
+    /// 끝날 때까지 `step`씩 기다린다. `timeout` 안에 끝나지 않으면 false — 그때는 새로 띄우지 않는다(두 인스턴스가 되지 않게).
+    static func waitUntilTerminated(timeout: TimeInterval, step: TimeInterval = 0.1,
+                                    isTerminated: () -> Bool, pause: (TimeInterval) -> Void) -> Bool {
+        var waited: TimeInterval = 0
+        while !isTerminated() {
+            if waited >= timeout { return false }
+            pause(step)
+            waited += step
+        }
+        return true
+    }
+}
+
 // MARK: - 앱 시작 순서
 
 /// 옮기기 판단의 결과. `AppMover`가 돌려준다.
