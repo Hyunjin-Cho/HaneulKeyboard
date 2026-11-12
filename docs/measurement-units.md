@@ -1,6 +1,6 @@
 # 단위 표기 지원 — 2026.9(55)
 
-기준일: **2026-10-08** (2026-11-01 단독 `ml` 갱신 · 2026-11-07 단독 목록 갱신 #174 #178 · 2026-11-10 숫자 뒤 단위+조사·소문자 바이트 단위 #222) · 티켓 [#82](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/82) · [#106](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/106) · **테스트 후보, 설치본 실기 확인 대기**.
+기준일: **2026-10-08** (2026-11-01 단독 `ml` 갱신 · 2026-11-07 단독 목록 갱신 #174 #178 · 2026-11-10 숫자 뒤 단위+조사·소문자 바이트 단위 #222 · 2026-11-13 단독 `rad` 제외·`kb`·`pb`·`nm`·`ok` 정정·지원 목록 재생성 #225) · 티켓 [#82](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/82) · [#106](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/106) · **테스트 후보, 설치본 실기 확인 대기**.
 
 ## 사용 방법
 
@@ -37,6 +37,7 @@
 숫자 바로 뒤에 친 정확한 단위 기호는 뒤에 조사가 붙어도 단위로 본다. 예전엔 `16GB`는 바뀌는데 `16GB에`는 `16휴에`, `1TB에서`는 `1쓔에서`, `35mm는`은 `35ㅡㅡ는`이었고, `5m는`은 `5msms`처럼 쓰레기가 됐다. 이제 `16GB에`·`1TB에서`·`35mm는`·`100g을`·`5m는`·`60W야`·`100mm에`가 그대로 남는다. 2026-10-28(#101)의 "수량만으로 추론하지 않는다"를 이 경우만 뒤집은 것이다(단위가 아닌 숫자 접두어 `z9에`·`123에`는 그대로).
 
 - 소문자 바이트 단위 `kb`·`mb`·`gb`·`tb`·`pb`를 단위로 넣되 숫자가 붙을 때만 바꾼다(`nm`과 같은 `quantityOnlySymbols`). `20mb`·`20mb예요`·`(20mb)는`·`16gb로`·`1tb에서`. 숫자 없는 `ㅡㅠ`(우는 표정)·`휴`·`슈`는 한글이다.
+  - 2026-11-13 정정(#225): `kb`(ㅏㅠ)·`pb`(ㅔㅠ)는 이 절과 달리 **단독으로도 바뀐다.** 2026-11-08(#194) 오너 요청으로 짧은 단어 목록(`EnglishDetector.shortWords`, 모음으로 시작하는 R1 경로)에 들어가 있어 `quantityOnlySymbols`가 막는 단위 경로를 거치지 않는다. 오너 결정(가, 2026-11-12)으로 그대로 둔다. 단독으로 한글에 남는 것은 `nm`·`mb`·`gb`·`tb`다.
 - `gb`=휴·`tb`=슈는 표제어지만 숫자에 **붙여 쓴** 경우에는 단위로 본다(오너 "숫자를 앞에 쓰고 뒤에 '슈'를 쓰는 일은 거의 없긴하거든"; 이 Mac 문서·오너 메시지에서 숫자+휴·슈 우리말 0건). 띄어 쓴 `20 휴`는 한글이다. 붙여 쓴 `3휴가`는 `3gb가`가 된다 — `휴가`·`휴일`만 막는 판을 시험해 보니 더 흔한 `16gb가`·`16gb일`이 깨져서 막지 않았다(Shift+Space로 되돌린다).
 - 대문자로 친 `1TB`·`16GB`는 예전에도 단독으로는 바뀌었다. 이제 조사가 붙어도 바뀐다.
 - 숫자 뒤 진짜 한글은 그대로다: `10이`(dl)·`3치`(cl)·`2자`(wk)·`5드`(em) — `allowsAfterQuantity`의 표제어 보호.
@@ -63,7 +64,7 @@
 - `ml`·`mL`은 단독, 두 칸 공백·줄바꿈·쉼표·`1.` 뒤에서도 변환된다. 자동 변환 OFF·앱별 OFF·개인 사전 금지(`ml`/`ㅢ`)·veto 사전 로드 실패에서는 `ㅢ`로 남는다.
 - 단독 `ml`은 다른 영어 단어처럼 다음 단어에 영어 문맥을 넘긴다(mg와 같은 동작). 숫자 뒤의 `100ml`은 종전대로 문맥을 넘기지 않는다.
 - `100ml에`는 이제 `mg`와 같이 영어+조사로 바뀐다(`100mg에`와 같은 결과).
-- `ok`(ㅐㅏ)는 계속 영어 뒤에서만, `mm`(ㅡㅡ)·`cc`(ㅊㅊ)는 계속 단독 보호다.
+- `ok`(ㅐㅏ)는 계속 영어 뒤에서만, `mm`(ㅡㅡ)·`cc`(ㅊㅊ)는 계속 단독 보호다. (2026-11-01 당시. `ok`는 2026-11-07 #194 오너 결정으로 문맥 전용 목록을 없애 단독으로도 바뀐다.)
 - 근거: `Tests/ComposerTests.swift`의 `runDict106Tests`, `Tests/EnglishParticleTests.swift` #106 검사.
 
 ## 한글 보호
@@ -74,6 +75,12 @@
 - 전체 수량 또는 단위 자체의 개인 사전 금지가 우선이다. `ml`이나 `ㅢ`를 금지하면 `100ml`도 변환하지 않는다. `1.5ml`을 되돌린 뒤 전체 항목으로 금지할 수도 있다.
 - 자동 변환 OFF/앱별 OFF/한국어 사전 로드 실패/포커스 이동에서는 자동 변환하지 않는다. 수량 다음의 단위가 다음 한글 단어에 영어 문맥을 넘기지 않는다. 되돌렸다 다시 바꿀 때도 동일하다.
 
+### 2026-11-13: 단독 `rad` 제외, `kb`·`pb` 단독 유지 (#225, 오너 결정)
+
+- `rad`(ㄱㅁㅇ)은 단독으로 바꾸지 않는다. 오너: "rcs, rad는 뜻이 없으니 변경되면 안 된다" — `ㄱㅁㅇ`(고마워)을 초성체 보호(`protectedSlang`)에 넣었다. `sr`(ㄴㄱ)과 같은 방식이라 숫자 뒤(`3rad`·`3 rad`·`1.5rad`)는 그대로 바뀐다.
+- `kb`·`pb`는 단독으로도 바뀐다(오너 결정 가). 위 2026-11-10 절의 '숫자가 붙을 때만'은 단위 경로의 설명이고, 두 표기는 짧은 단어 목록이 받는다. `nm`은 2026-11-08(#194)부터 숫자 뒤에서만이다.
+- 시험: `Tests/EnglishRulesTests.swift`의 `runEnglishDictReview1112Tests`(F-2·F-3).
+
 ### 2026-11-07: 단독 `sr`·`ton` 제외, `GPa` 유지 (#174, 오너 결정)
 
 - `sr`(ㄴㄱ)은 초성체 보호(`protectedSlang`), `ton`(새ㅜ)은 끝 모음 보호(`해ㅠ`류)에 걸려 **단독으로는 변환하지 않는다.** 숫자 뒤(`100sr`·`10 ton`)는 종전대로 변환된다.
@@ -82,33 +89,34 @@
 
 ## 지원 목록
 
-단독 입력에서도 변환되는 132개(공식 기호와 실용 표기/별칭을 합한 입력 목록. 2026-11-07 기준 — `sr`·`ton`은 빠지고 `mL`·`ml`이 들어왔다):
+목록과 개수는 바뀔 때마다 어긋나므로 **지금 값은 `bash scripts/audit_units.sh`로 확인한다**(열: `standalone`·`attached`·`spaced`·`decimal`). 아래는 2026-11-13(#225) 그 출력으로 다시 만든 것이다. 옛 목록(2026-11-07 기준)에는 `nm`이 단독에 남아 있었고 `kb`·`pb`·`mb`·`gb`·`tb`가 빠져 있었다.
+
+단독 입력에서도 변환되는 표기(공식 기호와 실용 표기/별칭을 합한 입력 목록):
 
 ```text
-Bq GHz GPa GW Gbps GeV GiB Hz KB KiB MB MBq
-MHz MJ MN MPa MW MWh Mbps MeV MiB Mohm PB Pa
-PiB Sv TiB Torr acre angstrom atm bar bit bps cal cd
-cm dpi eV floz fps ft gal gbps ghz hPa ha hr
-hz in kBq kHz kJ kL kN kPa kV kW kWh kat
-kbps kcal keV kg khz kl km kohm lb lbs lm lx
-mA mAh mGy mH mJ mL mN mS mSv mT mV mW
-mWh mbar mbps mg mhz mi mil min ml mmol mol ms
-nA nF ng nm nmi nmol ns ohm oz pF pm ppb
-ppi ppm ppt ps psi pt px rad rem rpm torr uA
-uF uL uSv ug ul um umol us yd
-mp MP Mp
+acre angstrom atm bar bit bps Bq cal cd cm dpi eV
+floz fps ft gal Gbps gbps GeV GHz ghz GiB GPa GW
+ha hPa hr Hz hz in kat KB kb kbps kBq kcal
+keV kg kHz khz KiB kJ kL kl km kN kohm kPa
+kV kW kWh lb lbs lm lx mA mAh MB mbar Mbps
+mbps MBq MeV mg mGy mH MHz mhz mi MiB mil min
+MJ mJ mL ml mmol MN mN Mohm mol MP Mp mp
+MPa mS ms mSv mT mV MW mW MWh mWh nA nF
+ng nmi nmol ns ohm oz Pa PB pb pF PiB pm
+ppb ppi ppm ppt ps psi pt px rem rpm Sv TiB
+Torr torr uA uF ug uL ul um umol us uSv yd
 ```
 
-숫자 조건에서만 변환되는 40개(단독으로는 변환되지 않는다. 2026-11-07 기준 — `sr`·`ton`이 여기로 옮겨 왔고 `mL`·`ml`은 위 단독 목록으로 갔다):
+숫자 조건에서만 변환되는 표기(단독으로는 변환되지 않는다. `gb`·`tb`는 숫자에 붙여 쓸 때만 — 띄어 쓴 `20 휴`는 한글이다):
 
 ```text
-A Ah B C F GB GJ Gy H J K L
-N S T TB THz V W Wb Wh cL cc d
-dB dBA dL g h hL hl l m mm qt s
-sr t thz ton
+A Ah B C cc cL d dB dBA dL F g
+GB gb GJ Gy H h hL hl J K L l
+m mb mm N nm qt rad S s sr T t
+TB tb THz thz ton V W Wb Wh
 ```
 
-기본 자동 변환을 보류한 5개: `cl`, `dl`, `dm`, `em`, `wk`. 의도적인 변환은 기존 수동 단축키 또는 개인 사전으로 지정할 수 있다.
+기본 자동 변환을 보류한 표기: `cl`, `dl`, `dm`, `em`, `wk`. 의도적인 변환은 기존 수동 단축키 또는 개인 사전으로 지정할 수 있다.
 
 ## 이번 범위의 경계
 

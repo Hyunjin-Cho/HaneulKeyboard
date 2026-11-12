@@ -522,6 +522,17 @@ func runEnglishDictReview1112Tests() {
              "F-2 자음만 키열이라도 사전에 있는 낱말은 그대로")
     converts(["githubs", "googled", "netflixs"], "F-2 모음이 든 키열의 굴절 추정은 그대로")
 
+    // ── F-3 오너 결정(가): kb·pb는 단독으로도 바뀐다(2026-11-08 #194 짧은 단어 목록). nm·mb·gb·tb는 숫자 뒤에서만, ok는 2026-11-07부터 단독.
+    converts(["kb", "pb", "KB", "PB", "ok"], "F-3 단독 변환")
+    for keys in ["nm", "mb", "gb", "tb"] {
+        expect(type(keys).committedText, hangul(keys), "F-3 숫자 없는 단위는 한글: \(keys)")
+    }
+    for raw in ["10nm ", "10 nm ", "1.5nm ", "20kb ", "20 kb ", "3pb "] {
+        expect(typeViaController(raw).committedText, raw, "F-3 숫자 뒤 단위: \(raw)")
+    }
+    expect(MeasurementUnits.quantityOnlySymbols.intersection(EnglishDetector.shortWords).sorted().joined(separator: ","), "kb,pb",
+           "F-3 숫자 전용 목록 중 짧은 단어 목록이 단독으로 받는 것은 kb·pb뿐(알고 둔 예외)")
+
     // ── F-6: NGSL 낱말의 흔한 복수형은 멀쩡한 한글이라 curated에 정확히 있어야 바뀐다. 검역(Tier A 전수 리뷰)을 통과한 20개를 넣었다.
     for word in list("alarms charms cleans disturbs firms formals forms fuels girls risks sharps sicks sighs signals signs snaps socials totals visuals whens") {
         expect(type(word).committedText, word, "F-6 복수형 무맥락: \(word)")
