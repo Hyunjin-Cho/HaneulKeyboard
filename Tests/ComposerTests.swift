@@ -107,7 +107,6 @@ func typeWords(_ words: [String]) -> [String] {
 func typeKeyViaController(_ ch: Character, composer: KoreanComposer, client: FakeClient) {
     if Contractions.isApostrophe(ch), composer.handleApostrophe(ch, client: client) { return }
     if AlphanumericWords.isDigit(ch), composer.handleDigit(ch, client: client) { return }
-    if ch == ".", composer.handleQuantityPoint(client: client) { return }
     if KeyboardLayout2Set.jamo(for: ch) != nil {
         _ = composer.handleInput(String(ch), client: client)
         return
