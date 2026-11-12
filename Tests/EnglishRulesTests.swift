@@ -534,7 +534,9 @@ func runEnglishDictReview1112Tests() {
            "F-3 숫자 전용 목록 중 짧은 단어 목록이 단독으로 받는 것은 kb·pb뿐(알고 둔 예외)")
 
     // ── F-4: 개인 사전 목록에 문자열이 아닌 값이 섞여도 문자열 항목은 살아 있고, 다음 저장이 남은 항목을 덮어쓰지 않는다.
-    let suite = "local.synthetic.haneul-personal-dict-mixed.\(UUID().uuidString)"
+    // 2026-11-13 (#225·#226): 고정 이름 도메인 — UUID 이름은 실행마다 ~/Library/Preferences에 plist를 남긴다(install-update-F-5).
+    let suite = "local.synthetic.haneul-personal-dict-mixed"
+    UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite)
     if let defaults = UserDefaults(suiteName: suite) {
         defer { defaults.removePersistentDomain(forName: suite) }
         defaults.set(["apple", 1, "banana", ["x"]] as [Any], forKey: PersonalDictionary.Keys.block)
