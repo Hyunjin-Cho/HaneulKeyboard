@@ -18,6 +18,7 @@ import Foundation
             try fm.createDirectory(at: root, withIntermediateDirectories: true)
             defer { try? fm.removeItem(at: root) }
             try buildNumbersAfterReplacement(in: root.appendingPathComponent("builds"), check)
+            try imeInstallDecisions(in: root.appendingPathComponent("ime-install"), check)
             try appPlacement(in: root.appendingPathComponent("placement"), check)
             try await relaunchCleanup(in: root.appendingPathComponent("relaunch"), check)
             try adminRemovalIdentity(in: root.appendingPathComponent("admin"), check)
@@ -26,6 +27,8 @@ import Foundation
             check(false, "설치 흐름 검사 준비·실행 실패: \(error)")
         }
         updateRefusalMessage(check)
+        appHandoff(check)
+        orphanProtectedFolders(check)
         launchSequence(check)
         launchOrder(check)
     }
@@ -108,6 +111,70 @@ import Foundation
         let adHoc = try signedBundle("real-codesign.app")
         check(runScript(adHoc, codesign: "/usr/bin/codesign") == 77 && fm.fileExists(atPath: adHoc.path),
               "관리자 제거: 실제 codesign이 Apple 서명이 아닌 번들을 거부")
+
+        // 2026-11-13 (#226, 리뷰 security-overlap-C-1): 확인을 마친 대상을 root 전용 격리 자리로 옮기고, 옮긴 것이 그 대상인지 다시 본 뒤에만 지운다.
+        // 위 `finder` 시험은 제품 기본값(실제 /private/tmp — root 소유·끈적이 비트)으로 돌았다. 아래는 시험 폴더를 격리 부모로 쓴다.
+        let quarantineParent = root.appendingPathComponent("quarantine")
+        try fm.createDirectory(at: quarantineParent, withIntermediateDirectories: true)
+        func leftovers() -> [String] { (try? fm.contentsOfDirectory(atPath: quarantineParent.path)) ?? ["?"] }
+        func isolate(_ url: URL, parent: URL? = nil, move: String = "/bin/mv") -> Int32? {
+            guard let target = RemovalObservation.capture(url, identifier: identifier, trust: { _ in true }).0 else { return nil }
+            var script = RemovalAdminScript(target: target, team: team)
+            script.quarantineParent = parent ?? quarantineParent
+            return tool("/bin/bash", ["-c", script.shellCommand(codesign: wrapper.path, move: move)])
+        }
+        let isolated = try signedBundle("isolated.app")
+        check(isolate(isolated) == 0 && !fm.fileExists(atPath: isolated.path) && leftovers().isEmpty,
+              "관리자 제거: 격리 자리로 옮긴 뒤 지우고 격리 폴더도 정리")
+
+        // 마지막 확인과 이름 바꾸기 사이에 대상 이름에 같은 번들 ID의 다른 폴더(또는 링크)를 놓는 경우를 흉내 낸다.
+        for kind in ["folder", "link"] {
+            let original = try signedBundle("swap-\(kind).app")
+            let decoy = try signedBundle("decoy-\(kind).app")
+            let sentinel = decoy.appendingPathComponent("Contents/keep")
+            try Data("keep".utf8).write(to: sentinel)
+            let mover = root.appendingPathComponent("swap-\(kind).sh")
+            let plant = kind == "folder" ? "/bin/mv \(shellQuoted(decoy.path)) \"$1\"" : "/bin/ln -s \(shellQuoted(decoy.path)) \"$1\""
+            try """
+            #!/bin/sh
+            /bin/mv "$1" "$1.moved-away"
+            \(plant)
+            exec /bin/mv "$@"
+            """.write(to: mover, atomically: true, encoding: .utf8)
+            try fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: mover.path)
+            check(isolate(original, move: mover.path) == 75, "관리자 제거 \(kind): 옮긴 것이 확인한 대상이 아니면 지우지 않고 75")
+            let back = (try? fm.attributesOfItem(atPath: original.path)[.type]) as? FileAttributeType
+            check(back == (kind == "folder" ? .typeDirectory : .typeSymbolicLink), "관리자 제거 \(kind): 바꿔 놓인 항목을 제자리로 돌려놓음")
+            check((try? Data(contentsOf: kind == "folder" ? original.appendingPathComponent("Contents/keep") : sentinel)) == Data("keep".utf8),
+                  "관리자 제거 \(kind): 바꿔 놓인 폴더의 내용을 지우지 않음")
+            check(fm.fileExists(atPath: original.path + ".moved-away") && leftovers().isEmpty, "관리자 제거 \(kind): 원래 대상 보존·격리 폴더 정리")
+        }
+
+        let openParent = root.appendingPathComponent("open")
+        try fm.createDirectory(at: openParent, withIntermediateDirectories: true)
+        try fm.setAttributes([.posixPermissions: 0o777], ofItemAtPath: openParent.path)
+        let kept = try signedBundle("kept.app")
+        check(isolate(kept, parent: openParent) == 78 && fm.fileExists(atPath: kept.path)
+              && ((try? fm.contentsOfDirectory(atPath: openParent.path)) ?? ["?"]).isEmpty,
+              "관리자 제거: 끈적이 비트 없이 누구나 쓰는 폴더는 격리 자리로 쓰지 않음")
+        let stickyParent = root.appendingPathComponent("sticky")
+        try fm.createDirectory(at: stickyParent, withIntermediateDirectories: true)
+        try fm.setAttributes([.posixPermissions: 0o1777], ofItemAtPath: stickyParent.path)
+        let stickyTarget = try signedBundle("sticky.app")
+        check(isolate(stickyTarget, parent: stickyParent) == 0 && !fm.fileExists(atPath: stickyTarget.path),
+              "관리자 제거: 끈적이 비트가 있는 폴더는 격리 부모로 허용")
+
+        guard let ordered = RemovalObservation.capture(kept, identifier: identifier, trust: { _ in true }).0 else {
+            check(false, "관리자 제거 fixture: 순서 검사 대상 확인 실패"); return
+        }
+        let text = RemovalAdminScript(target: ordered, team: team).shellCommand()
+        let marks = ["--verify --all-architectures", "# 서명 검사 중", "/usr/bin/mktemp -d", "/usr/bin/stat -f %d \"$quarantine\"",
+                     "\"$target\" \"$held\"", "\"$(/usr/bin/stat -f '%i:%d' \"$held\")\"", "/bin/rm -rf -- \"$held\""]
+            .map { text.range(of: $0)?.lowerBound }
+        check(!marks.contains(nil) && zip(marks, marks.dropFirst()).allSatisfy { $0! < $1! },
+              "관리자 제거: 신원 확인 → 격리 폴더 만들기·볼륨 확인 → 옮기기 → 다시 확인 → 삭제 순서")
+        check(!text.contains("rm -rf -- \"$target\"") && text.contains("qparent='/private/tmp'"),
+              "관리자 제거: 원래 경로를 root로 바로 지우지 않고, 제품 격리 부모는 /private/tmp")
     }
 
     /// 리뷰 B-P3-3: 순수 함수만이 아니라 실제 `ps` 출력에서 현재 계정 필터까지 이어지는지 본다.
@@ -134,6 +201,88 @@ import Foundation
         }
         check(direct, "프로세스: 실제 ps 출력에서 내 입력기 실행본을 찾음")
         check(found(RemovalObservation.ProcessControl().list()), "프로세스: 종료 경로의 기본 조회도 같은 목록을 씀")
+    }
+
+    /// 2026-11-13 (#226, 리뷰 install-update-F-7): 설치본이 이미 실행 중이면 앱 이동이 인스턴스를 하나 더 띄우지 않는다.
+    private static func appHandoff(_ check: (Bool, String) -> Void) {
+        typealias Instance = AppHandoffDecision.Instance
+        let destination = "/Applications/HaneulKeyboard.app"
+        let me: pid_t = 100
+        let installed = Instance(pid: 200, bundlePath: destination, terminated: false)
+        let elsewhere = Instance(pid: 300, bundlePath: "/Users/someone/Downloads/HaneulKeyboard.app", terminated: false)
+        let ended = Instance(pid: 400, bundlePath: destination, terminated: true)
+        let selfCopy = Instance(pid: me, bundlePath: destination, terminated: false)
+        func action(_ replaced: Bool, _ others: [Instance]) -> AppHandoffDecision.Action {
+            AppHandoffDecision.action(replacedInstalledCopy: replaced, others: others, destinationPath: destination, selfPID: me)
+        }
+        check(action(true, []) == .openNew && action(false, []) == .openNew, "앱 이동: 실행 중인 설치본이 없으면 새로 연다")
+        check(action(true, [installed]) == .quitThenOpen([200]), "앱 이동: 교체한 설치본이 옛 코드로 실행 중이면 끝낸 뒤 연다")
+        check(action(false, [installed]) == .activate(200), "앱 이동: 기존 최신 버전이 이미 실행 중이면 새로 띄우지 않고 앞으로")
+        check(action(true, [elsewhere, ended, selfCopy]) == .openNew && action(false, [elsewhere, ended, selfCopy]) == .openNew,
+              "앱 이동: 다른 위치의 사본·끝난 인스턴스·자기 자신은 셈하지 않음")
+        check(action(true, [Instance(pid: 201, bundlePath: destination + "/", terminated: false)]) == .quitThenOpen([201]),
+              "앱 이동: 경로 표기 차이(끝의 /)는 같은 설치본")
+        check(action(true, [Instance(pid: 202, bundlePath: nil, terminated: false)]) == .openNew, "앱 이동: 경로를 모르는 인스턴스는 끄지 않음")
+
+        var ticks = 0
+        check(AppHandoffDecision.waitUntilTerminated(timeout: 1, step: 0.25, isTerminated: { ticks >= 2 }, pause: { _ in ticks += 1 }),
+              "앱 이동: 끝날 때까지 기다림")
+        ticks = 0
+        check(!AppHandoffDecision.waitUntilTerminated(timeout: 1, step: 0.25, isTerminated: { false }, pause: { _ in ticks += 1 }) && ticks == 4,
+              "앱 이동: 끝나지 않으면 정해진 시간 뒤 포기(새로 띄우지 않음)")
+        let mover = (try? String(contentsOfFile: "Sources/AppMover.swift", encoding: .utf8)) ?? ""
+        check(mover.contains("handOff(to: destURL, replacedInstalledCopy: false") && mover.contains("handOff(to: destURL, replacedInstalledCopy: true")
+              && mover.components(separatedBy: "createsNewApplicationInstance = true").count - 1 == 1,
+              "앱 이동: 두 갈래 모두 같은 넘겨주기 판단을 거침")
+    }
+
+    /// 2026-11-13 (#226, 리뷰 install-update-F-8): 입력기의 고아 관찰은 보호 폴더 안 경로의 존재를 확인하지 않는다(권한 창 가능성 차단).
+    /// 보호 폴더 밖에서 살아 있는 사본을 찾으면 나머지는 보지 않고, 보호 폴더 안 경로만 남으면 '있을 수 있음'으로 정리를 미룬다.
+    private static func orphanProtectedFolders(_ check: (Bool, String) -> Void) {
+        let home = "/Users/fixture"
+        let roots = [home + "/Desktop", home + "/Documents", home + "/Downloads"]
+        func protected(_ path: String) -> Bool { OrphanDecision.isProtectedLocation(path, protectedRoots: roots) }
+        let realHome = FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL.path
+        check(OrphanDecision.protectedRoots() == ["Desktop", "Documents", "Downloads"].map { realHome + "/" + $0 },
+              "고아 관찰: 보호 폴더는 시스템이 알려 주는 이 계정의 데스크탑·문서·다운로드")
+        for path in [home + "/Downloads/HaneulKeyboard.app", home + "/Desktop/x/HaneulKeyboard.app", home + "/Documents/HaneulKeyboard.app",
+                     home + "/Downloads/../Downloads/HaneulKeyboard.app"] {
+            check(protected(path), "고아 관찰: 보호 폴더 \(path)")
+        }
+        for path in ["/Applications/HaneulKeyboard.app", home + "/Applications/HaneulKeyboard.app", home + "/DownloadsOld/HaneulKeyboard.app",
+                     home + "/.Trash/HaneulKeyboard.app", "/Users/other/Downloads/HaneulKeyboard.app"] {
+            check(!protected(path), "고아 관찰: 보호 폴더 아님 \(path)")
+        }
+        let installed = "/Applications/HaneulKeyboard.app"
+        let downloads = home + "/Downloads/HaneulKeyboard.app"
+        let trashed = home + "/.Trash/HaneulKeyboard.app"
+        func observe(_ paths: [String], existing: Set<String>, unreadable: Set<String> = []) -> (OrphanDecision.AppPresence?, [String]) {
+            var probed: [String] = []
+            let presence = OrphanDecision.observe(candidatePaths: paths, isProtected: protected) { path in
+                probed.append(path)
+                return unreadable.contains(path) ? nil : existing.contains(path)
+            }
+            return (presence, probed)
+        }
+        let normal = observe([downloads, installed], existing: [installed, downloads])
+        check(normal.0 == .present && normal.1 == [installed], "고아 관찰: 평소(설치본 있음)에는 다운로드 폴더 사본을 확인하지 않음")
+        let gone = observe([installed, downloads], existing: [])
+        check(gone.0 == nil && gone.1 == [installed], "고아 관찰: 설치본이 없어도 보호 폴더는 열지 않고 '있을 수 있음'으로 정리 미룸")
+        check(observe([installed, trashed], existing: [trashed]).0 == .trashed, "고아 관찰: 휴지통에만 있으면 trashed")
+        check(observe([installed], existing: []).0 == .missing, "고아 관찰: 어디에도 없으면 missing")
+        check(observe([installed], existing: [], unreadable: [installed]).0 == nil, "고아 관찰: 읽지 못하면 관찰 불가")
+        let trashFirst = observe([trashed, installed], existing: [trashed, installed])
+        check(trashFirst.0 == .present && trashFirst.1 == [installed], "고아 관찰: 휴지통 밖을 먼저 보고 살아 있으면 바로 present")
+        check(observe([installed, installed], existing: []).1 == [installed], "고아 관찰: 같은 경로는 한 번만 확인")
+        check(observe([downloads], existing: [downloads]).1.isEmpty, "고아 관찰: 기록된 경로가 보호 폴더여도 열지 않음")
+        // 자기 정리의 두 번 관찰·유예 규칙은 그대로다.
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        check(!OrphanDecision.shouldSelfRemove(current: .missing, previousAbsentAt: now.addingTimeInterval(-1799), now: now, trashedInterval: 120, missingInterval: 1800)
+              && OrphanDecision.shouldSelfRemove(current: .missing, previousAbsentAt: now.addingTimeInterval(-1800), now: now, trashedInterval: 120, missingInterval: 1800)
+              && !OrphanDecision.shouldSelfRemove(current: .trashed, previousAbsentAt: nil, now: now, trashedInterval: 120, missingInterval: 1800),
+              "고아 관찰: 30분·두 번 관찰 규칙 유지")
+        let watcher = (try? String(contentsOfFile: "IMESources/OrphanWatcher.swift", encoding: .utf8)) ?? ""
+        check(watcher.contains("OrphanDecision.observe(") && watcher.contains("isProtectedLocation"), "고아 관찰: 입력기가 같은 판단을 씀")
     }
 
     /// install-update-F-9: 옮기기 결과에 따라 입력기를 건드릴지 정한다. 곧 끝나는 인스턴스는 건드리지 않는다.
@@ -175,6 +324,117 @@ import Foundation
         let data = try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0)
         try data.write(to: url.appendingPathComponent("Contents/Info.plist"))
         try Data("code".utf8).write(to: url.appendingPathComponent("Contents/MacOS/app"))
+    }
+
+    /// 2026-11-13 (#226, 리뷰 install-update-F-6): 입력기 설치 판단을 임시 폴더의 가짜 번들로 실제로 돌린다.
+    /// 예전엔 컴파일만 되고 실행되는 시험이 없어, 신뢰 검사를 복사 뒤로 옮기거나 빌드 번호 비교의 부등호를 뒤집어도 시험이 통과했다.
+    /// 바꿔 끼우는 것은 경로·신뢰 판정·입력기 종료·LaunchServices 등록뿐이고, 복사·원자 교체·빌드 번호 읽기는 실제 코드다.
+    private static func imeInstallDecisions(in root: URL, _ check: (Bool, String) -> Void) throws {
+        let fm = FileManager.default
+        let imeID = IMEInstaller.imeBundleID
+        func marker(_ url: URL) -> String? { try? String(contentsOf: url.appendingPathComponent("Contents/MacOS/app"), encoding: .utf8) }
+        struct Fixture {
+            let system: URL, user: URL, bundled: URL
+            var untrusted: Set<String> = []
+        }
+        func run(_ name: String, system: String? = nil, user: String? = nil, bundled: String? = "107",
+                 untrusted: Set<String> = [], prepare: Bool = false,
+                 _ verify: (Result<URL?, Error>, [String], Fixture) -> Void) throws {
+            let base = root.appendingPathComponent(name)
+            let fixture = Fixture(system: base.appendingPathComponent("Library/Input Methods/HaneulKeyboardIM.app"),
+                                  user: base.appendingPathComponent("home/Library/Input Methods/HaneulKeyboardIM.app"),
+                                  bundled: base.appendingPathComponent("HaneulKeyboard.app/Contents/Helpers/HaneulKeyboardIM.app"),
+                                  untrusted: untrusted)
+            for (url, build, label) in [(fixture.system, system, "system"), (fixture.user, user, "user"), (fixture.bundled, bundled, "bundled")] {
+                guard let build else { continue }
+                try makeBundle(url, build: build, identifier: imeID)
+                try Data(label.utf8).write(to: url.appendingPathComponent("Contents/MacOS/app"))
+            }
+            var events: [String] = []
+            func tag(_ url: URL) -> String {
+                url == fixture.system ? "system" : url == fixture.user ? "user" : url == fixture.bundled ? "bundled" : url.lastPathComponent
+            }
+            var operations = IMEInstaller.DiskOperations.live
+            operations.systemURL = fixture.system
+            operations.userURL = fixture.user
+            operations.bundledURL = { fm.fileExists(atPath: fixture.bundled.path) ? fixture.bundled : nil }
+            operations.isTrusted = { url in
+                events.append("trust:\(tag(url))" + (tag(url) == "bundled" && !fm.fileExists(atPath: fixture.user.path) ? "(user absent)" : ""))
+                return !fixture.untrusted.contains(tag(url))
+            }
+            operations.stopIME = { events.append("stop") }
+            operations.removeUserLeftover = { events.append("remove-leftover") }
+            operations.register = { events.append("register:\(tag($0))") }
+            operations.unregister = { events.append("unregister:\(tag($0))") }
+            let result = Result { prepare ? try IMEInstaller.prepareInstalledBundle(operations) : try IMEInstaller.installBundleOnDisk(operations) }
+            verify(result, events, fixture)
+        }
+        func error(_ result: Result<URL?, Error>) -> IMEInstallError? {
+            if case .failure(let error) = result { return error as? IMEInstallError }
+            return nil
+        }
+
+        // 설치 버튼(installBundleOnDisk)
+        try run("system-trusted", system: "107") { result, events, f in
+            check((try? result.get()) == f.system && events == ["trust:system", "register:system"] && !fm.fileExists(atPath: f.user.path),
+                  "입력기 설치: 시스템 설치본이 있으면 사용자 폴더에 복사하지 않고 그것만 등록")
+        }
+        try run("system-leftover", system: "107", user: "106") { result, events, f in
+            check((try? result.get()) == f.system && events == ["trust:system", "remove-leftover", "register:system"],
+                  "입력기 설치: 시스템 설치본 우선, 사용자 폴더 잔재는 정리")
+        }
+        try run("system-untrusted", system: "107", untrusted: ["system"]) { result, events, f in
+            if case .installedBundleUntrusted = error(result) { check(true, "입력기 설치: 믿을 수 없는 시스템 설치본은 등록 거부") }
+            else { check(false, "입력기 설치: 믿을 수 없는 시스템 설치본 \(result)") }
+            check(!events.contains { $0.hasPrefix("register") } && !fm.fileExists(atPath: f.user.path), "입력기 설치: 거부 때 아무것도 등록·복사하지 않음")
+        }
+        try run("bundled-untrusted", untrusted: ["bundled"]) { result, events, f in
+            if case .untrustedBundle = error(result) { check(true, "입력기 설치: 내장 입력기 서명 Team이 다르면 거부") }
+            else { check(false, "입력기 설치: 내장 입력기 신뢰 \(result)") }
+            check(!fm.fileExists(atPath: f.user.path) && events == ["trust:bundled(user absent)"], "입력기 설치: Team 검증은 복사 전에, 실패하면 복사하지 않음")
+        }
+        try run("bundled-missing", bundled: nil) { result, _, f in
+            if case .bundleNotFound = error(result) { check(!fm.fileExists(atPath: f.user.path), "입력기 설치: 내장 입력기가 없으면 실패") }
+            else { check(false, "입력기 설치: 내장 입력기 없음 \(result)") }
+        }
+        try run("first-copy") { result, events, f in
+            check((try? result.get()) == f.user && marker(f.user) == "bundled" && IMEInstaller.buildNumber(at: f.user) == 107,
+                  "입력기 설치: 첫 설치는 검증한 내장 입력기를 복사")
+            check(events == ["trust:bundled(user absent)", "register:user"], "입력기 설치: 첫 설치 순서(신뢰 확인 → 복사 → 등록)")
+        }
+        for (installed, replaced) in [("107", false), ("108", false), ("106", true), ("숫자 아님", true)] {
+            try run("user-\(installed)", user: installed) { result, events, f in
+                check((try? result.get()) == f.user && marker(f.user) == (replaced ? "bundled" : "user"),
+                      "입력기 설치: 설치본 빌드 \(installed) / 내장 107 → \(replaced ? "교체" : "그대로 재등록")")
+                check(events.contains("stop") == replaced && events.last == "register:user",
+                      "입력기 설치: 교체할 때만 입력기를 멈춤 (\(installed))")
+            }
+        }
+        try run("user-untrusted", user: "200", untrusted: ["user"]) { result, events, f in
+            check((try? result.get()) == f.user && marker(f.user) == "bundled" && IMEInstaller.buildNumber(at: f.user) == 107,
+                  "입력기 설치: 믿을 수 없는 설치본은 빌드 번호가 커도 내장 입력기로 교체")
+            check(events.suffix(3) == ["stop", "unregister:user", "register:user"], "입력기 설치: 교체 뒤 옛 등록을 지우고 다시 등록")
+        }
+
+        // 앱 시작(prepareInstalledBundle): 디스크에 새 번들을 만들지 않는다(H-01).
+        try run("prepare-none", prepare: true) { result, events, f in
+            check((try? result.get()) == .some(nil) && events.isEmpty && !fm.fileExists(atPath: f.user.path), "앱 시작: 설치본이 없으면 아무것도 하지 않음")
+        }
+        try run("prepare-older", user: "106", prepare: true) { result, events, f in
+            check((try? result.get()) == f.user && marker(f.user) == "user" && !events.contains("stop"),
+                  "앱 시작: 내장본이 더 새 것이어도 시작할 때는 복사하지 않음")
+        }
+        try run("prepare-untrusted", user: "106", untrusted: ["user"], prepare: true) { result, events, f in
+            check((try? result.get()) == f.user && marker(f.user) == "bundled" && events.contains("stop") && events.last == "register:user",
+                  "앱 시작: 믿을 수 없는 설치본만 믿을 수 있는 내장본으로 교체")
+        }
+        try run("prepare-both-untrusted", user: "106", untrusted: ["user", "bundled"], prepare: true) { result, events, f in
+            if case .untrustedBundle = error(result) { check(marker(f.user) == "user" && !events.contains("stop"), "앱 시작: 내장본도 못 믿으면 설치본을 건드리지 않음") }
+            else { check(false, "앱 시작: 내장본 불신 \(result)") }
+        }
+        try run("prepare-system", system: "107", user: "106", prepare: true) { result, events, f in
+            check((try? result.get()) == f.system && events == ["trust:system", "remove-leftover", "register:system"], "앱 시작: 시스템 설치본 우선")
+        }
     }
 
     /// install-update-F-1: 교체·삭제·재설치 뒤에는 같은 경로에서 새 빌드 번호를 읽어야 한다.

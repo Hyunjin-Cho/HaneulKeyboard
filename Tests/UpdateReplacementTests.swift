@@ -34,21 +34,40 @@ import Foundation
         }
         func exists(_ url: URL) -> Bool { mode(url) != nil }
         let rejections: Set<String> = ["swapped-id", "swapped-version", "swapped-build", "swapped-signature",
-                                       "tampered-after-copy", "linked-copy", "real-codesign", "linked-destination"]
+                                       "tampered-after-copy", "linked-copy", "real-codesign", "linked-destination", "unsafe-parent"]
+        // 2026-11-13 (#226, 리뷰 security-overlap-C-1): staging 자리·배치 경쟁·백업 바꿔치기.
+        let successes: Set<String> = ["real", "modes", "acl", "cleanup", "sticky-parent", "private-tmp", "backup-swapped"]
         do {
             try fm.createDirectory(at: root, withIntermediateDirectories: true)
             defer { try? fm.removeItem(at: root) }
-            for step in ["real", "modes", "acl", "copy", "backup", "place", "restore", "occupied", "cleanup"] + rejections.sorted() {
+            for step in ["real", "modes", "acl", "copy", "backup", "place", "restore", "occupied", "cleanup",
+                         "sticky-parent", "private-tmp", "prestaged", "raced-place", "backup-swapped"] + rejections.sorted() {
                 let directory = root.appendingPathComponent(step)
                 try fm.createDirectory(at: directory, withIntermediateDirectories: true)
                 let name = "하늘 ' \" $HOME $(touch injected) `touch injected2`\n.app"
+                // staging 부모: 기본은 이 시험 폴더(소유자 전용 쓰기). 끈적이 비트 없이 누구나 쓰는 폴더는 거부, 끈적이 비트가 있으면 허용,
+                // `private-tmp`는 제품과 같은 실제 /private/tmp(root 소유·끈적이)다.
+                var stagingParent = directory
+                if step == "unsafe-parent" || step == "sticky-parent" {
+                    stagingParent = directory.appendingPathComponent(step == "unsafe-parent" ? "open" : "sticky")
+                    try fm.createDirectory(at: stagingParent, withIntermediateDirectories: true)
+                    try fm.setAttributes([.posixPermissions: step == "unsafe-parent" ? 0o777 : 0o1777], ofItemAtPath: stagingParent.path)
+                }
+                let staging = step == "private-tmp" ? UpdateReplacementScript.privateStaging(token: UUID().uuidString)
+                    : stagingParent.appendingPathComponent(".stage \(name)")
+                defer { if step == "private-tmp" { try? fm.removeItem(at: staging) } }
                 let replacement = UpdateReplacementScript(
                     source: directory.appendingPathComponent("new \(name)"),
                     destination: directory.appendingPathComponent(name),
-                    staging: directory.appendingPathComponent(".stage \(name)"),
+                    staging: staging,
                     backup: directory.appendingPathComponent(".backup \(name)"),
                     identity: identity
                 )
+                if step == "prestaged" {
+                    // 다른 사용자가 같은 이름을 미리 만들어 둔 경우: 만들기가 실패하고, 남이 만든 폴더는 지우지 않는다.
+                    try fm.createDirectory(at: replacement.staging, withIntermediateDirectories: true)
+                    try Data("planted".utf8).write(to: replacement.staging.appendingPathComponent("planted"))
+                }
                 // 사용자 권한 검증을 통과한 뒤 임시 폴더의 사본이 이렇게 바뀐 경우를 흉내 낸다.
                 var incoming = identity
                 switch step {
@@ -131,11 +150,22 @@ import Foundation
                         exit 73
                     fi
                     if [ "$HANEUL_TEST_STEP" = restore ] && [ "$1" = "$HANEUL_TEST_BACKUP" ]; then exit 74; fi
+                    if [ "$HANEUL_TEST_STEP" = raced-place ] && [ "$1" = "$HANEUL_TEST_STAGE" ]; then
+                        # 확인과 이름 바꾸기 사이에 설치 위치에 다른 폴더가 생기면 mv가 그 안으로 옮긴다.
+                        /bin/mkdir -p "$2"
+                        printf other > "$2/version"
+                    fi
+                    if [ "$HANEUL_TEST_STEP" = backup-swapped ] && [ "$1" = "$HANEUL_TEST_BACKUP" ] && [ "$2" = "$HANEUL_TEST_RETIRED" ]; then
+                        # 백업을 지우러 옮기는 순간 그 이름에 다른 폴더를 놓는다.
+                        /bin/mv "$1" "$1.real"
+                        /bin/mkdir -p "$1"
+                        printf foreign > "$1/version"
+                    fi
                     exec /bin/mv "$@"
                     """),
                     (remove, """
                     #!/bin/sh
-                    if [ "$HANEUL_TEST_STEP" = cleanup ] && [ "$2" = "$HANEUL_TEST_BACKUP" ]; then exit 75; fi
+                    if [ "$HANEUL_TEST_STEP" = cleanup ] && [ "$2" = "$HANEUL_TEST_STAGING" ]; then exit 75; fi
                     exec /bin/rm "$@"
                     """),
                     (codesign, """
@@ -151,7 +181,7 @@ import Foundation
                 }
                 let commands: UpdateReplacementScript.Commands
                 switch step {
-                case "real", "acl": commands = .init(codesign: codesign.path)
+                case "real", "acl", "sticky-parent", "private-tmp": commands = .init(codesign: codesign.path)
                 case "real-codesign": commands = .init()
                 default: commands = .init(copy: copy.path, move: move.path, remove: remove.path, codesign: codesign.path)
                 }
@@ -164,6 +194,8 @@ import Foundation
                     "HANEUL_TEST_STEP": step,
                     "HANEUL_TEST_STAGE": replacement.stagedApp.path,
                     "HANEUL_TEST_BACKUP": replacement.backup.path,
+                    "HANEUL_TEST_STAGING": replacement.staging.path,
+                    "HANEUL_TEST_RETIRED": replacement.retiredBackup.path,
                     "HANEUL_TEST_MODE_LOG": modeLog.path,
                     "HANEUL_TEST_CODESIGN_LOG": codesignLog.path
                 ]) { _, value in value }
@@ -185,16 +217,28 @@ import Foundation
                     check(version(replacement.destination) == "old", "교체 \(step): 기존 앱이 원래 경로에 있음")
                     check(!exists(replacement.backup) && !exists(replacement.staging), "교체 \(step): 임시 복사본·백업이 남지 않음")
                     check(output.contains("설치하지 않았어요"), "교체 \(step): 거부 이유를 알림")
+                    if step == "unsafe-parent" {
+                        check(task.terminationStatus == 78, "교체: 남이 이름을 바꿀 수 있는 부모에는 staging을 만들지 않음")
+                    }
                     if step == "linked-destination" {
                         check((try? fm.destinationOfSymbolicLink(atPath: replacement.destination.path)) != nil, "교체: 링크인 목적지를 따라가지 않음")
                     }
-                } else if step == "real" || step == "cleanup" || step == "modes" || step == "acl" {
+                } else if step == "prestaged" {
+                    check(task.terminationStatus != 0 && version(replacement.destination) == "old", "교체: 미리 만들어진 staging이면 설치하지 않음")
+                    check((try? Data(contentsOf: replacement.staging.appendingPathComponent("planted"))) == Data("planted".utf8)
+                          && !exists(replacement.stagedApp) && !exists(replacement.backup), "교체: 남이 만든 staging은 건드리지 않음")
+                } else if successes.contains(step) {
                     check(task.terminationStatus == 0 && version(replacement.destination) == "new",
                           "교체 \(step): 새 앱 정상 배치")
-                    check(!exists(replacement.staging), "교체 \(step): staging 없음")
+                    if step != "cleanup" { check(!exists(replacement.staging), "교체 \(step): staging 없음") }
                     if step == "cleanup" {
-                        check(version(replacement.backup) == "old" && output.contains("정리하지 못했어요"),
+                        check(version(replacement.retiredBackup) == "old" && output.contains("정리하지 못했어요"),
                               "교체: 백업 정리 실패는 새 앱 설치 성공과 구분")
+                        check(!exists(replacement.backup), "교체: 백업은 root 전용 staging 안으로 옮긴 뒤 지움")
+                    } else if step == "backup-swapped" {
+                        check(version(replacement.backup) == "foreign" && output.contains("정리하지 못했어요"),
+                              "교체: 백업 자리에 바꿔 놓인 다른 폴더는 지우지 않고 제자리로")
+                        check(version(URL(fileURLWithPath: replacement.backup.path + ".real")) == "old", "교체: 바꿔치기 시험의 옛 앱 보존")
                     } else if step == "acl" {
                         check(aclListing(replacement.source).contains(" allow "), "교체 acl: 원본에 ACL이 있음(시험 전제)")
                         check(!aclListing(replacement.destination).contains(" allow "), "교체: 배치된 앱에 ACL이 남지 않음")
@@ -226,10 +270,21 @@ import Foundation
                             .map { realCommand.range(of: $0)?.lowerBound }
                         check(!order.contains(nil) && zip(order, order.dropFirst()).allSatisfy { $0! < $1! },
                               "교체: 검증 → 권한 정리 → 소유자 맞춤 → 교체 순서")
+                        // 2026-11-13 (#226): 부모 확인 → staging 만들기 → 소유·권한·볼륨 확인 → 복사, 배치 뒤 파일 번호 확인 → 백업은 staging 안에서 확인 후 삭제.
+                        let setup = ["[ -k \"$sparent\" ]", "/bin/mkdir -m 700 \"$staging\"", "\"$(/usr/bin/id -u):700\"",
+                                     "/usr/bin/stat -f %d \"$staging\"", "\"$source\" \"$staged\"", "staged_id=",
+                                     "\"$staged\" \"$destination\"", "= \"$staged_id\"", "\"$backup\" \"$retired\"", "= \"$previous_id\""]
+                            .map { realCommand.range(of: $0)?.lowerBound }
+                        check(!setup.contains(nil) && zip(setup, setup.dropFirst()).allSatisfy { $0! < $1! },
+                              "교체: root 전용 staging 준비 → 복사·검증 → 배치 확인 → 백업 확인 후 삭제 순서")
+                        check(!realCommand.contains("-rf \"$backup\""), "교체: 응용 프로그램 폴더의 백업 경로를 root로 바로 지우지 않음")
                     }
                 } else {
                     check(task.terminationStatus != 0, "교체 \(step): 실패 상태 반환")
-                    if step == "restore" || step == "occupied" {
+                    if step == "raced-place" {
+                        check(version(replacement.backup) == "old" && output.contains("실패"), "교체: 배치 뒤 파일 번호가 다르면 실패로 보고하고 백업 보존")
+                        check(version(replacement.destination) == "other", "교체: 경쟁으로 생긴 폴더를 덮어쓰지 않음")
+                    } else if step == "restore" || step == "occupied" {
                         check(version(replacement.backup) == "old" && version(replacement.stagedApp) == "new",
                               "교체 \(step): 복구 실패 뒤 백업과 staging 보존")
                         check(mode(replacement.staging) == 0o700, "교체 \(step): 남은 staging은 소유자 전용")
@@ -245,6 +300,12 @@ import Foundation
                     }
                 }
             }
+            // 제품이 쓰는 staging 자리: /private/tmp 아래(이 Mac에서 root 소유·끈적이 비트 — 읽기 전용 확인).
+            let productStaging = UpdateReplacementScript.privateStaging(token: "fixture")
+            var tmpInfo = stat()
+            check(productStaging.deletingLastPathComponent().path == "/private/tmp" && lstat("/private/tmp", &tmpInfo) == 0
+                  && tmpInfo.st_uid == 0 && tmpInfo.st_mode & S_ISVTX != 0 && tmpInfo.st_mode & S_IFMT == S_IFDIR,
+                  "교체: 관리자 staging은 root 소유·끈적이 비트 폴더 아래")
             let recovery = UpdateError.replaceRecoveryFailed(reason: "fixture", backupPath: "/tmp/backup.app",
                                                              destinationPath: "/tmp/original.app").errorDescription ?? ""
             check(recovery.contains("/tmp/backup.app") && recovery.contains("/tmp/original.app")

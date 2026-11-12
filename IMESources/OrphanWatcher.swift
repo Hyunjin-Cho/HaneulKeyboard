@@ -138,7 +138,11 @@ final class OrphanWatcher {
                 candidateFileID: Self.fileID(at: url))
         }
 
-        let alive = paths.contains { fm.fileExists(atPath: $0) && !OrphanDecision.isInTrash($0) }
+        // 2026-11-13 (#226, 리뷰 install-update-F-8): 보호 폴더(데스크탑·문서·다운로드) 안 경로는 존재를 확인하지 않는다.
+        let protectedRoots = OrphanDecision.protectedRoots()
+        let alive = paths.contains {
+            !OrphanDecision.isProtectedLocation($0, protectedRoots: protectedRoots) && !OrphanDecision.isInTrash($0) && fm.fileExists(atPath: $0)
+        }
         if alive { return paths }
 
         // 3) 표준 위치 스캔 — 위에서 못 찾았을 때만. 폴더 목록과 "읽지 못하면 관찰 불가" 규칙은 `OrphanDecision`에 있다.
@@ -170,17 +174,17 @@ final class OrphanWatcher {
     }
 
     /// 존재 조회 오류는 missing으로 바꾸지 않는다. 링크/불명확한 대상은 보수적으로 보존한다.
+    /// 2026-11-13 (#226, 리뷰 install-update-F-8): 판단은 `OrphanDecision.observe` — 보호 폴더 안 경로는 확인하지 않고, 살아 있는 사본을 찾으면 바로 멈춘다.
     private func observePresence() -> OrphanDecision.AppPresence? {
         guard let paths = candidatePaths() else { return nil }
-        var existing = Set<String>()
-        for path in paths {
+        let protectedRoots = OrphanDecision.protectedRoots()
+        return OrphanDecision.observe(candidatePaths: paths, isProtected: { OrphanDecision.isProtectedLocation($0, protectedRoots: protectedRoots) }) { path in
             switch RemovalObservation.absence(at: URL(fileURLWithPath: path)) {
-            case .alreadyAbsent: break
-            case .failed: existing.insert(path)
+            case .alreadyAbsent: return false
+            case .failed: return true
             default: return nil
             }
         }
-        return OrphanDecision.classify(candidatePaths: paths) { existing.contains($0) }
     }
 
     // MARK: - 실행

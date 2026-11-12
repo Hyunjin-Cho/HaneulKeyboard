@@ -108,6 +108,43 @@ enum OrphanDecision {
         return .missing
     }
 
+    /// macOS가 앱별 권한으로 지키는 사용자 폴더(데스크탑·문서·다운로드). 2026-11-13 (#226, 리뷰 install-update-F-8)
+    /// 폴더 이름을 적지 않고 시스템이 알려 주는 경로를 쓴다(경로만 계산하고 폴더는 열지 않는다).
+    static let protectedFolders: [FileManager.SearchPathDirectory] = [.desktopDirectory, .documentDirectory, .downloadsDirectory]
+
+    static func protectedRoots(fileManager: FileManager = .default) -> [String] {
+        protectedFolders.flatMap { fileManager.urls(for: $0, in: .userDomainMask) }.map { $0.standardizedFileURL.path }
+    }
+
+    /// `path`가 보호 폴더(`protectedRoots`) 자체이거나 그 아래인가.
+    static func isProtectedLocation(_ path: String, protectedRoots: [String]) -> Bool {
+        let target = URL(fileURLWithPath: path).standardizedFileURL.path
+        return protectedRoots.contains { root in target == root || target.hasPrefix(root + "/") }
+    }
+
+    /// 한 번의 관찰. 2026-11-13 (#226, 리뷰 install-update-F-8): 예전 관찰은 LaunchServices가 아는 모든 경로의 존재를 매번 확인했다.
+    /// 다운로드·데스크탑·문서 폴더에 사본이 남아 있으면 키 입력을 보는 입력기가 한글 모드가 켜질 때마다(60초에 한 번까지) 보호 폴더를 건드려
+    /// macOS 권한 창을 부를 수 있었다 — 2026-11-07에 폴더 스캔을 뺀 이유와 같다.
+    /// - 보호 폴더 밖 경로만 확인한다. 휴지통 밖을 먼저 보고, 살아 있는 사본을 찾으면 나머지는 보지 않고 `.present`.
+    /// - 보호 폴더 안 경로는 존재를 확인하지 않는다. 밖에서 살아 있는 사본을 못 찾았는데 보호 폴더 경로가 남아 있으면 '있을 수 있음'이라
+    ///   관찰 불가(nil)로 답해 정리를 미룬다. 자기 정리는 더 보수적이 될 뿐 약해지지 않는다(두 번 관찰·유예 규칙은 `shouldSelfRemove` 그대로).
+    ///   대가: LaunchServices가 이미 지워진 보호 폴더 사본을 계속 기억하면 그동안 자기 정리가 미뤄진다.
+    /// `probe`: true = 있음, false = 없음, nil = 읽지 못함(관찰 불가).
+    static func observe(candidatePaths: [String], isProtected: (String) -> Bool, probe: (String) -> Bool?) -> AppPresence? {
+        var seen = Set<String>()
+        let paths = candidatePaths.filter { seen.insert($0).inserted }
+        let open = paths.filter { !isProtected($0) }
+        var trashedLive = false
+        for path in open.filter({ !isInTrash($0) }) + open.filter(isInTrash) {
+            guard let exists = probe(path) else { return nil }
+            guard exists else { continue }
+            if !isInTrash(path) { return .present }
+            trashedLive = true
+        }
+        if paths.contains(where: isProtected) { return nil }
+        return trashedLive ? .trashed : .missing
+    }
+
     /// 자기 정리를 실행해도 되는가. **한 번의 관찰로는 절대 정리하지 않는다.**
     /// - `.present`: 아니오. 호출자는 이전 부재 관찰(`previousAbsentAt`)도 무효화해야 한다.
     /// - `.trashed`: 이전 부재 관찰이 있고 그로부터 `trashedInterval` 이상 지났을 때만 —

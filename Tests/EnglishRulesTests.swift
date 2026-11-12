@@ -209,7 +209,9 @@ func runEnglishRulesTests() {
     expect(EnglishDetector.shouldConvert(units: ["쏟"], keys: Array("the")), false, "F-12 다른 대소문자는 예외 아님")
 
     // ── input-core F-17: 원본 배열이 같으면 정규화를 다시 하지 않고, 바뀌면 바로 반영한다.
-    let suite = "local.synthetic.haneul-personal-dict.\(UUID().uuidString)"
+    // 2026-11-13 (#226, 리뷰 install-update-F-5): 고정 이름 도메인. UUID 이름은 실행마다 빈 plist를 ~/Library/Preferences에 남겼다(151개). 시작할 때도 비운다.
+    let suite = "local.synthetic.haneul-personal-dict"
+    UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite)
     if let defaults = UserDefaults(suiteName: suite) {
         defer { defaults.removePersistentDomain(forName: suite) }
         defaults.set(["Vismo", " apple "], forKey: PersonalDictionary.Keys.force)

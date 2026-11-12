@@ -38,6 +38,7 @@ import Carbon
               "입력 소스: 알려지지 않은 다른 모드는 예외로 풀지 않음")
         check(RemovalObservation.inputSourceState([], currentID: other) == .alreadyAbsent,
               "입력 소스: 부모/모드 모두 없으면 부재")
+        fallbackSourceChecks(check)
         let cases = ["success", "already-absent", "prepare-unknown", "input-unknown", "process-unknown", "cancel", "file-failed", "reappeared", "late-reappeared", "registration-unknown", "source-enabled", "source-unknown", "settings-failed", "main-failed"]
         for mode in [RemovalReport.Mode.wholeProduct, .inputMethod, .commandLine] {
             for scenario in cases {
@@ -61,20 +62,27 @@ import Carbon
                     unregister: { events.append("registration"); return scenario == "registration-unknown" ? .unknown("조회 실패") : .alreadyAbsent },
                     observeInputSources: { events.append("sources"); return scenario == "source-enabled" ? .needsUserAction("설정에서 제거") : scenario == "source-unknown" ? .unknown("조회 실패") : .verified },
                     clearSettings: { events.append("settings"); if scenario == "settings-failed" { return .failed("저장 실패") }; settings.removeAll(); return .removed },
-                    removeMainApps: { events.append("main"); return scenario == "main-failed" ? .failed("권한 거부") : .removed }
+                    removeMainApps: { events.append("main"); return scenario == "main-failed" ? .failed("권한 거부") : .removed },
+                    releaseLoginItem: { events.append("login") }
                 )
                 let report = RemovalSequence.run(mode: mode, operations: op)
                 let prefix = "제거 \(mode.rawValue)/\(scenario)"
                 let preFailure = ["prepare-unknown", "input-unknown", "process-unknown", "cancel", "file-failed", "reappeared", "registration-unknown", "source-enabled", "source-unknown"].contains(scenario)
                 let blocksSettings = preFailure || scenario == "late-reappeared"
                 if mode == .inputMethod {
-                    check(settings == original && !events.contains("settings") && !events.contains("main"), "\(prefix): 입력기만 제거하면 설정/앱 보존")
+                    check(settings == original && !events.contains("settings") && !events.contains("main") && !events.contains("login"),
+                          "\(prefix): 입력기만 제거하면 설정/앱/로그인 항목 보존")
                     check(report.complete == !preFailure, "\(prefix): 입력기 범위에서만 완료 판정")
                 } else {
                     check(events.contains("settings") == !blocksSettings, "\(prefix): 파일·실행·등록·소스 관문 뒤에만 설정 정리")
                     check(settings == (blocksSettings || scenario == "settings-failed" ? original : [:]), "\(prefix): 실패/취소/불명 상태의 개인 데이터 보존")
                     let mainExpected = mode == .wholeProduct && !blocksSettings && scenario != "settings-failed"
                     check(events.contains("main") == mainExpected, "\(prefix): 필수 정리 실패 시 메인 앱 삭제 미호출")
+                    // 2026-11-13 (#226, 리뷰 install-update-F-4): 로그인 항목은 메인 앱을 실제로 지우기 바로 앞에서만 푼다.
+                    // 중간에 멈춘 제거는 앱이 남으므로 로그인 항목도 그대로 둔다(예전엔 등록 해제 단계에서 먼저 풀고 되돌리지 않았다).
+                    check(events.contains("login") == mainExpected
+                          && (!mainExpected || events.firstIndex(of: "login")! + 1 == events.firstIndex(of: "main")!),
+                          "\(prefix): 로그인 항목은 메인 앱 삭제 직전에만 해제")
                     let complete = !blocksSettings && scenario != "settings-failed" && (mode == .commandLine || scenario != "main-failed")
                     check(report.complete == complete, "\(prefix): 정확한 범위 완료")
                     if mode == .wholeProduct {
@@ -92,7 +100,7 @@ import Carbon
                     check(!events.contains("registration"), "\(prefix): 파일 실패 때 등록 해제 미호출")
                 }
                 if scenario == "success" && mode == .wholeProduct {
-                    check(events == ["prepare", "input", "process", "ime", "process", "verify", "registration", "sources", "verify", "process", "settings", "main"], "\(prefix): 실제 순서·C1 직전 재조회")
+                    check(events == ["prepare", "input", "process", "ime", "process", "verify", "registration", "sources", "verify", "process", "settings", "login", "main"], "\(prefix): 실제 순서·C1 직전 재조회")
                 }
             }
         }
@@ -118,9 +126,39 @@ import Carbon
         gate.finish(install); check(gate.begin(.removingProduct) != nil, "작업권: 완료 뒤 제거 재시도 가능")
     }
 
+    /// 2026-11-13 (#226, 리뷰 install-update-F-3): 제거·자기 정리 때 고르는 대체 입력 소스는 선택 가능한 키보드 입력 소스여야 한다.
+    /// 이 Mac(macOS 27.2) 실측: '우리 것 아님·켜짐·ASCII 가능' 조건에 ABC 자판 1개와 문자 팔레트 3개(이모지·기호, 길게 누르기, 받아쓰기)가 걸렸다.
+    /// 팔레트를 고르면 선택은 성공해도 키보드 입력 소스는 그대로라 제거가 멈췄다. 목록 순서는 시스템이 정하므로 팔레트가 먼저 오는 목록으로 본다.
+    private static func fallbackSourceChecks(_ check: (Bool, String) -> Void) {
+        typealias Snapshot = RemovalObservation.InputSourceSnapshot
+        let keyboard = kTISCategoryKeyboardInputSource as String
+        func source(_ id: String, category: String = kTISCategoryKeyboardInputSource as String, type: String = kTISTypeKeyboardLayout as String,
+                    enabled: Bool? = true, ascii: Bool? = true, selectable: Bool? = true, bundle: String? = nil) -> Snapshot {
+            Snapshot(id: id, bundleID: bundle, type: type, enabled: enabled, selected: false,
+                     category: category, asciiCapable: ascii, selectCapable: selectable)
+        }
+        let palette = source("com.apple.CharacterPaletteIM", category: kTISCategoryPaletteInputSource as String, type: kTISTypeCharacterPalette as String)
+        let pressAndHold = source("com.apple.PressAndHold", category: kTISCategoryPaletteInputSource as String, type: kTISTypeCharacterPalette as String)
+        let abc = source("com.apple.keylayout.ABC")
+        func pick(_ list: [Snapshot]) -> String? { RemovalObservation.fallbackIndex(list).flatMap { list[$0].id } }
+        check(pick([palette, pressAndHold, abc]) == "com.apple.keylayout.ABC", "대체 입력 소스: 팔레트가 먼저 와도 키보드 자판을 고름")
+        check(pick([palette, pressAndHold]) == nil, "대체 입력 소스: 팔레트뿐이면 고르지 않음(실패로 알림)")
+        let ours = source(RemovalObservation.imeID + ".korean", type: kTISTypeKeyboardInputMode as String, bundle: RemovalObservation.imeID)
+        check(pick([ours, abc]) == "com.apple.keylayout.ABC", "대체 입력 소스: 우리 입력기는 제외")
+        check(pick([source("com.apple.keylayout.US", enabled: false), abc]) == "com.apple.keylayout.ABC", "대체 입력 소스: 꺼진 자판 제외")
+        check(pick([source("com.apple.keylayout.2SetHangul", ascii: false), abc]) == "com.apple.keylayout.ABC", "대체 입력 소스: ASCII 불가 제외")
+        check(pick([source("com.apple.keylayout.Hidden", selectable: false), abc]) == "com.apple.keylayout.ABC", "대체 입력 소스: 선택 불가 제외")
+        check(pick([source("com.apple.keylayout.Unknown", ascii: nil), source("x", enabled: nil)]) == nil, "대체 입력 소스: 속성을 못 읽으면 제외")
+        let romaji = source("com.apple.inputmethod.Kotoeri.RomajiTyping.Roman", type: kTISTypeKeyboardInputMode as String, bundle: "com.apple.inputmethod.Kotoeri")
+        check(pick([palette, romaji, abc]) == "com.apple.keylayout.ABC", "대체 입력 소스: 자판이 있으면 다른 입력기 모드보다 자판")
+        check(pick([palette, romaji]) == romaji.id, "대체 입력 소스: 자판이 없으면 선택 가능한 다른 입력기의 영문 모드")
+        check(keyboard == "TISCategoryKeyboardInputSource", "대체 입력 소스: 범주 상수")
+    }
+
     private static func fileAndPreferenceChecks(_ check: (Bool, String) -> Void) {
         let fm = FileManager.default
-        let root = URL(fileURLWithPath: fm.currentDirectoryPath).appendingPathComponent(".tmp").appendingPathComponent("HaneulRemovalTests-\(UUID().uuidString)")
+        // 2026-11-13 (#226, 리뷰 install-update-F-5): 저장소의 `.tmp` 대신 링크를 푼 시스템 임시 폴더를 쓴다.
+        guard let root = resolvedTemporaryRoot("HaneulRemovalTests") else { check(false, "임시 폴더 경로를 풀지 못함"); return }
         let id = "com.hyunjincho.inputmethod.haneul"
         let trust: (URL) -> Bool = { _ in true } // OS 서명만 대체. 제품 ID/path/inode/삭제는 실제 함수.
         func fixture(_ name: String, identifier: String = "com.hyunjincho.inputmethod.haneul") throws -> URL {
@@ -245,9 +283,10 @@ import Carbon
             check((try? Data(contentsOf: sentinel)) == Data("keep".utf8), "번들 내부 링크: 외부 파일 내용 보존")
             try fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: outside.path)
             let supportLink = root.appendingPathComponent("Application Support"); try fm.createSymbolicLink(at: supportLink, withDestinationURL: outside)
-            let suite = "haneul.removal-tests.\(UUID().uuidString)"
-            let domains = [suite + ".main", suite + ".ime", suite + ".global"]
-            defer { for name in domains { UserDefaults.standard.removePersistentDomain(forName: name) } }
+            let suite = TestPreferenceDomains.removal[0]
+            let domains = TestPreferenceDomains.removal
+            domains.forEach(TestPreferenceDomains.clear)
+            defer { domains.forEach(TestPreferenceDomains.clear) }
             let guarded = RemovalObservation.clearProductSettings(mainDomain: domains[0], inputDomain: domains[1], globalDomain: domains[2], supportURL: supportLink.appendingPathComponent("HaneulKeyboard"))
             check(!guarded.reachedGoal && fm.fileExists(atPath: sentinel.path), "설정: 부모 symlink 바깥 파일 보존")
             for name in domains { let defaults = UserDefaults(suiteName: name)!; defaults.set(["fixture"], forKey: "haneul.personalDict.force"); defaults.set(1, forKey: "haneul.fixture.v2"); defaults.synchronize() }

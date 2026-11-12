@@ -250,9 +250,11 @@ enum InputInferenceTests {
             }
         }
 
-        let suite = "haneul.input-inference.tests.\(UUID().uuidString)"
+        // 2026-11-13 (#226, 리뷰 install-update-F-5): 고정 이름 도메인. UUID 이름은 실행마다 빈 plist를 ~/Library/Preferences에 남겼고,
+        // 이 함수는 `exit`로 끝나 defer도 돌지 않았다. 시작할 때 비우고 `exit` 앞에서 다시 비운다(SlashEnglishTests와 같은 방식).
+        let suite = "com.hyunjincho.haneulkeyboard.input-inference-tests"
+        UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite)
         let defaults = UserDefaults(suiteName: suite)!
-        defer { defaults.removePersistentDomain(forName: suite) }
         check(InputInferencePolicy.externalEnglishContextEnabled(in: defaults), true, "external context default ON")
         check(InputInferencePolicy.dictionaryCompoundEnabled(in: defaults), true, "compound default ON")
         defaults.set(false, forKey: InputInferencePolicy.externalEnglishContextKey)
@@ -263,6 +265,7 @@ enum InputInferenceTests {
         defaults.set("invalid", forKey: InputInferencePolicy.dictionaryCompoundKey)
         check(InputInferencePolicy.externalEnglishContextEnabled(in: defaults), true, "bad context type uses default")
         check(InputInferencePolicy.dictionaryCompoundEnabled(in: defaults), true, "bad compound type uses default")
+        defaults.removePersistentDomain(forName: suite)
 
         print("\(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)

@@ -67,11 +67,7 @@ enum AppMover {
                     warn.addButton(withTitle: "구버전으로 덮어쓰기")
                     warn.alertStyle = .warning
                     if warn.runModal() == .alertFirstButtonReturn {
-                        let cfg = NSWorkspace.OpenConfiguration()
-                        cfg.createsNewApplicationInstance = true
-                        NSWorkspace.shared.openApplication(at: destURL, configuration: cfg) { _, _ in
-                            DispatchQueue.main.async { NSApp.terminate(nil) }
-                        }
+                        handOff(to: destURL, replacedInstalledCopy: false, failureTitle: "응용 프로그램 폴더의 앱을 여는 데 실패했어요")
                         return .openingExistingCopy
                     }
                 }
@@ -94,15 +90,55 @@ enum AppMover {
         }
 
         // 옮긴 앱을 새 인스턴스로 실행하고, 현재(임시/원위치) 인스턴스는 종료.
+        handOff(to: destURL, replacedInstalledCopy: true, failureTitle: "옮긴 앱을 여는 데 실패했어요")
+        return .relaunchingMovedCopy
+    }
+
+    /// 설치본으로 넘겨준다. 2026-11-13 (#226, 리뷰 install-update-F-7): 응용 프로그램 폴더의 하늘키보드가 이미 실행 중이면 인스턴스를 하나 더 띄우지 않는다
+    /// (판단은 `AppHandoffDecision`). 교체한 설치본이 옛 코드로 돌고 있으면 정상 종료를 요청해 끝난 것을 확인한 뒤 새로 열고, 기존 최신 버전이 실행 중이면
+    /// 그것을 앞으로 가져오기만 한다. 끝나지 않으면 새로 띄우지 않고 직접 끈 뒤 다시 열어 달라고 알린다.
+    /// 다른 인스턴스를 끝낸 뒤에야 열기 때문에 기다리는 동안(최대 10초) 이 창은 잠시 멈춘다. 실제 동작은 실기 확인 항목이다.
+    private static func handOff(to destURL: URL, replacedInstalledCopy: Bool, failureTitle: String) {
+        let others = NSRunningApplication.runningApplications(withBundleIdentifier: AppMoveDecision.mainAppBundleID).map {
+            AppHandoffDecision.Instance(pid: $0.processIdentifier, bundlePath: $0.bundleURL?.path, terminated: $0.isTerminated)
+        }
+        switch AppHandoffDecision.action(replacedInstalledCopy: replacedInstalledCopy, others: others,
+                                         destinationPath: destURL.path, selfPID: getpid()) {
+        case .activate(let pid):
+            NSRunningApplication(processIdentifier: pid)?.activate()
+            NSApp.terminate(nil)
+        case .quitThenOpen(let pids):
+            let running = pids.compactMap(NSRunningApplication.init(processIdentifier:))
+            running.forEach { $0.terminate() }
+            let ended = AppHandoffDecision.waitUntilTerminated(timeout: 10, isTerminated: { running.allSatisfy(\.isTerminated) },
+                                                              pause: { RunLoop.current.run(until: Date().addingTimeInterval($0)) })
+            guard ended else {
+                let busy = NSAlert()
+                busy.messageText = "이미 켜져 있는 하늘키보드가 꺼지지 않았어요"
+                busy.informativeText = "메뉴 막대의 하늘키보드를 종료한 뒤 응용 프로그램 폴더의 HaneulKeyboard를 열어 주세요."
+                busy.alertStyle = .warning
+                busy.runModal()
+                NSApp.terminate(nil)
+                return
+            }
+            openInstalledCopy(at: destURL, failureTitle: failureTitle)
+        case .openNew:
+            openInstalledCopy(at: destURL, failureTitle: failureTitle)
+        }
+    }
+
+    /// 설치본을 새 인스턴스로 열고 현재 인스턴스를 끝낸다. 같은 번들 ID의 자기 자신이 떠 있어 새 인스턴스를 명시한다.
+    private static func openInstalledCopy(at destURL: URL, failureTitle: String) {
         let config = NSWorkspace.OpenConfiguration()
         config.createsNewApplicationInstance = true
         NSWorkspace.shared.openApplication(at: destURL, configuration: config) { _, error in
             DispatchQueue.main.async {
                 // (L-03) 옮긴 앱 실행이 실패했는데 무조건 종료하면 메뉴바 앱이
                 // 설명 없이 사라진다 — 에러를 알리고 현재 인스턴스는 유지한다.
+                // 2026-11-13 (#226): '기존 최신 버전 열기'도 같은 처리를 한다(예전엔 오류를 무시하고 끝냈다).
                 if let error {
                     let fail = NSAlert()
-                    fail.messageText = "옮긴 앱을 여는 데 실패했어요"
+                    fail.messageText = failureTitle
                     fail.informativeText = "응용 프로그램 폴더의 HaneulKeyboard를 직접 실행해 주세요.\n(\(error.localizedDescription))"
                     fail.alertStyle = .warning
                     fail.runModal()
@@ -111,7 +147,6 @@ enum AppMover {
                 NSApp.terminate(nil)
             }
         }
-        return .relaunchingMovedCopy
     }
 
     /// 2026-11-07 (#176, 리뷰 install-update-F-3·F-10): 같은 볼륨의 staging에서 복사·검증·격리 해제를 끝낸 뒤에만 정본 경로에 놓는다.
