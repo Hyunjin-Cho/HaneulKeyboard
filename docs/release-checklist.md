@@ -28,7 +28,7 @@
 
 ### 버전 번호 고르는 법
 
-- **정식은 `연도.월.일`이고 0을 채운다**(2026-11-04 오너 재확인, #131). 11월 4일에 게시하면 `2026.11.04`다. 날짜는 예시이며 첫 정식 출시일은 아직 정하지 않았다. 빌드 스크립트(`build_notarize_install.sh`·`package_dmg.sh`)가 3칸 날짜의 0 채움과 달력 유효성을 검사한다.
+- **정식은 `연도.월.일`이고 0을 채운다**(2026-11-04 오너 재확인, #131). 11월 4일에 게시하면 `2026.11.04`다. 날짜는 예시이며 첫 정식 출시일은 아직 정하지 않았다. 2026-11-12(#228)부터 정식 경로(`CANDIDATE_ONLY` 없이)의 `build_notarize_install.sh`가 서명·공증 **전에** 0 채운 3칸 실제 날짜(+ `_hotfixN`)인지, 빌드 번호가 직전 공개 릴리스 태그의 `project.yml`보다 큰지 검사하고 아니면 멈춘다(내부 후보 `2026.9` 같은 두 칸 번호는 `CANDIDATE_ONLY=1`로만). 직전 태그를 못 찾으면 경고만 하니 그때는 눈으로 확인한다. 검사 구간의 시험은 `scripts/test_build_release_gates.py`.
 - 과거 `2026.01`~`2026.07`은 순번형 베타 이력이다. 기존 두 칸짜리 내부 설치본과 비교하기 위해 `CalVer`는 2~3칸 파싱을 유지한다. 날짜 유효성을 검사하는 타입은 아니므로 게시자가 실제 날짜를 확인한다.
 - **내부 확인용 빌드에 쓴 번호는 정식에 그대로 재사용하지 않는다.** 현재 버전은 `project.yml`, 설치본 버전은 `postinstall_probe.sh`로 읽고 새 번호가 더 큰지 확인한다. 예: `2026.9` → `2026.10.10`은 상승이다.
 - **핫픽스는 `_hotfix1`, `_hotfix2` …처럼 번호를 붙인다**(2026-11-04 오너 결정, #131 — 2026-10-10의 `_hotfix` 하나 규칙을 바꿨다). 원래 판 날짜를 그대로 둔다. 예: `2026.11.04`의 첫 핫픽스는 며칠 뒤에 내도 `2026.11.04_hotfix1`이다. 번호는 1~999, 앞자리 0 없이 쓴다. Apple 표준 `CFBundleShortVersionString`은 숫자 날짜로 유지하고, `project.yml`의 `HANEUL_RELEASE_SUFFIX`에 `_hotfixN`을 넣어 서명된 `HaneulReleaseSuffix`에 저장한다. `UpdateDecision.releaseVersion(info:)`가 화면·업데이트 비교용 공개 버전을 만들고, `CalVer.hotfixNumber(ofSuffix:)`가 형식을 검사한다. 맨 `_hotfix`·`_hotfix0`·`_hotfix01`은 거부한다.
@@ -98,6 +98,7 @@ gh release create "$RELEASE_VERSION" "HaneulKeyboard_$RELEASE_VERSION.dmg" "Hane
 
 - `--target`에는 **빌드한 커밋**을 준다(①에서 확인한 HEAD). `--target main`은 그사이 main이 움직이면 다른 커밋에 태그를 단다.
 - `--draft`·`--prerelease`를 붙이지 않는다.
+- 태그는 `gh release create`가 만드는 **이 릴리스 태그 하나만** 올라간다. `git push --tags`·`--follow-tags`처럼 태그를 한꺼번에 올리는 명령은 쓰지 않는다 — 로컬 `backup/*` 태그 일부에 공개하지 않기로 한 시스템 낱말 파일(web2) 사본이 들어 있다(2026-11-12 리뷰 build-release-docs-F-11, #228). 태그를 따로 올려야 하면 `git push origin <태그 이름>`으로 하나씩.
 
 ### ⑦ 게시 직후 확인
 
