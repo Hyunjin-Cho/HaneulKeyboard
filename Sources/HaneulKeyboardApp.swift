@@ -10,10 +10,18 @@ struct HaneulKeyboardApp: App {
         // (메뉴바 좌상단 버그 수정) SwiftUI MenuBarExtra → AppKit NSStatusItem 전환.
         // MenuBarExtra의 커스텀/동적 label에서 메뉴가 화면 좌상단(0,0)에 뜨던 문제를
         // NSStatusItem + NSMenu(팝업 위치가 OS 표준이라 견고)로 근본 해결한다.
-        // 검증된 설정 화면은 SwiftUI Settings로 그대로 두고, 시작하기(onboarding)는
-        // AppDelegate가 NSWindow로 연다(MenuBarExtra 제거로 openWindow를 못 쓰므로).
+        // 2026-11-13 (#227, 리뷰 app-ui-F-7·F-11 정정): 설정 창도 시작하기와 같이 AppDelegate가 NSWindow로 연다(`showSettings`).
+        // 예전 주석은 "설정 화면은 SwiftUI Settings로 그대로 둔다"였지만 macOS 26에서 그 장면을 여는 길이 동작하지 않아 바꾼 지 오래다.
+        // SwiftUI App에는 장면이 하나 있어야 해서 Settings 장면은 빈 채로 남기고, 그 장면을 여는 ⌘,(앱 설정 명령)는
+        // 우리 설정 창을 열게 바꾼다 — 예전엔 ⌘,가 AppDelegate가 모르는 두 번째 설정 창(따로 노는 상태)을 열 수 있었다.
         Settings {
-            SettingsView(core: appDelegate.core)
+            EmptyView()
+        }
+        .commands {
+            CommandGroup(replacing: .appSettings) {
+                Button("설정…") { appDelegate.openSettingsFromCommand() }
+                    .keyboardShortcut(",", modifiers: .command)
+            }
         }
     }
 }
@@ -77,7 +85,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
                 launchedAsLoginItem: self.launchedAsLoginItem) {
             case .onboarding: self.showOnboarding()
             case .settings: self.showSettings(tab: .appManagement)
-            case .none: break
+            case .none: self.openSettingsIfIconHidden()
             }
         }
 
@@ -115,6 +123,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         }
         NotificationCenter.default.addObserver(self, selector: #selector(appDidBecomeActive),
                                                name: NSApplication.didBecomeActiveNotification, object: nil)
+    }
+
+    /// 2026-11-13 (#227, 리뷰 app-ui-F-8): macOS 26은 시스템 설정 → 메뉴 막대에서 아이콘을 숨길 수 있고 앱에 따로 알리지 않는다.
+    /// 앱 안 토글이 켜져 있어 창 없이 시작했는데 아이콘이 실제로 화면에 없으면, 직접 실행한 사람에게는 아무 일도 없는 것처럼 보인다.
+    /// 메뉴 막대가 아이콘을 놓을 시간을 준 뒤 실제로 보이는지 확인하고, 안 보이면 설정 창을 연다(로그인 실행은 열지 않는다).
+    /// 시스템이 숨긴 아이콘을 AppKit이 어떻게 알려 주는지는 실기기로 확인하지 못했다 — 확인 못 하면 안 보이는 것으로 본다.
+    private func openSettingsIfIconHidden() {
+        guard !launchedAsLoginItem else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            guard let self, self.settingsWindow == nil, self.onboardingWindow == nil else { return }
+            if SettingsEntryDecision.shouldOpenSettingsAfterLaunch(
+                launchedAsLoginItem: self.launchedAsLoginItem, iconPreferenceOn: self.menuBarIconVisible,
+                iconOnScreen: self.statusItemAppearsOnScreen) {
+                self.showSettings(tab: self.preferredSettingsTab)
+            }
+        }
+    }
+
+    /// 상태 항목이 지금 메뉴 막대에 실제로 그려져 있는가. 하나라도 확인하지 못하면 false다.
+    private var statusItemAppearsOnScreen: Bool {
+        guard let item = statusItem, item.isVisible, let window = item.button?.window, window.isVisible,
+              window.occlusionState.contains(.visible) else { return false }
+        return NSScreen.screens.contains { $0.frame.intersects(window.frame) }
     }
 
     @objc private func appDidBecomeActive() {
@@ -298,6 +329,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         showSettings(tab: .update)
     }
 
+    /// 2026-11-13 (#227, 리뷰 app-ui-F-7): ⌘,(앱 설정 명령)도 메뉴의 `설정…`과 같은 창을 연다.
+    func openSettingsFromCommand() {
+        openSettings()
+    }
+
     /// 메뉴 `설정…`·앱 다시 열기에서 처음 보일 메뉴. nil이면 마지막으로 본 메뉴.
     private var preferredSettingsTab: SettingsTab? {
         SettingsEntryDecision.preferredTab(
@@ -341,7 +377,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         }
         let hosting = NSHostingController(rootView: SettingsView(
             core: core, initialTab: tab ?? lastSettingsTab,
-            onTabChange: { [weak self] in self?.lastSettingsTab = $0 }))
+            onTabChange: { [weak self] in self?.lastSettingsTab = $0 },
+            onRemovalFinished: { [weak self] in self?.revealSettingsForRemovalResult() }))
         let win = NSWindow(contentViewController: hosting)
         // 2026-09-21 (#60): 제목 문구는 `SettingsView.windowTitle` 한 곳에서 정한다.
         win.title = SettingsView.windowTitle
@@ -370,6 +407,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
 
     @objc private func quit() {
         NSApplication.shared.terminate(nil)
+    }
+
+    /// 2026-11-13 (#227, 리뷰 app-ui-F-6): 전체 제거가 도는 동안(다 지우고 종료를 기다리는 동안 포함)은 설정 창을 닫지 않는다.
+    /// 결과 창(시트)이 이 창에 붙는다 — 닫힌 창에 붙은 결과는 보이지 않고, 다 지운 경우 `확인`을 누를 수 없어 앱이 끝나지 않았다.
+    /// 닫기 버튼·⌘W 모두 여기를 지난다. 막을 때는 시스템 경고음만 낸다.
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        guard sender === settingsWindow,
+              !RemovalWindowDecision.allowsClosingSettings(removingProduct: core.isRemovingProduct) else { return true }
+        NSSound.beep()
+        return false
+    }
+
+    /// 2026-11-13 (#227, 리뷰 app-ui-F-6): 그래도 결과가 나왔을 때 창이 화면에 없으면(닫혔거나 숨음) 다시 꺼낸다.
+    /// 다른 앱에 글을 치는 중일 수 있어 앱을 활성화하지 않고 창만 앞에 올린다(새 버전 안내창과 같은 원칙, #177).
+    private func revealSettingsForRemovalResult() {
+        guard let window = settingsWindow,
+              RemovalWindowDecision.shouldRevealSettings(windowVisible: window.isVisible) else { return }
+        window.orderFrontRegardless()
     }
 
     /// 2026-11-06 (#156): 앱은 창 없이 뒤에 남으므로 닫은 창을 쥐고 있지 않는다. 닫는 도중에 놓지 않게 다음 차례로 미룬다.

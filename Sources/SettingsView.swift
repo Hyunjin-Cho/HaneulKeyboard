@@ -15,7 +15,7 @@ extension Notification.Name {
 struct SettingsView: View {
     /// 창 제목. 2026-09-21 (#60): 오너 미결(시안 Q1 — `하늘키보드 설정` 제안)이라 현행 문구를
     /// 유지하되, 바꿀 때 한 줄만 고치면 되도록 여기 한 곳에 둔다.
-    /// 쓰는 곳: `AppDelegate.openSettings()`.
+    /// 쓰는 곳: `AppDelegate.showSettings(tab:)`. (2026-11-13 #227 정정: 예전 주석은 `openSettings()`라고 적었다.)
     static let windowTitle = "HaneulKeyboard 설정"
 
     @Bindable var core: AppCore
@@ -26,11 +26,15 @@ struct SettingsView: View {
 
     /// 2026-11-06 (#156): 닫으면 창을 놓아주므로 AppDelegate가 마지막 메뉴를 받아 두었다가 다시 열 때 넘겨준다.
     private let onTabChange: (SettingsTab) -> Void
+    /// 2026-11-13 (#227, 리뷰 app-ui-F-6): 전체 제거 결과가 나오면 AppDelegate가 창이 화면에 있는지 보고 다시 꺼낸다.
+    private let onRemovalFinished: () -> Void
 
-    /// 기본은 「입력 기능」.
-    init(core: AppCore, initialTab: SettingsTab = .automatic, onTabChange: @escaping (SettingsTab) -> Void = { _ in }) {
+    /// 기본은 「자동 변환」(2026-11-13 #227 정정: 예전 주석은 #189 전 이름인 「입력 기능」이었다).
+    init(core: AppCore, initialTab: SettingsTab = .automatic, onTabChange: @escaping (SettingsTab) -> Void = { _ in },
+         onRemovalFinished: @escaping () -> Void = {}) {
         self.core = core
         self.onTabChange = onTabChange
+        self.onRemovalFinished = onRemovalFinished
         _selectedTab = State(initialValue: initialTab)
     }
 
@@ -110,7 +114,10 @@ struct SettingsView: View {
                 .sheet(isPresented: $showingUninstallConfirm) {
                     RemovalConfirmSheet(onCancel: { showingUninstallConfirm = false }) {
                         showingUninstallConfirm = false
-                        Task { uninstallResult = await core.removeFullProduct() }
+                        Task {
+                            uninstallResult = await core.removeFullProduct()
+                            onRemovalFinished()
+                        }
                     }
                 }
         }

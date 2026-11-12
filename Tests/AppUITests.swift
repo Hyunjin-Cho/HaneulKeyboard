@@ -317,6 +317,45 @@ func runInstallUpdatePresentationTests() {
     expectEqual(L.slash.settingsTab(autoEnabled: true), .shortcuts, "슬래시는 단축키·슬래시 메뉴")
 }
 
+// MARK: - 창·실행 경로 (2026-11-13 #227, 리뷰 app-ui-F-6·F-7·F-8·F-9 — 화면을 띄울 수 없어 판단과 소스 연결만 본다. 동작은 실기 확인)
+
+func runWindowAndLaunchTests() {
+    // F-6: 전체 제거 중에는 설정 창을 닫지 않고, 결과가 나왔는데 창이 없으면 다시 꺼낸다.
+    expect(!RemovalWindowDecision.allowsClosingSettings(removingProduct: true), "제거 중에는 설정 창을 닫지 않는다")
+    expect(RemovalWindowDecision.allowsClosingSettings(removingProduct: false), "평소에는 닫힌다")
+    expect(RemovalWindowDecision.shouldRevealSettings(windowVisible: false), "결과가 나왔는데 창이 없으면 다시 꺼낸다")
+    expect(!RemovalWindowDecision.shouldRevealSettings(windowVisible: true), "창이 보이면 그대로")
+    let app = readSource("Sources/HaneulKeyboardApp.swift") ?? ""
+    let settings = readSource("Sources/SettingsView.swift") ?? ""
+    expect(app.contains("func windowShouldClose(") && app.contains("RemovalWindowDecision.allowsClosingSettings"),
+           "AppDelegate가 제거 중 설정 창 닫기를 막는다")
+    expect(app.contains("RemovalWindowDecision.shouldRevealSettings") && settings.contains("onRemovalFinished()"),
+           "제거 결과가 나오면 설정 창을 다시 꺼낸다")
+
+    // F-7: ⌘,(앱 설정 명령)는 AppDelegate의 설정 창을 연다. SwiftUI Settings 장면에는 두 번째 설정 화면을 두지 않는다.
+    if let body = app.range(of: "var body: some Scene"), let end = app.range(of: "final class AppDelegate") {
+        let scene = String(app[body.upperBound..<end.lowerBound])
+        expect(scene.contains("CommandGroup(replacing: .appSettings)") && scene.contains("openSettingsFromCommand()"),
+               "⌘,가 우리 설정 창을 연다")
+        expect(!scene.contains("SettingsView("), "Settings 장면에 두 번째 SettingsView 없음")
+    } else {
+        expect(false, "App 장면 소스 찾기")
+    }
+
+    // F-8: 직접 실행했는데 아이콘이 화면에 없으면(시스템이 숨김) 설정을 연다. 로그인 실행은 창을 띄우지 않는다.
+    typealias E = SettingsEntryDecision
+    for login in [false, true] { for pref in [false, true] { for onScreen in [false, true] {
+        expectEqual(E.shouldOpenSettingsAfterLaunch(launchedAsLoginItem: login, iconPreferenceOn: pref, iconOnScreen: onScreen),
+                    !login && pref && !onScreen, "실행 뒤 설정 창: login=\(login) pref=\(pref) onScreen=\(onScreen)")
+    }}}
+    expect(app.contains("SettingsEntryDecision.shouldOpenSettingsAfterLaunch") && app.contains("statusItemAppearsOnScreen"),
+           "실행 경로가 아이콘이 실제로 보이는지 확인한다")
+
+    // F-9: 되돌린 단어 한 줄의 두 버튼을 VoiceOver가 따로 누를 수 있게 줄을 하나로 합치지 않는다.
+    let dictionary = readSource("Sources/PersonalDictionarySettingsSection.swift") ?? ""
+    expect(!dictionary.contains("accessibilityElement(children: .combine)"), "되돌린 단어 줄을 한 요소로 합치지 않는다")
+}
+
 // MARK: - 두루마리 자원 (리뷰 app-ui-F-6)
 
 func runScrollResourceTests() {
@@ -385,6 +424,7 @@ struct AppUITests {
         runScrollResourceTests()
         runStatusContrastTests()
         runInstallUpdatePresentationTests()
+        runWindowAndLaunchTests()
         print("AppUI: \(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
     }
