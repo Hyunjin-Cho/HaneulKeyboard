@@ -5431,3 +5431,17 @@ fax
 rec
 rss
 vga
+
+# 2026-11-13 (#225): 리뷰 2026-11-12 english-dict-F-1, 오너 결정(가) "고정하면 돼". 닫힌 묶음(요일·달·나라·국적·언어) 중
+# 한글형이 멀쩡해 broad로는 닿지 않는 8개. 시스템 낱말 파일에 대문자 줄로만 있어(Thai·Russia) 입력기가 건너뛰던 말이다.
+# 검역(audit_wordlist.sh --role curated) Tier A 8개 전수 리뷰: 엿초·호뭄·견냠·소먀·두히뭉·견냐무·녕무·셔가됴 모두 우리말 표제어·
+# 이름·흔한 꼴이 아니다. 깨진 한글형 94개는 english_names_extra(broad)에 넣었고, togo=새해는 표제어라 뺐다.
+# 기록: dict_work/2026-11-13-closed-sets-audit.csv
+dutch
+england
+ghana
+russia
+russian
+sudan
+thai
+turkey

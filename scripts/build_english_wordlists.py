@@ -22,6 +22,11 @@
     --exclude 반복 지정 + <srcdir>/exclusions.txt 자동 적용.
   - names는 NGSL·english_supplement·web2 기존 등재어 제거(--no-dedupe로 해제)
     — broad에 이미 있는 단어라 행동 변화가 없고 리뷰만 무거워지는 중복 제거.
+    2026-11-13 (#225, 리뷰 english-dict-F-1): '이미 있음'은 입력기가 실제로 읽는 줄만 센다
+    (`already_present` — EnglishDetector.isWordLine과 같은 필터, scripts/build_english_table.py의 loader_words).
+    예전엔 web2를 전부 소문자로 바꿔 셌다. 입력기는 January·David처럼 대문자로 시작하는 줄을 건너뛰므로,
+    그런 낱말이 '이미 있음'으로 빠져 어느 사전에도 없게 됐다(january·david·korean이 한글로 남았다).
+    이 기준으로 다시 돌리면 인명 후보가 늘어난다 — 머지 전 검역(audit_wordlist.sh --role broad)을 거친다.
 
 사용:
   scripts/build_english_wordlists.py --probe     # 형식/통계 확인만
@@ -35,6 +40,10 @@ import glob
 import os
 import re
 import sys
+from pathlib import Path
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from build_english_table import loader_words  # noqa: E402 — EnglishDetector.isWordLine과 같은 필터
 
 ALPHA = re.compile(r"^[a-z]{3,}$")
 REPO_ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
@@ -171,7 +180,8 @@ def parse_ssa(paths):
 
 
 def load_wordfile(path):
-    """기존 단어 파일(supplement/web2/후보) — # 주석·비알파벳 줄 제외."""
+    """제외 목록·후보 파일 — # 주석·비알파벳 줄 제외, 소문자화해 비교한다.
+    입력기가 '이미 아는 낱말'을 셀 때는 이 함수가 아니라 `already_present`를 쓴다(대문자 줄을 세면 안 된다)."""
     words = set()
     if not os.path.exists(path):
         return words
@@ -181,6 +191,18 @@ def load_wordfile(path):
             if w:
                 words.add(w)
     return words
+
+
+def already_present(ngsl, paths):
+    """2026-11-13 (#225, 리뷰 english-dict-F-1): 입력기가 이미 아는 낱말 — NGSL + 각 파일에서 입력기가 실제로 읽는 줄.
+
+    필터는 EnglishDetector.isWordLine과 같다(첫 글자 a-z, 3자 이상, ASCII 알파벳만, 소문자화). 시스템 낱말 파일의
+    January·David 줄은 입력기가 건너뛰므로 여기서도 세지 않는다. 없는 파일은 빈 집합으로 본다."""
+    present = set(ngsl)
+    for path in paths:
+        if os.path.exists(path):
+            present |= loader_words(Path(path))
+    return present
 
 
 # ── 출력 ──────────────────────────────────────────────────────────────────
@@ -333,9 +355,8 @@ def main():
     names -= exclusions
     dedupe_note = "dedupe: off"
     if not args.no_dedupe:
-        already = ngsl | load_wordfile(SUPPLEMENT) | load_wordfile(WEB2)
-        names -= already
-        dedupe_note = "dedupe: NGSL+supplement+web2 기등재 제거"
+        names -= already_present(ngsl, [SUPPLEMENT, WEB2])
+        dedupe_note = "dedupe: NGSL+supplement+web2(lowercase-start lines only) 기등재 제거"
     print(f"인명: {before:,} → exclusion/중복 제거 후 {len(names):,}")
     write_candidates(
         os.path.join(outdir, "english_names.candidates.txt"), names,

@@ -5,6 +5,7 @@
 > 원본 저장 위치: `~/Downloads/HaneulDictSources/` (레포 밖 — 가공 결과만 리뷰 후 번들).
 > 다운로드 일자: 2026-06-10. SHA-256은 아래 각 절에 기재.
 > 2026-11-07 (#178): 사전을 고친 뒤 번들 표를 다시 만드는 절차를 아래 「사전을 고친 뒤 번들 표 다시 만들기」에 추가했다.
+> 2026-11-13 (#225, 리뷰 english-dict-F-1): 'web2 빼기' 기준을 입력기와 맞췄다(§4 「web2 빼기 기준과 가공 레시피」).
 
 ## 공통 주의
 
@@ -196,6 +197,26 @@ zymurgy
 - 신규분의 상당수가 **굴절형**(boosts·reconnected·surfing — web2는 1934년판이라 굴절형 부재)
   → exact-match인 broad(MAIN) 경로에 특히 효과적.
 - ⚠️ 신규분 중 2글자 이하 275개는 대부분 약어(ac·bb·cd·cm 등) — 가공 시 길이 필터 검토.
+
+### web2 빼기 기준과 가공 레시피 (2026-11-13, #225 · 리뷰 english-dict-F-1)
+
+`english_modern.txt`를 만든 명령은 스크립트로 남아 있지 않다. 머리말에 적힌 조건(소문자화, `^[a-z]{3,}$`, web2·번들 사전 빼기,
+`scowl_exclusions_alljamo4.txt` 빼기)을 다시 할 때는 아래 기준을 따른다.
+
+- **web2는 입력기가 실제로 읽는 줄만 뺀다.** 입력기(`EnglishDetector.isWordLine`)는 `/usr/share/dict/words`에서 첫 글자가 a-z인 줄만 읽는다
+  (`January`·`Korean`·`David` 줄은 건너뛴다). 2026-06-10 가공은 web2를 전부 소문자로 바꿔 뺐기 때문에, web2에 대문자 줄로만 있는 낱말
+  (january·korean·thai …)이 SCOWL에 있어도 "이미 있음"으로 빠져 어느 사전에도 들어가지 않았다. 인명 생성기
+  (`build_english_wordlists.py`의 `already_present`)도 같은 이유로 2026-11-13에 고쳤다.
+- 순서(SCOWL `words.txt` 기준):
+  1. `'`가 든 줄을 버리고 소문자로 바꾼 뒤 `^[a-z]{3,}$`만 남긴다(SCOWL의 대문자 줄 `Aachen`도 `aachen`으로 들어온다).
+  2. web2에서 `^[a-z][A-Za-z]{2,}$`인 줄만 소문자로 모아 뺀다(`python3 -c 'import sys; sys.path.insert(0, "scripts"); from pathlib import Path; from build_english_table import loader_words; print("\n".join(sorted(loader_words(Path("/usr/share/dict/words")))))'`).
+  3. 번들 사전(manifest의 나머지)에 이미 있는 낱말을 뺀다(같은 필터).
+  4. `dict_work/scowl_exclusions_alljamo4.txt`(≤4자모 전부-자모, 초성체 보호)를 뺀다.
+  5. `scripts/audit_wordlist.sh --role broad`로 검역한 뒤 머지하고 「사전을 고친 뒤 번들 표 다시 만들기」를 따른다.
+- ⚠️ 이 기준으로 다시 돌리면 web2에 대문자 줄로만 있던 낱말(고유명사)이 SCOWL에서 새로 들어온다. 몇 개가 늘어나는지는 SCOWL 원본이 이 Mac에
+  없어 2026-11-13에 재지 못했다(확인 못 함) — 다시 받으면(위 URL·revision) 검역 결과로 수를 먼저 보고 머지 여부를 정한다.
+  같은 날 닫힌 묶음(요일·달·나라·국적·언어) 102개만 손으로 넣었다: 깨진 한글형 94개는 `english_names_extra`, 멀쩡한 한글형 8개는
+  `english_supplement`(기록: `dict_work/2026-11-13-closed-sets-audit.csv`).
 
 ### 현대어 검증 (2026-06-10)
 

@@ -451,3 +451,52 @@ private func runExclusionOverlapCheck() {
     expect(added.count, 0, "F-6 제외 목록과 새로 겹친 단어 \(added.prefix(10)) — 탈락시킨 단어가 다시 들어왔는지 확인하고, 의도면 기준선에 사유와 함께 적는다")
     expect(stale.count, 0, "F-6 더는 겹치지 않는 기준선 줄 \(stale.prefix(10)) — 기준선에서 지운다")
 }
+
+/// 2026-11-13 (#225): 2026-11-12 리뷰 english-dict F-1~F-4·F-6 회귀 검사. 고치기 전에 실패를 확인했다.
+func runEnglishDictReview1112Tests() {
+    func hangul(_ keys: String) -> String { ManualToggle.keysToHangul(keys)! }
+    func title(_ word: String) -> String { word.prefix(1).uppercased() + word.dropFirst() }
+    func list(_ text: String) -> [String] { text.split(whereSeparator: \.isWhitespace).map(String.init) }
+    func afterThe(_ key: String) -> String { typeWords(["the", key]).last ?? "" }
+    func converts(_ keys: [String], _ label: String) {
+        for key in keys { expect(type(key).committedText, key, "\(label): \(key)") }
+    }
+
+    // ── F-1 오너 결정(가) "고정하면 돼": 닫힌 묶음(요일·달·나라·국적·언어)은 소문자·첫 글자 대문자·영어 뒤 모두 영어다.
+    // 시스템 낱말 파일에 January·Korean처럼 대문자 줄로만 있어 입력기가 건너뛰고, 사전 생성기는 '이미 있음'으로 빼서 어디에도 없었다.
+    let daysAndMonths = list("""
+        monday tuesday wednesday thursday friday saturday sunday
+        january february march april may june july august september october november december
+        """)
+    let countries = list("""
+        afghanistan albania algeria andorra angola argentina armenia australia austria azerbaijan bahamas bahrain
+        bangladesh barbados belarus belgium belize benin bhutan bolivia bosnia botswana brazil brunei bulgaria
+        burundi cambodia cameroon canada chad chile china colombia comoros congo croatia cuba cyprus czechia denmark
+        djibouti dominica ecuador egypt eritrea estonia eswatini ethiopia fiji finland france gabon gambia georgia
+        germany ghana greece grenada guatemala guinea guyana haiti honduras hungary iceland india indonesia iran iraq
+        ireland israel italy jamaica japan jordan kazakhstan kenya kiribati korea kosovo kuwait kyrgyzstan laos
+        latvia lebanon lesotho liberia libya liechtenstein lithuania luxembourg madagascar malawi malaysia maldives
+        mali malta mauritania mauritius mexico micronesia moldova monaco mongolia montenegro morocco mozambique
+        myanmar namibia nauru nepal netherlands nicaragua niger nigeria norway oman pakistan palau palestine panama
+        paraguay peru philippines poland portugal qatar romania russia rwanda samoa senegal serbia seychelles
+        singapore slovakia slovenia somalia spain sudan suriname sweden switzerland syria taiwan tajikistan tanzania
+        thailand tonga tunisia turkey turkmenistan tuvalu uganda ukraine uruguay uzbekistan vanuatu vatican venezuela
+        vietnam yemen zambia zimbabwe america britain england scotland wales holland burma usa uae
+        """)
+    let nationalitiesAndLanguages = list("""
+        american korean chinese japanese british spanish french german italian russian indian canadian mexican
+        brazilian australian vietnamese thai filipino indonesian malaysian singaporean taiwanese mongolian dutch
+        swedish norwegian danish finnish polish greek turkish irish scottish welsh portuguese swiss austrian belgian
+        hungarian czech ukrainian israeli egyptian iranian iraqi argentine argentinian chilean colombian peruvian
+        cuban nepalese pakistani bangladeshi saudi kenyan nigerian ethiopian moroccan english
+        arabic hindi bengali urdu malay hebrew latin persian swahili tagalog mandarin cantonese
+        """)
+    for word in daysAndMonths + countries + nationalitiesAndLanguages {
+        expect(type(word).committedText, word, "F-1 닫힌 묶음 소문자: \(word)")
+        expect(type(title(word)).committedText, title(word), "F-1 닫힌 묶음 첫 글자 대문자: \(title(word))")
+        expect(typeWords(["in", word]).last ?? "", word, "F-1 닫힌 묶음 영어 뒤: in \(word)")
+        expect(afterThe(word), word, "F-1 닫힌 묶음 영어 뒤: the \(word)")
+    }
+    // togo(새해)는 우리말 표제어라 veto가 지킨다. 넣지 않았다.
+    expect(type("togo").committedText, "새해", "F-1 togo=새해는 우리말")
+}

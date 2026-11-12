@@ -153,8 +153,31 @@ def check_verifier():
         check(not verifies(no_exe / "HaneulKeyboardIM.app"), "검증: 입력기 실행 파일이 없으면 실패")
 
 
+def check_generator_dedupe():
+    """2026-11-13 (#225, 리뷰 english-dict-F-1): 생성기가 '이미 있는 낱말'로 세는 기준은 입력기와 같아야 한다.
+
+    입력기는 시스템 낱말 파일에서 소문자로 시작하는 줄만 읽는다(January·David 줄은 건너뛴다). 생성기가 그 파일을 전부 소문자로 바꿔
+    세면 january·david가 '이미 있음'으로 빠져 어느 사전에도 없게 된다.
+    """
+    try:
+        import build_english_wordlists as gen
+        already_present = gen.already_present
+    except (ImportError, AttributeError) as error:
+        check(False, f"생성기: already_present를 불러올 수 없다 ({error})")
+        return
+    with tempfile.TemporaryDirectory(prefix="haneul-dedupe-check-") as scratch:
+        words = Path(scratch) / "words"
+        words.write_text("January\nmarch\nMarch\nDavid\napple\nmarCh\nab\nO'brien\n", encoding="utf-8")
+        present = already_present(set(), [str(words), str(Path(scratch) / "none.txt")])
+        check(present == {"march", "apple"}, f"생성기: 시스템 파일은 소문자로 시작하는 줄만 '이미 있음'으로 센다 ({sorted(present)})")
+        names = {"january", "david", "march", "apple", "smith"}
+        check(names - present == {"january", "david", "smith"}, "생성기: 대문자 줄로만 있는 낱말은 중복 제거로 빠지지 않는다")
+        check(already_present({"smith"}, [str(words)]) >= {"smith", "march"}, "생성기: NGSL은 그대로 '이미 있음'에 들어간다")
+
+
 check_table()
 check_project()
+check_generator_dedupe()
 check_verifier()
 print(f"bundle dictionaries: {checks - failures} passed, {failures} failed")
 sys.exit(1 if failures else 0)
