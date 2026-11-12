@@ -124,7 +124,6 @@ import AppKit
             let quantityComposer = KoreanComposer()
             for key in value {
                 if AlphanumericWords.isDigit(key), quantityComposer.handleDigit(key, client: client) { continue }
-                if key == ".", quantityComposer.handleQuantityPoint(client: client) { continue }
                 if KeyboardLayout2Set.jamo(for: key) != nil {
                     _ = quantityComposer.handleInput(String(key), client: client)
                 } else {

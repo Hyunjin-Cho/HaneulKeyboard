@@ -14,7 +14,6 @@ private func typeQuantity(_ input: String, enabled: Bool = true) -> String {
     for key in input {
         if Contractions.isApostrophe(key), composer.handleApostrophe(key, client: client) { continue }
         if AlphanumericWords.isDigit(key), composer.handleDigit(key, client: client) { continue }
-        if key == ".", composer.handleQuantityPoint(client: client) { continue }
         if KeyboardLayout2Set.jamo(for: key) != nil {
             _ = composer.handleInput(String(key), client: client)
         } else {

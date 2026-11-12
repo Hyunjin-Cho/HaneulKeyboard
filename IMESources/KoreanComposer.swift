@@ -433,23 +433,8 @@ final class KoreanComposer {
         word.contains { $0.keys.count == 1 && AlphanumericWords.isDigit($0.keys[0]) }
     }
 
-    /// 수량의 소수점 하나만 보관한다. 문장 마침표/제품명 속 점은 기존 경계로 둔다.
-    ///
-    /// 2026-11-12 (#224, 리뷰 input-core-F-11): **지금은 참이 되지 않는다(죽은 코드).** 2026-11-04에 낱말 첫머리 숫자를 앱으로 바로
-    /// 보내도록 바뀐 뒤로 조합 중 낱말은 늘 자모로 시작하고(handleDigit은 조합이 있어야 숫자를 받는다), Backspace는 뒤에서만 지워
-    /// 숫자만 남는 일도 없다(무작위 60,000회에서 참 0회). 소수점은 컨트롤러의 `pointRunAfterSending` 경로가 맡는다.
-    /// 컨트롤러·조합기 시험은 더 부르지 않는다. 남은 호출은 Tests/OnboardingPracticeTests.swift(묶음 D 영역) 한 줄뿐이라
-    /// 그 줄을 지울 때 이 함수도 함께 지운다.
-    func handleQuantityPoint(client: ComposerClient) -> Bool {
-        let keys = word.flatMap(\.keys) + pendingKeys
-        guard !didSpillWord, !keys.isEmpty,
-              keys.allSatisfy(AlphanumericWords.isDigit) else { return false }
-        lastConversion = nil
-        stashBuffer()
-        word.append((text: ".", keys: ["."]))
-        refreshMarkedText(client: client)
-        return true
-    }
+    // 2026-11-13 (#229, 리뷰 input-core-F-11): 수량 소수점을 조합 안에 보관하던 handleQuantityPoint를 지웠다 — 2026-11-04 뒤로
+    // 참이 될 수 없었다(무작위 60,000회에서 참 0회, #224에서 확인). 소수점은 컨트롤러의 pointRunAfterSending 경로가 맡는다.
 
     /// 2026-09-19 (#34): 단어에 끼워 넣은 아포스트로피 유닛의 위치 (없으면 nil).
     /// 상태 플래그가 아니라 `word`에서 매번 유도하므로, Backspace로 `'` 유닛을

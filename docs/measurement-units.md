@@ -128,7 +128,7 @@ TB tb THz thz ton V W Wb Wh
 
 - `IMESources/MeasurementUnits.swift`: 명시 목록, 정수/소수 판정, 숫자 조건의 한글 충돌 보호.
 - `EnglishDetector.shouldConvert`: 기존 공통 보호 뒤의 단독 단위 판정.
-- `KoreanComposer.handleDigit/handleQuantityPoint/commit/commitAlphanumeric`: 수량 버퍼, 경계, 개인 사전·되돌리기·문맥.
+- `KoreanComposer.handleDigit/commit/commitAlphanumeric`: 수량 버퍼, 경계, 개인 사전·되돌리기·문맥. (2026-11-13: 쓰이지 않던 `handleQuantityPoint`를 지웠다 — 소수점은 컨트롤러 `pointRunAfterSending`)
 - `HaneulInputController.handle`: 실제 키 분배에 소수점 경로 연결. 기존 OFF/보안 입력/수동 키 경로 유지.
 - `PersonalDictionary`: `1.5ml` 형식의 추가/금지 입력 검증. 임의 점 포함 이름은 허용하지 않음.
 - `bash scripts/run_ime_tests.sh`: 2026-10-08 코어 **3,147 passed, 0 failed**. 기존 한글·숫자 제품명 회귀, 전체 단위의 수량/소수/OFF/금지, 메가픽셀 약어, 오류 사전, 편집·되돌리기와 아트 용어 검사.

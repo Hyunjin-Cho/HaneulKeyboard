@@ -1,6 +1,6 @@
 # 하늘키보드 입력 변환 규칙 모음
 
-기준일: **2026-11-07**, Asia/Seoul (본문은 2026-10-28 #104 기준에 2026-11-06 #152, 2026-11-07 #173·#174·#175 보완을 덧붙였다). 현재 코드의 설명과 초창기 아이디어를 함께 모으되, 적용 여부를 구분한다. 실제 동작은 아래 심볼과 테스트를 함께 확인한다.
+기준일: **2026-11-13**, Asia/Seoul (본문은 2026-10-28 #104 기준에 2026-11-06 #152, 2026-11-07 #173·#174·#175, 2026-11-08 #194·#202, 2026-11-10 #220·#222, 2026-11-13 #224·#225 보완을 덧붙였다). 현재 코드의 설명과 초창기 아이디어를 함께 모으되, 적용 여부를 구분한다. 실제 동작은 아래 심볼과 테스트를 함께 확인한다.
 
 하늘키보드는 사용자가 친 키를 보관하며 한글을 조합한다. 영어+조사는 입력 중에도 같은 판정으로 미리 표시하고, Space 같은 확정 시점에 사전·한글 구조·앞 단어를 확인해 최종 결과를 정한다. **개별 조건문과 그 순서, 예외, 사전을 묶은 전체가 판정 알고리즘**이다. 조건 하나만으로 언어를 확정하지 않는다.
 
@@ -107,6 +107,8 @@
 
 2026-11-08 오너 요청(#194): 2글자는 한글로 조합되지 않는 꼴(모음+모음, 모음+자음, 자음+자음)만 단독 변환한다. `so`(내)처럼 멀쩡한 글자가 되는 꼴은 넣지 않고, 쓰지 않는 말인 `am`(므)·`ai`(먀)·`fm`(르)만 예외다. 초성체로 쓰는 것(`rc`=ㄱㅊ, `da`=ㅇㅁ)과 우는 표정(`mb`=ㅡㅠ)은 뺐다. 단어별 기록: [등록표](../dict_work/2026-11-08-two-letter-registration.tsv).
 
+2026-11-13 (#225, 오너 결정): ① **초성체 `ㄱㅊㄴ`(괜찮네 → rcs)·`ㄱㅁㅇ`(고마워 → rad)는 한글로 둔다**(`protectedSlang`). 뜻이 없는 영어 꼴이라서다. `ㅊㅎ`(축하 → cg)는 오너가 "바뀌어도 된다"고 해 그대로이고, `rad`는 숫자 뒤(3rad·1.5rad)에서는 단위로 계속 바뀐다. ② **자음 키만 친 키열은 굴절 추정 없이 사전과 정확히 일치할 때만 바꾼다** — `ㅇㅇㄴㄴ`(ddss = dds + s)처럼 사전에 없는 약어 복수형이 영어로 바뀌던 것을 막는다(자음 4개 전수에서 무맥락 변환 702 → 441). 대신 `acts`·`devs`·`recs`·`csvs`·`faqs`·`avgs`·`decs`·`defs`·`exts`는 단독으로 더 바뀌지 않는다. 자모+조사 꼴(`ㅠ만`→baks 등 9건)은 원인이 같지만 모음 키가 있어 이번 원칙 밖이다(오너 판단 대기, #225).
+
 실행 목록: `shortWords`, `standaloneShortWords`, `consonantPairShortWords`, `standaloneOverrideEnglish`, `contextOverrideEnglish`, `triggerOverrideEnglish`, `protectedSlang`. 숫자나 사전 전체를 이 문서에 복사하지 않는다. 사전 원본 목록은 [`dict_manifest.tsv`](../dict_work/dict_manifest.tsv)를 확인한다.
 
 ## 특수 입력과 되돌리기
@@ -117,7 +119,7 @@
 | 숫자 제품명 | 명시된 등록 이름 또는 개인 사전 전체 일치. `AlphanumericWords`, `commitAlphanumeric` |
 | 수량과 단위 | 등록 단위와 수량 형식을 확인한다. 단위 금지도 함께 적용. 숫자 뒤의 일반 한글은 보호. [`measurement-units.md`](measurement-units.md) |
 | 다른 입력기의 영어 문맥 | 커서 앞에서 안전하게 읽은 정확 영어 한 단어만 첫 입력에 사용. `ExternalEnglishContext.capture` |
-| Shift+Space | 저장한 자동 변환 쌍 → 등록 한글 대응 → 수동 자판 변환 순. 자동 판정과 사용자의 명시적 변환은 구분. `resolveToggle`, `ManualToggle.resolve` |
+| Shift+Space | 저장한 자동 변환 쌍 → 등록 한글 대응 → 수동 자판 변환 순. 자동 판정과 사용자의 명시적 변환은 구분. `resolveToggle`, `ManualToggle.resolve`. 2026-11-12(#224, 오너 결정 가): Shift로 친 글자 바로 뒤 0.35초 안의 Shift+Space는 Shift를 늦게 뗀 것으로 보고 스페이스로 넣는다(`RevertKey.isShiftRollover`) |
 | 혼합 단어 되돌림 기록 | `github에` 같은 결과는 원래 한글 전체를 금지 키로 사용한다. 금지 추가 뒤에는 실제로 같은 금지 키에 해당하는 기록만 제거한다. `RecentReverts.Entry.blockEntry`, `removing(blockedBy:)`, `PersonalDictionarySettingsSection.blockRecent` |
 | 슬래시 영어 | `/` 이후 정해진 종료 키까지 입력을 그대로 넘김. [`slash-english-input.md`](slash-english-input.md) |
 
