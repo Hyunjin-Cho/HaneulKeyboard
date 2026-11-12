@@ -2,7 +2,8 @@ import AppKit
 import CoreText
 import SwiftUI
 
-/// 짧은 안내 메모만 손글씨로 표시한다. 본문과 버튼은 시스템 글꼴을 유지한다.
+/// 짧은 안내 메모만 손글씨로 표시한다. 본문과 버튼은 앱 글꼴(마루부리, `AppFont`)이다.
+/// (2026-11-13 #227, 리뷰 app-ui-F-11 정정: 예전 주석은 "시스템 글꼴"이었다 — 2026-11-08 #209부터 마루부리다.)
 enum OnboardingHandwriting {
     private static let fontName: String? = {
         guard let url = Bundle.main.url(forResource: "NanumPenScript-Regular", withExtension: "ttf") else { return nil }

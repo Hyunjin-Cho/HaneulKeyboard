@@ -57,7 +57,8 @@ struct OnboardingView: View {
         // 2026-11-03 (#115 블로킹): 1~7 모두 같은 틀(위 무대 + 아래 종이 카드). 안의 내용만 페이지마다 바뀐다.
         framePage
         .font(AppFont.font(size: 15))
-        // 2026-11-08 (#209): 마루부리는 줄 사이가 좁아 두 줄 안내가 붙어 보였다(설정 창과 같은 3pt).
+        // 2026-11-08 (#209): 마루부리는 줄 사이가 좁아 두 줄 안내가 붙어 보였다. 설정 창과 같은 `AppFont.lineSpacing`(지금 6pt)이다.
+        // (2026-11-13 #227, 리뷰 app-ui-F-11 정정: 예전 주석은 3pt였다.)
         .lineSpacing(AppFont.lineSpacing)
         .foregroundStyle(.primary)
         .frame(width: windowSize.width, height: windowSize.height)
