@@ -332,6 +332,16 @@ enum UpdateDecision {
         return current < incoming && currentBuild < newBuild
     }
 
+    /// 내려받은 앱이 안내한 릴리스 그 버전인가. 2026-11-13 (#226, 리뷰 install-update-F-1):
+    /// 예전엔 `isVersionIncrease`만 봐서, 태그가 `2026.12.01`인 릴리스에 그 사이의 다른 정식 빌드(예 `2026.11.20`)가 붙어 있어도
+    /// 서명·공증·상승 검사를 모두 통과해 '새 버전 2026.12.01'이라고 안내한 채 옛 버전이 깔렸다.
+    /// `bundleVersion`은 `releaseVersion(info:)`(CFBundleShortVersionString + 서명된 HaneulReleaseSuffix) 값이다.
+    /// CalVer로 비교하므로 `2026.12.1`과 `2026.12.01`은 같다. 하나라도 못 읽으면 false(설치 금지).
+    static func bundleMatchesRelease(bundleVersion: String?, releaseTag: String) -> Bool {
+        guard let bundleVersion, let bundle = CalVer(bundleVersion), let tag = CalVer(releaseTag) else { return false }
+        return bundle == tag
+    }
+
     /// 재실행된 새 앱이 시작할 때 설치된 IME를 갈아야 하는가 — 설치본 빌드번호 < 임베드
     /// 빌드번호일 때만. 하나라도 못 읽으면 false(시작 시 복사 금지 원칙 H-01 유지).
     static func shouldRefreshIME(installedBuild: Int?, bundledBuild: Int?) -> Bool {
@@ -381,5 +391,120 @@ enum UpdateDecision {
     static func replaceStrategy(destinationOwnerUID: UInt32?, currentUID: UInt32, parentWritable: Bool) -> ReplaceStrategy {
         guard let destinationOwnerUID, destinationOwnerUID == currentUID, parentWritable else { return .adminPrompt }
         return .userAtomic
+    }
+}
+
+// MARK: - 업데이트 ZIP 상한 (2026-11-13 #226, 리뷰 security-overlap-C-2)
+
+/// 내려받은 ZIP을 풀 때의 상한. 예전엔 내려받기(200MiB)만 막고 `ditto -x -k`는 크기·항목 수·시간 제한 없이 끝까지 푼 다음에야
+/// 서명을 봤다. 공식 릴리스 자산이 바뀌어 압축률이 극단적인 파일이 올라오면 검증 전에 임시 폴더가 디스크를 채울 수 있었다.
+/// 근거(2026-11-13 실측, 후보 111 `HaneulKeyboard_2026.9.zip`): 항목 221개, 풀린 크기 81,828,760바이트(압축 62,218,194),
+/// `ditto -x -k` 0.20초, 풀린 뒤 디스크 항목 112개·약 80MB. 상한은 그 몇 배로 잡아 앱이 커져도 정상 업데이트를 막지 않게 했다.
+struct ArchiveLimits: Equatable, Sendable {
+    /// ZIP 목록의 항목 수와 푸는 동안 디스크에 생긴 항목 수의 상한. 실제 221개의 약 9배.
+    var entries: Int
+    /// 풀린 크기 합계의 상한. 실제 82MB의 약 6.5배, 내려받기 상한(200MiB)보다 커서 정상 압축률은 통과한다.
+    var bytes: UInt64
+    /// 푸는 시간의 상한. 실제 0.20초의 600배 — 느린 디스크에서도 정상 해제는 끝난다.
+    var seconds: TimeInterval
+
+    static let release = ArchiveLimits(entries: 2_000, bytes: 512 * 1024 * 1024, seconds: 120)
+}
+
+struct ZipEntry: Equatable, Sendable {
+    let name: String
+    let uncompressedSize: UInt64
+}
+
+struct ZipDirectoryLocation: Equatable, Sendable {
+    let entries: Int
+    let size: Int
+    let offset: Int
+}
+
+/// ZIP의 중앙 디렉터리를 직접 읽어 풀기 전에 판단한다(외부 도구의 출력 형식에 기대지 않는다).
+/// ⚠️ ZIP이 적은 '풀린 크기'는 믿을 수 없다. 2026-11-13 실측: 1,000바이트로 적힌 항목을 `ditto -x -k`가 64MiB 끝까지 풀었다.
+/// 그래서 이 목록 검사는 정직한 큰 파일·이상한 경로를 미리 거르는 1차 관문이고, 실제 상한은 `Updater.extractGuarded`가
+/// 푸는 동안 디스크에 쌓인 양·항목 수·시간을 지켜보며(`extractionProblem`) 넘는 순간 해제를 멈춘다.
+/// 배포 ZIP(`ditto -c -k --keepParent`)은 주석·ZIP64가 없고 모든 항목이 `HaneulKeyboard.app/` 아래다. 그 밖의 꼴은 거부한다(fail-closed).
+enum UpdateArchive {
+    /// 끝에서 읽을 바이트 수. 끝 레코드(22바이트)와 바로 앞 ZIP64 위치 레코드(20바이트)를 본다.
+    static let tailBytes = 64
+    /// 중앙 디렉터리를 읽는 상한. 실제 릴리스는 28,193바이트(항목 221개)다.
+    static let maxDirectoryBytes = 4 * 1024 * 1024
+
+    private static func u16(_ b: [UInt8], _ i: Int) -> Int { Int(b[i]) | Int(b[i + 1]) << 8 }
+    private static func u32(_ b: [UInt8], _ i: Int) -> UInt32 {
+        UInt32(b[i]) | UInt32(b[i + 1]) << 8 | UInt32(b[i + 2]) << 16 | UInt32(b[i + 3]) << 24
+    }
+    private static func signature(_ b: [UInt8], _ i: Int, _ third: UInt8, _ fourth: UInt8) -> Bool {
+        i >= 0 && i + 4 <= b.count && b[i] == 0x50 && b[i + 1] == 0x4b && b[i + 2] == third && b[i + 3] == fourth
+    }
+
+    /// 파일 끝(`tail`)의 끝 레코드에서 중앙 디렉터리 위치를 읽는다. 주석이 붙었거나, 여러 디스크·ZIP64이거나,
+    /// 중앙 디렉터리가 끝 레코드 바로 앞에 꼭 붙어 있지 않으면 nil.
+    static func directoryLocation(tail: [UInt8], fileSize: Int) -> ZipDirectoryLocation? {
+        guard tail.count >= 22, tail.count <= fileSize else { return nil }
+        let index = tail.count - 22
+        guard signature(tail, index, 0x05, 0x06), u16(tail, index + 20) == 0 else { return nil }
+        if signature(tail, index - 20, 0x06, 0x07) { return nil }
+        let disk = u16(tail, index + 4), directoryDisk = u16(tail, index + 6)
+        let onDisk = u16(tail, index + 8), total = u16(tail, index + 10)
+        let size = u32(tail, index + 12), offset = u32(tail, index + 16)
+        guard disk == 0, directoryDisk == 0, onDisk == total, total != 0xffff,
+              size != 0xffff_ffff, offset != 0xffff_ffff, Int(size) <= maxDirectoryBytes,
+              Int(offset) + Int(size) == fileSize - 22 else { return nil }
+        return ZipDirectoryLocation(entries: total, size: Int(size), offset: Int(offset))
+    }
+
+    /// 중앙 디렉터리의 항목 이름·풀린 크기. 형식이 어긋나거나(서명·길이·UTF-8) ZIP64 표시가 있거나 남는 바이트가 있으면 nil.
+    static func entries(centralDirectory d: [UInt8], expectedCount: Int) -> [ZipEntry]? {
+        var result: [ZipEntry] = []
+        var position = 0
+        for _ in 0..<expectedCount {
+            guard position + 46 <= d.count, signature(d, position, 0x01, 0x02) else { return nil }
+            let compressed = u32(d, position + 20), size = u32(d, position + 24)
+            let nameLength = u16(d, position + 28)
+            let next = position + 46 + nameLength + u16(d, position + 30) + u16(d, position + 32)
+            guard compressed != 0xffff_ffff, size != 0xffff_ffff, u16(d, position + 34) == 0,
+                  nameLength > 0, next <= d.count,
+                  let name = String(bytes: d[(position + 46)..<(position + 46 + nameLength)], encoding: .utf8) else { return nil }
+            result.append(ZipEntry(name: name, uncompressedSize: UInt64(size)))
+            position = next
+        }
+        return position == d.count ? result : nil
+    }
+
+    /// 항목 이름이 `<앱>/` 아래의 평범한 상대 경로인가(`..`·`.`·빈 칸·역슬래시·NUL 없음). 폴더 항목의 끝 `/`는 허용한다.
+    static func isInsideApp(_ name: String, appName: String = AppMoveDecision.destinationName) -> Bool {
+        guard name.hasPrefix(appName + "/"), !name.contains("\\"), !name.contains("\0") else { return false }
+        let parts = name.split(separator: "/", omittingEmptySubsequences: false)
+        for (index, part) in parts.enumerated() {
+            if part.isEmpty { if index == parts.count - 1 { continue }; return false }
+            if part == "." || part == ".." { return false }
+        }
+        return true
+    }
+
+    /// 풀기 전 목록 판단. nil이면 풀어도 된다.
+    static func problem(_ entries: [ZipEntry], limits: ArchiveLimits, appName: String = AppMoveDecision.destinationName) -> String? {
+        guard !entries.isEmpty else { return "압축 파일이 비어 있음" }
+        guard entries.count <= limits.entries else { return "항목이 너무 많음(\(entries.count)개, 최대 \(limits.entries)개)" }
+        var total: UInt64 = 0
+        for entry in entries {
+            let (sum, overflow) = total.addingReportingOverflow(entry.uncompressedSize)
+            guard !overflow, sum <= limits.bytes else { return "풀린 크기가 너무 큼(최대 \(limits.bytes / 1024 / 1024)MB)" }
+            total = sum
+            guard isInsideApp(entry.name, appName: appName) else { return "\(appName) 밖의 항목이 있음" }
+        }
+        return nil
+    }
+
+    /// 푸는 동안의 판단. 디스크에 쌓인 양·항목 수·걸린 시간 중 하나라도 상한을 넘으면 멈출 이유를 돌려준다.
+    static func extractionProblem(bytes: UInt64, items: Int, elapsed: TimeInterval, limits: ArchiveLimits) -> String? {
+        if bytes > limits.bytes { return "풀린 크기가 상한을 넘음(최대 \(limits.bytes / 1024 / 1024)MB)" }
+        if items > limits.entries { return "풀린 항목이 상한을 넘음(최대 \(limits.entries)개)" }
+        if elapsed > limits.seconds { return "압축 해제가 \(Int(limits.seconds))초 안에 끝나지 않음" }
+        return nil
     }
 }

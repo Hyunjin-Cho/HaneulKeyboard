@@ -125,8 +125,8 @@ enum IMEInstaller {
 
     /// 실행 중인 IME를 멈춘 뒤 trusted source를 staging에 복사하고 원자 교체한다.
     /// staging 준비나 교체가 실패하면 기존 설치본은 그대로 남는다.
-    private static func atomicallyReplaceIMEBundle(at destination: URL, with source: URL) throws {
-        try stopIMEProcess()
+    private static func atomicallyReplaceIMEBundle(at destination: URL, with source: URL, _ operations: DiskOperations) throws {
+        try operations.stopIME()
         let staging = destination.deletingLastPathComponent().appendingPathComponent(
             ".\(destination.lastPathComponent).staging-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: staging) }
@@ -134,10 +134,31 @@ enum IMEInstaller {
         _ = try FileManager.default.replaceItemAt(destination, withItemAt: staging)
     }
 
+    /// 입력기 설치 판단이 쓰는 경로와 OS 동작. 2026-11-13 (#226, 리뷰 install-update-F-6): 예전엔 설치 판단(시스템 설치본 우선, 미신뢰 설치본 교체,
+    /// 빌드 번호 가드, 복사 전 Team 검증)이 컴파일만 되고 시험에서 한 번도 실행되지 않았다. 시험이 임시 폴더의 가짜 번들로 그 판단을 실제로 돌리도록
+    /// 경로·신뢰 판정·입력기 종료·LaunchServices 등록만 바꿔 끼울 수 있게 했다. 복사·원자 교체·빌드 번호 읽기는 그대로다. 제품은 항상 `live`다.
+    struct DiskOperations {
+        var systemURL: URL
+        var userURL: URL
+        var bundledURL: () -> URL?
+        var isTrusted: (URL) -> Bool
+        var stopIME: () throws -> Void
+        var removeUserLeftover: () throws -> Void
+        var register: (URL) throws -> Void
+        var unregister: (URL) -> Void
+
+        static var live: DiskOperations {
+            DiskOperations(systemURL: systemInstallURL, userURL: installURL, bundledURL: { bundledIMEURL },
+                           isTrusted: { isTrustedIMEBundle(at: $0) }, stopIME: { try stopIMEProcess() },
+                           removeUserLeftover: { try removeUserDomainLeftover() },
+                           register: { try registerWithLaunchServices(at: $0) }, unregister: { unregisterFromLaunchServices(at: $0) })
+        }
+    }
+
     @discardableResult
     static func installBundle() async throws -> ActivationResult {
         let url = try await Task.detached(priority: .userInitiated) {
-            try installBundleOnDisk()
+            try installBundleOnDisk(.live)
         }.value
         let result = try await activateBundle(at: url)
         await launchIMEIfNeeded()
@@ -178,64 +199,67 @@ enum IMEInstaller {
         }
     }
 
-    private static func installBundleOnDisk() throws -> URL {
+    static func installBundleOnDisk(_ operations: DiskOperations) throws -> URL {
+        let fm = FileManager.default
+        let system = operations.systemURL
+        let user = operations.userURL
         // A system-domain install (from the build script) is canonical.
         // NEVER lay a second copy in the user domain on top of it — that's
         // exactly what produced the duplicated input-source rows. Instead,
         // clean any user-domain leftover and just (re)activate the canonical
         // bundle with TIS.
-        if FileManager.default.fileExists(atPath: systemInstallURL.path) {
-            guard isTrustedIMEBundle(at: systemInstallURL) else {
-                throw IMEInstallError.installedBundleUntrusted(systemInstallURL.path)
+        if fm.fileExists(atPath: system.path) {
+            guard operations.isTrusted(system) else {
+                throw IMEInstallError.installedBundleUntrusted(system.path)
             }
-            if FileManager.default.fileExists(atPath: installURL.path) {
+            if fm.fileExists(atPath: user.path) {
                 // (H-03 엣지) user-domain 잔재를 지우기 전에 IME를 정지한다 —
                 // 실행 중인 번들을 삭제하면 강제 종료/불안정 위험이 있다. system이
                 // canonical이므로 정지 후 잔재를 제거하고, 아래 system 번들
                 // 재등록/활성화에서 IMK가 새로 기동한다. (leftover가 있을 때만
                 // 정지하므로 평상시 실행 경로엔 영향 없음.)
-                try removeUserDomainLeftover()
+                try operations.removeUserLeftover()
             }
-            try registerWithLaunchServices(at: systemInstallURL)
-            return systemInstallURL
+            try operations.register(system)
+            return system
         }
 
-        let source = try trustedBundledIMEURL()
+        let source = try trustedBundledIMEURL(operations)
 
-        let inputMethodsDir = installURL.deletingLastPathComponent()
-        try FileManager.default.createDirectory(at: inputMethodsDir, withIntermediateDirectories: true)
+        let inputMethodsDir = user.deletingLastPathComponent()
+        try fm.createDirectory(at: inputMethodsDir, withIntermediateDirectories: true)
 
-        if FileManager.default.fileExists(atPath: installURL.path) {
+        if fm.fileExists(atPath: user.path) {
             // (H-02) 이미 깔린 user-domain 번들도 재등록 직전에 다시 신뢰 검증한다.
             // 손상/타 Team 번들이면 TIS에 넣지 말고, 우리가 들고 온 trusted
             // embedded copy로 교체한 뒤에만 계속 진행한다.
-            if !isTrustedIMEBundle(at: installURL) {
-                try atomicallyReplaceIMEBundle(at: installURL, with: source)
-                unregisterFromLaunchServices(at: installURL)
-                try registerWithLaunchServices(at: installURL)
-                return installURL
+            if !operations.isTrusted(user) {
+                try atomicallyReplaceIMEBundle(at: user, with: source, operations)
+                operations.unregister(user)
+                try operations.register(user)
+                return user
             }
             // (H-03) 버전 가드 — 설치된 IME가 같거나 최신이면 복사하지 않고
             // 재등록/활성화만 한다. 이게 (a)구버전 앱의 다운그레이드 방지 +
             // (b)매 실행 비원자 교체 제거 + (c)실행 중인 IME를 안 건드림을 모두
             // 해결한다. 빌드 번호(CFBundleVersion)는 정수로 비교한다("10" < "9"
             // 같은 문자열 비교 오류 방지).
-            let installedBuild = buildNumber(at: installURL)
+            let installedBuild = buildNumber(at: user)
             let bundledBuild = buildNumber(at: source)
             if let installedBuild, let bundledBuild, installedBuild >= bundledBuild {
-                try registerWithLaunchServices(at: installURL)
-                return installURL
+                try operations.register(user)
+                return user
             }
             // 진짜 업그레이드(번들 > 설치본) 또는 버전 정보 손상 → 교체한다.
             // 실행 중인 IME 번들을 그대로 바꾸면 OS가 강제 종료할 수 있으므로,
             // 프로세스를 확실히 종료한 뒤(종료 확인) staging에 복사해 원자 교체한다.
-            try atomicallyReplaceIMEBundle(at: installURL, with: source)
+            try atomicallyReplaceIMEBundle(at: user, with: source, operations)
         } else {
             // 첫 설치 — 교체할 기존본이 없으니 바로 복사.
-            try FileManager.default.copyItem(at: source, to: installURL)
+            try fm.copyItem(at: source, to: user)
         }
-        try registerWithLaunchServices(at: installURL)
-        return installURL
+        try operations.register(user)
+        return user
     }
 
     @discardableResult
@@ -249,35 +273,38 @@ enum IMEInstaller {
     @discardableResult
     static func activateInstalled() async throws -> ActivationResult? {
         let url = try await Task.detached(priority: .utility) {
-            try prepareInstalledBundle()
+            try prepareInstalledBundle(.live)
         }.value
         guard let url else { return nil }
         return try await activateBundle(at: url)
     }
 
-    private static func prepareInstalledBundle() throws -> URL? {
-        if FileManager.default.fileExists(atPath: systemInstallURL.path) {
-            guard isTrustedIMEBundle(at: systemInstallURL) else {
-                throw IMEInstallError.installedBundleUntrusted(systemInstallURL.path)
+    static func prepareInstalledBundle(_ operations: DiskOperations) throws -> URL? {
+        let fm = FileManager.default
+        let system = operations.systemURL
+        let user = operations.userURL
+        if fm.fileExists(atPath: system.path) {
+            guard operations.isTrusted(system) else {
+                throw IMEInstallError.installedBundleUntrusted(system.path)
             }
-            if FileManager.default.fileExists(atPath: installURL.path) {
-                try removeUserDomainLeftover()
+            if fm.fileExists(atPath: user.path) {
+                try operations.removeUserLeftover()
             }
-            try registerWithLaunchServices(at: systemInstallURL)
-            return systemInstallURL
+            try operations.register(system)
+            return system
         }
 
-        guard FileManager.default.fileExists(atPath: installURL.path) else {
+        guard fm.fileExists(atPath: user.path) else {
             return nil
         }
 
-        if !isTrustedIMEBundle(at: installURL) {
-            let source = try trustedBundledIMEURL()
-            try atomicallyReplaceIMEBundle(at: installURL, with: source)
-            unregisterFromLaunchServices(at: installURL)
+        if !operations.isTrusted(user) {
+            let source = try trustedBundledIMEURL(operations)
+            try atomicallyReplaceIMEBundle(at: user, with: source, operations)
+            operations.unregister(user)
         }
-        try registerWithLaunchServices(at: installURL)
-        return installURL
+        try operations.register(user)
+        return user
     }
 
     // 2026-11-08 (#201): 입력기만 지우는 `uninstall()`을 없앴다(설정의 '입력기 제거' 버튼 삭제). 지우기는 전체 제거(`Uninstaller.run()`)만 한다.
@@ -318,14 +345,14 @@ enum IMEInstaller {
         }
     }
 
-    private static func trustedBundledIMEURL() throws -> URL {
-        guard let source = bundledIMEURL else {
+    private static func trustedBundledIMEURL(_ operations: DiskOperations) throws -> URL {
+        guard let source = operations.bundledURL() else {
             throw IMEInstallError.bundleNotFound
         }
 
         // (H-01) 외부 코드를 사용자 입력기로 채택하지 않도록, 복사 전에 후보
         // 번들이 메인 앱과 같은 Team으로 서명됐는지 검증한다.
-        guard isTrustedIMEBundle(at: source) else {
+        guard operations.isTrusted(source) else {
             throw IMEInstallError.untrustedBundle
         }
         return source

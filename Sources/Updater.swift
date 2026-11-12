@@ -6,14 +6,17 @@ import Foundation
 /// 프레임워크를 IME 앱에 싣지 않는다. 흐름은 exelban/stats Updater를 참고했고 코드는 새로 썼다.)
 ///
 /// 보안 경계 — 이 파일은 **인터넷에서 받은 파일로 앱을 갈아끼운다.** 그래서:
-/// - 검증(`UpdateVerification` 5종) 전에는 어떤 파일도 `/Applications`에 닿지 않는다.
+/// - 검증(`UpdateVerification` 5종 + 안내한 릴리스와의 버전 대조, 2026-11-13 #226) 전에는 어떤 파일도 `/Applications`에 닿지 않는다.
+///   ZIP은 풀기 전에 목록(항목 수·크기·경로)을 보고, 푸는 동안에도 쌓인 양·시간을 지켜본다(`UpdateArchive`).
 /// - 옛 번들을 먼저 지우지 않는다 — 새 번들을 옆(staging)에 놓고 교체한다. 관리자
 ///   교체 실패 시 원래 위치로 복구하며, 복구까지 실패하면 남은 백업·복원 경로를 안내한다.
 /// - 외부 명령은 전부 `Process` 인자 배열로 넘긴다(셸 문자열 조립 금지). 유일한 예외는
 ///   root 소유 설치본의 관리자 프롬프트다. 경로의 POSIX 인용 + 전체 명령의 AppleScript
 ///   리터럴 이스케이프로 보호한다(`UpdateReplacementScript`).
 /// - HTTPS만, 리다이렉트는 `UpdateDecision.allowedHosts` 안에서만 따라간다.
-/// - 나가는 데이터는 요청 헤더(`Accept`·`User-Agent: HaneulKeyboard/<버전>`)뿐이다.
+/// - 나가는 데이터는 요청 헤더뿐이다. 앱이 넣는 헤더는 `Accept`·`User-Agent: HaneulKeyboard/<버전>` 둘이고,
+///   URLSession이 표준 헤더(`Accept-Language` — 사용자 언어 순서, `Accept-Encoding`, `Connection`, `Host`)를 덧붙인다
+///   (2026-11-13 #226 실측: 같은 요청·세션 설정으로 127.0.0.1 서버에 보내 받은 헤더. HTTPS·HTTP/2에서의 차이는 확인 못 함).
 ///   키 입력·설정·사전 어떤 것도 보내지 않는다. (PRIVACY.md 「새 버전 알림과 설치」 절)
 /// - 자동 확인은 "새 버전 있음"을 **표시만** 한다. 설치는 사용자가 [새 버전 설치]를 눌러야 한다.
 ///
@@ -71,12 +74,18 @@ final class Updater {
         latestVersion = defaults.string(forKey: Self.latestVersionKey).flatMap { CalVer($0)?.text }
         lastNotifiedVersion = defaults.string(forKey: Self.lastNotifiedVersionKey).flatMap(CalVer.init)
 
+        self.session = session ?? URLSession(configuration: Self.sessionConfiguration())
+    }
+
+    /// 업데이트 요청의 세션 설정. 2026-11-13 (#226, 리뷰 install-update-F-10): 실제로 나가는 헤더를 127.0.0.1 로컬 서버로 잡아 보는
+    /// 측정 도구가 앱과 같은 설정을 쓰도록 떼어 냈다. 값은 그대로다.
+    nonisolated static func sessionConfiguration() -> URLSessionConfiguration {
         let config = URLSessionConfiguration.ephemeral   // 디스크 캐시·쿠키 없음
         config.timeoutIntervalForRequest = 30
         config.timeoutIntervalForResource = 10 * 60
         config.httpCookieAcceptPolicy = .never
         config.httpShouldSetCookies = false
-        self.session = session ?? URLSession(configuration: config)
+        return config
     }
 
     // MARK: - 설정
@@ -224,7 +233,9 @@ final class Updater {
         }
     }
 
-    nonisolated private static func request(for url: URL) -> URLRequest {
+    /// 앱이 직접 넣는 헤더는 `Accept`·`User-Agent` 둘이다. URLSession이 표준 헤더를 덧붙인다(2026-11-13 #226 실측 — PRIVACY 9번 대조는 F 묶음).
+    /// 2026-11-13 (#226): 측정 도구가 같은 요청을 쓰도록 private을 뗐다.
+    nonisolated static func request(for url: URL) -> URLRequest {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
@@ -266,18 +277,19 @@ final class Updater {
             phase = .verifying
             let currentVersion = Self.currentVersion
             let currentBuild = Self.currentBuild
+            let releaseTag = update.tag
             let verified = try await Task.detached(priority: .userInitiated) {
                 try Self.extractAndVerify(zip: zipURL, workDir: workDir,
-                                          currentVersion: currentVersion, currentBuild: currentBuild)
+                                          currentVersion: currentVersion, currentBuild: currentBuild, releaseTag: releaseTag)
             }.value
-            haneulLog("HaneulKeyboard: update \(update.tag) verified — bundle ID, Team, codesign, Gatekeeper, version")
+            haneulLog("HaneulKeyboard: update \(update.tag) verified — archive limits, bundle ID, Team, codesign, Gatekeeper, version, release tag")
 
             phase = .installing
             let strategy = Self.replaceStrategy(for: destination)
             switch strategy {
             case .userAtomic:
                 try await Task.detached(priority: .userInitiated) {
-                    try Self.replaceAtomically(destination: destination, with: verified.app)
+                    try Self.replaceAtomically(destination: destination, with: verified)
                 }.value
             case .adminPrompt:
                 // NSAppleScript의 관리자 인증 UI는 메인 액터에서 띄운다(IMEInstaller.uninstall과 동일).
@@ -309,21 +321,41 @@ final class Updater {
 
     /// 검증을 통과한 번들과 그때 읽은 정체. 2026-11-07 (#176): 관리자 경로가 인증 뒤 복사본을 이 값과 대조한다.
     /// 임시 폴더의 파일은 같은 사용자 권한의 코드가 바꿀 수 있으므로 나중에 다시 읽지 않고 검증 시점의 값을 들고 다닌다.
-    private struct VerifiedUpdate: Sendable {
+    /// 2026-11-13 (#226): 시험이 조립부를 실제로 돌릴 수 있게 private을 뗐다. 사용자 경로 교체도 이 값과 대조한다.
+    struct VerifiedUpdate: Sendable {
         let app: URL
         let identity: UpdateReplacementScript.VerifiedIdentity
     }
 
-    /// zip 해제 → 다섯 가지 검증 → (통과 시) quarantine 제거. 통과한 번들을 돌려준다.
-    /// 여기까지는 전부 임시 폴더 안이다.
-    nonisolated private static func extractAndVerify(
-        zip: URL, workDir: URL, currentVersion: String, currentBuild: Int?
+    /// 실제 Apple 서명이 있어야 통과하는 세 검사. 2026-11-13 (#226, 리뷰 install-update-F-6): 예전엔 조립부(`extractAndVerify`)가
+    /// 시험에서 한 번도 실행되지 않았다. 시험이 임시 ZIP으로 조립 순서를 실제로 돌리도록 이 셋만 바꿔 끼울 수 있게 했다.
+    /// 목록·해제 상한, 링크 검사, 번들 ID·버전 상승·릴리스 대조는 바꿔 끼우지 않는다. 제품은 항상 `live`다.
+    struct BundleChecks: Sendable {
+        var sameTeamSigned: @Sendable (URL) -> Bool
+        var codesignValid: @Sendable (URL) -> Bool
+        var notarizationAccepted: @Sendable (URL) -> Bool
+
+        static let live = BundleChecks(
+            sameTeamSigned: { IMEInstaller.isSameTeamSignedBundle(at: $0) },
+            // 2026-09-21 (#19 보안 검토 P1-1): 인자에 `-R=` 요구사항이 들어간다 —
+            // "서명이 일관한가"에 더해 **"애플이 발급한 인증서 사슬로, 우리 Team이 서명했는가"**
+            // 까지 OS가 판정한다. 사유·실측은 `UpdateDecision.codesignRequirement` 주석.
+            codesignValid: { Updater.run("/usr/bin/codesign", UpdateDecision.codesignArguments(appPath: $0.path)).status == 0 },
+            notarizationAccepted: { Updater.run("/usr/sbin/spctl", ["-a", "-t", "exec", $0.path]).status == 0 })
+    }
+
+    /// 목록 검사 → 지켜보며 풀기 → 검증(다섯 가지 + 안내한 릴리스와의 버전 대조) → (통과 시) quarantine 제거. 통과한 번들을 돌려준다.
+    /// 여기까지는 전부 임시 폴더 안이다. `limits`·`checks`는 시험에서만 바꾼다.
+    nonisolated static func extractAndVerify(
+        zip: URL, workDir: URL, currentVersion: String, currentBuild: Int?, releaseTag: String,
+        limits: ArchiveLimits = .release, checks: BundleChecks = .live
     ) throws -> VerifiedUpdate {
         let fm = FileManager.default
+        // 2026-11-13 (#226, 리뷰 security-overlap-C-2): 풀기 전에 목록(항목 수·풀린 크기·경로)을 보고, 푸는 동안에도 상한을 지킨다.
+        try inspectArchive(zip, limits: limits)
         let extractDir = workDir.appendingPathComponent("extract", isDirectory: true)
         try fm.createDirectory(at: extractDir, withIntermediateDirectories: true)
-        let ditto = run("/usr/bin/ditto", ["-x", "-k", zip.path, extractDir.path])
-        guard ditto.status == 0 else { throw UpdateError.extractFailed(ditto.output) }
+        try extractGuarded(zip: zip, into: extractDir, limits: limits, log: workDir.appendingPathComponent("extract.log"))
 
         // 배포 zip은 `ditto -c -k --keepParent`로 만들어 최상위가 HaneulKeyboard.app 하나다.
         let app = extractDir.appendingPathComponent(AppMoveDecision.destinationName)
@@ -347,21 +379,25 @@ final class Updater {
         }
 
         let info = NSDictionary(contentsOf: app.appendingPathComponent("Contents/Info.plist")) as? [String: Any]
+        let bundleVersion = UpdateDecision.releaseVersion(info: info)
         let verification = UpdateVerification(
             bundleIDMatches: info?["CFBundleIdentifier"] as? String == UpdateDecision.appBundleID,
-            sameTeamSigned: IMEInstaller.isSameTeamSignedBundle(at: app),
-            // 2026-09-21 (#19 보안 검토 P1-1): 인자에 `-R=` 요구사항이 들어간다 —
-            // "서명이 일관한가"에 더해 **"애플이 발급한 인증서 사슬로, 우리 Team이 서명했는가"**
-            // 까지 OS가 판정한다. 사유·실측은 `UpdateDecision.codesignRequirement` 주석.
-            codesignValid: run("/usr/bin/codesign", UpdateDecision.codesignArguments(appPath: app.path)).status == 0,
-            notarizationAccepted: run("/usr/sbin/spctl", ["-a", "-t", "exec", app.path]).status == 0,
+            sameTeamSigned: checks.sameTeamSigned(app),
+            codesignValid: checks.codesignValid(app),
+            notarizationAccepted: checks.notarizationAccepted(app),
             versionIncreases: UpdateDecision.isVersionIncrease(
                 currentVersion: currentVersion, currentBuild: currentBuild,
-                newVersion: UpdateDecision.releaseVersion(info: info),
+                newVersion: bundleVersion,
                 newBuild: (info?["CFBundleVersion"] as? String).flatMap(Int.init)
             )
         )
-        guard verification.passed else { throw UpdateError.verificationFailed(verification.failures) }
+        // 2026-11-13 (#226, 리뷰 install-update-F-1): 받은 앱이 안내한 릴리스 그 버전인지도 본다. 다르면 서명·공증이 멀쩡한
+        // 다른 정식 빌드라도 설치하지 않는다. `UpdateVerification`의 다섯 항목은 그대로 두고(그 구조를 쓰는 판단 시험이 있다) 실패 목록에 더한다.
+        var failures = verification.failures
+        if !UpdateDecision.bundleMatchesRelease(bundleVersion: bundleVersion, releaseTag: releaseTag) {
+            failures.append("받은 앱의 버전(\(bundleVersion ?? "읽지 못함"))이 안내한 새 버전(\(releaseTag))과 다름")
+        }
+        guard failures.isEmpty else { throw UpdateError.verificationFailed(failures) }
         guard let version = info?["CFBundleShortVersionString"] as? String, let build = info?["CFBundleVersion"] as? String else {
             throw UpdateError.verificationFailed(["버전 정보를 읽지 못함"])
         }
@@ -370,6 +406,102 @@ final class Updater {
         // 다운로드엔 보통 quarantine이 붙지 않지만(LSFileQuarantineEnabled 미설정) 붙어 있어도 되게.
         stripQuarantine(at: app)
         return VerifiedUpdate(app: app, identity: .init(bundleID: UpdateDecision.appBundleID, version: version, build: build))
+    }
+
+    /// 풀기 전 목록 검사. 2026-11-13 (#226, 리뷰 security-overlap-C-2): ZIP 끝의 중앙 디렉터리만 읽어(최대 4MiB) 항목 수·풀린 크기 합계·경로를 본다.
+    /// 판단은 `UpdateArchive`. 이 값은 ZIP이 스스로 적은 것이라 믿을 수 없어, 실제 상한은 `extractGuarded`가 지킨다.
+    nonisolated static func inspectArchive(_ zip: URL, limits: ArchiveLimits) throws {
+        do {
+            let handle = try FileHandle(forReadingFrom: zip)
+            defer { try? handle.close() }
+            let size = Int(try handle.seekToEnd())
+            let tailLength = min(size, UpdateArchive.tailBytes)
+            try handle.seek(toOffset: UInt64(size - tailLength))
+            let tail = [UInt8](try handle.read(upToCount: tailLength) ?? Data())
+            guard let location = UpdateArchive.directoryLocation(tail: tail, fileSize: size) else {
+                throw UpdateError.archiveRejected("ZIP 목록을 읽지 못함")
+            }
+            try handle.seek(toOffset: UInt64(location.offset))
+            let directory = [UInt8](try handle.read(upToCount: location.size) ?? Data())
+            guard directory.count == location.size,
+                  let entries = UpdateArchive.entries(centralDirectory: directory, expectedCount: location.entries) else {
+                throw UpdateError.archiveRejected("ZIP 목록을 읽지 못함")
+            }
+            if let problem = UpdateArchive.problem(entries, limits: limits) { throw UpdateError.archiveRejected(problem) }
+        } catch let error as UpdateError {
+            throw error
+        } catch {
+            throw UpdateError.archiveRejected("ZIP을 읽지 못함 (\(error.localizedDescription))")
+        }
+    }
+
+    /// 지켜보며 푼다. 2026-11-13 (#226, 리뷰 security-overlap-C-2): ZIP이 적은 크기는 믿을 수 없다(실측: `ditto -x -k`가 1,000바이트로 적힌
+    /// 항목을 64MiB 끝까지 풀었다). 그래서 짧은 간격으로 추출 폴더에 쌓인 양·항목 수·걸린 시간을 재고, 하나라도 상한을 넘으면 해제를 끊고
+    /// 풀던 내용을 지운다. 넘은 순간과 끊는 순간 사이(간격 0.05초)에 조금 더 쓰일 수는 있지만 디스크를 끝없이 채우지는 못한다.
+    /// `tool`·`arguments`는 시험에서만 바꾼다(천천히 쓰는 가짜 해제기로 끊는 동작을 본다).
+    nonisolated static func extractGuarded(zip: URL, into directory: URL, limits: ArchiveLimits, log: URL,
+                                           tool: String = "/usr/bin/ditto", arguments: [String]? = nil,
+                                           interval: TimeInterval = 0.05) throws {
+        let fm = FileManager.default
+        // 출력이 파이프를 채워 해제기가 멈추지 않게 파일로 받는다.
+        guard fm.createFile(atPath: log.path, contents: nil), let output = try? FileHandle(forWritingTo: log) else {
+            throw UpdateError.extractFailed("압축 해제 기록 파일을 만들지 못함")
+        }
+        defer { try? output.close() }
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: tool)
+        task.arguments = arguments ?? ["-x", "-k", zip.path, directory.path]
+        task.standardOutput = output
+        task.standardError = output
+        let started = Date()
+        do { try task.run() } catch { throw UpdateError.extractFailed(error.localizedDescription) }
+        var stopReason: String?
+        while task.isRunning {
+            Thread.sleep(forTimeInterval: interval)
+            let usage = diskUsage(of: directory, stopAfter: limits.entries)
+            if let reason = UpdateArchive.extractionProblem(bytes: usage.bytes, items: usage.items,
+                                                            elapsed: Date().timeIntervalSince(started), limits: limits) {
+                stopReason = reason
+                task.terminate()
+                for _ in 0..<20 where task.isRunning { Thread.sleep(forTimeInterval: 0.05) }
+                if task.isRunning { kill(task.processIdentifier, SIGKILL) }
+                break
+            }
+        }
+        task.waitUntilExit()
+        if stopReason == nil {
+            // 간격 사이에 끝난 해제도 같은 상한으로 다시 본다.
+            let usage = diskUsage(of: directory, stopAfter: limits.entries)
+            stopReason = UpdateArchive.extractionProblem(bytes: usage.bytes, items: usage.items,
+                                                         elapsed: Date().timeIntervalSince(started), limits: limits)
+        }
+        if let stopReason {
+            for item in (try? fm.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? [] {
+                try? fm.removeItem(at: item)
+            }
+            haneulLog("HaneulKeyboard: update archive extraction stopped — \(stopReason)")
+            throw UpdateError.archiveRejected(stopReason)
+        }
+        guard task.terminationStatus == 0 else {
+            let text = (try? String(contentsOf: log, encoding: .utf8)) ?? ""
+            throw UpdateError.extractFailed(text.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+    }
+
+    /// 추출 폴더의 일반 파일 크기 합계(논리 크기와 실제 할당 중 큰 값)와 항목 수. 항목이 `limit`을 넘으면 더 세지 않는다.
+    nonisolated private static func diskUsage(of directory: URL, stopAfter limit: Int) -> (bytes: UInt64, items: Int) {
+        let keys: [URLResourceKey] = [.isRegularFileKey, .fileSizeKey, .totalFileAllocatedSizeKey]
+        guard let walker = FileManager.default.enumerator(at: directory, includingPropertiesForKeys: keys, options: [],
+                                                          errorHandler: { _, _ in true }) else { return (0, 0) }
+        var bytes: UInt64 = 0
+        var items = 0
+        for case let url as URL in walker {
+            items += 1
+            if items > limit { break }
+            guard let values = try? url.resourceValues(forKeys: Set(keys)), values.isRegularFile == true else { continue }
+            bytes &+= UInt64(max(values.fileSize ?? 0, values.totalFileAllocatedSize ?? 0))
+        }
+        return (bytes, items)
     }
 
     /// 없으면 xattr가 비영으로 끝날 수 있으므로 결과는 로그로만 남긴다. 2026-11-07 (#176): `AppMover`도 같은 방식으로 쓴다.
@@ -387,19 +519,51 @@ final class Updater {
         return UpdateDecision.replaceStrategy(destinationOwnerUID: owner, currentUID: getuid(), parentWritable: parentWritable)
     }
 
-    /// 사용자 소유 설치본 — `AppMover`와 같은 순서: 같은 볼륨의 staging에 복사 → `replaceItemAt`
-    /// 으로 한 번에 교체. 복사 도중 실패해도 기존 앱은 그대로다.
-    nonisolated private static func replaceAtomically(destination: URL, with source: URL) throws {
+    /// 사용자 소유 설치본 — `AppMover`와 같은 순서: 같은 볼륨의 staging에 복사 → 복사본 재확인 → `replaceItemAt`
+    /// 으로 한 번에 교체. 복사 도중이나 재확인에서 실패해도 기존 앱은 그대로다.
+    /// 2026-11-13 (#226, 리뷰 install-update-F-9): 임시 폴더의 사본은 검증과 복사 사이에 같은 사용자 권한의 코드가 바꿀 수 있다. 관리자 경로(2026-11-07)처럼
+    /// staging의 복사본이 검증 때 읽은 정체(번들 ID·버전·빌드)와 같고 서명(Apple 인증서 사슬·번들 ID·Team)이 온전할 때만 교체한다.
+    /// macOS 앱 관리 보호가 응용 프로그램 폴더의 앱을 지킨다면 업데이터가 그 우회로가 되지 않게 하려는 것이다(보호가 실제로 적용되는지는 실기 확인 항목).
+    /// 재확인 직후에 같은 사용자가 staging을 바꾸는 아주 짧은 틈은 남는다 — 그 사용자는 사용자 소유 설치본도 직접 고칠 수 있다.
+    /// `verifyCopy`는 시험에서만 바꾼다.
+    nonisolated static func replaceAtomically(
+        destination: URL, with verified: VerifiedUpdate,
+        verifyCopy: (URL, UpdateReplacementScript.VerifiedIdentity) -> Bool = { isIntactCopy(at: $0, identity: $1) }
+    ) throws {
         let fm = FileManager.default
         let staging = destination.deletingLastPathComponent()
             .appendingPathComponent(".\(destination.lastPathComponent).update-\(UUID().uuidString)")
         defer { try? fm.removeItem(at: staging) }
         do {
-            try fm.copyItem(at: source, to: staging)
+            try fm.copyItem(at: verified.app, to: staging)
+        } catch {
+            throw UpdateError.replaceFailed(error.localizedDescription)
+        }
+        guard verifyCopy(staging, verified.identity) else {
+            throw UpdateError.verificationFailed(["설치 직전에 복사본을 다시 확인했더니 달라져 있음"])
+        }
+        do {
             _ = try fm.replaceItemAt(destination, withItemAt: staging)
         } catch {
             throw UpdateError.replaceFailed(error.localizedDescription)
         }
+    }
+
+    /// 복사본이 검증 때 읽은 정체와 같은가 — 링크가 아닌 폴더이고 번들 ID·버전·빌드가 같다.
+    nonisolated static func copyMatchesIdentity(at app: URL, identity: UpdateReplacementScript.VerifiedIdentity) -> Bool {
+        guard let values = try? app.resourceValues(forKeys: [.isSymbolicLinkKey, .isDirectoryKey]),
+              values.isSymbolicLink == false, values.isDirectory == true,
+              let info = NSDictionary(contentsOf: app.appendingPathComponent("Contents/Info.plist")) as? [String: Any] else { return false }
+        return info["CFBundleIdentifier"] as? String == identity.bundleID
+            && info["CFBundleShortVersionString"] as? String == identity.version
+            && info["CFBundleVersion"] as? String == identity.build
+    }
+
+    /// 정체에 더해 서명까지 — 관리자 교체 스크립트와 같은 요구사항(Apple 인증서 사슬·번들 ID·Team)과 깊은 엄격 검사.
+    nonisolated static func isIntactCopy(at app: URL, identity: UpdateReplacementScript.VerifiedIdentity) -> Bool {
+        guard copyMatchesIdentity(at: app, identity: identity) else { return false }
+        let requirement = UpdateReplacementScript.codesignRequirement(bundleID: identity.bundleID)
+        return run("/usr/bin/codesign", ["--verify", "--deep", "--strict", "--all-architectures", "-R=\(requirement)", app.path]).status == 0
     }
 
     /// root 소유 설치본 — staging 복사 → 옛 번들 백업 → 새 번들 배치.
@@ -410,7 +574,10 @@ final class Updater {
     private static func replaceWithAdminPrivileges(destination: URL, with verified: VerifiedUpdate) throws {
         let parent = destination.deletingLastPathComponent()
         let token = UUID().uuidString
-        let staging = parent.appendingPathComponent(".\(destination.lastPathComponent).update-\(token)")
+        // 2026-11-13 (#226, 리뷰 security-overlap-C-1): staging은 응용 프로그램 폴더(관리자 그룹이 이름을 바꿀 수 있다)가 아니라
+        // root만 이름을 바꿀 수 있는 자리(끈적이 비트가 있는 /private/tmp 아래, 스크립트가 root 소유 0700으로 만든다)에 둔다.
+        // 백업은 복구할 수 있게 그대로 응용 프로그램 폴더에 둔다(/private/tmp는 재시동 때 비워진다).
+        let staging = UpdateReplacementScript.privateStaging(token: token)
         let old = parent.appendingPathComponent(".\(destination.lastPathComponent).old-\(token)")
         let replacement = UpdateReplacementScript(source: verified.app, destination: destination,
                                                   staging: staging, backup: old, identity: verified.identity)
@@ -455,7 +622,7 @@ final class Updater {
 
     // MARK: - Process
 
-    nonisolated private static func run(_ executable: String, _ arguments: [String]) -> (status: Int32, output: String) {
+    nonisolated fileprivate static func run(_ executable: String, _ arguments: [String]) -> (status: Int32, output: String) {
         let task = Process()
         task.executableURL = URL(fileURLWithPath: executable)
         task.arguments = arguments
@@ -486,6 +653,8 @@ enum UpdateError: LocalizedError {
     case badSize(Int)
     case sizeMismatch(expected: Int, actual: Int)
     case extractFailed(String)
+    /// 2026-11-13 (#226): 풀기 전 목록 검사나 푸는 동안의 상한에 걸려 풀지 않았다.
+    case archiveRejected(String)
     case verificationFailed([String])
     case notInApplications(String)
     case replaceFailed(String)
@@ -516,6 +685,8 @@ enum UpdateError: LocalizedError {
             return "받은 파일 크기가 릴리스 정보와 달라요 (기대 \(expected), 실제 \(actual))"
         case .extractFailed(let reason):
             return "압축 해제 실패 — \(reason)"
+        case .archiveRejected(let reason):
+            return "업데이트 파일이 이상해서 풀지 않았어요 — \(reason)"
         case .verificationFailed(let failures):
             return "검증 실패로 설치하지 않았어요: " + failures.joined(separator: ", ")
         case .notInApplications(let path):

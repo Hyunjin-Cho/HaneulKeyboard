@@ -296,6 +296,7 @@ func resolvedTemporaryRoot(_ name: String) -> URL? {
         UninstallTests.run { check($0, $1) }
         InputSourceSettingsTests.run { check($0, $1) }
         await InstallFlowTests.run { check($0, $1) }
+        UpdateInstallTests.run { check($0, $1) }
         // `exit`는 defer를 돌리지 않는다. 시험 도메인은 여기서 직접 비운다.
         TestPreferenceDomains.clearAll()
         print("Updater: \(passed) passed, \(failed) failed")
