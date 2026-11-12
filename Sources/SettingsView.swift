@@ -6,37 +6,7 @@ extension Notification.Name {
     static let haneulMenuBarIconChanged = Notification.Name("haneul.menuBarIconChanged")
 }
 
-/// 2026-10-11 (#88): 일반을 정리한 메뉴. 응원하기는 본문 선택과 별도인 버튼이다.
-/// 2026-11-07 오너(#189): 「입력 기능」을 자동 변환과 단축키·슬래시로 나눠 다섯 메뉴가 됐다. 저장 값은 그대로다.
-enum SettingsTab: Hashable, CaseIterable, Identifiable {
-    case automatic
-    case shortcuts
-    case personalDictionary
-    case update
-    case appManagement
-
-    var id: Self { self }
-
-    var title: String {
-        switch self {
-        case .automatic: return "자동 변환"
-        case .shortcuts: return "단축키·슬래시"
-        case .personalDictionary: return "개인 사전"
-        case .update: return "설치·업데이트"
-        case .appManagement: return "앱 관리"
-        }
-    }
-
-    var symbol: String {
-        switch self {
-        case .automatic: return "wand.and.stars"
-        case .shortcuts: return "command"
-        case .personalDictionary: return "character.book.closed"
-        case .update: return "arrow.down.circle"
-        case .appManagement: return "wrench.and.screwdriver"
-        }
-    }
-}
+// 2026-11-13 (#227, 리뷰 app-ui-F-10): 메뉴 목록 `SettingsTab`은 `AppUIDecisions.swift`로 옮겼다(설정을 어느 메뉴로 열지 시험하려고).
 
 /// 2026-10-10 (#88): 왼쪽 메뉴 160pt + 기존 본문 너비를 확보한 설정 창.
 /// 2026-11-05 (#135): 그림이 창 맨 위까지 올라가게 제목 막대를 겹쳤다. 660 + 제목 막대 28 = 전체 688이라 창 크기는 그대로다.
@@ -45,7 +15,7 @@ enum SettingsTab: Hashable, CaseIterable, Identifiable {
 struct SettingsView: View {
     /// 창 제목. 2026-09-21 (#60): 오너 미결(시안 Q1 — `하늘키보드 설정` 제안)이라 현행 문구를
     /// 유지하되, 바꿀 때 한 줄만 고치면 되도록 여기 한 곳에 둔다.
-    /// 쓰는 곳: `AppDelegate.openSettings()`.
+    /// 쓰는 곳: `AppDelegate.showSettings(tab:)`. (2026-11-13 #227 정정: 예전 주석은 `openSettings()`라고 적었다.)
     static let windowTitle = "HaneulKeyboard 설정"
 
     @Bindable var core: AppCore
@@ -56,11 +26,15 @@ struct SettingsView: View {
 
     /// 2026-11-06 (#156): 닫으면 창을 놓아주므로 AppDelegate가 마지막 메뉴를 받아 두었다가 다시 열 때 넘겨준다.
     private let onTabChange: (SettingsTab) -> Void
+    /// 2026-11-13 (#227, 리뷰 app-ui-F-6): 전체 제거 결과가 나오면 AppDelegate가 창이 화면에 있는지 보고 다시 꺼낸다.
+    private let onRemovalFinished: () -> Void
 
-    /// 기본은 「입력 기능」.
-    init(core: AppCore, initialTab: SettingsTab = .automatic, onTabChange: @escaping (SettingsTab) -> Void = { _ in }) {
+    /// 기본은 「자동 변환」(2026-11-13 #227 정정: 예전 주석은 #189 전 이름인 「입력 기능」이었다).
+    init(core: AppCore, initialTab: SettingsTab = .automatic, onTabChange: @escaping (SettingsTab) -> Void = { _ in },
+         onRemovalFinished: @escaping () -> Void = {}) {
         self.core = core
         self.onTabChange = onTabChange
+        self.onRemovalFinished = onRemovalFinished
         _selectedTab = State(initialValue: initialTab)
     }
 
@@ -140,7 +114,10 @@ struct SettingsView: View {
                 .sheet(isPresented: $showingUninstallConfirm) {
                     RemovalConfirmSheet(onCancel: { showingUninstallConfirm = false }) {
                         showingUninstallConfirm = false
-                        Task { uninstallResult = await core.removeFullProduct() }
+                        Task {
+                            uninstallResult = await core.removeFullProduct()
+                            onRemovalFinished()
+                        }
                     }
                 }
         }

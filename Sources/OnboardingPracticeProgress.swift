@@ -52,9 +52,13 @@ struct OnboardingPracticeProgress {
             }
             lastPair = nil
             stage = pending != nil && range.length > 1 ? .readyToCommit : .composing
-        } else if let pair = [pending, pendingPhonetic].compactMap({ $0 }).first(where: { word == $0.english }) {
+        } else if let pair = [pending, pendingPhonetic].compactMap({ $0 }).first(where: { Self.sameLetters(word, $0.english) }) {
+            // 2026-11-13 (#227, 리뷰 app-ui-F-1): 조합 중 글자(메ㅔㅣㄷ)를 키열로 되돌리면 대소문자를 알 수 없다(A·a 둘 다 ㅁ).
+            // 입력기는 친 그대로(Apple·APPLE) 내보내므로 글자가 같고 대소문자만 다르면 성공이다. 예전엔 소문자 기대값(apple)과
+            // 정확히 같아야 해서 Apple·Camera 성공을 "영어가 입력됐어요(직접 친 영어)"로 알렸다.
+            // 왕복(Shift+Space) 비교에 쓰도록 기대값이 아니라 실제로 확정된 글자를 기억한다.
             stage = .converted
-            lastPair = pair
+            lastPair = Pair(hangul: pair.hangul, english: word)
             pending = nil
             pendingPhonetic = nil
         } else if let pair = lastPair, word == pair.hangul {
@@ -84,5 +88,10 @@ struct OnboardingPracticeProgress {
             }
         }
         return stage
+    }
+
+    /// 대소문자만 다른 같은 글자인가. 조합 중 글자에서 만든 기대값과 실제 확정 글자를 비교할 때만 쓴다.
+    private static func sameLetters(_ a: String, _ b: String) -> Bool {
+        a.compare(b, options: [.caseInsensitive, .literal]) == .orderedSame
     }
 }

@@ -146,6 +146,216 @@ func runDefaultsKeyTests() {
     expect(strays.isEmpty, "앱 Sources에 흩어진 설정 도메인·키 리터럴 없음 \(strays)")
 }
 
+// MARK: - 상태 글자 대비 (리뷰 app-ui-F-5)
+
+/// 2026-11-13 (#227): 상태 글자(초록·주황·빨강)는 밝은·어두운 화면 모두 4.5:1 이상이어야 한다(WCAG 2 보통 글자).
+/// 바탕은 실제 화면에 깔리는 색을 소스 값 그대로 옮겨 쓰고, 아래에서 소스 글로 값이 같은지 확인한다(바뀌면 여기도 고친다).
+/// 설정의 묶음 표(Form) 바탕은 실측하지 못했다 — 한지보다 6% 어둡거나(밝은 화면) 흰색 10%를 덮은(어두운 화면) 여유 바탕을 더해 본다.
+func runStatusContrastTests() {
+    let ivory = StatusRGB(247 / 255, 242 / 255, 229 / 255)          // OnboardingRiso.ivory (한지 바탕 평균)
+    let card = StatusRGB(250 / 255, 246 / 255, 236 / 255)           // 안내 카드 종이(OnboardingView.cardPaper)
+    let meok = StatusRGB(0.150, 0.140, 0.128)                       // OnboardingRiso.meok (어두운 화면 종이)
+    let cyan = StatusRGB(3 / 255, 150 / 255, 251 / 255)             // FeedbackTone.information
+    let yellow = StatusRGB(252 / 255, 220 / 255, 12 / 255)          // FeedbackTone.advice
+    let red = StatusRGB(0.85, 0.16, 0.20)                           // FeedbackTone.warning
+    let light: [(String, StatusRGB)] = [
+        ("한지", ivory), ("카드 종이", card), ("흰 바탕", StatusRGB(1, 1, 1)),
+        ("하늘색 띠", ivory.overlaid(with: cyan, alpha: 0.10)), ("노란 띠", ivory.overlaid(with: yellow, alpha: 0.10)),
+        ("경고 띠", ivory.overlaid(with: red, alpha: 0.10)), ("눌러야 하는 칸", StatusRGB(0.98, 0.91, 0.91)),
+        ("여유: 한지 6% 어둡게", ivory.overlaid(with: StatusRGB(0, 0, 0), alpha: 0.06)),
+    ]
+    let dark: [(String, StatusRGB)] = [
+        ("먹색", meok), ("하늘색 띠", meok.overlaid(with: cyan, alpha: 0.16)), ("노란 띠", meok.overlaid(with: yellow, alpha: 0.16)),
+        ("경고 띠", meok.overlaid(with: red, alpha: 0.16)), ("눌러야 하는 칸", StatusRGB(0.226, 0.146, 0.139)),
+        ("여유: 먹색에 흰색 10%", meok.overlaid(with: StatusRGB(1, 1, 1), alpha: 0.10)),
+    ]
+    for status in FeedbackStatus.allCases {
+        for (isDark, backgrounds) in [(false, light), (true, dark)] {
+            for (name, background) in backgrounds {
+                let ratio = status.rgb(dark: isDark).contrast(with: background)
+                expect(ratio >= 4.5, "상태 글자 대비 \(status) \(isDark ? "어두운" : "밝은") 화면 · \(name): \(String(format: "%.2f", ratio))")
+            }
+        }
+    }
+    // 대조군: 예전 설정이 쓰던 시스템 초록(밝은 화면 52,199,89)은 한지에서 기준에 못 미친다 — 계산이 살아 있다는 증거.
+    expect(StatusRGB(52 / 255, 199 / 255, 89 / 255).contrast(with: ivory) < 3, "대조군: 시스템 초록은 한지에서 3:1 미만")
+    expectEqual((StatusRGB(0, 0, 0).contrast(with: StatusRGB(1, 1, 1)) * 100).rounded(), 2100, "대조군: 검정/흰색 = 21:1")
+
+    // 위에 옮겨 쓴 바탕 값이 소스와 같은지(소스가 바뀌면 이 검사를 고친다).
+    let riso = readSource("Sources/OnboardingRiso.swift") ?? ""
+    let style = readSource("Sources/FeedbackStyle.swift") ?? ""
+    let onboarding = readSource("Sources/OnboardingView.swift") ?? ""
+    for (text, literal) in [(riso, "ivory = Color(red: 247 / 255, green: 242 / 255, blue: 229 / 255)"),
+                            (riso, "meok = Color(red: 0.150, green: 0.140, blue: 0.128)"),
+                            (riso, "cyan = Color(red: 3 / 255, green: 150 / 255, blue: 251 / 255)"),
+                            (riso, "yellow = Color(red: 252 / 255, green: 220 / 255, blue: 12 / 255)"),
+                            (style, "Color(red: 0.85, green: 0.16, blue: 0.20)"),
+                            (style, "Color(red: 0.226, green: 0.146, blue: 0.139) : Color(red: 0.98, green: 0.91, blue: 0.91)"),
+                            (style, "tint.opacity(scheme == .dark ? 0.16 : 0.10)"),
+                            (onboarding, "Color(red: 250 / 255, green: 246 / 255, blue: 236 / 255)")] {
+        expect(text.contains(literal), "대비 검사의 바탕 값이 소스와 같다: \(literal)")
+    }
+
+    // 앱 화면 소스에 시스템 초록·주황·빨강 글자가 다시 들어오지 않게(버튼 칠 `tint: .red`는 글자가 아니라 제외).
+    let appFiles = (try? FileManager.default.contentsOfDirectory(atPath: root.appendingPathComponent("Sources").path)) ?? []
+    var strays: [String] = []
+    for file in appFiles where file.hasSuffix(".swift") {
+        guard let text = readSource("Sources/" + file) else { continue }
+        for pattern in ["foregroundStyle(.red)", "foregroundStyle(.orange)", "foregroundStyle(.green)",
+                        "foregroundStyle(Color.red)", "foregroundStyle(Color.orange)", "foregroundStyle(Color.green)",
+                        "titleColor: .red"] where text.contains(pattern) {
+            strays.append("\(file): \(pattern)")
+        }
+    }
+    expect(strays.isEmpty, "시스템 초록·주황·빨강 글자 없음 \(strays)")
+}
+
+// MARK: - 설치·업데이트 탭·메뉴의 상태 판단 (2026-11-13 #227, 리뷰 app-ui-F-2·F-3·F-4·F-10)
+
+func runInstallUpdatePresentationTests() {
+    typealias S = InputMethodSectionPresentation
+    let bools = [false, true]
+    // 갱신 안내는 위 구획에 실제로 보이는 버튼만 가리킨다(F-3). 모든 상태 조합을 돈다.
+    for known in bools { for busy in bools { for installed in bools { for disabled in bools {
+        for refresh in bools { for blocked in bools where !blocked || refresh {
+            let section = S.resolve(statusKnown: known, busy: busy, installed: installed, disabled: disabled,
+                                    refreshNeeded: refresh, blockedBySystemInstall: blocked)
+            let label = "known=\(known) busy=\(busy) installed=\(installed) disabled=\(disabled) refresh=\(refresh) blocked=\(blocked)"
+            let notice = section.refreshNotice(refreshNeeded: refresh, blockedBySystemInstall: blocked)
+            expectEqual(notice != nil, refresh, "갱신 안내는 낡았을 때만: \(label)")
+            if let notice {
+                if notice.contains("‘\(S.updateButtonTitle)’") { expect(section.showsUpdateButton, "안내가 가리킨 업데이트 버튼이 보인다: \(label)") }
+                if notice.contains("‘\(S.installButtonTitle)’") { expect(section.showsInstallButton, "안내가 가리킨 설치 버튼이 보인다: \(label)") }
+            }
+            expect(!(section.showsInstallButton && section.showsUpdateButton), "두 버튼이 함께 보이지 않는다: \(label)")
+            if section.status == .checking { expect(!section.showsInstallButton && !section.showsUpdateButton, "확인 중에는 버튼 없음: \(label)") }
+        }}
+    }}}}
+    // 리뷰 재현: 입력 소스가 꺼진 채 사용자 폴더 입력기가 낡음 → 위에는 `입력기 설치`만 있다.
+    let disabledStale = S.resolve(statusKnown: true, busy: false, installed: false, disabled: true, refreshNeeded: true, blockedBySystemInstall: false)
+    expectEqual(disabledStale.status, .disabled, "꺼짐 + 낡음 = 꺼짐")
+    expect(disabledStale.refreshNotice(refreshNeeded: true, blockedBySystemInstall: false)?.contains("‘입력기 설치’") == true,
+           "꺼짐 + 낡음: 안내가 `입력기 설치`를 가리킨다")
+    let stale = S.resolve(statusKnown: true, busy: false, installed: true, disabled: false, refreshNeeded: true, blockedBySystemInstall: false)
+    expect(stale.showsUpdateButton && stale.refreshNotice(refreshNeeded: true, blockedBySystemInstall: false)?.contains("‘입력기 업데이트’") == true,
+           "설치됨 + 낡음: `입력기 업데이트`")
+    let system = S.resolve(statusKnown: true, busy: false, installed: true, disabled: false, refreshNeeded: true, blockedBySystemInstall: true)
+    expect(!system.showsUpdateButton && system.refreshNotice(refreshNeeded: true, blockedBySystemInstall: true)?.contains("전체 제거") == true,
+           "시스템 폴더 입력기: 버튼 없이 전체 제거 안내")
+    expectEqual(S.resolve(statusKnown: false, busy: false, installed: false, disabled: false, refreshNeeded: false, blockedBySystemInstall: false).status,
+                .checking, "읽기 전 = 확인 중")
+    // 화면이 버튼 이름을 이 상수에서 가져오는지(문자열이 갈라지면 안내가 다시 없는 버튼을 가리킨다).
+    let section = readSource("Sources/InputMethodSettingsSection.swift") ?? ""
+    expect(section.contains("Button(maru: InputMethodSectionPresentation.installButtonTitle)")
+           && section.contains("Button(maru: InputMethodSectionPresentation.updateButtonTitle)"), "입력기 버튼 이름은 상수에서")
+    let updateSection = readSource("Sources/UpdateSettingsSection.swift") ?? ""
+    expect(updateSection.contains("refreshNotice(") && !updateSection.contains("위 ‘입력기 업데이트’"), "갱신 안내 문장은 판단 함수에서")
+
+    // 업데이트 상태 줄과 메뉴 줄(F-2).
+    typealias U = UpdateStatusPresentation
+    let phases: [UpdatePhaseKind] = [.idle, .checking, .upToDate, .available, .downloading, .verifying, .installing, .failed]
+    let orders: [ComparisonResult?] = [nil, .orderedAscending, .orderedSame, .orderedDescending]
+    for phase in phases {
+        for order in orders {
+            let p = U.resolve(phase: phase, storedLatestOrder: order)
+            let label = "\(phase) \(order.map { "\($0.rawValue)" } ?? "nil")"
+            expectEqual(p.showsInstallButton, p.line == .newVersion, "새 버전 줄에는 설치 버튼이 함께 있다: \(label)")
+            expectEqual(p.showsMenuNotice, p.line == .newVersion, "메뉴 줄은 새 버전일 때만: \(label)")
+            if p.installRechecksFirst { expectEqual(phase, .idle, "다시 묻고 설치는 재실행 뒤 상태에서만: \(label)") }
+            if phase == .upToDate { expectEqual(p.line, .none, "최신이면 숫자 두 줄로 충분(#201): \(label)") }
+        }
+    }
+    // 리뷰 재현: 알림을 '나중에'로 닫고 앱을 다시 켰다 — 저장된 최신 번호가 더 크다.
+    let relaunched = U.resolve(phase: .idle, storedLatestOrder: .orderedAscending)
+    expect(relaunched.line == .newVersion && relaunched.showsInstallButton && relaunched.installRechecksFirst && relaunched.showsMenuNotice,
+           "재실행 뒤에도 설치 버튼과 메뉴 줄이 보이고, 누르면 다시 물은 뒤 설치")
+    let fresh = U.resolve(phase: .available, storedLatestOrder: .orderedAscending)
+    expect(fresh.showsInstallButton && !fresh.installRechecksFirst, "막 확인한 새 버전은 바로 설치")
+    expectEqual(U.resolve(phase: .idle, storedLatestOrder: nil).line, .none, "확인 전에는 상태 줄 없음")
+    expectEqual(U.resolve(phase: .idle, storedLatestOrder: .orderedDescending).line, .none, "설치본이 더 새로우면 상태 줄 없음")
+    expectEqual(U.resolve(phase: .failed, storedLatestOrder: .orderedAscending).line, .failed, "오류는 오류로")
+    expectEqual(U.menuTitle(version: "2026.11.20"), "새 버전 2026.11.20 — 설치·업데이트…", "메뉴 줄 글자")
+
+    // 메뉴의 입력기 줄(F-4): 미설치 줄도 눌러서 설치 칸으로 간다.
+    typealias I = IMEStatusPresentation
+    expectEqual(I.notInstalled.menuAction, .openInstallSettings, "미설치 줄을 누르면 설치 칸")
+    expectEqual(I.disabled.menuAction, .reenable, "꺼짐 줄을 누르면 다시 켜기")
+    expectEqual(I.ready.menuAction, .none, "정상 = 줄 없음")
+    expectEqual(I.checking.menuAction, .none, "확인 중 = 줄 없음")
+    let app = readSource("Sources/HaneulKeyboardApp.swift") ?? ""
+    expect(app.contains("presentation.menuAction") && app.contains("#selector(openInstallSettings)"), "메뉴가 입력기 줄 동작을 판단 함수에서 고른다")
+    expect(app.contains("showsMenuNotice"), "메뉴의 새 버전 줄도 같은 판단을 쓴다")
+
+    // `설정…`·다시 열기에서 처음 보일 메뉴(F-4·F-8).
+    typealias E = SettingsEntryDecision
+    expectEqual(E.preferredTab(imeStatus: .notInstalled, refreshNeeded: false, iconVisible: true), .update, "미설치면 설치·업데이트로")
+    expectEqual(E.preferredTab(imeStatus: .ready, refreshNeeded: true, iconVisible: true), .update, "입력기가 낡았으면 설치·업데이트로")
+    expectEqual(E.preferredTab(imeStatus: .ready, refreshNeeded: false, iconVisible: true), nil, "정상이면 마지막 메뉴")
+    expectEqual(E.preferredTab(imeStatus: .disabled, refreshNeeded: false, iconVisible: true), nil, "꺼짐은 메뉴의 다시 켜기가 맡는다")
+    expectEqual(E.preferredTab(imeStatus: .checking, refreshNeeded: true, iconVisible: true), nil, "확인 중에는 정하지 않는다")
+    expectEqual(E.preferredTab(imeStatus: .notInstalled, refreshNeeded: false, iconVisible: false), .appManagement, "아이콘을 껐으면 앱 관리(#154)")
+
+    // 안내 1페이지 설치 칸 문장(옮기기 전과 같은 문장).
+    typealias O = OnboardingInstallPanel
+    expectEqual(O.statusText(panel: .checking, blockedBySystemInstall: false, refreshNeeded: false, disabled: false), "설치 상태를 확인하고 있어요", "안내 설치 칸: 확인 중")
+    expectEqual(O.statusText(panel: .ready, blockedBySystemInstall: false, refreshNeeded: false, disabled: false), "설치 완료", "안내 설치 칸: 완료")
+    expect(O.statusText(panel: .actionNeeded, blockedBySystemInstall: true, refreshNeeded: true, disabled: false).contains("지우고 다시 설치"), "안내 설치 칸: 시스템 폴더")
+    expect(O.statusText(panel: .actionNeeded, blockedBySystemInstall: false, refreshNeeded: true, disabled: true).contains("업데이트"), "안내 설치 칸: 낡음이 꺼짐보다 먼저")
+    expect(O.statusText(panel: .actionNeeded, blockedBySystemInstall: false, refreshNeeded: false, disabled: true).contains("다시 켜"), "안내 설치 칸: 꺼짐")
+    expect(O.statusText(panel: .actionNeeded, blockedBySystemInstall: false, refreshNeeded: false, disabled: false).contains("오른쪽 버튼"), "안내 설치 칸: 미설치")
+
+    // 안내 연습의 꺼진 기능 경고와 `설정 열기`가 가는 곳.
+    typealias L = OnboardingLesson
+    expect(L.automatic.isDisabled(autoEnabled: false, phoneticEnabled: true, slashEnabled: true), "자동 변환 꺼짐 → 3페이지 경고")
+    expect(L.reversal.isDisabled(autoEnabled: false, phoneticEnabled: true, slashEnabled: true), "자동 변환 꺼짐 → 4페이지 경고")
+    expect(!L.reversal.isDisabled(autoEnabled: true, phoneticEnabled: false, slashEnabled: false), "되돌리기 연습은 자동 변환만 본다")
+    expect(L.registeredWord.isDisabled(autoEnabled: true, phoneticEnabled: false, slashEnabled: true), "한글 단어 바꾸기 꺼짐 → 5페이지 경고")
+    expect(!L.registeredWord.isDisabled(autoEnabled: false, phoneticEnabled: true, slashEnabled: false), "5페이지는 한글 단어 바꾸기만 본다")
+    expect(L.slash.isDisabled(autoEnabled: true, phoneticEnabled: true, slashEnabled: false), "슬래시 꺼짐 → 6페이지 경고")
+    expectEqual(L.reversal.settingsTab(autoEnabled: false), .automatic, "자동 변환이 꺼졌으면 자동 변환 메뉴")
+    expectEqual(L.registeredWord.settingsTab(autoEnabled: false), .shortcuts, "한글 단어 바꾸기는 단축키·슬래시 메뉴")
+    expectEqual(L.slash.settingsTab(autoEnabled: true), .shortcuts, "슬래시는 단축키·슬래시 메뉴")
+}
+
+// MARK: - 창·실행 경로 (2026-11-13 #227, 리뷰 app-ui-F-6·F-7·F-8·F-9 — 화면을 띄울 수 없어 판단과 소스 연결만 본다. 동작은 실기 확인)
+
+func runWindowAndLaunchTests() {
+    // F-6: 전체 제거 중에는 설정 창을 닫지 않고, 결과가 나왔는데 창이 없으면 다시 꺼낸다.
+    expect(!RemovalWindowDecision.allowsClosingSettings(removingProduct: true), "제거 중에는 설정 창을 닫지 않는다")
+    expect(RemovalWindowDecision.allowsClosingSettings(removingProduct: false), "평소에는 닫힌다")
+    expect(RemovalWindowDecision.shouldRevealSettings(windowVisible: false), "결과가 나왔는데 창이 없으면 다시 꺼낸다")
+    expect(!RemovalWindowDecision.shouldRevealSettings(windowVisible: true), "창이 보이면 그대로")
+    let app = readSource("Sources/HaneulKeyboardApp.swift") ?? ""
+    let settings = readSource("Sources/SettingsView.swift") ?? ""
+    expect(app.contains("func windowShouldClose(") && app.contains("RemovalWindowDecision.allowsClosingSettings"),
+           "AppDelegate가 제거 중 설정 창 닫기를 막는다")
+    expect(app.contains("RemovalWindowDecision.shouldRevealSettings") && settings.contains("onRemovalFinished()"),
+           "제거 결과가 나오면 설정 창을 다시 꺼낸다")
+
+    // F-7: ⌘,(앱 설정 명령)는 AppDelegate의 설정 창을 연다. SwiftUI Settings 장면에는 두 번째 설정 화면을 두지 않는다.
+    if let body = app.range(of: "var body: some Scene"), let end = app.range(of: "final class AppDelegate") {
+        let scene = String(app[body.upperBound..<end.lowerBound])
+        expect(scene.contains("CommandGroup(replacing: .appSettings)") && scene.contains("openSettingsFromCommand()"),
+               "⌘,가 우리 설정 창을 연다")
+        expect(!scene.contains("SettingsView("), "Settings 장면에 두 번째 SettingsView 없음")
+    } else {
+        expect(false, "App 장면 소스 찾기")
+    }
+
+    // F-8: 직접 실행했는데 아이콘이 화면에 없으면(시스템이 숨김) 설정을 연다. 로그인 실행은 창을 띄우지 않는다.
+    typealias E = SettingsEntryDecision
+    for login in [false, true] { for pref in [false, true] { for onScreen in [false, true] {
+        expectEqual(E.shouldOpenSettingsAfterLaunch(launchedAsLoginItem: login, iconPreferenceOn: pref, iconOnScreen: onScreen),
+                    !login && pref && !onScreen, "실행 뒤 설정 창: login=\(login) pref=\(pref) onScreen=\(onScreen)")
+    }}}
+    expect(app.contains("SettingsEntryDecision.shouldOpenSettingsAfterLaunch") && app.contains("statusItemAppearsOnScreen"),
+           "실행 경로가 아이콘이 실제로 보이는지 확인한다")
+
+    // F-9: 되돌린 단어 한 줄의 두 버튼을 VoiceOver가 따로 누를 수 있게 줄을 하나로 합치지 않는다.
+    let dictionary = readSource("Sources/PersonalDictionarySettingsSection.swift") ?? ""
+    expect(!dictionary.contains("accessibilityElement(children: .combine)"), "되돌린 단어 줄을 한 요소로 합치지 않는다")
+}
+
 // MARK: - 두루마리 자원 (리뷰 app-ui-F-6)
 
 func runScrollResourceTests() {
@@ -212,6 +422,9 @@ struct AppUITests {
         runInputSourceTests()
         runDefaultsKeyTests()
         runScrollResourceTests()
+        runStatusContrastTests()
+        runInstallUpdatePresentationTests()
+        runWindowAndLaunchTests()
         print("AppUI: \(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
     }

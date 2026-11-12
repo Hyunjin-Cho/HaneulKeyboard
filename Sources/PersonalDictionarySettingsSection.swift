@@ -136,7 +136,10 @@ struct PersonalDictionarySettingsSection: View {
                             .controlSize(.small)
                             .accessibilityLabel("\(entry.english) 변환 금지 제안하기")
                     }
-                    .accessibilityElement(children: .combine)
+                    // 2026-11-13 (#227, 리뷰 app-ui-F-9): 줄을 한 요소로 합치면(.combine) VoiceOver가 두 버튼을 따로 누를 수 있는지 불확실했다.
+                    // 줄은 묶음(.contain)으로 두고 이름만 붙인다 — 글자와 두 버튼(각자의 접근성 이름)이 따로 읽히고 따로 눌린다.
+                    .accessibilityElement(children: .contain)
+                    .accessibilityLabel("되돌린 단어 \(entry.hangul), \(entry.english)")
                 }
             }
         }
@@ -184,7 +187,7 @@ struct PersonalDictionarySettingsSection: View {
             if let error {
                 Text(error)
                     .font(SettingsTypography.body)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(FeedbackStatus.warning.adaptiveColor)
             }
         }
     }

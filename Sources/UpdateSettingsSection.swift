@@ -35,7 +35,7 @@ struct UpdateSettingsSection: View {
                 .fixedSize()
             }
 
-            if hasStatusToShow {
+            if presentation.line != .none {
                 HStack(spacing: 12) {
                     statusLine
                     if case .available(let update) = updater.phase, let page = update.pageURL {
@@ -43,9 +43,15 @@ struct UpdateSettingsSection: View {
                             .font(SettingsTypography.body)
                     }
                     Spacer(minLength: 12)
-                    if case .available = updater.phase {
+                    if presentation.showsInstallButton {
+                        // 2026-11-13 (#227, 리뷰 app-ui-F-2): 앱을 다시 켜면 받을 파일 정보가 없어 저장된 최신 번호만 남는다.
+                        // 그때는 누른 순간 서버에 다시 묻고(지금 확인과 같은 요청), 새 버전이 확인되면 이어서 설치한다.
+                        let recheck = presentation.installRechecksFirst
                         Button(maru: "새 버전 설치") {
-                            Task { await updater.installAvailableUpdate() }
+                            Task {
+                                if recheck { await updater.checkNow(forced: true, showNotice: false) }
+                                await updater.installAvailableUpdate()
+                            }
                         }
                         .buttonStyle(.borderedProminent)
                         .keyboardShortcut(.defaultAction)
@@ -60,16 +66,17 @@ struct UpdateSettingsSection: View {
                 set: { updater.setAutoCheckEnabled($0) }
             ))
 
-            if core.imeRefreshNeeded {
+            // 2026-11-13 (#227, 리뷰 app-ui-F-3): 둘째 줄은 위 「한글 입력기」에 실제로 보이는 버튼만 가리킨다
+            // (입력 소스가 꺼져 `입력기 설치`만 있을 때 없는 `입력기 업데이트`를 가리켰다). 문장은 `InputMethodSectionPresentation`이 고른다.
+            if let notice = core.inputMethodSection.refreshNotice(refreshNeeded: core.imeRefreshNeeded,
+                                                                  blockedBySystemInstall: core.imeRefreshBlockedBySystemInstall) {
                 VStack(alignment: .leading, spacing: 4) {
                     Label("입력기 업데이트 필요", systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(FeedbackStatus.pending.adaptiveColor)
                     // 2026-09-21 (#60): 설정 창을 보는 사람은 빌드 스크립트를 돌리는 사람이
                     // 아니다 — 시스템 도메인 설치 안내는 README/체크리스트가 맡는다.
                     // 2026-11-08 (#201): '입력기 제거' 버튼이 없어져 해결 경로를 바꿨다.
-                    Text(core.imeRefreshBlockedBySystemInstall
-                         ? "앱은 새 버전인데 입력기는 아직 이전 버전이에요.\n앱 관리의 ‘하늘키보드 전체 제거’로 지운 뒤 다시 설치해 주세요."
-                         : "앱은 새 버전인데 입력기는 아직 이전 버전이에요.\n위 ‘입력기 업데이트’를 눌러 주세요.")
+                    Text(notice)
                         .font(SettingsTypography.body)
                         .foregroundStyle(.secondary)
                 }
@@ -84,44 +91,24 @@ struct UpdateSettingsSection: View {
             Date.FormatStyle(date: .long, time: .omitted).locale(Locale(identifier: "ko_KR")))
     }
 
-    /// 할 일이 있을 때만 상태 줄을 보인다. 최신·더 새로움은 위 두 숫자로 알 수 있다.
-    private var hasStatusToShow: Bool {
-        switch updater.phase {
-        case .checking, .available, .downloading, .verifying, .installing, .failed: return true
-        case .upToDate: return false
-        case .idle:
-            if let latest = updater.latestVersion.flatMap(CalVer.init), let current = CalVer(Updater.currentVersion) {
-                return current < latest
-            }
-            return false
-        }
-    }
+    /// 할 일이 있을 때만 상태 줄을 보인다. 최신·더 새로움은 위 두 숫자로 알 수 있다(2026-11-08 오너 #201).
+    /// 2026-11-13 (#227, 리뷰 app-ui-F-10): 무엇을 보일지는 `UpdateStatusPresentation`(시험됨)이 정한다. 상태 아이콘 메뉴도 같은 판단을 쓴다.
+    /// 그 판단에 따라 한 번도 보이지 않던 `최신 버전이에요`·`설치된 버전이 더 새로워요`·`아직 확인하지 않았어요` 갈래는 지웠다.
+    private var presentation: UpdateStatusPresentation { updater.presentation }
 
     @ViewBuilder
     private var statusLine: some View {
-        switch updater.phase {
-        case .idle:
-            // 재실행 뒤에는 실제로 저장된 최신 번호만 비교한다. 조회 전에는 최신이라고 추정하지 않는다.
-            if let latest = updater.latestVersion.flatMap(CalVer.init),
-               let current = CalVer(Updater.currentVersion) {
-                if current < latest {
-                    newVersionStatus
-                } else {
-                    upToDateStatus
-                }
-            } else {
-                Text("아직 확인하지 않았어요.")
-                    .font(SettingsTypography.body)
-                    .foregroundStyle(.secondary)
-            }
+        switch presentation.line {
+        case .none:
+            EmptyView()
+        case .newVersion:
+            Label("새 버전이 있어요.", systemImage: "arrow.down.circle.fill")
+                .font(SettingsTypography.body)
+                .foregroundStyle(.tint)
         case .checking:
             Label("확인 중…", systemImage: "arrow.triangle.2.circlepath")
                 .font(SettingsTypography.body)
                 .foregroundStyle(.secondary)
-        case .upToDate:
-            upToDateStatus
-        case .available:
-            newVersionStatus
         case .downloading:
             Label("내려받는 중…", systemImage: "arrow.down.circle")
                 .font(SettingsTypography.body)
@@ -134,11 +121,13 @@ struct UpdateSettingsSection: View {
             Label("설치 중이에요. 잠시 뒤 앱이 다시 열려요.", systemImage: "gearshape")
                 .font(SettingsTypography.body)
                 .foregroundStyle(.secondary)
-        case .failed(let reason):
-            Text("업데이트 오류: \(reason)")
-                .font(SettingsTypography.body)
-                .foregroundStyle(.red)
-                .textSelection(.enabled)
+        case .failed:
+            if case .failed(let reason) = updater.phase {
+                Text("업데이트 오류: \(reason)")
+                    .font(SettingsTypography.body)
+                    .foregroundStyle(FeedbackStatus.warning.adaptiveColor)
+                    .textSelection(.enabled)
+            }
         }
     }
 
@@ -153,25 +142,32 @@ struct UpdateSettingsSection: View {
         .accessibilityLabel(title)
         .accessibilityValue(value)
     }
+}
 
-    @ViewBuilder
-    private var upToDateStatus: some View {
-        // 공개 전 검토 빌드처럼 설치 번호가 서버의 최신 공개 번호보다 앞서는 경우도 구분한다.
-        if let latest = updater.latestVersion.flatMap(CalVer.init),
-           let current = CalVer(Updater.currentVersion), current > latest {
-            Label("설치된 버전이 더 새로워요.", systemImage: "info.circle")
-                .font(SettingsTypography.body)
-                .foregroundStyle(.secondary)
-        } else {
-            Label("최신 버전이에요.", systemImage: "checkmark.circle.fill")
-                .font(SettingsTypography.body)
-                .foregroundStyle(.green)
-        }
+extension Updater {
+    /// 2026-11-13 (#227, 리뷰 app-ui-F-2·F-10): 설정의 상태 줄과 상태 아이콘 메뉴가 함께 쓰는 판단.
+    var presentation: UpdateStatusPresentation {
+        .resolve(phase: phase.kind, storedLatestOrder: storedLatestOrder)
     }
 
-    private var newVersionStatus: some View {
-        Label("새 버전이 있어요.", systemImage: "arrow.down.circle.fill")
-            .font(SettingsTypography.body)
-            .foregroundStyle(.tint)
+    /// 설치된 버전과 저장된 최신 번호의 비교. 재실행 뒤에는 저장된 번호만 비교한다 — 조회 전에는 최신이라고 추정하지 않는다.
+    var storedLatestOrder: ComparisonResult? {
+        guard let latest = latestVersion.flatMap(CalVer.init), let current = CalVer(Updater.currentVersion) else { return nil }
+        return current < latest ? .orderedAscending : latest < current ? .orderedDescending : .orderedSame
+    }
+}
+
+extension Updater.Phase {
+    var kind: UpdatePhaseKind {
+        switch self {
+        case .idle: .idle
+        case .checking: .checking
+        case .upToDate: .upToDate
+        case .available: .available
+        case .downloading: .downloading
+        case .verifying: .verifying
+        case .installing: .installing
+        case .failed: .failed
+        }
     }
 }

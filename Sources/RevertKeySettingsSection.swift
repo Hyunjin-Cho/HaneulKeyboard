@@ -52,9 +52,10 @@ struct RevertKeySettingsSection: View {
             // ("변환 단축키를 끄는 게 결국 한/영 바꾸기를 끄는 것"). 기능은 늘 켜져 있다.
             // 2026-11-08 오너(#201): '이 키'는 무엇인지 모호하다. 정확히 '변환 단축키'라고 쓰고, 안 되는 곳이라 빨간 글씨로 알린다.
             // 2026-11-09 오너(#216): 두 줄은 길다. 안 되는 것 하나만 한 줄로 쓴다. 괄호 안은 지금 고른 단축키다.
+            // 2026-11-13 (#227, 리뷰 app-ui-F-5): 시스템 초록·주황·빨강 글자는 밝은 화면에서 대비가 2~3.6:1이었다. 같은 계열의 진한 상태색(`FeedbackStatus`, 4.5:1 이상)을 쓴다.
             Label(revertKey.terminalLimitNotice, systemImage: "terminal")
                 .font(SettingsTypography.body)
-                .foregroundStyle(.red)
+                .foregroundStyle(FeedbackStatus.warning.adaptiveColor)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

@@ -34,25 +34,9 @@ struct OnboardingView: View {
     @State private var phoneticEnabled = RevertKey.phoneticDefault
     @State private var slashEnabled = SlashEnglishSession.defaultEnabled
 
-    private enum PracticeLesson: Equatable {
-        case automatic, reversal, registeredWord, slash
-        var manual: Bool { self == .reversal || self == .registeredWord }
-        var hint: String {
-            switch self {
-            case .automatic, .reversal: "여기에 apple을 쳐봐요"
-            case .registeredWord: "여기에 카메라를 쳐봐요"
-            case .slash: "여기에 /help를 쳐봐요"
-            }
-        }
-        var accessibilityName: String {
-            switch self {
-            case .automatic: "영어 자동 변환 연습"
-            case .reversal: "되돌리기 연습"
-            case .registeredWord: "한글 단어를 영어로 바꾸기 연습"
-            case .slash: "슬래시 영어 입력 연습"
-            }
-        }
-    }
+    /// 2026-11-13 (#227, 리뷰 app-ui-F-10): 연습 종류와 "꺼진 기능" 판단은 `OnboardingLesson`(AppUIDecisions, 시험됨)으로 옮겼다.
+    /// 화면 문구(안내 손글씨·접근성 이름)만 여기 둔다.
+    private typealias PracticeLesson = OnboardingLesson
 
     private let titles = ["한글 모드 그대로 영어까지", "Mac에서 하늘키보드를 선택", "이번엔 직접 쳐봐요",
                           "단축키로 되돌려요", "한글 단어도 영어로", "슬래시 뒤에는 바로 영어", "메뉴바에서 만나요"]
@@ -73,7 +57,8 @@ struct OnboardingView: View {
         // 2026-11-03 (#115 블로킹): 1~7 모두 같은 틀(위 무대 + 아래 종이 카드). 안의 내용만 페이지마다 바뀐다.
         framePage
         .font(AppFont.font(size: 15))
-        // 2026-11-08 (#209): 마루부리는 줄 사이가 좁아 두 줄 안내가 붙어 보였다(설정 창과 같은 3pt).
+        // 2026-11-08 (#209): 마루부리는 줄 사이가 좁아 두 줄 안내가 붙어 보였다. 설정 창과 같은 `AppFont.lineSpacing`(지금 6pt)이다.
+        // (2026-11-13 #227, 리뷰 app-ui-F-11 정정: 예전 주석은 3pt였다.)
         .lineSpacing(AppFont.lineSpacing)
         .foregroundStyle(.primary)
         .frame(width: windowSize.width, height: windowSize.height)
@@ -357,17 +342,10 @@ struct OnboardingView: View {
         .resolve(statusKnown: core.imeStatusKnown, busy: core.isPreparingIME,
                  installed: core.imeInstalled, refreshNeeded: core.imeRefreshNeeded)
     }
+    /// 2026-11-13 (#227, 리뷰 app-ui-F-10): 문장 고르기는 `OnboardingInstallPanel.statusText`(시험됨)로 옮겼다. 문장은 그대로다.
     private var installStatus: String {
-        switch installPanel {
-        case .checking: return "설치 상태를 확인하고 있어요"
-        case .ready: return "설치 완료"
-        case .actionNeeded:
-            if core.imeRefreshBlockedBySystemInstall { return "이전 버전 입력기를 지우고 다시 설치해 주세요" }
-            if core.imeRefreshNeeded { return "입력기를 새 버전으로 업데이트해 주세요" }
-            if core.imeDisabled { return "설치되어 있어요 · 입력 소스를 다시 켜 주세요" }
-            // 2026-11-07 오너(#187): 무엇을 눌러야 하는지 칸 안에서 바로 말한다.
-            return "아직 설치되지 않았어요.\n오른쪽 버튼을 눌러 설치해 주세요."
-        }
+        OnboardingInstallPanel.statusText(panel: installPanel, blockedBySystemInstall: core.imeRefreshBlockedBySystemInstall,
+                                          refreshNeeded: core.imeRefreshNeeded, disabled: core.imeDisabled)
     }
     private var sourceStep: some View {
         VStack(alignment: .leading, spacing: compact ? 10 : 14) {
@@ -503,11 +481,12 @@ struct OnboardingView: View {
     /// 2026-11-09 오너(#216): 설정 변환 단축키 카드와 같은 문장, 같은 빨간 글씨(`RevertKey.terminalLimitNotice`).
     /// 4차에서 단축키를 처음 소개하는 4페이지에만 남겼다(1·5페이지는 뺐다 — "너무 많다").
     /// 터미널은 입력기를 못 받는 곳이 아니라 이미 들어간 글자를 바꿀 수 없는 곳이다(2026-07-28 실측, #30). 예전 4페이지의 네 줄 설명(`terminalLimitNote`)은 지웠다.
+    // 2026-11-13 (#227, 리뷰 app-ui-F-5): 시스템 초록·주황·빨강 글자는 밝은 화면에서 대비가 2~3.6:1이었다. 같은 계열의 진한 상태색(`FeedbackStatus`, 4.5:1 이상)을 쓴다.
     private var terminalShortcutNote: some View {
         Label(shortcut.terminalLimitNotice, systemImage: "terminal")
             .labelStyle(AdviceLabelStyle())
             .font(AppFont.font(size: adviceNoteSize))
-            .foregroundStyle(.red)
+            .foregroundStyle(FeedbackStatus.warning.color(in: colorScheme))
             .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -521,9 +500,7 @@ struct OnboardingView: View {
     }
 
     private func lessonDisabled(_ lesson: PracticeLesson) -> Bool {
-        (lesson == .automatic || lesson == .reversal) && !autoEnabled
-            || lesson == .registeredWord && !phoneticEnabled
-            || lesson == .slash && !slashEnabled
+        lesson.isDisabled(autoEnabled: autoEnabled, phoneticEnabled: phoneticEnabled, slashEnabled: slashEnabled)
     }
     private func hasPracticeWarning(_ lesson: PracticeLesson) -> Bool {
         sourceError != nil || lessonDisabled(lesson)
@@ -606,7 +583,7 @@ struct OnboardingView: View {
                     }
                     if lessonDisabled(lesson) {
                         // 2026-11-07 (#189): 꺼진 항목이 있는 메뉴로 바로 보낸다. 자동 변환이 꺼진 게 먼저다(되돌리기 연습은 둘 다 꺼질 수 있다).
-                        Button(maru: "설정 열기") { onSettings((lesson == .automatic || lesson == .reversal) && !autoEnabled ? .automatic : .shortcuts) }
+                        Button(maru: "설정 열기") { onSettings(lesson.settingsTab(autoEnabled: autoEnabled)) }
                     }
                 }.font(AppFont.font(size: 14)).feedbackPanel(.warning)
                     .fixedSize(horizontal: false, vertical: true)
@@ -814,5 +791,25 @@ private struct OnboardingButton: View {
     var body: some View {
         Button(title, action: action)
             .buttonStyle(OnboardingRisoButtonStyle(prominent: navigation)).controlSize(.large)
+    }
+}
+
+/// 안내 연습 페이지의 화면 문구. 판단은 `OnboardingLesson`(AppUIDecisions)에 있다.
+private extension OnboardingLesson {
+    var manual: Bool { self == .reversal || self == .registeredWord }
+    var hint: String {
+        switch self {
+        case .automatic, .reversal: "여기에 apple을 쳐봐요"
+        case .registeredWord: "여기에 카메라를 쳐봐요"
+        case .slash: "여기에 /help를 쳐봐요"
+        }
+    }
+    var accessibilityName: String {
+        switch self {
+        case .automatic: "영어 자동 변환 연습"
+        case .reversal: "되돌리기 연습"
+        case .registeredWord: "한글 단어를 영어로 바꾸기 연습"
+        case .slash: "슬래시 영어 입력 연습"
+        }
     }
 }

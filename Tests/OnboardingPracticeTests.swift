@@ -73,6 +73,28 @@ import AppKit
             check(editor.string == value + " ", "추가 예시 실제 자동 변환: \(value)")
             check(observedStages.last == .converted, "apple 이외 단어도 성공 안내: \(value)")
         }
+        // 2026-11-13 (#227, 리뷰 app-ui-F-1): Shift로 첫 글자를 대문자로 친 낱말(Apple·Camera)도 입력기는 바르게 바꾼다.
+        // 조합 중 글자(메ㅔㅣㄷ)에서는 친 대소문자를 알 수 없어 기대값이 소문자(apple)였고, 성공을 "영어를 직접 쳤다"로 알렸다.
+        // 같은 글자를 Shift+Space로 왕복해도 성공·되돌림으로 읽어야 한다(4페이지 되돌리기 연습).
+        for value in ["Apple", "Camera", "Bike", "APPLE", "Water"] {
+            editor.string = ""; editor.setSelectedRange(NSRange(location: 0, length: 0)); editor.resetProgress()
+            let c = KoreanComposer()
+            for key in value { _ = c.handleInput(String(key), client: client) }
+            let shown = editor.string
+            c.commit(to: client, convertEnglish: true)
+            client.insertText(" ")
+            RunLoop.current.run(until: Date().addingTimeInterval(0.02))
+            check(editor.string == value + " ", "대문자 섞인 낱말 실제 자동 변환: \(value): \(editor.string)")
+            check(observedStages.last == .converted, "대문자 섞인 낱말도 성공 안내: \(value): \(observedStages.suffix(3))")
+            for (target, stage) in [(shown, OnboardingPracticeStage.reverted), (value, .converted),
+                                    (shown, .reverted), (value, .converted)] {
+                let currentLength = (editor.string as NSString).length - 1
+                editor.insertText(target, replacementRange: NSRange(location: 0, length: currentLength))
+                RunLoop.current.run(until: Date().addingTimeInterval(0.02))
+                check(editor.string == target + " ", "대문자 낱말 왕복 글자: \(value) → \(target)")
+                check(observedStages.last == stage, "대문자 낱말 왕복 안내: \(value) → \(target): \(observedStages.suffix(3))")
+            }
+        }
         editor.string = "apple "; editor.setSelectedRange(NSRange(location: 6, length: 0))
         for target in ["메ㅔㅣㄷ", "apple", "메ㅔㅣㄷ", "apple"] {
             let currentLength = (editor.string as NSString).length - 1
@@ -219,6 +241,20 @@ import AppKit
         _ = progress.observe(text: "메ㅔㅣㄷ", hasMarkedText: true)
         check(progress.observe(text: "한글", hasMarkedText: false) == .other, "다른 단어의 성공 오인 방지")
         check(progress.observe(text: "apple", hasMarkedText: false) == .english, "다른 단어 뒤 이전 성공 증거 제거")
+        // 2026-11-13 (#227, 리뷰 app-ui-F-1): 조합 글자만으로는 대소문자를 모른다. 글자는 같고 대소문자만 다르면 성공이다.
+        progress.reset()
+        _ = progress.observe(text: "메ㅔㅣㄷ", hasMarkedText: true)
+        check(progress.observe(text: "Apple ", hasMarkedText: false) == .converted, "대문자로 시작한 변환도 성공")
+        check(progress.observe(text: "메ㅔㅣㄷ ", hasMarkedText: false) == .reverted, "대문자 변환 뒤 되돌림")
+        check(progress.observe(text: "Apple ", hasMarkedText: false) == .converted, "대문자 변환 왕복은 실제 글자 그대로")
+        progress.reset()
+        _ = progress.observe(text: "뼈ㄸㄸㅜ", hasMarkedText: true)
+        check(progress.observe(text: "QUEEN", hasMarkedText: false) == .converted, "Shift 자모가 섞인 대문자 변환도 성공")
+        progress.reset()
+        _ = progress.observe(text: "메ㅔㅣㄷ", hasMarkedText: true)
+        check(progress.observe(text: "Apples", hasMarkedText: false) == .english, "글자가 다르면 대소문자를 무시해도 성공이 아님")
+        progress.reset()
+        check(progress.observe(text: "Apple", hasMarkedText: false) == .english, "조합 없이 친 대문자 영어는 여전히 직접 입력")
         // #84: 실제 NSTextView marked text를 발음 변환으로 확정하고 전체 범위로 왕복한다.
         let phonetic = try! PhoneticDictionary.load(data: Data(contentsOf:
             URL(fileURLWithPath: "Resources/IM/phonetic_dictionary.json")))
