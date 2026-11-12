@@ -1,3 +1,11 @@
+# Place and football names, broad only — GeoNames (CC BY 4.0) + Wikidata (CC0 1.0). Attribution: ACKNOWLEDGEMENTS.md.
+# Generated 2026-06-20 by scripts/extract_sports_geo.py (moved into this repository 2026-11-13, #225): admin-1 names and
+#   cities of 50,000+ people in US, CA, MX, GB, FR, ES, IT (GeoNames); English labels of clubs and players in 9 leagues
+#   of England, France, Spain and Italy (Wikidata; player tokens kept only if 5 letters starting with a Korean vowel key, or 6+).
+# Post-filter: scripts/audit_wordlist.sh --role broad, then drop all_jamo forms (no complete Hangul syllable). Tier A/B = 0
+#   (re-audited 2026-11-13 against web2 + the other five bundled lists).
+#   Re-checked 2026-11-13: sports_geo_raw.txt 30,696 lines → 3+ letters 30,657 → minus all-jamo 2,297 → the 28,360 words below.
+# Role: broad only — NOT in curatedPaths. Recipe: dict_work/SOURCE_FORMATS.md §5. One word per line; # lines are ignored.
 aaltonen
 aaneba
 aanholt

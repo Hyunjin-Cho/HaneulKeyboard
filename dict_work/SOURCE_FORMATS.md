@@ -5,7 +5,8 @@
 > 원본 저장 위치: `~/Downloads/HaneulDictSources/` (레포 밖 — 가공 결과만 리뷰 후 번들).
 > 다운로드 일자: 2026-06-10. SHA-256은 아래 각 절에 기재.
 > 2026-11-07 (#178): 사전을 고친 뒤 번들 표를 다시 만드는 절차를 아래 「사전을 고친 뒤 번들 표 다시 만들기」에 추가했다.
-> 2026-11-13 (#225, 리뷰 english-dict-F-1): 'web2 빼기' 기준을 입력기와 맞췄다(§4 「web2 빼기 기준과 가공 레시피」).
+> 2026-11-13 (#225, 리뷰 english-dict-F-1·F-5): 'web2 빼기' 기준을 입력기와 맞췄다(§4 「web2 빼기 기준과 가공 레시피」), 지명·축구 사전 절(§5)을 더했고,
+> 원본 폴더를 "통째로 지워도 된다"던 부록 문장을 고쳤다.
 
 ## 공통 주의
 
@@ -228,6 +229,37 @@ zymurgy
 
 ---
 
+## 5. 지명·축구 사전 — GeoNames + Wikidata (`english_sports_geo.txt`, 2026-11-13 기록 · #225)
+
+> 2026-06-20에 만든 broad 전용 사전(28,360낱말)이다. 만든 스크립트가 저장소 밖에만 있어서 2026-11-13에 `scripts/extract_sports_geo.py`로 옮겼고
+> (원본 `~/Downloads/HaneulDictSources/extract_sports_geo.py`, SHA-256 `708c321ba5f5f2e7…` 아래 표), 그날 이 Mac에 남은 자료로 절차를 되짚었다.
+
+- **GeoNames** — <https://www.geonames.org>, 라이선스 CC BY 4.0(고지: `ACKNOWLEDGEMENTS.md`).
+  - 파일: `geonames/admin1CodesASCII.txt`(주·도 이름), `geonames/cities15000.txt`(인구 15,000+ 도시; 같은 폴더의 `cities15000.zip`을 푼 것).
+  - 필터: 나라 코드 US·CA·MX·GB·FR·ES·IT 7개. 주·도는 전부, 도시는 인구(15번째 칸) 50,000 이상. 이름을 공백·하이픈으로 나눠 소문자 a-z만 남긴 토큰.
+  - 받은 날짜: 파일 시각으로 `cities15000.txt` 2026-06-19, `admin1CodesASCII.txt` 2026-06-20(내려받은 기록은 따로 없다 — 시각 외에는 확인 못 함).
+  - 2026-11-13 확인: 스크립트의 `--geonames-only`(네트워크 없음)로 다시 만든 토큰 2,231개(주·도 184 + 도시 2,105 + 약어 5)가 원본 `sports_geo_raw.txt`에 모두 들어 있다.
+- **Wikidata** — <https://www.wikidata.org>, 라이선스 CC0 1.0.
+  - 질의: 9개 리그(Premier League·Championship·League One·Ligue 1·Ligue 2·La Liga·La Liga 2·Serie A·Serie B — QID는 스크립트의 `LEAGUES`)에 속한
+    축구 클럽(`wdt:P31 wd:Q476028; wdt:P118 <리그>`)의 영어 이름표, 그 클럽에서 뛴 사람(`wdt:P54`)의 영어 이름표. 질의 끝점 `query.wikidata.org/sparql`.
+  - 선수 토큰은 5글자이면서 두벌식 모음 키(yuiophjklbnm)로 시작하거나, 6글자 이상일 때만 넣었다(오너 결정 — 한국어 충돌을 구조적으로 피한다).
+  - 질의한 날짜는 원본 파일 시각으로 2026-06-20이다. Wikidata는 계속 바뀌므로 다시 질의하면 결과가 달라진다. 그날 결과 그대로의 사본은
+    `sports_geo_raw.txt`뿐이다(아래 SHA). 리그별 행 수 등 실행 기록은 남아 있지 않다(확인 못 함).
+- 뒤 단계: `scripts/audit_wordlist.sh --candidates sports_geo_raw.txt --role broad`로 검역한 뒤 `class`가 `all_jamo`(완성 음절 0)인 줄을 뺀다.
+  2026-11-13 재현: 30,696줄 → 3글자 이상 30,657 → 전부-자모 2,297 제외 → 28,360낱말, 배포 파일 본문과 정확히 같다. 현재 파일은 web2와 다른 번들 사전 다섯 개를
+  기준으로 다시 검역해도 Tier A/B 0이다. web2·다른 사전과 겹치는 낱말을 빼는 단계는 없었다(2,325낱말이 web2에도 있다).
+- 같은 폴더의 `geonames/cities7_raw.txt`·`cities7_tokens.txt`는 어떤 단계의 파일인지 확인 못 함(스크립트가 읽지 않는다).
+
+| 파일 (`~/Downloads/HaneulDictSources/`) | SHA-256 (2026-11-13) |
+|---|---|
+| `extract_sports_geo.py` (옮기기 전 원본) | `708c321ba5f5f2e726fe658fd72345782cfb3d9263134e66ee03350c8e15005c` |
+| `sports_geo_raw.txt` | `7965937ce7bc7e84aa0d39ed0b85f142089407dff0e2118f6ce7a11044a6d950` |
+| `geonames/admin1CodesASCII.txt` | `34784457b76b988a669dff7c3e4b104e4902c0875643cff019281ac79dfa2992` |
+| `geonames/cities15000.txt` | `b749806e0837280701909b43fa0617799a6cf4c415b71ee760efa1a892ebf1bb` |
+| `geonames/cities15000.zip` | `042b21ce08bd547f50f8623e465a8248352e0f4b8a92b9c5f42b74b35f5ea092` |
+
+---
+
 ## 가공 시 참고 (제안 — 결정은 리뷰에서)
 
 - **curated(clean-hangul 경로)**: NGSL stats.csv 기준 top-N + teaching 굴절형. 한국어 충돌 스윕
@@ -255,8 +287,10 @@ zymurgy
 
 ## 부록: exclusions 정본 위치 (2026-06-10)
 
-검역 탈락 결정 기록의 정본은 이 폴더에 보존된다 — `~/Downloads/HaneulDictSources/`는
-재다운로드 가능한 원본+재생성 가능한 검역 CSV뿐이므로 통째로 지워도 된다.
+검역 탈락 결정 기록의 정본은 이 폴더에 보존된다.
+2026-11-13 정정(#225, 리뷰 english-dict-F-5): 예전엔 여기에 `~/Downloads/HaneulDictSources/`를 "통째로 지워도 된다"고 적었다. 그 폴더에는
+지명·축구 사전의 생성 스크립트(유일한 사본이었다 — 이제 `scripts/extract_sports_geo.py`)와 그날 Wikidata 질의 결과(`sports_geo_raw.txt`,
+다시 질의하면 달라진다)가 있었다. 지우지 않는다. NGSL·Census·SSA·SCOWL 원본은 2026-11-13 이 Mac에 없다 — 위 각 절의 URL과 SHA-256으로 다시 받는다.
 - `dict_work/exclusions.txt` — theory(소대교 충돌) + 인명 전부-자모 2,685
 - `dict_work/scowl_exclusions_alljamo4.txt` — SCOWL ≤4자모 전부-자모 826 (btw·lol류)
   - 2026-11-08 (#194): 오너 요청으로 bio와 쓰는 말 93개를 수작업 사전에 다시 넣었다. 재생성해도 제외 목록은 SCOWL diff에만 적용되므로 그대로 남는다. 기록: `dict_work/2026-11-08-shortwords-registration.tsv`, `exclusion_overlap_baseline.tsv`.
