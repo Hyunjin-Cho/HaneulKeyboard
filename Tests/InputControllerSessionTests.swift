@@ -43,10 +43,18 @@ final class ProbeClient: NSObject, IMKTextInput {
     var reportMissingSelectionRange = false
     /// 2026-11-04 (#87): 커서 위치를 늘 0으로 돌려주는 호스트(Ghostty형 터미널).
     var frozenSelection = false
+    /// 2026-11-12 (#224, 리뷰 input-core-F-3·F-5): 글자를 넣은 직후 같은 키 처리 안에서는 넣기 전 커서를 돌려주는 호스트(크로미움형 가정).
+    /// 다음 키가 오면(사람이 다음 키를 누를 무렵) 새 값을 준다. 실제 앱이 이런지는 실기기 확인 대상이다.
+    var lateSelectionAfterInsert = false
+    var lateSelection: NSRange?
+    /// 2026-11-12 (#224, 리뷰 input-core-F-9): 선택 범위 조회 횟수와 앱 번들 ID 조회 시점(보안 입력이 그 사이에 켜지는 시나리오용).
+    var selectionReads = 0
+    var onBundleIdentifier: (() -> Void)?
     var replacementReadSnapshot: String?
-    func beginKeyEvent() { replacementReadSnapshot = nil }
+    func beginKeyEvent() { replacementReadSnapshot = nil; lateSelection = nil }
     func insertText(_ value: Any!, replacementRange: NSRange) {
         if rejectReplacement && replacementRange.location != NSNotFound { return }
+        if lateSelectionAfterInsert && lateSelection == nil { lateSelection = selection }
         if delayReplacementReadback && replacementRange.location != NSNotFound { replacementReadSnapshot = text }
         let string = (value as? NSAttributedString)?.string ?? (value as? String ?? "")
         let range = replacementRange.location != NSNotFound ? replacementRange : (marked.location != NSNotFound ? marked : selection)
@@ -67,8 +75,10 @@ final class ProbeClient: NSObject, IMKTextInput {
         afterMark?()
     }
     func selectedRange() -> NSRange {
+        selectionReads += 1
         beforeSelection?()
         if frozenSelection { return NSRange(location: 0, length: 0) }
+        if let lateSelection { return lateSelection }
         return reportMissingSelectionRange ? NSRange(location: NSNotFound, length: 0) : selection
     }
     func markedRange() -> NSRange {
@@ -98,7 +108,7 @@ final class ProbeClient: NSObject, IMKTextInput {
     func overrideKeyboard(withKeyboardNamed name: String!) {}
     func selectMode(_ name: String!) {}
     func supportsUnicode() -> Bool { true }
-    func bundleIdentifier() -> String! { "local.haneul.controller-session-tests" }
+    func bundleIdentifier() -> String! { onBundleIdentifier?(); return "local.haneul.controller-session-tests" }
     func windowLevel() -> CGWindowLevel { 0 }
     func supportsProperty(_ property: TSMDocumentPropertyTag) -> Bool { false }
     func uniqueClientIdentifierString() -> String! { UUID().uuidString }
@@ -117,19 +127,27 @@ final class ProbeClient: NSObject, IMKTextInput {
     static func check(_ value: Bool, _ id: String) { checks += 1; if !value { failures.append(hostLabel + id) } }
     /// 2026-11-10 (#216): 없앤 `미리 친 단어 한/영 바꾸기` 토글이 남긴 옛 값. 입력기는 이 값을 더 읽지 않는다 — false로 남아 있어도 수동 변환이 된다.
     static let legacyManualToggleKey = "haneul.manualToggleAllWords"
+    /// 2026-11-12 (#224, 리뷰 input-core-F-9): 시험이 정하는 보안 입력 상태. 실제 Mac의 보안 입력 상태와 무관하다.
+    static var secureInput = false
+    /// 2026-11-12 (#224, 리뷰 input-core-F-1): 키 이벤트 시각(NSEvent.timestamp). 기본은 키마다 1초씩 — 느긋하게 친 손이다.
+    /// Shift 겹쳐 누름 시나리오만 `gap`으로 짧게 준다.
+    static var clock: TimeInterval = 1_000
     static func fresh(key: RevertKey = .shiftSpace, keyboard: Bool = true) -> (HaneulInputController, ProbeClient) {
         probeDefaults.values = [RevertKey.defaultsKey: key.rawValue, RevertKey.phoneticKey: true,
             legacyManualToggleKey: keyboard, SlashEnglishSession.defaultsKey: true,
             "haneul.autoEnglishEnabled": true]
+        secureInput = false
         let controller = HaneulInputController(), client = ProbeClient()
+        controller.isSecureInputActive = { InputControllerSessionTests.secureInput }
         controller.activateServer(client)
         return (controller, client)
     }
     @discardableResult static func press(_ controller: HaneulInputController, _ client: ProbeClient,
                                         _ text: String?, code: UInt16, flags: NSEvent.ModifierFlags = [],
-                                        deliver: Bool = true) -> Bool {
+                                        deliver: Bool = true, gap: TimeInterval = 1) -> Bool {
+        clock += gap
         let event = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: flags,
-            timestamp: 0, windowNumber: 0, context: nil, characters: text ?? "", charactersIgnoringModifiers: text ?? "",
+            timestamp: clock, windowNumber: 0, context: nil, characters: text ?? "", charactersIgnoringModifiers: text ?? "",
             isARepeat: false, keyCode: code)!
         client.beginKeyEvent()
         let handled = controller.handle(event, client: client)
@@ -193,6 +211,7 @@ final class ProbeClient: NSObject, IMKTextInput {
             hostLabel = nsTextView ? "nstextview:" : ""
             runScenarios()
             runInputCoreReviewScenarios()
+            runInputCoreReview1112Scenarios()
         }
         let output: [String:Any] = ["checks":checks,"failures":failures,"scenarioCount":scenarios.count,
             "scenarios":scenarios,"limits":"Controller method bodies with a synthetic IMK host. Physical input and OS timing still require separate validation."]
@@ -1079,6 +1098,313 @@ final class ProbeClient: NSObject, IMKTextInput {
             typeKeys("apple",c,h); press(c,h," ",code:49)
             check(h.text.hasSuffix("apple "),"spill_deleted_next_word_converts")
             result("spill_deleted_next_word",c,h)
+        }
+    }
+
+    /// 2026-11-12 (#224): 입력 코어 리뷰 2차(claude-fable-5-2 input-core-F-1·3~7·9, security-overlap-C-3) 회귀. 고친 동작마다 대조군을 둔다.
+    static func runInputCoreReview1112Scenarios() {
+        func moveCaretToEnd(_ h: ProbeClient) { h.selection = NSRange(location: (h.text as NSString).length, length: 0) }
+        func clickTo(_ h: ProbeClient, _ location: Int) { h.selection = NSRange(location: location, length: 0) }
+        func shiftSpace(_ c: HaneulInputController, _ h: ProbeClient, gap: TimeInterval = 1) -> Bool {
+            press(c,h," ",code:49,flags:.shift,gap:gap)
+        }
+        func typeMixed(_ script: String, _ c: HaneulInputController, _ h: ProbeClient) {
+            let digitCodes: [Character: UInt16] = ["1":18,"2":19,"3":20,"4":21,"5":23,"6":22,"7":26,"8":28,"9":25,"0":29]
+            for ch in script {
+                if let code = digitCodes[ch] { press(c,h,String(ch),code:code) }
+                else if ch == " " { press(c,h," ",code:49) }
+                else if ch == "⌫" { _ = press(c,h,"\u{7f}",code:51,deliver:false) }
+                else { typeKeys(String(ch),c,h) }
+            }
+        }
+
+        // F-1 (오너 결정 가, 2026-11-12): Shift로 친 글자 키 바로 뒤 0.35초 안의 Shift+Space는 변환 단축키가 아니라 스페이스다.
+        for (keys, hangul, english) in [("tprP","세계","world"),("rhksrP","관계","relationship"),("eksrP","단계","stage"),
+                                        ("qkR","밖","outside"),("ckfP","차례","turn")] {
+            for gap in [0.05, 0.34] {
+                let (c,h) = fresh(); h.setField(0,text:"앞말 ")
+                typeKeys(keys,c,h)
+                check(h.text == "앞말 " + hangul,"rollover_precondition_\(keys)")
+                check(!shiftSpace(c,h,gap:gap),"rollover_composing_passes_space_\(keys)_\(gap)")
+                check(h.text == "앞말 " + hangul + " ","rollover_composing_space_\(keys)_\(gap)")
+                typeKeys("dugod",c,h)
+                check(h.text == "앞말 " + hangul + " 여행","rollover_composing_next_word_\(keys)_\(gap)")
+                result("rollover_composing_\(keys)_\(gap)",c,h)
+            }
+            // 대조: 0.35초가 지난 Shift+Space는 지금처럼 등록 낱말 변환이다.
+            let (c,h) = fresh(); h.setField(0,text:"앞말 ")
+            typeKeys(keys,c,h)
+            check(shiftSpace(c,h,gap:0.36),"rollover_late_consumed_\(keys)")
+            check(h.text == "앞말 " + english,"rollover_late_converts_\(keys)")
+            result("rollover_late_\(keys)",c,h)
+        }
+        for (mark, code) in [("?",UInt16(44)),("!",18),(")",29),("\"",39),("~",50)] {
+            for host in ["normal", "rejected", "ghostty"] {
+                let (c,h) = fresh()
+                h.rejectReplacement = host == "rejected"
+                if host == "ghostty" { h.unreadable = true; h.frozenSelection = true }
+                typeKeys("dkssud",c,h)
+                press(c,h,mark,code:code,flags:.shift)
+                check(!shiftSpace(c,h,gap:0.1),"rollover_mark_passes_space_\(mark)_\(host)")
+                check(h.text == "안녕" + mark + " ","rollover_mark_space_\(mark)_\(host)")
+                check(c.probeComposer.lastEnglishWord == nil && c.probeComposer.lastConversion == nil,"rollover_mark_no_state_\(mark)_\(host)")
+                typeKeys("so",c,h); press(c,h," ",code:49)
+                check(h.text == "안녕" + mark + " 내 ","rollover_mark_next_word_korean_\(mark)_\(host)")
+                result("rollover_mark_\(mark)_\(host)",c,h)
+            }
+        }
+        for (keys, shown) in [("apple","apple"),("tkrhk","사과")] { // 자동 변환된 낱말·등록 낱말 뒤 물음표도 그대로 둔다.
+            let (c,h) = fresh()
+            typeKeys(keys,c,h); press(c,h,"?",code:44,flags:.shift)
+            check(!shiftSpace(c,h,gap:0.1) && h.text == shown + "? ","rollover_after_word_\(keys)")
+            check(RecentReverts.load(from: probeDefaults).entries.isEmpty,"rollover_after_word_no_record_\(keys)")
+            result("rollover_after_word_\(keys)",c,h)
+        }
+        do { // 대조: 0.35초가 지나면 물음표 뒤 낱말 바꾸기도 지금처럼 된다.
+            let (c,h) = fresh()
+            typeKeys("dkssud",c,h); press(c,h,"?",code:44,flags:.shift)
+            check(shiftSpace(c,h,gap:0.5) && h.text == "dkssud?","rollover_mark_late_converts")
+            result("rollover_mark_late",c,h)
+        }
+        do { // 대조: 저장 쌍 되돌리기는 시간과 무관하다(직전 키가 Shift 글자가 아닌 정상 경로).
+            let (c,h) = fresh()
+            typeKeys("apple",c,h); press(c,h," ",code:49)
+            check(shiftSpace(c,h,gap:0.05) && h.text == "메ㅔㅣㄷ ","rollover_saved_pair_still_reverts")
+            result("rollover_saved_pair",c,h)
+        }
+        for key in [RevertKey.optionShiftSpace, .controlShiftSpace] { // 대조: Option·Control을 일부러 함께 누른 단축키는 변환이다.
+            let (c,h) = fresh(key: key)
+            typeKeys("dkssud",c,h); press(c,h,"?",code:44,flags:.shift)
+            check(press(c,h," ",code:49,flags:NSEvent.ModifierFlags(rawValue: key.requiredModifiers.rawValue),gap:0.1),"rollover_other_key_consumed_\(key.rawValue)")
+            check(h.text == "dkssud?","rollover_other_key_converts_\(key.rawValue)")
+            result("rollover_other_key_\(key.rawValue)",c,h)
+        }
+        do { // 대조: 단축키가 Option+Space면 Shift+Space는 원래 스페이스이고, Option+Space는 시간과 무관하게 변환이다.
+            let (c,h) = fresh(key: .optionSpace)
+            typeKeys("dkssud",c,h); press(c,h,"?",code:44,flags:.shift)
+            check(!shiftSpace(c,h,gap:0.1) && h.text == "안녕? ","rollover_option_key_shift_space_is_space")
+            check(press(c,h," ",code:49,flags:.option,gap:0.05) && h.text == "dkssud? ","rollover_option_key_converts")
+            result("rollover_option_key",c,h)
+        }
+
+        // F-9: 보안 입력 갈래 — 시험이 정한 값으로 돈다(이 Mac의 실제 보안 입력 상태와 무관).
+        do { // 처음부터 켜짐: 조합하지 않고 키를 그대로 넘긴다.
+            let (c,h) = fresh(); secureInput = true
+            typeKeys("dkssud",c,h); press(c,h," ",code:49)
+            check(h.text == "dkssud " && h.marked.location == NSNotFound,"secure_on_passes_plain_keys")
+            check(c.probeComposer.lastConversion == nil && c.probeComposer.lastEnglishWord == nil,"secure_on_no_conversion_state")
+            check(!shiftSpace(c,h) && h.text == "dkssud  ","secure_on_shortcut_passes")
+            result("secure_on",c,h)
+        }
+        do { // 조합 중 켜짐: 보이던 글자를 확정하고 이번 키부터 넘긴다.
+            let (c,h) = fresh(); typeKeys("dks",c,h)
+            secureInput = true
+            check(!press(c,h,"s",code:1),"secure_mid_composition_passes_key")
+            check(h.text == "안s" && h.marked.location == NSNotFound,"secure_mid_composition_commits_visible")
+            typeKeys("ud",c,h); press(c,h," ",code:49)
+            check(h.text == "안sud ","secure_mid_composition_rest_plain")
+            result("secure_mid_composition",c,h)
+        }
+        for path in ["backspace", "jamo", "preview"] { // 키 처리 도중(앱 번들 ID를 묻는 사이) 켜짐
+            let (c,h) = fresh()
+            probeDefaults.values[AutoConvertPolicy.disabledAppsKey] = ["local.other.app"]
+            typeKeys(path == "preview" ? "githubdp" : "dks",c,h)
+            let shown = h.text
+            h.onBundleIdentifier = { h.onBundleIdentifier = nil; secureInput = true }
+            let handled: Bool
+            switch path {
+            case "backspace": handled = press(c,h,"\u{7f}",code:51,deliver:false)
+            case "jamo": handled = press(c,h,"s",code:1)
+            default: handled = shiftSpace(c,h)
+            }
+            check(!handled,"secure_inside_\(path)_passes_key")
+            let expected = path == "backspace" ? shown : path == "jamo" ? shown + "s" : shown + " "
+            check(h.text == expected && h.marked.location == NSNotFound,"secure_inside_\(path)_commits_visible")
+            check(!c.probeComposer.hasPendingComposition,"secure_inside_\(path)_no_composition")
+            result("secure_inside_\(path)",c,h)
+        }
+        do { // 늦게 반영되는 호스트의 보류 후보: 확인 읽기 중 켜지면 확정하지 않고 버린다.
+            let (c,h) = fresh(); h.setField(0,text:"사과 "); h.delayReplacementReadback = true
+            _ = shiftSpace(c,h)
+            check(h.text == "apple ","secure_deferred_precondition")
+            h.beforeSubstring = { h.beforeSubstring = nil; secureInput = true }
+            _ = shiftSpace(c,h)
+            check(h.text == "apple " && c.probeComposer.lastConversion == nil,"secure_deferred_not_confirmed")
+            result("secure_deferred",c,h)
+        }
+
+        // C-3: 수동 변환·되돌리기·슬래시·조합 중 등록 낱말 경로에서 호스트를 읽거나 바꾸기 직전에 보안 입력을 다시 본다.
+        for stage in ["selection", "substring"] {
+            for path in ["manual", "pair", "pending"] {
+                let (c,h) = fresh()
+                switch path {
+                case "manual": h.setField(0,text:"안녕 ")
+                case "pair": typeKeys("apple",c,h); press(c,h," ",code:49)
+                default: typeOriginal(c,h)
+                }
+                let before = h.text
+                var writes = 0
+                h.readLengths = []
+                func flip() { h.beforeSelection = nil; h.beforeSubstring = nil; secureInput = true }
+                if stage == "selection" { h.beforeSelection = flip } else { h.beforeSubstring = flip }
+                h.afterInsert = { writes += 1 }; h.afterMark = { writes += 1 }
+                _ = shiftSpace(c,h)
+                check(writes == 0 && h.text == before,"secure_recheck_no_write_\(path)_\(stage)")
+                check(h.readLengths.count == (stage == "selection" ? 0 : 1),"secure_recheck_stops_reading_\(path)_\(stage)")
+                check(c.probeComposer.lastConversion == nil && c.probeComposer.lastEnglishWord == nil,"secure_recheck_no_state_\(path)_\(stage)")
+                result("secure_recheck_\(path)_\(stage)",c,h)
+            }
+        }
+        do { // 슬래시 영어: 상태 확인 읽기 중 켜지면 더 읽지 않고 끝낸다(키는 앱에).
+            let (c,h) = fresh()
+            press(c,h,"/",code:44); press(c,h,"h",code:4)
+            h.readLengths = []
+            h.beforeSelection = { h.beforeSelection = nil; secureInput = true }
+            check(!press(c,h,"i",code:34),"secure_slash_passes_key")
+            check(h.text == "/hi" && h.readLengths.isEmpty && !c.probeSlashActive,"secure_slash_stops")
+            result("secure_slash",c,h)
+        }
+        do { // 슬래시 시작: 앞 조합을 넣는 사이 켜지면 시작 자리를 읽지 않는다.
+            let (c,h) = fresh(); typeKeys("rk",c,h)
+            let reads = h.selectionReads
+            h.afterInsert = { h.afterInsert = nil; secureInput = true }
+            check(!press(c,h,"/",code:44),"secure_slash_begin_passes_key")
+            check(h.text == "가/" && !c.probeSlashActive && h.selectionReads == reads,"secure_slash_begin_stops")
+            result("secure_slash_begin",c,h)
+        }
+
+        // F-3: 호스트가 알려 주지 않는 커서 이동(마우스 클릭) 뒤에는 앞 낱말의 영어 문맥·숫자 기억을 다음 낱말에 쓰지 않는다.
+        for move in [false, true] {
+            do {
+                let (c,h) = fresh(); h.setField(0,text:"가나다 \n")
+                typeKeys("want",c,h); press(c,h," ",code:49)
+                if move { clickTo(h,4) }
+                typeKeys("to",c,h); press(c,h," ",code:49)
+                check(h.text == (move ? "가나다 새 \nwant " : "가나다 \nwant to "),"stale_context_english_\(move)")
+                result("stale_context_english_\(move)",c,h)
+            }
+            do {
+                let (c,h) = fresh(); h.setField(0,text:"가나다 \n")
+                press(c,h,"3",code:20); press(c,h,"5",code:23)
+                if move { clickTo(h,4) }
+                typeKeys("mm",c,h); press(c,h," ",code:49)
+                check(h.text == (move ? "가나다 ㅡㅡ \n35" : "가나다 \n35mm "),"stale_context_digits_\(move)")
+                result("stale_context_digits_\(move)",c,h)
+            }
+            do {
+                let (c,h) = fresh(); h.setField(0,text:"가나다 \n")
+                press(c,h,"3",code:20); press(c,h,"5",code:23); press(c,h," ",code:49)
+                if move { clickTo(h,4) }
+                typeKeys("mm",c,h); press(c,h," ",code:49)
+                check(h.text == (move ? "가나다 ㅡㅡ \n35 " : "가나다 \n35 mm "),"stale_context_quantity_\(move)")
+                result("stale_context_quantity_\(move)",c,h)
+            }
+        }
+        do { // 대조: 넣은 직후 커서를 늦게 주는 호스트(크로미움형 가정)에서도 이동이 없으면 문맥이 이어진다.
+            let (c,h) = fresh(); h.lateSelectionAfterInsert = true
+            typeKeys("want",c,h); press(c,h," ",code:49)
+            typeKeys("to",c,h); press(c,h," ",code:49)
+            check(h.text == "want to ","stale_context_late_caret_keeps_context")
+            result("stale_context_late_caret",c,h)
+        }
+        do { // 대조: 커서를 늘 0으로 주는 호스트(Ghostty형)는 이동을 알 수 없다 — 지금처럼 문맥·숫자를 쓴다.
+            let (c,h) = fresh(); h.frozenSelection = true; h.unreadable = true
+            typeKeys("want",c,h); press(c,h," ",code:49); typeKeys("to",c,h); press(c,h," ",code:49)
+            press(c,h,"1",code:18); press(c,h,"0",code:29); typeKeys("kg",c,h); press(c,h," ",code:49)
+            check(h.text == "want to 10kg ","stale_context_frozen_keeps")
+            result("stale_context_frozen",c,h)
+        }
+        do { // 대조: 커서 위치를 못 주는 호스트는 지금처럼(이동을 알 수 없다).
+            let (c,h) = fresh(); h.setField(0,text:"가나다 \n"); h.reportMissingSelectionRange = true
+            typeKeys("want",c,h); press(c,h," ",code:49)
+            clickTo(h,4)
+            typeKeys("to",c,h); press(c,h," ",code:49)
+            check(h.text == "가나다 to \nwant ","stale_context_unknown_caret_unchanged")
+            result("stale_context_unknown_caret",c,h)
+        }
+
+        // F-6: 숫자·글자에 붙여 친 낱말도 변환 직후 Shift+Space로 되돌린다(커서가 방금 넣은 자리 그대로일 때만 왼쪽 경계를 묻지 않는다).
+        for script in ["dkssud1apple ", "qjwjs2beta ", "10apple ", "apple "] {
+            let (c,h) = fresh()
+            typeMixed(script,c,h)
+            guard let pair = c.probeComposer.lastConversion else { check(false,"glued_pair_exists_\(script)"); continue }
+            let converted = h.text
+            let reverted = String(converted.dropLast(pair.english.count + 1)) + pair.hangul + " "
+            check(converted.hasSuffix(pair.english + " "),"glued_precondition_\(script)")
+            for expected in [reverted, converted, reverted] {
+                check(shiftSpace(c,h) && h.text == expected,"glued_roundtrip_\(script)")
+            }
+            result("glued_roundtrip_\(script)",c,h)
+        }
+        do {
+            let (c,h) = fresh(); h.setField(0,text:"API")
+            typeKeys("apple",c,h); press(c,h," ",code:49)
+            check(h.text == "APIapple ","glued_letters_precondition")
+            check(shiftSpace(c,h) && h.text == "API메ㅔㅣㄷ ","glued_letters_reverts_only_word")
+            check(shiftSpace(c,h) && h.text == "APIapple ","glued_letters_redo")
+            result("glued_letters",c,h)
+        }
+        do { // 대조: 커서가 다른 곳으로 옮겨졌으면 왼쪽 경계를 그대로 묻는다 — 다른 낱말의 끝을 바꾸지 않는다.
+            let (c,h) = fresh()
+            typeMixed("dkssud1apple ",c,h)
+            // 클릭 자리는 적어 둔 후보(9·10)와 겹치지 않게 고른다 — 늦은 커서용 후보가 하나 더 있다.
+            h.text = "x pineapple " + h.text; clickTo(h,12)
+            _ = shiftSpace(c,h)
+            check(!h.text.hasPrefix("x pine메ㅔㅣㄷ"),"glued_moved_caret_keeps_left_boundary")
+            result("glued_moved_caret",c,h)
+        }
+
+        // F-7: 숫자 뒤 낱말을 Backspace로 고친 뒤 Space — 화면에 보이던 한글 그대로 확정한다.
+        for (script, shown) in [("6gksrmfk⌫","6한그ㄹ"),("3rksk⌫","3가ㄴ"),("1rs⌫k","1ㄱㅏ"),
+                                ("gksrmfk⌫","한그ㄹ"),("rksk⌫","가ㄴ"),("rs⌫k","ㄱㅏ")] {
+            let (c,h) = fresh()
+            typeMixed(script,c,h)
+            check(h.text == shown,"digit_backspace_shown_\(script)")
+            press(c,h," ",code:49)
+            check(h.text == shown + " ","digit_backspace_commits_shown_\(script)")
+            result("digit_backspace_\(script)",c,h)
+        }
+
+        // F-4: 슬래시 영어 중 커서가 슬래시 낱말을 떠난 것이 읽은 값으로 분명하면 그 키부터 한글이다.
+        do { // 화살표로 위 줄 맨 앞(시작 기호 앞)
+            let (c,h) = fresh(); h.setField(0,text:"첫 줄\n")
+            press(c,h,"/",code:44); typeKeys("usr",c,h)
+            check(h.text == "첫 줄\n/usr" && c.probeSlashActive,"slash_moved_precondition")
+            _ = press(c,h,"\u{f700}",code:126,flags:[.function,.numericPad],deliver:false)
+            clickTo(h,0)
+            check(press(c,h,"r",code:15),"slash_moved_before_composes")
+            check(h.text == "ㄱ첫 줄\n/usr" && !c.probeSlashActive,"slash_moved_before_korean")
+            result("slash_moved_before",c,h)
+        }
+        do { // 뒤쪽 다른 줄 클릭(입력기에 아무 알림 없음)
+            let (c,h) = fresh()
+            press(c,h,"/",code:44); typeKeys("usr",c,h)
+            h.text = "/usr\n둘째 줄 "; moveCaretToEnd(h)
+            typeKeys("dkssud",c,h)
+            check(h.text == "/usr\n둘째 줄 안녕" && !c.probeSlashActive,"slash_moved_after_korean")
+            result("slash_moved_after",c,h)
+        }
+        do { // 대조: 슬래시 낱말 안에서 좌우로 고치면 영어 그대로다(2026-10 결정).
+            let (c,h) = fresh()
+            press(c,h,"/",code:44); typeKeys("usr",c,h)
+            _ = press(c,h,"\u{f702}",code:123,flags:[.function,.numericPad],deliver:false); clickTo(h,3)
+            check(!press(c,h,"x",code:7) && h.text == "/usxr" && c.probeSlashActive,"slash_edit_inside_stays_english")
+            result("slash_edit_inside",c,h)
+        }
+        do { // 대조: 시작 기호를 못 읽는 호스트는 추측하지 않는다.
+            let (c,h) = fresh(); h.setField(0,text:"첫 줄\n"); h.unreadable = true
+            press(c,h,"/",code:44); typeKeys("usr",c,h)
+            clickTo(h,0)
+            check(!press(c,h,"r",code:15) && c.probeSlashActive,"slash_unreadable_stays_english")
+            result("slash_unreadable_move",c,h)
+        }
+
+        // F-5: 확정 직후 커서를 늦게 주는 호스트에서 길이가 바뀌는 변환 바로 뒤의 슬래시도 영어가 이어진다.
+        for late in [false, true] {
+            let (c,h) = fresh(); h.lateSelectionAfterInsert = late
+            typeKeys("and",c,h); press(c,h,"/",code:44); typeKeys("or",c,h)
+            check(h.text == "and/or" && c.probeSlashActive,"slash_after_length_change_\(late)")
+            result("slash_after_length_change_\(late)",c,h)
         }
     }
 }

@@ -85,6 +85,41 @@ final class HaneulInputController: IMKInputController {
     }
     private var deferredPairToggle: DeferredPairToggle?
 
+    /// 2026-11-12 (#224, 리뷰 input-core-F-9): 보안 입력 판정을 바꿔 끼울 수 있게 한다. 제품은 늘 이 기본값(시스템 함수)을 쓴다.
+    /// 컨트롤러 시험이 시험용 판정을 넣어, 실제 Mac의 보안 입력 상태와 무관하게 켜짐·꺼짐 갈래를 모두 돌린다.
+    /// 이 파일에서 시스템 함수 `IsSecureEventInputEnabled`를 직접 부르는 곳은 이 기본값 하나뿐이다(scripts/run_controller_tests.py가 센다).
+    ///
+    /// 2026-11-12 (#224, 리뷰 input-core-F-2 — **설계만**, 실기기 확인 뒤 구현): `IsSecureEventInputEnabled`는 세션 전체 값이라
+    /// 뒤로 간 앱이 켜 둔 보안 입력에도 참이 된다. 오너 확인(scripts/hold_secure_input.swift)에서 "다른 앱이 켠 동안 TextEdit에
+    /// 한글이 안 들어간다"가 재현되면 이 자리에서만 좁힌다:
+    ///   ① 켜짐이 아니면 지금처럼 거짓.
+    ///   ② 켜짐이면 보안 입력을 쥔 프로세스 번호를 `CGSessionCopyCurrentDictionary()`의 `kCGSSessionSecureInputPID`로 읽는다
+    ///      (`ioreg -l -w 0 | grep SecureInput`에 보이는 값과 같다). 못 읽으면 참(지금처럼 보호).
+    ///   ③ 그 번호의 실행 파일이 **이 클라이언트 앱 번들 밖의 다른 일반 앱**으로 분명할 때만 거짓(조합 계속). 하나라도 모르면 참.
+    ///      도우미 프로세스(WebKit 웹 콘텐츠·XPC 등 앱 번들 밖에서 도는 것)나 loginwindow가 쥔 경우는 앞 앱의 비밀번호 칸일 수 있어
+    ///      참으로 둔다(보호 쪽으로 실패).
+    ///   ②③은 ①이 참일 때만 본다(키마다 프로세스를 조회하지 않는다). 원래 목적(비밀번호 칸 보호)은 그대로다.
+    ///   ⚠️ ③은 입력기가 다른 프로세스를 들여다보는 일이다. 입력기 경계 시험(Tests/InstallFlowTests.swift `imeTargetBoundary`)은
+    ///      입력기 소스에서 실행 중 앱 목록 API·프로세스 실행을 막고 있다 — 어떤 조회 수단(libproc의 실행 파일 경로 등)을 들일지는
+    ///      구현 전에 오너가 정한다.
+    var isSecureInputActive: () -> Bool = { IsSecureEventInputEnabled() }
+
+    /// 2026-11-12 (#224, 리뷰 input-core-F-1, 오너 결정 가): 직전 keyDown이 Shift가 붙은 글자 키였으면 그 시각(NSEvent.timestamp), 아니면 nil.
+    /// 키 내용은 남기지 않는다 — "Shift 글자였다"는 사실과 시각만. flagsChanged는 여전히 구독하지 않는다(아래 recognizedEvents).
+    private var lastShiftedCharacterTime: TimeInterval?
+
+    /// 2026-11-12 (#224, 리뷰 input-core-F-3·F-6): 경계 뒤 커서가 있어야 할 자리. 커서 자리에 기대는 기억(영어 문맥·보낸 숫자·수량·
+    /// 되돌림 쌍)이 남을 때만 적고, 바로 다음 키 한 번만 쓴다. 입력기는 마우스 클릭을 받지 않고, 조합이 없을 때의 클릭은
+    /// 호스트가 알려 주지 않을 수 있다 — 다음 키에서 커서가 이 자리가 아니면 앞 낱말의 기억을 버린다. 위치만 다루고 글자는 읽지 않는다.
+    private struct CaretAnchor {
+        /// 경계 키를 처리하며 읽은 커서(앱이 경계 글자를 넣기 전). 다음 키에도 이 값이면 커서가 늘 같은 값인 호스트(Ghostty형)이거나
+        /// 앱이 경계 글자를 넣지 않은 것이라 이동인지 알 수 없다 — 지금처럼 기억을 쓴다.
+        let observed: Int
+        /// 다음 키 때 커서가 있어야 할 자리. 둘째 값은 확정 직후 넣기 전 커서를 주는 호스트(크로미움형 가정)용이다.
+        let expected: [Int]
+    }
+    private var caretAnchor: CaretAnchor?
+
     // Listen ONLY for .keyDown. macOS routes CapsLock-based Korean<->ABC
     // switching automatically via TICapsLockLanguageSwitchCapable in plist,
     // and we must NOT subscribe to .flagsChanged — every Shift press fires
@@ -99,6 +134,7 @@ final class HaneulInputController: IMKInputController {
         sessionGeneration &+= 1
         deferredManualToggle = nil
         deferredPairToggle = nil
+        caretAnchor = nil
         roundTripTrace.record(.activateBegin, composer: composer)
         defer { roundTripTrace.record(.activateEnd, composer: composer) }
         log.log("activateServer")
@@ -125,6 +161,7 @@ final class HaneulInputController: IMKInputController {
         sessionGeneration &+= 1
         deferredManualToggle = nil
         deferredPairToggle = nil
+        caretAnchor = nil
         roundTripTrace.record(.deactivateBegin, composer: composer)
         defer { roundTripTrace.record(.deactivateEnd, composer: composer) }
         log.log("deactivateServer")
@@ -141,6 +178,7 @@ final class HaneulInputController: IMKInputController {
         sessionGeneration &+= 1
         deferredManualToggle = nil
         deferredPairToggle = nil
+        caretAnchor = nil
         roundTripTrace.record(.commitBegin, composer: composer)
         defer { roundTripTrace.record(.commitEnd, composer: composer) }
         // #87: 이 콜백에는 확정 원인/키 이벤트 ID가 없다. 같은 프록시도 다른 입력칸을
@@ -163,6 +201,10 @@ final class HaneulInputController: IMKInputController {
         let eventSequence = inputSequence
 
         let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        // 2026-11-12 (#224, 리뷰 input-core-F-1): 직전 키가 Shift 글자였는지와 그 시각만 남긴다(키 내용은 남기지 않는다).
+        let previousShiftedCharacterTime = lastShiftedCharacterTime
+        lastShiftedCharacterTime = RevertKey.isShiftedCharacterKey(keyCode: event.keyCode,
+            modifierFlagsRaw: mods.rawValue, characters: event.characters) ? event.timestamp : nil
         // Key codes/characters are keystroke content — never log them as
         // .public (an IME writing keystrokes to the unified log is a
         // keylogger). Even with .private redaction, emitting one log record
@@ -191,19 +233,29 @@ final class HaneulInputController: IMKInputController {
             slashClient = sender as AnyObject?
             composer.resetEnglishContext()
             externalContextPending = true
+            caretAnchor = nil
         }
         let eventSession = sessionGeneration
+        // 2026-11-12 (#224): 앞 경계에서 적어 둔 커서 자리는 이 키에서만 쓴다 — 어느 갈래로 빠지든 낡은 값이 남지 않게 먼저 비운다.
+        let anchor = caretAnchor
+        caretAnchor = nil
 
-        let isToggle = RevertKey.couldMatch(keyCode: event.keyCode, modifierFlagsRaw: mods.rawValue)
-            && RevertKey.resolve(rawValue: UserDefaults.standard.string(forKey: RevertKey.defaultsKey))
-                .matches(keyCode: event.keyCode, modifierFlagsRaw: mods.rawValue)
+        let revertKey = RevertKey.couldMatch(keyCode: event.keyCode, modifierFlagsRaw: mods.rawValue)
+            ? RevertKey.resolve(rawValue: UserDefaults.standard.string(forKey: RevertKey.defaultsKey)) : nil
+        let toggleMatched = revertKey?.matches(keyCode: event.keyCode, modifierFlagsRaw: mods.rawValue) ?? false
+        // 2026-11-12 (#224, 리뷰 input-core-F-1, 오너 결정 가): Shift로 친 글자(`세계`의 ㅖ·`?` 등) 뒤 Shift를 떼기 전에 누른 Space는
+        // 변환 단축키가 아니라 스페이스다 — 0.35초 안이면 아래 일반 경계로 보낸다. 저장 쌍 되돌리기(방금 자동 변환한 낱말)는
+        // 그대로 둔다(toggleMatched로 판정). 다른 수정자를 일부러 함께 누르는 단축키(Option·Control 조합)는 해당 없다(RevertKey).
+        let shiftRollover = toggleMatched && revertKey?.isShiftRollover(
+            previousShiftedCharacterAt: previousShiftedCharacterTime, now: event.timestamp) == true
+        let isToggle = toggleMatched && !shiftRollover
         if !isToggle { deferredManualToggle = nil }
 
         // (secure-input) 정상적인 secure 필드는 macOS가 서드파티 IME를 아예
         // 우회하지만(PRIVACY.md #4), 그 우회가 안 걸리는 예외 상황에 대비한
         // 방어선이다 — 조합 중이던 자모를 흘리지 않고 커밋한 뒤, 이번 키는
         // 조합하지 않고 그대로 통과시킨다(review0706 P3-4).
-        if IsSecureEventInputEnabled() {
+        if isSecureInputActive() {
             deferredManualToggle = nil
             deferredPairToggle = nil
             slashEnglish.reset()
@@ -235,8 +287,18 @@ final class HaneulInputController: IMKInputController {
             guard eventSession == sessionGeneration else { return false }
             let marked = tracedMarkedRange(client)
             guard eventSession == sessionGeneration else { return false }
-            let triggerText = tracedSubstring(client, from: trigger)?.string
+            var triggerText = tracedSubstring(client, from: trigger)?.string
             guard eventSession == sessionGeneration else { return false }
+            // 2026-11-12 (#224, 리뷰 input-core-F-5): 확정 직후 커서를 늦게 주는 호스트(가짜 호스트로 재현)는 길이가 바뀌는 변환
+            // 바로 뒤 `/`의 자리를 옛 커서로 잡게 한다(`and/or` → `and/ㅐㄱ`). 시작 직후 첫 키에서만, 그 자리 글자가 `/`가 아니고
+            // 커서 바로 앞 한 글자가 `/`이면 그 자리로 다시 잡는다(읽기 1회). 다른 경우는 지금처럼 "기호가 사라짐"으로 본다.
+            if slashEnglish.isAwaitingFirstKey, let read = triggerText, read != "/",
+               selection.location != NSNotFound, selection.location > 0, selection.length == 0, marked.length == 0,
+               selection.location - 1 != trigger.location {
+                let before = tracedSubstring(client, from: NSRange(location: selection.location - 1, length: 1))?.string
+                guard eventSession == sessionGeneration else { return false }
+                if before == "/", slashEnglish.relocateTrigger(to: selection.location - 1) { triggerText = "/" }
+            }
             slashContext = .init(selection: selection, markedRange: marked, triggerText: triggerText)
         }
         let slashAction = slashEnglish.process(
@@ -276,7 +338,7 @@ final class HaneulInputController: IMKInputController {
                 return false
             }
             refreshAutomaticSettings(client: client)
-            if IsSecureEventInputEnabled() {
+            if isSecureInputActive() {
                 composer.commit(to: composerClient)
                 composer.resetEnglishContext()
                 externalContextPending = false
@@ -303,10 +365,7 @@ final class HaneulInputController: IMKInputController {
         }
 
         // 미확정 혼합 표시는 문서 재삽입 없이 조합 범위 안에서 원문과 왕복한다.
-        if RevertKey.couldMatch(keyCode: event.keyCode, modifierFlagsRaw: mods.rawValue),
-           RevertKey.resolve(rawValue: UserDefaults.standard.string(forKey: RevertKey.defaultsKey))
-               .matches(keyCode: event.keyCode, modifierFlagsRaw: mods.rawValue),
-           let displayed = composer.pendingParticlePreviewText {
+        if isToggle, let displayed = composer.pendingParticlePreviewText {
             let marked = tracedMarkedRange(client)
             guard eventSession == sessionGeneration else { return true }
             let selection = tracedSelection(client)
@@ -319,7 +378,7 @@ final class HaneulInputController: IMKInputController {
             if markedText == displayed {
                 refreshAutomaticSettings(client: client)
                 guard eventSession == sessionGeneration else { return true }
-                if IsSecureEventInputEnabled() {
+                if isSecureInputActive() {
                     composer.commit(to: composerClient)
                     composer.resetEnglishContext()
                     externalContextPending = false
@@ -347,12 +406,14 @@ final class HaneulInputController: IMKInputController {
         // 하드코딩 Shift+Space를 순수 타입 RevertKey로 옮겼다. defaults는 키
         // 이벤트마다 읽지 않고 **Space 키코드 + 되돌릴 변환이 있을 때만** 읽는다
         // (autoEnglishEnabled를 경계마다 다시 읽는 것과 같은 비용 수준).
-        if event.keyCode == RevertKey.spaceKeyCode, let conv = composer.lastConversion,
-           RevertKey.resolve(rawValue: UserDefaults.standard.string(forKey: RevertKey.defaultsKey))
-               .matches(keyCode: event.keyCode, modifierFlagsRaw: mods.rawValue) {
+        // 2026-11-12 (#224, 리뷰 input-core-F-1): 이 갈래는 Shift 겹쳐 누름이어도 탄다(toggleMatched) — 오너 결정의 예외.
+        if toggleMatched, let conv = composer.lastConversion {
             let origin = composer.lastConversionOrigin
             let sel = tracedSelection(client)
             guard eventSession == sessionGeneration else { return true }
+            // 2026-11-12 (#224, 리뷰 input-core-F-6): 커서가 앞 경계 뒤 적어 둔 자리 그대로면 커서 앞 쌍은 방금 넣은 글자다 —
+            // 숫자·영문에 붙여 친 낱말(`안녕1apple`·`APIapple`)도 그 낱말만 되돌린다. 자리를 모르면 지금처럼 왼쪽 경계를 묻는다.
+            let caretAnchored = sel.length == 0 && anchor?.expected.contains(sel.location) == true
             #if DEBUG
             log.log("ss진단A: selLoc=\(sel.location, privacy: .public) selLen=\(sel.length, privacy: .public)")
             #endif
@@ -393,7 +454,8 @@ final class HaneulInputController: IMKInputController {
                         break
                     }
                     resolved = KoreanComposer.resolveToggle(before: before as String,
-                        english: conv.english, hangul: conv.hangul, atDocStart: readStart == 0)
+                        english: conv.english, hangul: conv.hangul, atDocStart: readStart == 0,
+                        requireLeftBoundary: !caretAnchored)
                     if resolved != nil || readStart == 0 { break }
                 }
                 if let r = resolved {
@@ -437,6 +499,8 @@ final class HaneulInputController: IMKInputController {
                     composer.applyToggle(toEnglish: r.text == conv.english,
                                          hangul: conv.hangul, english: conv.english, origin: origin)
                     externalContextPending = false
+                    anchorCaretAfterReplacement(start: start, text: r.text,
+                                                trailing: r.offsetFromEnd - r.replaceLen, previous: sel.location)
                     // 2026-09-21 (#53): 영어→한글로 되돌린 순간만 기록한다(한글→영어 재토글은
                     // 기록 대상이 아님 — "오변환이었다"는 신호는 되돌림 쪽뿐).
                     if r.text != conv.english, composer.shouldRecordAutomaticRevert {
@@ -454,10 +518,7 @@ final class HaneulInputController: IMKInputController {
 
         // #84 · 2026-10-09: 저장된 변환 쌍 → 등록 발음 → 기존 자판 토글 순서.
         // 일반 Space는 couldMatch에서 탈락하며 발음 사전을 조회하지 않는다.
-        if composer.lastConversion == nil,
-           RevertKey.couldMatch(keyCode: event.keyCode, modifierFlagsRaw: mods.rawValue),
-           RevertKey.resolve(rawValue: UserDefaults.standard.string(forKey: RevertKey.defaultsKey))
-               .matches(keyCode: event.keyCode, modifierFlagsRaw: mods.rawValue) {
+        if composer.lastConversion == nil, isToggle {
             let phoneticEnabled = UserDefaults.standard.object(forKey: RevertKey.phoneticKey) as? Bool
                 ?? RevertKey.phoneticDefault
             if composer.hasPendingComposition {
@@ -486,6 +547,18 @@ final class HaneulInputController: IMKInputController {
             return false
         }
 
+        // 2026-11-12 (#224, 리뷰 input-core-F-3): 조합이 없는 첫 키에서, 앞 경계 뒤 적어 둔 자리와 커서가 다르면(마우스 클릭 등
+        // 호스트가 알려 주지 않은 이동) 앞 낱말의 영어 문맥·숫자 기억을 버리고 화살표 이동과 같이 새 자리의 문맥을 다시 본다.
+        // 위치를 모르면(읽기 실패·NSNotFound) 지금처럼 둔다. 보안 입력이 켜졌으면 읽지 않는다(tracedSelection).
+        if let anchor, !composer.hasPendingComposition, composer.hasCaretDependentState {
+            let selection = tracedSelection(client)
+            guard eventSession == sessionGeneration else { return false }
+            if Self.caretMoved(selection, from: anchor) {
+                composer.resetEnglishContext()
+                externalContextPending = true
+            }
+        }
+
         let shifted = mods.contains(.shift)
 
         if let inputChar = KeyboardLayout2Set.inputCharacter(
@@ -497,7 +570,7 @@ final class HaneulInputController: IMKInputController {
             refreshAutomaticSettings(client: client)
             prepareExternalEnglishContext(client: client)
             // 문맥 읽기 왕복 중 secure 상태가 바뀌면 이번 키도 IME에서 처리하지 않는다.
-            if IsSecureEventInputEnabled() {
+            if isSecureInputActive() {
                 composer.commit(to: composerClient)
                 composer.resetEnglishContext()
                 externalContextPending = false
@@ -528,40 +601,95 @@ final class HaneulInputController: IMKInputController {
             // 2026-11-04 (오너 신고 — CLI 숫자 선택이 안 먹었다): 붙잡지 않은 숫자는 경계로 앱에 바로 보내고,
             // 다음 단어의 수량·영숫자 판정(10kg·3d)을 위해 보낸 숫자열만 기억한다.
             let run = composer.digitRunAfterSending(typed)
-            commitActiveBoundary(typed, client: client)
+            let lengths = commitActiveBoundary(typed, client: client)
             composer.setSentDigits(run)
+            anchorCaret(afterBoundary: String(typed), lengths: lengths, client: client, generation: eventSession)
             return false
         }
 
+        // 2026-11-12 (#224, 리뷰 input-core-F-11): 여기 있던 `handleQuantityPoint`는 2026-11-04 뒤로 참이 될 수 없어 지웠다(조합기 주석 참고).
         if event.characters == "." {
-            if composer.handleQuantityPoint(client: composerClient) { return true }
             let run = composer.pointRunAfterSending()     // 2026-11-04: 1.5kg — 보낸 숫자 뒤 소수점 하나
-            commitActiveBoundary(".", client: client)
+            let lengths = commitActiveBoundary(".", client: client)
             composer.setSentDigits(run)
+            anchorCaret(afterBoundary: ".", lengths: lengths, client: client, generation: eventSession)
             return false
         }
 
         // Active boundary: the user typed a non-jamo key (space, punctuation,
         // digit, Enter...) — the only path where English auto-conversion may
         // fire. Re-read the toggle so Settings changes apply immediately.
-        commitActiveBoundary(event.characters?.first, client: client)
+        let lengths = commitActiveBoundary(event.characters?.first, client: client)
+        anchorCaret(afterBoundary: event.characters, lengths: lengths, client: client, generation: eventSession)
         return false
     }
 
+    /// 2026-11-12 (#224, 리뷰 input-core-F-3): 경계 글자를 앱에 넘기기 직전 커서를 한 번 읽어 다음 키 때 있어야 할 자리를 적는다.
+    /// 커서 자리에 기대는 기억이 남을 때만 읽는다(평범한 한글 낱말 사이에서는 읽지 않는다). 위치만 읽고 글자는 읽지 않는다.
+    private func anchorCaret(afterBoundary boundary: String?, lengths: (displayed: Int, committed: Int),
+                             client: IMKTextInput, generation: UInt) {
+        guard generation == sessionGeneration, composer.hasCaretDependentState,
+              let boundary, !boundary.isEmpty else { return }
+        let selection = tracedSelection(client)
+        guard generation == sessionGeneration, selection.location != NSNotFound, selection.length == 0 else { return }
+        let (fresh, overflow) = selection.location.addingReportingOverflow((boundary as NSString).length)
+        guard !overflow else { return }
+        // 확정 직후에도 넣기 전 커서(조합 끝)를 주는 호스트라면 실제 자리는 확정 글자와 보이던 글자의 길이 차이만큼 다르다.
+        let stale = fresh &+ (lengths.committed - lengths.displayed)
+        caretAnchor = CaretAnchor(observed: selection.location, expected: stale == fresh ? [fresh] : [fresh, stale])
+    }
+
+    /// 2026-11-12 (#224, 리뷰 input-core-F-6): 단축키로 낱말을 바꾼 뒤의 커서 자리. 범위 교체 뒤 커서를 교체 끝에 두는 호스트와
+    /// 원래 뒤 경계 뒤에 두는 호스트(NSTextView)를 모두 받는다 — 연속 되돌리기에서도 붙여 친 낱말을 찾게.
+    private func anchorCaretAfterReplacement(start: Int, text: String, trailing: Int, previous: Int) {
+        guard composer.hasCaretDependentState else { return }
+        let end = start &+ (text as NSString).length
+        caretAnchor = CaretAnchor(observed: previous, expected: trailing > 0 ? [end, end &+ trailing] : [end])
+    }
+
+    /// 2026-11-12 (#224, 리뷰 input-core-F-3): 커서가 적어 둔 자리에서 옮겨졌는가. 모르면 거짓(지금처럼 기억을 쓴다).
+    /// 선택 범위가 적어 둔 자리에서 시작하면 왼쪽 글자는 그대로라 옮겨지지 않은 것으로 본다.
+    private static func caretMoved(_ selection: NSRange, from anchor: CaretAnchor) -> Bool {
+        guard selection.location != NSNotFound else { return false }
+        if anchor.expected.contains(selection.location) { return false }
+        if selection.length == 0, selection.location == anchor.observed { return false }
+        return true
+    }
+
+    /// 2026-11-12 (#224, 리뷰 security-overlap-C-3): 호스트의 커서·글자를 읽거나 범위를 바꾸기 **직전**마다 보안 입력을 다시 본다.
+    /// 키 처리 첫머리 검사 뒤 왕복 사이에 켜질 수 있다(다른 앱의 비밀번호 칸이 포커스를 얻는 등). 켜져 있으면 읽지도 바꾸지도 않고
+    /// 세션 경계처럼 이번 작업을 끝낸다 — 세대 번호를 올려 각 경로의 기존 `eventSession == sessionGeneration` 확인이 그 자리에서 멈춘다.
+    /// 조합 중이던 글자는 여기서 넣지 않는다. 다음 키의 첫머리 검사가 보이던 그대로 확정하고 키를 넘긴다(지금과 같은 방어선).
+    private func stopIfSecureInput() -> Bool {
+        guard isSecureInputActive() else { return false }
+        sessionGeneration &+= 1
+        deferredManualToggle = nil
+        deferredPairToggle = nil
+        caretAnchor = nil
+        slashEnglish.reset()
+        externalContextPending = false
+        composer.resetEnglishContext()
+        return true
+    }
+
     private func tracedSelection(_ client: IMKTextInput) -> NSRange {
-        roundTripTrace.call(.selection, composer: composer) { client.selectedRange() }
+        if stopIfSecureInput() { return NSRange(location: NSNotFound, length: 0) }
+        return roundTripTrace.call(.selection, composer: composer) { client.selectedRange() }
     }
 
     private func tracedMarkedRange(_ client: IMKTextInput) -> NSRange {
-        roundTripTrace.call(.markedRange, composer: composer) { client.markedRange() }
+        if stopIfSecureInput() { return NSRange(location: NSNotFound, length: 0) }
+        return roundTripTrace.call(.markedRange, composer: composer) { client.markedRange() }
     }
 
     private func tracedSubstring(_ client: IMKTextInput, stage: RoundTripTrace.Stage = .substring,
                                  from range: NSRange) -> NSAttributedString? {
-        roundTripTrace.call(stage, composer: composer) { client.attributedSubstring(from: range) }
+        if stopIfSecureInput() { return nil }
+        return roundTripTrace.call(stage, composer: composer) { client.attributedSubstring(from: range) }
     }
 
     private func tracedInsert(_ client: IMKTextInput, text: Any, replacementRange: NSRange) {
+        if stopIfSecureInput() { return }
         roundTripTrace.call(.replacement, composer: composer) {
             client.insertText(text, replacementRange: replacementRange)
         }
@@ -573,12 +701,17 @@ final class HaneulInputController: IMKInputController {
     }
 
     /// #87 · 2026-10-12: 일반 활성 경계와 slash 시작이 같은 설정·사전 정책을 사용한다.
-    private func commitActiveBoundary(_ character: Character?, client: IMKTextInput) {
+    /// 2026-11-12 (#224): 확정 전 보이던 조합 길이와 실제로 넣은 글자 길이(UTF-16)를 돌려준다 — 커서 자리 후보 계산용.
+    @discardableResult
+    private func commitActiveBoundary(_ character: Character?, client: IMKTextInput) -> (displayed: Int, committed: Int) {
         if composer.hasPendingComposition { externalContextPending = false }
         refreshAutomaticSettings(client: client)
-        composer.commit(to: IMKComposerClient(client: client, trace: roundTripTrace, composer: composer), convertEnglish: true)
+        let displayed = composer.displayedCompositionLength
+        let committed = composer.commit(to: IMKComposerClient(client: client, trace: roundTripTrace, composer: composer),
+                                        convertEnglish: true)
         // 영어 문맥은 Space/쉼표만 이어간다. 실제 출력 문자 기준이다.
         composer.completeBoundary(character)
+        return (displayed, (committed as NSString).length)
     }
 
     /// #14: 활성화 콜백/일반 타이핑마다 읽지 않고 새 조합의 첫 문자 직전에 한 번만 읽는다.
@@ -591,7 +724,7 @@ final class HaneulInputController: IMKInputController {
         let previous = ExternalEnglishContext.capture(
             from: IMKComposerClient(client: client, trace: roundTripTrace, composer: composer),
             enabled: InputInferencePolicy.externalEnglishContextEnabled(in: .standard),
-            secureInput: { IsSecureEventInputEnabled() },
+            secureInput: { self.isSecureInputActive() },
             isKnownEnglishWord: EnglishDetector.isExplicitEnglishContextWord)
         composer.beginExternalEnglishContext(previous)
     }
@@ -707,7 +840,7 @@ final class HaneulInputController: IMKInputController {
             guard isCurrent() else { return false }
             guard PhoneticDictionary.isBoundary(right) else { return discard() }
         }
-        guard !IsSecureEventInputEnabled() else { return discard() }
+        guard !isSecureInputActive() else { return discard() }
         deferredManualToggle = nil
         composer.applyToggle(toEnglish: candidate.toEnglish, hangul: candidate.hangul,
                              english: candidate.english, origin: candidate.origin)
@@ -746,6 +879,8 @@ final class HaneulInputController: IMKInputController {
         let right = tracedSubstring(client, from: NSRange(location: NSMaxRange(marked), length: 1))?.string
         guard generation == sessionGeneration else { return true }
         guard PhoneticDictionary.isBoundary(right) else { return false }
+        // 2026-11-12 (#224, 리뷰 security-overlap-C-3): 조합 범위를 바꾸기 직전에도 다시 본다(이 쓰기는 traced 도우미를 거치지 않는다).
+        if stopIfSecureInput() { return true }
         return composer.commitPhonetic(to: guardedComposerClient(client, generation: generation),
                                        isCurrentSession: { self.sessionGeneration == generation })
     }
@@ -834,6 +969,7 @@ final class HaneulInputController: IMKInputController {
         composer.applyToggle(toEnglish: toEnglish,
                              hangul: toEnglish ? target.word : toggled,
                              english: toEnglish ? toggled : target.word, origin: result.origin)
+        anchorCaretAfterReplacement(start: start, text: toggled, trailing: target.trailing, previous: sel.location)
         // 수동 경로는 #53 `recordRevert`를 **부르지 않는다**. "최근 되돌린 변환"은 자동변환이
         // 틀렸다는 신호를 모으는 목록인데, 여기서 바꾼 단어는 애초에 자동변환된 적이 없다 —
         // 넣으면 일어나지도 않은 오변환에 "금지" 버튼을 달게 된다.

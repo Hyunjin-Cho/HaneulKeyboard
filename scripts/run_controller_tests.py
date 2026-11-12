@@ -44,6 +44,11 @@ def main():
         fixture = (fixture.replace("UserDefaults.standard", "probeDefaults")
                    .replace("from: .standard", "from: probeDefaults")
                    .replace("in: .standard", "in: probeDefaults"))
+        # 2026-11-12 (#224, review input-core-F-9): every secure-input branch must go through the
+        # injectable `isSecureInputActive`, which the tests replace. A direct call would make the
+        # results depend on this Mac's real secure-input state and leave that branch untested.
+        assert fixture.count("IsSecureEventInputEnabled()") == 1, \
+            "Call isSecureInputActive() instead of IsSecureEventInputEnabled() in the controller"
         controller = work / "FixtureController.swift"
         controller.write_text(fixture)
         sources = [

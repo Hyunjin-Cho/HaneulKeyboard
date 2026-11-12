@@ -60,6 +60,18 @@ struct SlashEnglishSession {
         triggerWasRead = false
     }
 
+    /// 2026-11-12 (#224, 리뷰 input-core-F-5): 시작 직후 첫 키를 기다리는 중인지 — 컨트롤러가 시작 자리를 한 번 다시 잡을 때만 쓴다.
+    var isAwaitingFirstKey: Bool { isActive && awaitingFirstKeyAfterTrigger }
+
+    /// 2026-11-12 (#224, 리뷰 input-core-F-5): 확정 직후 옛 커서를 주는 호스트에서 시작 자리를 잘못 잡았을 때, 첫 키에서
+    /// 커서 바로 앞의 `/` 자리로 한 번 옮긴다. 시작 직후 첫 키가 아니면 바꾸지 않는다. 글자는 저장하지 않는다(위치만).
+    @discardableResult
+    mutating func relocateTrigger(to location: Int) -> Bool {
+        guard isActive, awaitingFirstKeyAfterTrigger, location >= 0, location != NSNotFound else { return false }
+        triggerRange = NSRange(location: location, length: 1)
+        return true
+    }
+
     /// 앞 조합을 확정한 뒤, `/` 키를 앱에 전달하기 직전의 삽입 위치를 사용한다.
     /// RPC 중 reset된 세션을 되살리지 않는다. 위치 조회 불가이면 범위를 추적하지 않는다.
     @discardableResult
@@ -155,6 +167,21 @@ struct SlashEnglishSession {
         }
     }
 
+    /// 2026-11-12 (#224, 리뷰 input-core-F-4): 읽은 커서가 슬래시 낱말을 떠났는가 — 글자를 넣는 키에서만 쓴다(추가 읽기 없음).
+    /// 시작 기호보다 앞이면 떠난 것이다. 기호 바로 앞(같은 자리)은 커서 값이 개수와 맞은 적이 있는 호스트에서만 떠난 것으로 본다
+    /// (늘 시작 자리를 주는 Ghostty형·한 박자 늦은 첫 키와 구분). 뒤쪽은 개수를 세는 동안 '기호 뒤 + 센 글자 수'를 넘으면 떠난 것이다.
+    /// 화살표·단축키로 개수를 놓친 뒤의 뒤쪽 이동은 판단하지 않는다(낱말 끝을 모른다 — 지금처럼 영어 유지).
+    /// 슬래시 낱말 안에서 좌우로 고치는 것은 계속 영어다(2026-10 결정, 이동 키 자체는 종료하지 않는다).
+    private func caretLeftSlashWord(_ selection: NSRange, trigger: NSRange) -> Bool {
+        guard selection.length == 0 else { return false }
+        let location = selection.location
+        if location < trigger.location { return true }
+        if location == trigger.location { return caretMatched }
+        guard let typed = typedAfterTrigger, caretMatched, !caretFrozen else { return false }
+        let (end, overflow) = trigger.location.addingReportingOverflow(1 + typed)
+        return !overflow && location > end
+    }
+
     /// 개수가 0일 때의 일반 Backspace를 시작 기호 삭제로 봐도 되는지 — 글자 조회가 안 되는 경우에만 쓴다.
     private func countedDeletionAllowed(_ context: Context?, firstKey: Bool) -> Bool {
         guard typedAfterTrigger == 0, !caretDiverged else { return false }
@@ -192,6 +219,11 @@ struct SlashEnglishSession {
                     // 삭제 전에 확인한 기호·선택 범위로 종료하고 실제 삭제는 앱에 맡긴다.
                     reset()
                     return .end
+                }
+                if Self.insertsOneCharacter(characters, modifiers: modifiers),
+                   caretLeftSlashWord(context.selection, trigger: trigger) {
+                    // 2026-11-12 (#224, 리뷰 input-core-F-4): 클릭·위아래 이동으로 슬래시 낱말을 떠났다 — 이 키부터 한글로 돌린다.
+                    reset()
                 }
             } else if context.triggerText == nil, triggerWasRead, context.selection.length == 0,
                       context.selection.location <= trigger.location {

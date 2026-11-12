@@ -513,6 +513,61 @@ private final class SlashTextClient: ComposerClient {
             composer.completeBoundary("/")
             check(client.visible == (personalBlock ? original : "banana"), "slash 앞 개인 사전 재로드 정책")
         }
+
+        // 2026-11-12 (#224, 리뷰 input-core-F-4): 글자를 넣는 키에서 읽은 커서가 슬래시 낱말을 떠났으면 그 키부터 한글.
+        do { // 시작 기호 앞으로(위 줄 맨 앞 클릭·화살표)
+            start(&session, at: 4)
+            for (index, letter) in "usr".enumerated() {
+                check(step(&session, String(letter), context: context(5 + index)) == .passThrough, "F-4 슬래시 낱말 입력")
+            }
+            check(step(&session, nil, key: 126, flags: [.function, .numericPad], context: context(8)) == .passThrough && session.isActive,
+                  "F-4 위아래 이동 키 자체는 종료하지 않음")
+            check(step(&session, "r", context: context(0)) == .composeKorean && !session.isActive, "F-4 시작 기호 앞이면 한글")
+        }
+        do { // 뒤쪽 다른 줄 클릭: 센 글자 수보다 뒤
+            start(&session, at: 0)
+            for (index, letter) in "usr".enumerated() {
+                _ = step(&session, String(letter), context: context(1 + index))
+            }
+            check(step(&session, "d", context: context(10)) == .composeKorean && !session.isActive, "F-4 슬래시 낱말 뒤쪽이면 한글")
+        }
+        do { // 기호 바로 앞: 커서가 맞은 적 있는 호스트만 떠난 것으로 본다.
+            start(&session, at: 3)
+            _ = step(&session, "u", context: context(4))
+            check(step(&session, "x", context: context(3)) == .composeKorean, "F-4 맞은 적 있는 호스트에서 기호 바로 앞")
+            start(&session, at: 3)
+            check(step(&session, "u", context: context(3)) == .passThrough && session.isActive,
+                  "F-4 대조: 시작 직후 한 박자 늦은 커서(시작 자리)는 이동이 아님")
+        }
+        do { // 대조: 낱말 안에서 고치기·끝·개수를 놓친 뒤는 영어 유지
+            start(&session, at: 0)
+            for (index, letter) in "usr".enumerated() { _ = step(&session, String(letter), context: context(1 + index)) }
+            check(step(&session, "x", context: context(3)) == .passThrough && session.isActive, "F-4 대조: 낱말 안 삽입")
+            check(step(&session, "y", context: context(5)) == .passThrough && session.isActive, "F-4 대조: 낱말 끝(센 수와 같음)")
+            check(step(&session, nil, key: 125, flags: [.function, .numericPad], context: context(6)) == .passThrough, "F-4 대조: 이동 키")
+            check(step(&session, "z", context: context(40)) == .passThrough && session.isActive,
+                  "F-4 대조: 이동 키로 개수를 놓친 뒤의 뒤쪽은 판단하지 않음")
+            start(&session, at: 2)
+            _ = step(&session, "u", context: context(3))
+            check(step(&session, "\u{7f}", key: 51, context: context(0)) == .passThrough && session.isActive,
+                  "F-4 대조: 글자를 넣지 않는 키는 이 규칙을 쓰지 않음")
+            check(step(&session, "x", context: context(1, length: 3)) == .passThrough && session.isActive,
+                  "F-4 대조: 선택 범위가 있으면 판단하지 않음")
+            start(&session, at: 2)
+            check(step(&session, "u", context: context(0, text: nil)) == .passThrough && session.isActive,
+                  "F-4 대조: 기호를 못 읽으면 판단하지 않음")
+        }
+        // 2026-11-12 (#224, 리뷰 input-core-F-5): 시작 직후 첫 키에서만 시작 자리를 다시 잡을 수 있다.
+        do {
+            start(&session, at: 1)
+            check(session.isAwaitingFirstKey, "F-5 시작 직후 첫 키 대기")
+            check(session.relocateTrigger(to: 3) && session.triggerRange == NSRange(location: 3, length: 1), "F-5 시작 자리 다시 잡기")
+            check(step(&session, "o", context: context(4)) == .passThrough && session.isActive, "F-5 다시 잡은 자리로 계속")
+            check(!session.isAwaitingFirstKey && !session.relocateTrigger(to: 0) && session.triggerRange == NSRange(location: 3, length: 1),
+                  "F-5 첫 키 뒤에는 바꾸지 않음")
+            session.reset()
+            check(!session.isAwaitingFirstKey && !session.relocateTrigger(to: 0), "F-5 세션 밖에서는 바꾸지 않음")
+        }
         print("SlashEnglishTests: \(checks) passed, 0 failed")
     }
 }
