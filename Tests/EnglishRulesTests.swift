@@ -533,6 +533,33 @@ func runEnglishDictReview1112Tests() {
     expect(MeasurementUnits.quantityOnlySymbols.intersection(EnglishDetector.shortWords).sorted().joined(separator: ","), "kb,pb",
            "F-3 숫자 전용 목록 중 짧은 단어 목록이 단독으로 받는 것은 kb·pb뿐(알고 둔 예외)")
 
+    // ── F-4: 개인 사전 목록에 문자열이 아닌 값이 섞여도 문자열 항목은 살아 있고, 다음 저장이 남은 항목을 덮어쓰지 않는다.
+    let suite = "local.synthetic.haneul-personal-dict-mixed.\(UUID().uuidString)"
+    if let defaults = UserDefaults(suiteName: suite) {
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(["apple", 1, "banana", ["x"]] as [Any], forKey: PersonalDictionary.Keys.block)
+        defaults.set(["QuickTime", 2, "work"] as [Any], forKey: PersonalDictionary.Keys.force)
+        let loaded = PersonalDictionary.load(from: defaults)
+        expect(loaded.block == ["apple", "banana"], true, "F-4 금지 목록: 문자열 항목은 남는다 \(loaded.block.sorted())")
+        expect(loaded.force == ["quicktime", "work"], true, "F-4 추가 목록: 문자열 항목은 남는다 \(loaded.force.sorted())")
+        expect(loaded.decision(word: "apple", hangul: "메ㅔㅣㄷ") == .block, true, "F-4 금지 판정은 그대로")
+        expect(PersonalDictionary.storedForceEntries(in: defaults).joined(separator: ","), "QuickTime,work", "F-4 설정 화면 목록")
+        // 설정 화면이 하나를 더해 저장하면 형이 다른 값만 빠지고 문자열 항목은 그대로 남는다.
+        let saved = PersonalDictionary.addingForceEntry("vismo", to: PersonalDictionary.storedForceEntries(in: defaults)) ?? []
+        defaults.set(saved, forKey: PersonalDictionary.Keys.force)
+        expect(PersonalDictionary.storedForceEntries(in: defaults).joined(separator: ","), "QuickTime,vismo,work", "F-4 다음 저장이 남은 항목을 덮지 않는다")
+        expect(PersonalDictionary.load(from: defaults).decision(word: "QuickTime", hangul: "x") == .forceConvert, true, "F-4 저장 뒤 판정")
+        // 최근 되돌림: 한 항목의 값이 문자열이 아니어도 나머지는 남고, 다음 기록이 그 위에 쌓인다.
+        defaults.set([["hangul": "메ㅔㅣㄷ", "english": 1], ["hangul": "햐소ㅕㅠ", "english": "github"], "broken"] as [Any], forKey: RecentReverts.key)
+        let recent = RecentReverts.load(from: defaults)
+        expect(recent.entries.map(\.english).joined(separator: ","), "github", "F-4 최근 되돌림: 형이 다른 항목만 버린다")
+        recent.recording(hangul: "메ㅔㅣㄷ", english: "apple").save(to: defaults)
+        expect(RecentReverts.load(from: defaults).entries.map(\.english).joined(separator: ","), "apple,github", "F-4 다음 기록이 남은 항목을 덮지 않는다")
+    } else {
+        expect(false, true, "F-4 시험용 설정 도메인")
+    }
+    expect(RecentReverts(plist: [["hangul": "햐소ㅕㅠ", "english": "github", "extra": 3] as [String: Any]]).entries.count, 1, "F-4 모르는 키가 있어도 두 키가 문자열이면 받는다")
+
     // ── F-6: NGSL 낱말의 흔한 복수형은 멀쩡한 한글이라 curated에 정확히 있어야 바뀐다. 검역(Tier A 전수 리뷰)을 통과한 20개를 넣었다.
     for word in list("alarms charms cleans disturbs firms formals forms fuels girls risks sharps sicks sighs signals signs snaps socials totals visuals whens") {
         expect(type(word).committedText, word, "F-6 복수형 무맥락: \(word)")

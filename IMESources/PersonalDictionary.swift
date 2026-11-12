@@ -71,8 +71,8 @@ struct PersonalDictionary: Equatable {
     /// 배열 읽기는 그대로 매번 해서 설정 반영 시점은 전과 같고, 원본 배열이 같으면 지난 정규화 결과를 돌려준다.
     /// 설정 앱도 같은 함수를 쓰므로 잠금으로 지킨다.
     static func load(from defaults: UserDefaults) -> PersonalDictionary {
-        let forceList = defaults.stringArray(forKey: Keys.force) ?? []
-        let blockList = defaults.stringArray(forKey: Keys.block) ?? []
+        let forceList = storedStrings(in: defaults, forKey: Keys.force)
+        let blockList = storedStrings(in: defaults, forKey: Keys.block)
         loadLock.lock()
         defer { loadLock.unlock() }
         if let last = lastLoad, last.force == forceList, last.block == blockList { return last.value }
@@ -115,7 +115,15 @@ struct PersonalDictionary: Equatable {
     /// 소문자 목록과 원문 목록을 따로 두면 서로 어긋날 수 있고, 예전 빌드도 같은 목록을 소문자로 정규화해 읽으므로 그대로 동작한다.
     /// 옛 항목(전부 소문자)은 옮길 것이 없고, 전체 제거·`defaults read`도 달라지지 않는다.
     static func storedForceEntries(in defaults: UserDefaults) -> [String] {
-        forceEntries(defaults.stringArray(forKey: Keys.force) ?? [])
+        forceEntries(storedStrings(in: defaults, forKey: Keys.force))
+    }
+
+    /// 2026-11-13 (#225, 리뷰 english-dict-F-4): 저장된 배열에서 문자열 항목만 고른다.
+    /// `stringArray(forKey:)`는 문자열이 아닌 값이 하나만 섞여도(`defaults write`로 넣은 숫자, 상한 파일) 배열 전체를 nil로 돌려줘
+    /// 금지 목록이 조용히 꺼졌고, 설정 화면이 빈 목록에 한 줄을 더해 저장하면 멀쩡하던 항목까지 사라졌다.
+    /// 이제 형이 다른 값만 버린다. 설정 앱이 다음에 저장하면 그 값만 빠진 목록이 된다.
+    static func storedStrings(in defaults: UserDefaults, forKey key: String) -> [String] {
+        (defaults.array(forKey: key) ?? []).compactMap { $0 as? String }
     }
 
     /// 저장된 목록을 표시·판정용으로 정리한다. 규칙에 안 맞는 항목은 버리고, 같은 낱말(대소문자 무시)은 한 줄로 합치며
@@ -261,12 +269,14 @@ struct RecentReverts: Equatable {
     }
 
     /// plist 값에서 복원. 형식이 다르거나 키가 빠진 항목은 버린다(빈 문자열도 버림).
+    /// 2026-11-13 (#225, 리뷰 english-dict-F-4): 항목마다 따로 본다. 예전엔 `[[String: String]]`로 통째로 바꿔서
+    /// 한 항목의 값이 문자열이 아니면 전체가 0개로 읽혔고, 다음 되돌리기가 남은 기록을 새 1건으로 덮었다.
     init(plist: Any?) {
-        let raw = plist as? [[String: String]] ?? []
+        let raw = (plist as? [Any] ?? []).compactMap { $0 as? [String: Any] }
         var seen = Set<Entry>()
         var list: [Entry] = []
         for item in raw {
-            guard let h = item["hangul"], let e = item["english"], !h.isEmpty, !e.isEmpty else { continue }
+            guard let h = item["hangul"] as? String, let e = item["english"] as? String, !h.isEmpty, !e.isEmpty else { continue }
             let entry = Entry(hangul: h, english: e)
             if seen.insert(entry).inserted { list.append(entry) }
         }
