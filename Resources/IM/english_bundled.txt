@@ -4,7 +4,7 @@
 # Format: UTF-8 byte order, LF only, one word per line. The IME maps this file and binary-searches it.
 # Sources: NGSL (CC BY-SA 4.0); SCOWL/ESDB (MIT-like); US Census and SSA names (public domain);
 #   GeoNames (CC BY 4.0); Wikidata (CC0); lists curated by this project. Attribution: ACKNOWLEDGEMENTS.md.
-# count: 130412
+# count: 130513
 aaa
 aac
 aachen
@@ -2384,6 +2384,7 @@ albaladjo
 albanese
 albanesi
 albani
+albania
 albanians
 albano
 albans
@@ -3618,6 +3619,7 @@ amercements
 amerces
 amercing
 amerek
+america
 american
 americanairlines
 americanisms
@@ -4337,6 +4339,7 @@ anglophone
 anglophones
 anglos
 anglosphere
+angola
 angolan
 angolans
 angoras
@@ -5428,6 +5431,7 @@ apr
 apraxias
 apricot
 apricots
+april
 aprile
 aprilia
 aprils
@@ -5496,6 +5500,7 @@ arabelle
 arabesques
 arabia
 arabians
+arabic
 arabica
 arabie
 arabinoses
@@ -5847,8 +5852,10 @@ argenta
 argente
 argentesi
 argenteuil
+argentina
 argentineans
 argentines
+argentinian
 argentinians
 argentino
 argentites
@@ -7447,8 +7454,12 @@ austins
 auston
 australasia
 australasians
+australia
+australian
 australians
 australoids
+austria
+austrian
 austrians
 austronesia
 austronesians
@@ -9185,6 +9196,7 @@ barba
 barbadians
 barbadilla
 barbadillo
+barbados
 barbagallo
 barbana
 barbara
@@ -10809,6 +10821,7 @@ belgarde
 belgas
 belghazouani
 belghith
+belgian
 belgians
 belgium
 belgorod
@@ -15258,6 +15271,7 @@ brazier
 braziers
 brazil
 brazileins
+brazilian
 brazilians
 brazilins
 brazils
@@ -18291,6 +18305,7 @@ canabal
 canad
 canadagoose
 canaday
+canadian
 canadianisms
 canadians
 canady
@@ -18571,6 +18586,7 @@ cantley
 canton
 cantona
 cantone
+cantonese
 cantoni
 cantonments
 cantons
@@ -21898,6 +21914,7 @@ childproofing
 childproofs
 childress
 childs
+chilean
 chileans
 chiles
 chiliads
@@ -21971,6 +21988,7 @@ chinchow
 chinchy
 chinellato
 chines
+chinese
 chinesinho
 chingford
 chinglish
@@ -24480,6 +24498,7 @@ colombes
 colombetti
 colombi
 colombia
+colombian
 colombians
 colombie
 colombini
@@ -25446,6 +25465,7 @@ conglomerations
 conglutinated
 conglutinates
 conglutinating
+congo
 congous
 congrats
 congratulants
@@ -28420,7 +28440,9 @@ cuauhtmoc
 cuautitlan
 cuautla
 cuautle
+cuba
 cubages
+cuban
 cubans
 cubas
 cubatures
@@ -29142,6 +29164,7 @@ czarisms
 czarists
 czarnecki
 czars
+czech
 czechia
 czechoslovakia
 czechoslovakians
@@ -29634,6 +29657,7 @@ danilson
 danios
 danique
 danis
+danish
 danisha
 danishes
 danita
@@ -30424,6 +30448,7 @@ decelerates
 decelerating
 decelerations
 decelerators
+december
 decembers
 decembrists
 decemvirates
@@ -31790,6 +31815,7 @@ denker
 denlinger
 denlson
 denman
+denmark
 denmon
 denn
 denna
@@ -36618,6 +36644,7 @@ dustyn
 dutan
 dutard
 dutasteride
+dutch
 dutchmen
 dutchwoman
 dutchwomen
@@ -37540,6 +37567,8 @@ eguidazu
 eguiluz
 eguino
 eguren
+egypt
+egyptian
 egyptians
 egyptologies
 egyptologists
@@ -40213,6 +40242,7 @@ estuaries
 estudillo
 estupin
 estupinan
+eswatini
 esxi
 etagere
 etageres
@@ -40273,6 +40303,8 @@ ethicizes
 ethicizing
 ethier
 ethington
+ethiopia
+ethiopian
 ethiopians
 ethmoids
 ethnarchs
@@ -42350,6 +42382,7 @@ febricities
 febrifuges
 febrilities
 februaries
+february
 februarys
 febus
 fecchino
@@ -43051,6 +43084,7 @@ figuring
 figved
 figworts
 fiio
+fiji
 fijians
 fikayo
 fikes
@@ -43097,6 +43131,7 @@ filipek
 filipenko
 filipescu
 filipiak
+filipino
 filipinos
 filipovi
 filippelli
@@ -43292,6 +43327,7 @@ finnick
 finnie
 finnieston
 finnigan
+finnish
 finnley
 finns
 fino
@@ -50484,6 +50520,7 @@ greediest
 greegree
 greegrees
 greeing
+greek
 greeks
 greekyogurt
 greeley
@@ -53683,6 +53720,7 @@ hebraists
 hebraized
 hebraizes
 hebraizing
+hebrew
 hebrews
 hebrides
 hebron
@@ -54923,6 +54961,7 @@ hinders
 hindex
 hindgut
 hindguts
+hindi
 hindle
 hindley
 hindlimb
@@ -56557,6 +56596,7 @@ hundreds
 hundredths
 hundredweights
 huneycutt
+hungarian
 hungarians
 hungary
 hungbo
@@ -58297,7 +58337,9 @@ indexations
 indexers
 indexes
 indexings
+india
 indiamen
+indian
 indiana
 indianans
 indianapolis
@@ -58383,6 +58425,7 @@ indoctrinatory
 indomitabilities
 indomitablenesses
 indonesia
+indonesian
 indonesians
 indophenols
 indore
@@ -59806,11 +59849,15 @@ iraklion
 irala
 iraldo
 iramo
+iran
+iranian
 iranians
 iranis
 irantzu
 iraola
 irapuato
+iraq
+iraqi
 iraqis
 iraragorri
 irastolza
@@ -59863,6 +59910,7 @@ irion
 iriondo
 irisations
 irises
+irish
 irishisms
 irishmen
 irishwomen
@@ -60155,6 +60203,7 @@ ispiro
 ispizua
 isps
 israel
+israeli
 israelis
 israelites
 israels
@@ -60198,6 +60247,7 @@ itaewonclass
 itaipu
 ital
 italia
+italian
 italianated
 italianates
 italianating
@@ -60886,6 +60936,7 @@ jantus
 jantz
 jantzen
 januaries
+january
 janusz
 januzaj
 janvier
@@ -60897,6 +60948,7 @@ janz
 janzen
 jaouab
 jaouad
+japanese
 japaneses
 japanning
 japans
@@ -62219,6 +62271,7 @@ juliette
 jullian
 julliard
 julundur
+july
 julys
 jumadas
 jumbled
@@ -65136,6 +65189,7 @@ kordell
 kordofan
 kordofanian
 korea
+korean
 koreanair
 koreans
 koreatown
@@ -66996,6 +67050,7 @@ latifah
 latifundia
 latimer
 latimore
+latin
 latina
 latinas
 latini
@@ -68451,6 +68506,7 @@ liberationists
 liberato
 liberatore
 liberators
+liberia
 liberians
 liberman
 libero
@@ -70984,6 +71040,7 @@ macvinish
 macy
 mad
 madagascans
+madagascar
 madaghri
 madalene
 madaline
@@ -71691,6 +71748,7 @@ malawian
 malawians
 malawis
 malaxiangguo
+malay
 malaya
 malayah
 malayans
@@ -71698,6 +71756,7 @@ malayna
 malays
 malaysia
 malaysiaairlines
+malaysian
 malaysians
 malbeaux
 malbec
@@ -76162,6 +76221,7 @@ mewses
 mewtwo
 mexc
 mexicali
+mexican
 mexicans
 mexico
 mext
@@ -78262,6 +78322,7 @@ mongodb
 mongoes
 mongold
 mongolia
+mongolian
 mongolians
 mongoloids
 mongols
@@ -78805,6 +78866,7 @@ morning
 morningside
 morningstar
 morns
+moroccan
 moroccans
 morocho
 morolln
@@ -81216,6 +81278,8 @@ neoterizing
 neotypes
 neovim
 neowiz
+nepal
+nepalese
 nepalis
 nepean
 nepers
@@ -81673,6 +81737,7 @@ nicad
 nicads
 nicaea
 nicaise
+nicaragua
 nicaraguans
 nicasio
 nicastro
@@ -81827,6 +81892,7 @@ niftiest
 nigel
 niger
 nigeria
+nigerian
 nigerians
 nigerien
 nigeriens
@@ -82573,6 +82639,8 @@ norval
 norvell
 norville
 norwalk
+norway
+norwegian
 norwegians
 norwich
 norwood
@@ -82728,6 +82796,7 @@ novello
 novelo
 novels
 novelties
+november
 novembers
 novembre
 novenas
@@ -83473,6 +83542,7 @@ octavos
 octets
 octillions
 octillionths
+october
 octobers
 octocopter
 octodecimos
@@ -84010,6 +84080,7 @@ omahas
 omahoney
 omakase
 omalley
+oman
 omanis
 omari
 omarion
@@ -86475,6 +86546,7 @@ pakehas
 paki
 pakis
 pakistan
+pakistani
 pakistanis
 pakora
 pakoras
@@ -87048,6 +87120,7 @@ paragraphers
 paragraphias
 paragraphing
 paragraphs
+paraguay
 paraguayans
 paraiso
 parajn
@@ -89016,6 +89089,7 @@ perseveres
 pershing
 persi
 persia
+persian
 persiani
 persians
 persico
@@ -89079,6 +89153,7 @@ pertinencies
 pertti
 perturbations
 perturbs
+peru
 perucchini
 peruchetti
 peruchi
@@ -89093,6 +89168,7 @@ perusers
 peruses
 perusing
 perutz
+peruvian
 peruvians
 peruzzi
 peruzzo
@@ -89528,6 +89604,7 @@ philippi
 philippians
 philippics
 philippineairlines
+philippines
 philippopolis
 philippoteaux
 philips
@@ -91900,6 +91977,7 @@ ports
 portsmouth
 portu
 portugal
+portuguese
 portugus
 portwood
 pos
@@ -102020,6 +102098,8 @@ rusnak
 russell
 russes
 russets
+russia
+russian
 russianized
 russianizes
 russianizing
@@ -103523,6 +103603,7 @@ sattolo
 saturants
 saturates
 saturating
+saturday
 saturdays
 saturnalias
 saturnians
@@ -104644,6 +104725,7 @@ scotti
 scotticisms
 scotties
 scotting
+scottish
 scotto
 scottsdale
 scougall
@@ -105598,6 +105680,7 @@ sends
 sene
 senecal
 senecas
+senegal
 senegas
 senekowitsch
 senequier
@@ -105721,6 +105804,7 @@ seppala
 seppani
 seppukus
 septaria
+september
 septembers
 septembrists
 septenaries
@@ -109203,6 +109287,7 @@ snappers
 snappier
 snappiest
 snapple
+snaps
 snapshots
 snared
 snares
@@ -110351,6 +110436,7 @@ spaniards
 spaniels
 spanier
 spanio
+spanish
 spanked
 spankers
 spankings
@@ -113774,6 +113860,7 @@ suctioning
 suctions
 sud
 suda
+sudan
 sudaria
 sudati
 sudatories
@@ -114719,6 +114806,7 @@ swaging
 swagmen
 swags
 swagsmen
+swahili
 swahilis
 swaibu
 swailes
@@ -114841,6 +114929,7 @@ swedenborg
 swedenborgianisms
 swedenborgians
 swedes
+swedish
 sweeney
 sweenie
 sweenies
@@ -115445,6 +115534,7 @@ tafias
 tafolla
 tafoya
 tafsir
+tagalog
 tagalogs
 taggers
 tagging
@@ -117272,6 +117362,7 @@ thackeray
 thackray
 thackston
 thaddeus
+thai
 thaiairways
 thailand
 thailander
@@ -117892,6 +117983,7 @@ thurman
 thurmond
 thurnham
 thurs
+thursday
 thursdays
 thurston
 thus
@@ -120759,6 +120851,7 @@ tueart
 tuel
 tuell
 tues
+tuesday
 tuesdays
 tufano
 tufas
@@ -120958,8 +121051,10 @@ turino
 turista
 turistas
 turkestan
+turkey
 turkeys
 turkics
+turkish
 turkishairlines
 turkmenistan
 turkmens
@@ -121386,6 +121481,7 @@ tzorvas
 tzupo
 tzuyu
 tzvi
+uae
 uart
 uas
 uat
@@ -121503,6 +121599,7 @@ ukases
 ukasiewicz
 ukf
 ukraine
+ukrainian
 ukrainians
 ukuleles
 ukvi
@@ -122690,6 +122787,7 @@ urdaneta
 urdf
 urdiales
 urdiroz
+urdu
 ureases
 uredia
 uredium
@@ -123656,6 +123754,7 @@ vastola
 vasts
 vasudevan
 vath
+vatican
 vaticides
 vaticinated
 vaticinates
@@ -124468,6 +124567,7 @@ vieth
 vietjet
 vietnam
 vietnamairlines
+vietnamese
 vietto
 vieux
 view
@@ -129136,6 +129236,7 @@ yelps
 yelton
 yeltsin
 yelverton
+yemen
 yemenis
 yemenites
 yenga

@@ -451,3 +451,124 @@ private func runExclusionOverlapCheck() {
     expect(added.count, 0, "F-6 제외 목록과 새로 겹친 단어 \(added.prefix(10)) — 탈락시킨 단어가 다시 들어왔는지 확인하고, 의도면 기준선에 사유와 함께 적는다")
     expect(stale.count, 0, "F-6 더는 겹치지 않는 기준선 줄 \(stale.prefix(10)) — 기준선에서 지운다")
 }
+
+/// 2026-11-13 (#225): 2026-11-12 리뷰 english-dict F-1~F-4·F-6 회귀 검사. 고치기 전에 실패를 확인했다.
+func runEnglishDictReview1112Tests() {
+    func hangul(_ keys: String) -> String { ManualToggle.keysToHangul(keys)! }
+    func title(_ word: String) -> String { word.prefix(1).uppercased() + word.dropFirst() }
+    func list(_ text: String) -> [String] { text.split(whereSeparator: \.isWhitespace).map(String.init) }
+    func afterThe(_ key: String) -> String { typeWords(["the", key]).last ?? "" }
+    func converts(_ keys: [String], _ label: String) {
+        for key in keys { expect(type(key).committedText, key, "\(label): \(key)") }
+    }
+
+    // ── F-1 오너 결정(가) "고정하면 돼": 닫힌 묶음(요일·달·나라·국적·언어)은 소문자·첫 글자 대문자·영어 뒤 모두 영어다.
+    // 시스템 낱말 파일에 January·Korean처럼 대문자 줄로만 있어 입력기가 건너뛰고, 사전 생성기는 '이미 있음'으로 빼서 어디에도 없었다.
+    let daysAndMonths = list("""
+        monday tuesday wednesday thursday friday saturday sunday
+        january february march april may june july august september october november december
+        """)
+    let countries = list("""
+        afghanistan albania algeria andorra angola argentina armenia australia austria azerbaijan bahamas bahrain
+        bangladesh barbados belarus belgium belize benin bhutan bolivia bosnia botswana brazil brunei bulgaria
+        burundi cambodia cameroon canada chad chile china colombia comoros congo croatia cuba cyprus czechia denmark
+        djibouti dominica ecuador egypt eritrea estonia eswatini ethiopia fiji finland france gabon gambia georgia
+        germany ghana greece grenada guatemala guinea guyana haiti honduras hungary iceland india indonesia iran iraq
+        ireland israel italy jamaica japan jordan kazakhstan kenya kiribati korea kosovo kuwait kyrgyzstan laos
+        latvia lebanon lesotho liberia libya liechtenstein lithuania luxembourg madagascar malawi malaysia maldives
+        mali malta mauritania mauritius mexico micronesia moldova monaco mongolia montenegro morocco mozambique
+        myanmar namibia nauru nepal netherlands nicaragua niger nigeria norway oman pakistan palau palestine panama
+        paraguay peru philippines poland portugal qatar romania russia rwanda samoa senegal serbia seychelles
+        singapore slovakia slovenia somalia spain sudan suriname sweden switzerland syria taiwan tajikistan tanzania
+        thailand tonga tunisia turkey turkmenistan tuvalu uganda ukraine uruguay uzbekistan vanuatu vatican venezuela
+        vietnam yemen zambia zimbabwe america britain england scotland wales holland burma usa uae
+        """)
+    let nationalitiesAndLanguages = list("""
+        american korean chinese japanese british spanish french german italian russian indian canadian mexican
+        brazilian australian vietnamese thai filipino indonesian malaysian singaporean taiwanese mongolian dutch
+        swedish norwegian danish finnish polish greek turkish irish scottish welsh portuguese swiss austrian belgian
+        hungarian czech ukrainian israeli egyptian iranian iraqi argentine argentinian chilean colombian peruvian
+        cuban nepalese pakistani bangladeshi saudi kenyan nigerian ethiopian moroccan english
+        arabic hindi bengali urdu malay hebrew latin persian swahili tagalog mandarin cantonese
+        """)
+    for word in daysAndMonths + countries + nationalitiesAndLanguages {
+        expect(type(word).committedText, word, "F-1 닫힌 묶음 소문자: \(word)")
+        expect(type(title(word)).committedText, title(word), "F-1 닫힌 묶음 첫 글자 대문자: \(title(word))")
+        expect(typeWords(["in", word]).last ?? "", word, "F-1 닫힌 묶음 영어 뒤: in \(word)")
+        expect(afterThe(word), word, "F-1 닫힌 묶음 영어 뒤: the \(word)")
+    }
+    // togo(새해)는 우리말 표제어라 veto가 지킨다. 넣지 않았다.
+    expect(type("togo").committedText, "새해", "F-1 togo=새해는 우리말")
+
+    // ── F-2 오너 결정: "cg는 바껴도 된다 … rcs, rad는 뜻이 없으니 변경되면 안 된다".
+    // ㄱㅊㄴ(괜찮네)·ㄱㅁㅇ(고마워)은 초성체 보호에 넣었다. ㅊㅎ(cg)는 그대로 바뀌고, rad는 숫자 뒤 단위로는 바뀐다.
+    for (keys, form) in [("rcs", "ㄱㅊㄴ"), ("rad", "ㄱㅁㅇ")] {
+        expect(type(keys).committedText, form, "F-2 초성체 보호: \(form)")
+        expect(afterThe(keys), form, "F-2 영어 뒤에서도 초성체 보호: \(form)")
+        expect(type(keys + ManualToggle.hangulToKeys("요")!).committedText, form + "요", "F-2 초성체 + 꼬리: \(form)요")
+    }
+    expect(type("cg").committedText, "cg", "F-2 ㅊㅎ=cg는 그대로")
+    converts(["Rcs", "RCS"], "F-2 Title·ALLCAPS는 그대로")
+    for raw in ["3rad ", "3 rad ", "1.5rad ", "0.5 rad "] {
+        expect(typeViaController(raw).committedText, raw, "F-2 숫자 뒤 rad는 단위: \(raw)")
+    }
+    expect(typeWithPersonalDictionary("rad", PersonalDictionary(force: ["rad"])).client.committedText, "rad", "F-2 개인 사전 추가는 우선")
+    // 같은 원칙으로 자음만으로 된 키열은 s·ed 굴절 추정(dds+s → ddss)을 쓰지 않는다. 사전에 그대로 있는 낱말만 바꾼다.
+    for keys in ["ddss", "wwws", "wtfs", "qgcs", "rrts", "aceed"] {
+        expect(type(keys).committedText, hangul(keys), "F-2 자음만 키열은 굴절 추정 없음: \(keys)")
+        expect(afterThe(keys), hangul(keys), "F-2 영어 뒤에서도 굴절 추정 없음: \(keys)")
+    }
+    converts(["great", "test", "tests", "dress", "dressed", "street", "streets", "crafted", "asserted", "grasses", "Great", "GREAT"],
+             "F-2 자음만 키열이라도 사전에 있는 낱말은 그대로")
+    converts(["githubs", "googled", "netflixs"], "F-2 모음이 든 키열의 굴절 추정은 그대로")
+
+    // ── F-3 오너 결정(가): kb·pb는 단독으로도 바뀐다(2026-11-08 #194 짧은 단어 목록). nm·mb·gb·tb는 숫자 뒤에서만, ok는 2026-11-07부터 단독.
+    converts(["kb", "pb", "KB", "PB", "ok"], "F-3 단독 변환")
+    for keys in ["nm", "mb", "gb", "tb"] {
+        expect(type(keys).committedText, hangul(keys), "F-3 숫자 없는 단위는 한글: \(keys)")
+    }
+    for raw in ["10nm ", "10 nm ", "1.5nm ", "20kb ", "20 kb ", "3pb "] {
+        expect(typeViaController(raw).committedText, raw, "F-3 숫자 뒤 단위: \(raw)")
+    }
+    expect(MeasurementUnits.quantityOnlySymbols.intersection(EnglishDetector.shortWords).sorted().joined(separator: ","), "kb,pb",
+           "F-3 숫자 전용 목록 중 짧은 단어 목록이 단독으로 받는 것은 kb·pb뿐(알고 둔 예외)")
+
+    // ── F-4: 개인 사전 목록에 문자열이 아닌 값이 섞여도 문자열 항목은 살아 있고, 다음 저장이 남은 항목을 덮어쓰지 않는다.
+    // 2026-11-13 (#225·#226): 고정 이름 도메인 — UUID 이름은 실행마다 ~/Library/Preferences에 plist를 남긴다(install-update-F-5).
+    let suite = "local.synthetic.haneul-personal-dict-mixed"
+    UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite)
+    if let defaults = UserDefaults(suiteName: suite) {
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(["apple", 1, "banana", ["x"]] as [Any], forKey: PersonalDictionary.Keys.block)
+        defaults.set(["QuickTime", 2, "work"] as [Any], forKey: PersonalDictionary.Keys.force)
+        let loaded = PersonalDictionary.load(from: defaults)
+        expect(loaded.block == ["apple", "banana"], true, "F-4 금지 목록: 문자열 항목은 남는다 \(loaded.block.sorted())")
+        expect(loaded.force == ["quicktime", "work"], true, "F-4 추가 목록: 문자열 항목은 남는다 \(loaded.force.sorted())")
+        expect(loaded.decision(word: "apple", hangul: "메ㅔㅣㄷ") == .block, true, "F-4 금지 판정은 그대로")
+        expect(PersonalDictionary.storedForceEntries(in: defaults).joined(separator: ","), "QuickTime,work", "F-4 설정 화면 목록")
+        // 설정 화면이 하나를 더해 저장하면 형이 다른 값만 빠지고 문자열 항목은 그대로 남는다.
+        let saved = PersonalDictionary.addingForceEntry("vismo", to: PersonalDictionary.storedForceEntries(in: defaults)) ?? []
+        defaults.set(saved, forKey: PersonalDictionary.Keys.force)
+        expect(PersonalDictionary.storedForceEntries(in: defaults).joined(separator: ","), "QuickTime,vismo,work", "F-4 다음 저장이 남은 항목을 덮지 않는다")
+        expect(PersonalDictionary.load(from: defaults).decision(word: "QuickTime", hangul: "x") == .forceConvert, true, "F-4 저장 뒤 판정")
+        // 최근 되돌림: 한 항목의 값이 문자열이 아니어도 나머지는 남고, 다음 기록이 그 위에 쌓인다.
+        defaults.set([["hangul": "메ㅔㅣㄷ", "english": 1], ["hangul": "햐소ㅕㅠ", "english": "github"], "broken"] as [Any], forKey: RecentReverts.key)
+        let recent = RecentReverts.load(from: defaults)
+        expect(recent.entries.map(\.english).joined(separator: ","), "github", "F-4 최근 되돌림: 형이 다른 항목만 버린다")
+        recent.recording(hangul: "메ㅔㅣㄷ", english: "apple").save(to: defaults)
+        expect(RecentReverts.load(from: defaults).entries.map(\.english).joined(separator: ","), "apple,github", "F-4 다음 기록이 남은 항목을 덮지 않는다")
+    } else {
+        expect(false, true, "F-4 시험용 설정 도메인")
+    }
+    expect(RecentReverts(plist: [["hangul": "햐소ㅕㅠ", "english": "github", "extra": 3] as [String: Any]]).entries.count, 1, "F-4 모르는 키가 있어도 두 키가 문자열이면 받는다")
+
+    // ── F-6: NGSL 낱말의 흔한 복수형은 멀쩡한 한글이라 curated에 정확히 있어야 바뀐다. 검역(Tier A 전수 리뷰)을 통과한 20개를 넣었다.
+    for word in list("alarms charms cleans disturbs firms formals forms fuels girls risks sharps sicks sighs signals signs snaps socials totals visuals whens") {
+        expect(type(word).committedText, word, "F-6 복수형 무맥락: \(word)")
+        expect(afterThe(word), word, "F-6 복수형 영어 뒤: the \(word)")
+    }
+    // 넣지 않은 것: 우리말 표제어(veto) goals=해민·rocks=개찬, 이름과 겹치는 coals=채민·disks=야난.
+    for keys in ["goals", "rocks", "coals", "disks"] {
+        expect(type(keys).committedText, hangul(keys), "F-6 넣지 않은 꼴은 한글: \(hangul(keys))")
+    }
+}

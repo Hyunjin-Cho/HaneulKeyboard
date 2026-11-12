@@ -5,6 +5,8 @@
 > 원본 저장 위치: `~/Downloads/HaneulDictSources/` (레포 밖 — 가공 결과만 리뷰 후 번들).
 > 다운로드 일자: 2026-06-10. SHA-256은 아래 각 절에 기재.
 > 2026-11-07 (#178): 사전을 고친 뒤 번들 표를 다시 만드는 절차를 아래 「사전을 고친 뒤 번들 표 다시 만들기」에 추가했다.
+> 2026-11-13 (#225, 리뷰 english-dict-F-1·F-5): 'web2 빼기' 기준을 입력기와 맞췄다(§4 「web2 빼기 기준과 가공 레시피」), 지명·축구 사전 절(§5)을 더했고,
+> 원본 폴더를 "통째로 지워도 된다"던 부록 문장을 고쳤다.
 
 ## 공통 주의
 
@@ -197,6 +199,26 @@ zymurgy
   → exact-match인 broad(MAIN) 경로에 특히 효과적.
 - ⚠️ 신규분 중 2글자 이하 275개는 대부분 약어(ac·bb·cd·cm 등) — 가공 시 길이 필터 검토.
 
+### web2 빼기 기준과 가공 레시피 (2026-11-13, #225 · 리뷰 english-dict-F-1)
+
+`english_modern.txt`를 만든 명령은 스크립트로 남아 있지 않다. 머리말에 적힌 조건(소문자화, `^[a-z]{3,}$`, web2·번들 사전 빼기,
+`scowl_exclusions_alljamo4.txt` 빼기)을 다시 할 때는 아래 기준을 따른다.
+
+- **web2는 입력기가 실제로 읽는 줄만 뺀다.** 입력기(`EnglishDetector.isWordLine`)는 `/usr/share/dict/words`에서 첫 글자가 a-z인 줄만 읽는다
+  (`January`·`Korean`·`David` 줄은 건너뛴다). 2026-06-10 가공은 web2를 전부 소문자로 바꿔 뺐기 때문에, web2에 대문자 줄로만 있는 낱말
+  (january·korean·thai …)이 SCOWL에 있어도 "이미 있음"으로 빠져 어느 사전에도 들어가지 않았다. 인명 생성기
+  (`build_english_wordlists.py`의 `already_present`)도 같은 이유로 2026-11-13에 고쳤다.
+- 순서(SCOWL `words.txt` 기준):
+  1. `'`가 든 줄을 버리고 소문자로 바꾼 뒤 `^[a-z]{3,}$`만 남긴다(SCOWL의 대문자 줄 `Aachen`도 `aachen`으로 들어온다).
+  2. web2에서 `^[a-z][A-Za-z]{2,}$`인 줄만 소문자로 모아 뺀다(`python3 -c 'import sys; sys.path.insert(0, "scripts"); from pathlib import Path; from build_english_table import loader_words; print("\n".join(sorted(loader_words(Path("/usr/share/dict/words")))))'`).
+  3. 번들 사전(manifest의 나머지)에 이미 있는 낱말을 뺀다(같은 필터).
+  4. `dict_work/scowl_exclusions_alljamo4.txt`(≤4자모 전부-자모, 초성체 보호)를 뺀다.
+  5. `scripts/audit_wordlist.sh --role broad`로 검역한 뒤 머지하고 「사전을 고친 뒤 번들 표 다시 만들기」를 따른다.
+- ⚠️ 이 기준으로 다시 돌리면 web2에 대문자 줄로만 있던 낱말(고유명사)이 SCOWL에서 새로 들어온다. 몇 개가 늘어나는지는 SCOWL 원본이 이 Mac에
+  없어 2026-11-13에 재지 못했다(확인 못 함) — 다시 받으면(위 URL·revision) 검역 결과로 수를 먼저 보고 머지 여부를 정한다.
+  같은 날 닫힌 묶음(요일·달·나라·국적·언어) 102개만 손으로 넣었다: 깨진 한글형 94개는 `english_names_extra`, 멀쩡한 한글형 8개는
+  `english_supplement`(기록: `dict_work/2026-11-13-closed-sets-audit.csv`).
+
 ### 현대어 검증 (2026-06-10)
 
 | 단어 | SCOWL 70 | 비고 |
@@ -204,6 +226,37 @@ zymurgy
 | **playlist / internet** | ✅ (+playlists) | NGSL 누락분 해결 — supplement 수동 추가 불필요해짐 |
 | selfie / email / blog / online / website / app / podcast / emoji | ✅ 전부 (굴절형 selfies·emails·blogs·apps·podcasts·emojis 포함) | |
 | city / with (sanity) | ✅ | |
+
+---
+
+## 5. 지명·축구 사전 — GeoNames + Wikidata (`english_sports_geo.txt`, 2026-11-13 기록 · #225)
+
+> 2026-06-20에 만든 broad 전용 사전(28,360낱말)이다. 만든 스크립트가 저장소 밖에만 있어서 2026-11-13에 `scripts/extract_sports_geo.py`로 옮겼고
+> (원본 `~/Downloads/HaneulDictSources/extract_sports_geo.py`, SHA-256 `708c321ba5f5f2e7…` 아래 표), 그날 이 Mac에 남은 자료로 절차를 되짚었다.
+
+- **GeoNames** — <https://www.geonames.org>, 라이선스 CC BY 4.0(고지: `ACKNOWLEDGEMENTS.md`).
+  - 파일: `geonames/admin1CodesASCII.txt`(주·도 이름), `geonames/cities15000.txt`(인구 15,000+ 도시; 같은 폴더의 `cities15000.zip`을 푼 것).
+  - 필터: 나라 코드 US·CA·MX·GB·FR·ES·IT 7개. 주·도는 전부, 도시는 인구(15번째 칸) 50,000 이상. 이름을 공백·하이픈으로 나눠 소문자 a-z만 남긴 토큰.
+  - 받은 날짜: 파일 시각으로 `cities15000.txt` 2026-06-19, `admin1CodesASCII.txt` 2026-06-20(내려받은 기록은 따로 없다 — 시각 외에는 확인 못 함).
+  - 2026-11-13 확인: 스크립트의 `--geonames-only`(네트워크 없음)로 다시 만든 토큰 2,231개(주·도 184 + 도시 2,105 + 약어 5)가 원본 `sports_geo_raw.txt`에 모두 들어 있다.
+- **Wikidata** — <https://www.wikidata.org>, 라이선스 CC0 1.0.
+  - 질의: 9개 리그(Premier League·Championship·League One·Ligue 1·Ligue 2·La Liga·La Liga 2·Serie A·Serie B — QID는 스크립트의 `LEAGUES`)에 속한
+    축구 클럽(`wdt:P31 wd:Q476028; wdt:P118 <리그>`)의 영어 이름표, 그 클럽에서 뛴 사람(`wdt:P54`)의 영어 이름표. 질의 끝점 `query.wikidata.org/sparql`.
+  - 선수 토큰은 5글자이면서 두벌식 모음 키(yuiophjklbnm)로 시작하거나, 6글자 이상일 때만 넣었다(오너 결정 — 한국어 충돌을 구조적으로 피한다).
+  - 질의한 날짜는 원본 파일 시각으로 2026-06-20이다. Wikidata는 계속 바뀌므로 다시 질의하면 결과가 달라진다. 그날 결과 그대로의 사본은
+    `sports_geo_raw.txt`뿐이다(아래 SHA). 리그별 행 수 등 실행 기록은 남아 있지 않다(확인 못 함).
+- 뒤 단계: `scripts/audit_wordlist.sh --candidates sports_geo_raw.txt --role broad`로 검역한 뒤 `class`가 `all_jamo`(완성 음절 0)인 줄을 뺀다.
+  2026-11-13 재현: 30,696줄 → 3글자 이상 30,657 → 전부-자모 2,297 제외 → 28,360낱말, 배포 파일 본문과 정확히 같다. 현재 파일은 web2와 다른 번들 사전 다섯 개를
+  기준으로 다시 검역해도 Tier A/B 0이다. web2·다른 사전과 겹치는 낱말을 빼는 단계는 없었다(2,325낱말이 web2에도 있다).
+- 같은 폴더의 `geonames/cities7_raw.txt`·`cities7_tokens.txt`는 어떤 단계의 파일인지 확인 못 함(스크립트가 읽지 않는다).
+
+| 파일 (`~/Downloads/HaneulDictSources/`) | SHA-256 (2026-11-13) |
+|---|---|
+| `extract_sports_geo.py` (옮기기 전 원본) | `708c321ba5f5f2e726fe658fd72345782cfb3d9263134e66ee03350c8e15005c` |
+| `sports_geo_raw.txt` | `7965937ce7bc7e84aa0d39ed0b85f142089407dff0e2118f6ce7a11044a6d950` |
+| `geonames/admin1CodesASCII.txt` | `34784457b76b988a669dff7c3e4b104e4902c0875643cff019281ac79dfa2992` |
+| `geonames/cities15000.txt` | `b749806e0837280701909b43fa0617799a6cf4c415b71ee760efa1a892ebf1bb` |
+| `geonames/cities15000.zip` | `042b21ce08bd547f50f8623e465a8248352e0f4b8a92b9c5f42b74b35f5ea092` |
 
 ---
 
@@ -234,8 +287,10 @@ zymurgy
 
 ## 부록: exclusions 정본 위치 (2026-06-10)
 
-검역 탈락 결정 기록의 정본은 이 폴더에 보존된다 — `~/Downloads/HaneulDictSources/`는
-재다운로드 가능한 원본+재생성 가능한 검역 CSV뿐이므로 통째로 지워도 된다.
+검역 탈락 결정 기록의 정본은 이 폴더에 보존된다.
+2026-11-13 정정(#225, 리뷰 english-dict-F-5): 예전엔 여기에 `~/Downloads/HaneulDictSources/`를 "통째로 지워도 된다"고 적었다. 그 폴더에는
+지명·축구 사전의 생성 스크립트(유일한 사본이었다 — 이제 `scripts/extract_sports_geo.py`)와 그날 Wikidata 질의 결과(`sports_geo_raw.txt`,
+다시 질의하면 달라진다)가 있었다. 지우지 않는다. NGSL·Census·SSA·SCOWL 원본은 2026-11-13 이 Mac에 없다 — 위 각 절의 URL과 SHA-256으로 다시 받는다.
 - `dict_work/exclusions.txt` — theory(소대교 충돌) + 인명 전부-자모 2,685
 - `dict_work/scowl_exclusions_alljamo4.txt` — SCOWL ≤4자모 전부-자모 826 (btw·lol류)
   - 2026-11-08 (#194): 오너 요청으로 bio와 쓰는 말 93개를 수작업 사전에 다시 넣었다. 재생성해도 제외 목록은 SCOWL diff에만 적용되므로 그대로 남는다. 기록: `dict_work/2026-11-08-shortwords-registration.tsv`, `exclusion_overlap_baseline.tsv`.

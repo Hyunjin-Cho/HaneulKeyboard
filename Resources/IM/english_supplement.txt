@@ -5431,3 +5431,42 @@ fax
 rec
 rss
 vga
+
+# 2026-11-13 (#225): 리뷰 2026-11-12 english-dict-F-1, 오너 결정(가) "고정하면 돼". 닫힌 묶음(요일·달·나라·국적·언어) 중
+# 한글형이 멀쩡해 broad로는 닿지 않는 8개. 시스템 낱말 파일에 대문자 줄로만 있어(Thai·Russia) 입력기가 건너뛰던 말이다.
+# 검역(audit_wordlist.sh --role curated) Tier A 8개 전수 리뷰: 엿초·호뭄·견냠·소먀·두히뭉·견냐무·녕무·셔가됴 모두 우리말 표제어·
+# 이름·흔한 꼴이 아니다. 깨진 한글형 94개는 english_names_extra(broad)에 넣었고, togo=새해는 표제어라 뺐다.
+# 기록: dict_work/2026-11-13-closed-sets-audit.csv
+dutch
+england
+ghana
+russia
+russian
+sudan
+thai
+turkey
+
+# 2026-11-13 (#225): 리뷰 2026-11-12 english-dict-F-6. NGSL 낱말의 흔한 복수형인데 한글형이 멀쩡해(girls=햐긴·signs=냐훈)
+# curated에 정확히 있어야 바뀐다(굴절 추정은 깨진 한글 경로에만 쓴다). 검역 Tier A 22개 전수 리뷰 — 이름과 겹치는
+# coals=채민·disks=야난은 뺐다. goals=해민·rocks=개찬은 우리말 표제어라 등재해도 바뀌지 않아(Tier C) 넣지 않았다
+# (goal·rock처럼 S 등급에 올릴지는 오너 판단). 기록: dict_work/2026-11-13-plurals-audit.csv
+alarms
+charms
+cleans
+disturbs
+firms
+formals
+forms
+fuels
+girls
+risks
+sharps
+sicks
+sighs
+signals
+signs
+snaps
+socials
+totals
+visuals
+whens

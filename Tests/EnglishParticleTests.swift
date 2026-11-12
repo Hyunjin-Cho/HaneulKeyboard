@@ -232,6 +232,7 @@ func runEnglishParticleTests() {
     runExpandedParticleTests()
     runCopulaParticleTests()
     runQuantityUnitParticleTests()
+    runEnglishDictReview1112Tests() // 2026-11-13 (#225)
     func raw(_ english: String, _ particle: String) -> String {
         english + ManualToggle.hangulToKeys(particle)!
     }

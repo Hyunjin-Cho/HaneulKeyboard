@@ -213,6 +213,10 @@ enum EnglishDetector {
         // 2026-11-07 (#174) 오너 결정: 초성체 ㄱㄱㅅ(rrt)·ㄴㄱ(sr)과 자음 얼굴 ㅇㅁㅇ(dad)·ㅁㅇㅁ(ada)·ㅈㅁㅈㅁ(wawa)·ㅁㅇㅁㅇ(adad).
         // Title·ALLCAPS(Dad·DAD)는 첫 자음 Shift 경로가 veto보다 먼저 받으므로 그대로 변환된다.
         "ㄱㄱㅅ", "ㄴㄱ", "ㅇㅁㅇ", "ㅁㅇㅁ", "ㅈㅁㅈㅁ", "ㅁㅇㅁㅇ",
+        // 2026-11-13 (#225, 리뷰 english-dict-F-2) 오너 결정: "cg는 바껴도 된다 … rcs, rad는 뜻이 없으니 변경되면 안 된다".
+        // ㄱㅊㄴ(괜찮네, curated rcs)·ㄱㅁㅇ(고마워, 단위 rad). ㅊㅎ(cg)는 넣지 않았다. ㄴㄱ(sr)처럼 숫자 뒤 단위(3rad·3 rad)는 그대로 바뀌고,
+        // Title·ALLCAPS(Rcs·RCS)와 개인 사전 추가는 그대로다.
+        "ㄱㅊㄴ", "ㄱㅁㅇ",
     ]
 
     /// 2026-11-07 (#174) 오너 결정(리뷰 B안): 무맥락에서 이 1음절 뒤에 ㅠㅜㅡ만 이어지면 변환하지 않는다.
@@ -353,7 +357,14 @@ enum EnglishDetector {
 
         let word = String(lowered)
         let isShortWord = shortWords.contains(word)
-        let isDictWord = lowered.count >= 3 && matchesEnglishWord(word)
+        // 2026-11-13 (#225, 리뷰 english-dict-F-2) 오너 결정("rcs, rad는 뜻이 없으니 변경되면 안 된다")과 같은 원칙:
+        // 자음 키만으로 된 키열(ㅇㅇㄴㄴ=ddss)에는 s·ed 굴절 추정을 쓰지 않는다. 초성체와 구분되지 않는 꼴이라
+        // 사전에 그대로 있는 낱말(great·test·streets)만 영어로 본다. dds+s·www+s·wtf+s·ace+ed 같은 추정이 막힌다.
+        let consonantKeysOnly = lowered.allSatisfy {
+            if case .consonant = KeyboardLayout2Set.jamo(for: $0) { return true }
+            return false
+        }
+        let isDictWord = lowered.count >= 3 && (consonantKeysOnly ? isBroadWord(word) : matchesEnglishWord(word))
         let hangul = units.joined()
         // "한국어로서 깨짐" 구조 판정 — R5(무맥락 clean 게이트)와 R2-확장이 공유.
         let brokenAsKorean = units.contains(where: containsStandaloneJamo)
@@ -491,6 +502,7 @@ enum EnglishDetector {
         // (was/are류 broad 꼬리 차단 — red=ㄱㄷㅇ는 NGSL에 있음. 2026-06-19
         // 사용자 요청으로 3자 확장). ㅋㅋㅋ는 보호막이, 초성체(ㅇㄱㄹ=drf)는
         // protectedSlang + "영어단어 아님" 사전 게이트가 이중 방어.
+        // (2026-11-13 #225: 여기 오는 키열은 자음뿐이라 isDictWord가 굴절 추정 없이 정확 일치만 본다 — 위 consonantKeysOnly.)
         if englishCasing, !lowered.contains(where: mapsToVowel),
            units.allSatisfy({ $0.unicodeScalars.allSatisfy { (0x3131...0x314E).contains($0.value) } }) {
             if units.count >= 4, isDictWord { return true }
