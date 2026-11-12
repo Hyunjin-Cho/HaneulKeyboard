@@ -63,7 +63,7 @@ struct UpdateSettingsSection: View {
             if core.imeRefreshNeeded {
                 VStack(alignment: .leading, spacing: 4) {
                     Label("입력기 업데이트 필요", systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(FeedbackStatus.pending.adaptiveColor)
                     // 2026-09-21 (#60): 설정 창을 보는 사람은 빌드 스크립트를 돌리는 사람이
                     // 아니다 — 시스템 도메인 설치 안내는 README/체크리스트가 맡는다.
                     // 2026-11-08 (#201): '입력기 제거' 버튼이 없어져 해결 경로를 바꿨다.
@@ -137,7 +137,7 @@ struct UpdateSettingsSection: View {
         case .failed(let reason):
             Text("업데이트 오류: \(reason)")
                 .font(SettingsTypography.body)
-                .foregroundStyle(.red)
+                .foregroundStyle(FeedbackStatus.warning.adaptiveColor)
                 .textSelection(.enabled)
         }
     }
@@ -154,6 +154,7 @@ struct UpdateSettingsSection: View {
         .accessibilityValue(value)
     }
 
+    // 2026-11-13 (#227, 리뷰 app-ui-F-5): 시스템 초록·주황·빨강 글자는 밝은 화면에서 대비가 2~3.6:1이었다. 같은 계열의 진한 상태색(`FeedbackStatus`, 4.5:1 이상)을 쓴다.
     @ViewBuilder
     private var upToDateStatus: some View {
         // 공개 전 검토 빌드처럼 설치 번호가 서버의 최신 공개 번호보다 앞서는 경우도 구분한다.
@@ -165,7 +166,7 @@ struct UpdateSettingsSection: View {
         } else {
             Label("최신 버전이에요.", systemImage: "checkmark.circle.fill")
                 .font(SettingsTypography.body)
-                .foregroundStyle(.green)
+                .foregroundStyle(FeedbackStatus.success.adaptiveColor)
         }
     }
 

@@ -184,7 +184,7 @@ struct PersonalDictionarySettingsSection: View {
             if let error {
                 Text(error)
                     .font(SettingsTypography.body)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(FeedbackStatus.warning.adaptiveColor)
             }
         }
     }

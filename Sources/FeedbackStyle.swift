@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// 2026-10-18: 배경은 설명의 역할, 글자색은 상태를 나타낸다.
@@ -24,20 +25,20 @@ enum FeedbackTone {
     var strokeOpacity: Double { self == .actionNeeded ? 0.70 : 0.40 }
 }
 
-enum FeedbackStatus {
-    case success, pending, warning
+/// 2026-11-13 (#227, 리뷰 app-ui-F-5): 색 값의 정본은 `AppUIDecisions.swift`의 `FeedbackStatus.rgb(dark:)`다(대비를 시험으로 고정).
+/// 여기는 그 값을 SwiftUI 색으로 바꾸기만 한다.
+extension FeedbackStatus {
     func color(in scheme: ColorScheme) -> Color {
-        switch self {
-        case .success: scheme == .dark
-            ? Color(red: 0.20, green: 0.85, blue: 0.30)
-            : Color(red: 0, green: 128.0 / 255.0, blue: 0)
-        case .pending: scheme == .dark
-            ? Color(red: 1, green: 0.66, blue: 0.30)
-            : Color(red: 0.69, green: 0.30, blue: 0.02)
-        case .warning: scheme == .dark
-            ? Color(red: 1, green: 0.56, blue: 0.56)
-            : Color(red: 0.72, green: 0.10, blue: 0.14)
-        }
+        let ink = rgb(dark: scheme == .dark)
+        return Color(red: ink.red, green: ink.green, blue: ink.blue)
+    }
+
+    /// 화면 모드를 스스로 따라가는 같은 색. `colorScheme`을 읽지 않는 설정 화면 조각이 시스템 초록·주황·빨강 대신 쓴다.
+    var adaptiveColor: Color {
+        Color(nsColor: NSColor(name: nil) { appearance in
+            let ink = rgb(dark: appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua)
+            return NSColor(srgbRed: ink.red, green: ink.green, blue: ink.blue, alpha: 1)
+        })
     }
 }
 

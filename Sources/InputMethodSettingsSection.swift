@@ -24,17 +24,18 @@ struct InputMethodSettingsSection: View {
         }
     }
 
+    // 2026-11-13 (#227, 리뷰 app-ui-F-5): 시스템 초록·주황·빨강 글자는 밝은 화면에서 대비가 2~3.6:1이었다. 같은 계열의 진한 상태색(`FeedbackStatus`, 4.5:1 이상)을 쓴다.
     var body: some View {
         HaneulSettingsSection("한글 입력기") {
             if core.imeInstalled {
                 Label("한글 입력기가 설치되어 있어요.", systemImage: "checkmark.circle.fill")
                     .font(SettingsTypography.status)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(FeedbackStatus.success.adaptiveColor)
                 VStack(alignment: .leading, spacing: 6) {
                     // 2026-11-08 오너(#201): 부연 설명("그쪽으로 바뀌면…")은 뺐다.
                     Label("기존 Apple ‘두벌식’은 입력 소스에서 빼 주세요.", systemImage: "exclamationmark.triangle.fill")
                         .font(SettingsTypography.status)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(FeedbackStatus.pending.adaptiveColor)
                 }
             } else if imeStatus == .checking {
                 Label("한글 입력기 상태를 확인하고 있어요.", systemImage: "hourglass")
@@ -46,7 +47,7 @@ struct InputMethodSettingsSection: View {
                     : "한글 입력기가 설치되어 있지 않아요.",
                     systemImage: "exclamationmark.triangle.fill")
                     .font(SettingsTypography.status)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(FeedbackStatus.pending.adaptiveColor)
                 Text("‘입력기 설치’를 누른 뒤, 시스템 설정에서 입력 소스로 추가해 주세요.")
                     .font(SettingsTypography.body)
                     .foregroundStyle(.secondary)
@@ -68,7 +69,7 @@ struct InputMethodSettingsSection: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Label("시스템 폴더에 이전 버전 입력기가 남아 있어요.", systemImage: "exclamationmark.triangle.fill")
                         .font(SettingsTypography.status)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(FeedbackStatus.pending.adaptiveColor)
                     Text("앱이 직접 바꿀 수 없어요.\n앱 관리의 ‘하늘키보드 전체 제거’로 지운 뒤 다시 설치해 주세요.")
                         .font(SettingsTypography.body)
                         .foregroundStyle(.secondary)
@@ -78,11 +79,11 @@ struct InputMethodSettingsSection: View {
             if let message = operationError ?? core.imeActivationError.map({ "입력기를 준비하지 못했어요: \($0.localizedDescription)" }) {
                 Text(message)
                     .font(SettingsTypography.body)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(FeedbackStatus.warning.adaptiveColor)
                     .textSelection(.enabled)
             }
             if let warning = core.imeSettingsRefreshWarning {
-                Text(warning).font(SettingsTypography.body).foregroundStyle(.orange).textSelection(.enabled)
+                Text(warning).font(SettingsTypography.body).foregroundStyle(FeedbackStatus.pending.adaptiveColor).textSelection(.enabled)
             }
 
             if core.isPreparingIME {

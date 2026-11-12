@@ -503,11 +503,12 @@ struct OnboardingView: View {
     /// 2026-11-09 오너(#216): 설정 변환 단축키 카드와 같은 문장, 같은 빨간 글씨(`RevertKey.terminalLimitNotice`).
     /// 4차에서 단축키를 처음 소개하는 4페이지에만 남겼다(1·5페이지는 뺐다 — "너무 많다").
     /// 터미널은 입력기를 못 받는 곳이 아니라 이미 들어간 글자를 바꿀 수 없는 곳이다(2026-07-28 실측, #30). 예전 4페이지의 네 줄 설명(`terminalLimitNote`)은 지웠다.
+    // 2026-11-13 (#227, 리뷰 app-ui-F-5): 시스템 초록·주황·빨강 글자는 밝은 화면에서 대비가 2~3.6:1이었다. 같은 계열의 진한 상태색(`FeedbackStatus`, 4.5:1 이상)을 쓴다.
     private var terminalShortcutNote: some View {
         Label(shortcut.terminalLimitNotice, systemImage: "terminal")
             .labelStyle(AdviceLabelStyle())
             .font(AppFont.font(size: adviceNoteSize))
-            .foregroundStyle(.red)
+            .foregroundStyle(FeedbackStatus.warning.color(in: colorScheme))
             .fixedSize(horizontal: false, vertical: true)
     }
 

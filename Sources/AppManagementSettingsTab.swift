@@ -39,7 +39,7 @@ struct AppManagementSettingsTab: View {
                 if showsMenuBarIcon && loginItem == .needsApproval {
                     HStack(spacing: 12) {
                         Label("시스템 설정에서 허용해 주세요.", systemImage: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(FeedbackStatus.pending.adaptiveColor)
                         Spacer()
                         Button(maru: "로그인 항목 열기") { LoginItem.openSystemSettings() }
                     }
@@ -49,7 +49,8 @@ struct AppManagementSettingsTab: View {
 
             // 2026-11-08 오너(#201): 되돌릴 수 없는 일이라 제목과 버튼 글자를 빨갛게 쓴다. 설명은 한 문장으로 줄였다.
             // 2026-11-09 오너(#216): 제목은 2pt 작게, 설명과 버튼은 굵게 — "삭제 쪽은 전부 볼드체로. 그만큼 중요하다는 걸 인지시킨다."
-            HaneulSettingsSection("하늘키보드 전체 제거", titleColor: .red, titleSize: 18) {
+            // 2026-11-13 (#227, 리뷰 app-ui-F-5): 시스템 초록·주황·빨강 글자는 밝은 화면에서 대비가 2~3.6:1이었다. 같은 계열의 진한 상태색(`FeedbackStatus`, 4.5:1 이상)을 쓴다.
+            HaneulSettingsSection("하늘키보드 전체 제거", titleColor: FeedbackStatus.warning.adaptiveColor, titleSize: 18) {
                 Text("하늘키보드 관련 전체를 삭제해요.")
                     .font(SettingsTypography.destructive)
                     .foregroundStyle(.secondary)
@@ -58,7 +59,7 @@ struct AppManagementSettingsTab: View {
                     Button(role: .destructive) {
                         showingUninstallConfirm = true
                     } label: {
-                        Text("하늘키보드 전체 제거…").font(SettingsTypography.destructive).foregroundStyle(.red)
+                        Text("하늘키보드 전체 제거…").font(SettingsTypography.destructive).foregroundStyle(FeedbackStatus.warning.adaptiveColor)
                     }
                     .disabled(isBusy)
                 }

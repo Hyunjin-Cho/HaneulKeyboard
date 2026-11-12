@@ -146,6 +146,70 @@ func runDefaultsKeyTests() {
     expect(strays.isEmpty, "앱 Sources에 흩어진 설정 도메인·키 리터럴 없음 \(strays)")
 }
 
+// MARK: - 상태 글자 대비 (리뷰 app-ui-F-5)
+
+/// 2026-11-13 (#227): 상태 글자(초록·주황·빨강)는 밝은·어두운 화면 모두 4.5:1 이상이어야 한다(WCAG 2 보통 글자).
+/// 바탕은 실제 화면에 깔리는 색을 소스 값 그대로 옮겨 쓰고, 아래에서 소스 글로 값이 같은지 확인한다(바뀌면 여기도 고친다).
+/// 설정의 묶음 표(Form) 바탕은 실측하지 못했다 — 한지보다 6% 어둡거나(밝은 화면) 흰색 10%를 덮은(어두운 화면) 여유 바탕을 더해 본다.
+func runStatusContrastTests() {
+    let ivory = StatusRGB(247 / 255, 242 / 255, 229 / 255)          // OnboardingRiso.ivory (한지 바탕 평균)
+    let card = StatusRGB(250 / 255, 246 / 255, 236 / 255)           // 안내 카드 종이(OnboardingView.cardPaper)
+    let meok = StatusRGB(0.150, 0.140, 0.128)                       // OnboardingRiso.meok (어두운 화면 종이)
+    let cyan = StatusRGB(3 / 255, 150 / 255, 251 / 255)             // FeedbackTone.information
+    let yellow = StatusRGB(252 / 255, 220 / 255, 12 / 255)          // FeedbackTone.advice
+    let red = StatusRGB(0.85, 0.16, 0.20)                           // FeedbackTone.warning
+    let light: [(String, StatusRGB)] = [
+        ("한지", ivory), ("카드 종이", card), ("흰 바탕", StatusRGB(1, 1, 1)),
+        ("하늘색 띠", ivory.overlaid(with: cyan, alpha: 0.10)), ("노란 띠", ivory.overlaid(with: yellow, alpha: 0.10)),
+        ("경고 띠", ivory.overlaid(with: red, alpha: 0.10)), ("눌러야 하는 칸", StatusRGB(0.98, 0.91, 0.91)),
+        ("여유: 한지 6% 어둡게", ivory.overlaid(with: StatusRGB(0, 0, 0), alpha: 0.06)),
+    ]
+    let dark: [(String, StatusRGB)] = [
+        ("먹색", meok), ("하늘색 띠", meok.overlaid(with: cyan, alpha: 0.16)), ("노란 띠", meok.overlaid(with: yellow, alpha: 0.16)),
+        ("경고 띠", meok.overlaid(with: red, alpha: 0.16)), ("눌러야 하는 칸", StatusRGB(0.226, 0.146, 0.139)),
+        ("여유: 먹색에 흰색 10%", meok.overlaid(with: StatusRGB(1, 1, 1), alpha: 0.10)),
+    ]
+    for status in FeedbackStatus.allCases {
+        for (isDark, backgrounds) in [(false, light), (true, dark)] {
+            for (name, background) in backgrounds {
+                let ratio = status.rgb(dark: isDark).contrast(with: background)
+                expect(ratio >= 4.5, "상태 글자 대비 \(status) \(isDark ? "어두운" : "밝은") 화면 · \(name): \(String(format: "%.2f", ratio))")
+            }
+        }
+    }
+    // 대조군: 예전 설정이 쓰던 시스템 초록(밝은 화면 52,199,89)은 한지에서 기준에 못 미친다 — 계산이 살아 있다는 증거.
+    expect(StatusRGB(52 / 255, 199 / 255, 89 / 255).contrast(with: ivory) < 3, "대조군: 시스템 초록은 한지에서 3:1 미만")
+    expectEqual((StatusRGB(0, 0, 0).contrast(with: StatusRGB(1, 1, 1)) * 100).rounded(), 2100, "대조군: 검정/흰색 = 21:1")
+
+    // 위에 옮겨 쓴 바탕 값이 소스와 같은지(소스가 바뀌면 이 검사를 고친다).
+    let riso = readSource("Sources/OnboardingRiso.swift") ?? ""
+    let style = readSource("Sources/FeedbackStyle.swift") ?? ""
+    let onboarding = readSource("Sources/OnboardingView.swift") ?? ""
+    for (text, literal) in [(riso, "ivory = Color(red: 247 / 255, green: 242 / 255, blue: 229 / 255)"),
+                            (riso, "meok = Color(red: 0.150, green: 0.140, blue: 0.128)"),
+                            (riso, "cyan = Color(red: 3 / 255, green: 150 / 255, blue: 251 / 255)"),
+                            (riso, "yellow = Color(red: 252 / 255, green: 220 / 255, blue: 12 / 255)"),
+                            (style, "Color(red: 0.85, green: 0.16, blue: 0.20)"),
+                            (style, "Color(red: 0.226, green: 0.146, blue: 0.139) : Color(red: 0.98, green: 0.91, blue: 0.91)"),
+                            (style, "tint.opacity(scheme == .dark ? 0.16 : 0.10)"),
+                            (onboarding, "Color(red: 250 / 255, green: 246 / 255, blue: 236 / 255)")] {
+        expect(text.contains(literal), "대비 검사의 바탕 값이 소스와 같다: \(literal)")
+    }
+
+    // 앱 화면 소스에 시스템 초록·주황·빨강 글자가 다시 들어오지 않게(버튼 칠 `tint: .red`는 글자가 아니라 제외).
+    let appFiles = (try? FileManager.default.contentsOfDirectory(atPath: root.appendingPathComponent("Sources").path)) ?? []
+    var strays: [String] = []
+    for file in appFiles where file.hasSuffix(".swift") {
+        guard let text = readSource("Sources/" + file) else { continue }
+        for pattern in ["foregroundStyle(.red)", "foregroundStyle(.orange)", "foregroundStyle(.green)",
+                        "foregroundStyle(Color.red)", "foregroundStyle(Color.orange)", "foregroundStyle(Color.green)",
+                        "titleColor: .red"] where text.contains(pattern) {
+            strays.append("\(file): \(pattern)")
+        }
+    }
+    expect(strays.isEmpty, "시스템 초록·주황·빨강 글자 없음 \(strays)")
+}
+
 // MARK: - 두루마리 자원 (리뷰 app-ui-F-6)
 
 func runScrollResourceTests() {
@@ -212,6 +276,7 @@ struct AppUITests {
         runInputSourceTests()
         runDefaultsKeyTests()
         runScrollResourceTests()
+        runStatusContrastTests()
         print("AppUI: \(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
     }

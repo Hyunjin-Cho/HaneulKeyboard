@@ -116,3 +116,50 @@ enum InputSourceDescription: Equatable {
         self == .unknown ? "하늘키보드, \(menuLine)" : "하늘키보드, 현재 입력 소스 \(summary)"
     }
 }
+
+/// 2026-11-13 (#227, 리뷰 app-ui-F-5): 상태 글자색(초록·주황·빨강)의 정본. sRGB 0~1.
+/// 설정 화면은 시스템 색(.green·.orange·.red)을 글자에 직접 써서 밝은 화면에서 대비가 2:1 안팎이었다(읽기 기준 4.5:1).
+/// 안내 창이 쓰던 진한 색(`FeedbackStatus`)을 설정에도 쓰고, 그 값을 여기 한 곳에 둬 `Tests/AppUITests.swift`가
+/// 한지 바탕·흰 바탕·안내 띠 바탕(밝은·어두운)에서 4.5:1 이상인지 계산으로 고정한다. 화면 쪽 `Color`는 `FeedbackStyle.swift`가 만든다.
+/// 색 계열(초록·주황·빨강)은 예전 그대로다. 리소 잉크(초록 겹침 #08A866·주황 겹침 #FB6F21)는 한지 바탕에서 2.5~2.8:1이라
+/// 글자색으로 쓰지 않는다(Visual Spec의 text_rule도 본문 글자는 선명한 일반 글자로 둔다).
+enum FeedbackStatus: CaseIterable {
+    case success, pending, warning
+
+    func rgb(dark: Bool) -> StatusRGB {
+        switch self {
+        // 2026-11-13 (#227): 밝은 화면 초록 (0, 0.502, 0) → (0, 0.43, 0). 하늘색 안내 띠 위에서 4.14:1이었다.
+        case .success: dark ? StatusRGB(0.20, 0.85, 0.30) : StatusRGB(0, 0.43, 0)
+        // 2026-11-13 (#227): 밝은 화면 주황 (0.69, 0.30, 0.02) → (0.63, 0.27, 0.02). 경고 띠 위에서 4.17:1이었다.
+        case .pending: dark ? StatusRGB(1, 0.66, 0.30) : StatusRGB(0.63, 0.27, 0.02)
+        case .warning: dark ? StatusRGB(1, 0.56, 0.56) : StatusRGB(0.72, 0.10, 0.14)
+        }
+    }
+}
+
+/// sRGB 색 한 점과 WCAG 2 대비 계산(상대 휘도). 화면을 띄우지 않고 글자색을 검사하려고 쓴다.
+struct StatusRGB: Equatable {
+    let red: Double
+    let green: Double
+    let blue: Double
+
+    init(_ red: Double, _ green: Double, _ blue: Double) {
+        self.red = red; self.green = green; self.blue = blue
+    }
+
+    var relativeLuminance: Double {
+        func linear(_ c: Double) -> Double { c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4) }
+        return 0.2126 * linear(red) + 0.7152 * linear(green) + 0.0722 * linear(blue)
+    }
+
+    func contrast(with other: StatusRGB) -> Double {
+        let (a, b) = (relativeLuminance, other.relativeLuminance)
+        return (max(a, b) + 0.05) / (min(a, b) + 0.05)
+    }
+
+    /// 이 색 위에 `top`을 `alpha`만큼 덮은 색(안내 띠처럼 반투명 칠).
+    func overlaid(with top: StatusRGB, alpha: Double) -> StatusRGB {
+        StatusRGB(red * (1 - alpha) + top.red * alpha, green * (1 - alpha) + top.green * alpha,
+                  blue * (1 - alpha) + top.blue * alpha)
+    }
+}

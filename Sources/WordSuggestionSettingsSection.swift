@@ -75,7 +75,7 @@ struct WordSuggestionSettingsSection: View {
             Text("이메일 받는 곳: \(WordSuggestion.contactEmail)")
                 .font(SettingsTypography.body).foregroundStyle(.secondary).textSelection(.enabled)
             if let openError {
-                Text(openError).font(SettingsTypography.body).foregroundStyle(.red)
+                Text(openError).font(SettingsTypography.body).foregroundStyle(FeedbackStatus.warning.adaptiveColor)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
