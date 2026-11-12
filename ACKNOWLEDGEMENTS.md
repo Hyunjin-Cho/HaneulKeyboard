@@ -1,6 +1,6 @@
 # 감사의 글 (Acknowledgements)
 
-> 기준일: 2026-11-08 (2026-10-17 작성. 2026-11-07에 사전 탑재 방식·고지 원문·McBopomofo 고지를, 2026-11-08에 글꼴을 고운바탕에서 마루 부리로 고쳤습니다)
+> 기준일: 2026-11-13 (2026-10-17 작성. 2026-11-07에 사전 탑재 방식·고지 원문·McBopomofo 고지를, 2026-11-08에 글꼴을 고운바탕에서 마루 부리로, 2026-11-13에 지명 사전 범위와 보충 목록 설명을 고쳤습니다)
 
 하늘키보드는 혼자 만든 것이 아닙니다. 앞서 길을 닦아준 수많은 오픈소스와 도구, 그리고 그것을 가능케 한 사람들의 어깨 위에 서 있습니다.
 
@@ -126,12 +126,12 @@ special lists in order to help improve the overall quality of ESDB.
 |---|---:|---|
 | `english_names.txt` | 28,378개 | Census 성씨와 SSA 이름을 가공·필터링한 목록 |
 | `english_modern.txt` | 71,348개 | SCOWL size 70을 가공·필터링한 목록 |
-| `english_names_extra.txt` | 수작업 보충 목록 | Census/SSA 출처가 아닌, 유명인·이름·제품·기술 약어를 수작업으로 선별한 목록. 2026-11-07 오너 결정으로 약어 7개(`ansi`·`goty`·`emtek`·`totp`·`algo`·`rhel`·`gorm`)가 이 목록으로 내려왔습니다 |
+| `english_names_extra.txt` | 수작업 보충 목록 | Census/SSA 출처가 아닌, 유명인·이름·제품·기술 약어를 수작업으로 선별한 목록. 2026-11-07 오너 결정으로 약어 7개(`ansi`·`goty`·`emtek`·`totp`·`algo`·`rhel`·`gorm`)가 이 목록으로 내려왔고, 2026-11-13(#225)부터 요일·달·나라·국적·언어 이름이 들어 있습니다 |
 
 ### GeoNames — 전 세계 지명 데이터
 - https://www.geonames.org
 - 라이선스: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/
-- 영타 자동 변환의 **지명 사전**(북미·유럽 4개국의 주/도 + 인구 5만+ 도시, [`Resources/IM/english_sports_geo.txt`](./Resources/IM/english_sports_geo.txt)에 포함)의 출처입니다. 전 세계 지명을 자유롭게 열어준 GeoNames와 기여자들께 감사드립니다.
+- 영타 자동 변환의 **지명 사전**(북미·유럽 7개국 — 미국·캐나다·멕시코·영국·프랑스·스페인·이탈리아 — 의 주/도 + 인구 5만+ 도시, [`Resources/IM/english_sports_geo.txt`](./Resources/IM/english_sports_geo.txt)에 포함)의 출처입니다. 전 세계 지명을 자유롭게 열어준 GeoNames와 기여자들께 감사드립니다.
 
 ### Wikidata (Wikimedia)
 - https://www.wikidata.org
@@ -167,7 +167,7 @@ plist·entitlements 구조와 IME 아키텍처를 비교·학습하는 데 참�
 
 # Acknowledgements (English)
 
-> Updated: 2026-11-07 (first written 2026-10-10; on 2026-11-07 the dictionary bundling note, license texts and the McBopomofo notice were revised)
+> Updated: 2026-11-13 (first written 2026-10-10; on 2026-11-07 the dictionary bundling note, license texts and the McBopomofo notice were revised; on 2026-11-08 the fonts changed to MaruBuri; on 2026-11-13 the place-name coverage and the supplement list description were corrected)
 
 HaneulKeyboard builds on the work of the open-source projects, tools, and people who came before it.
 
@@ -240,8 +240,8 @@ addition, he gave me an incredible amount of feedback and created a number of
 special lists in order to help improve the overall quality of ESDB.
 ```
 
-- **Bundled name data and table (changed 2026-11-07):** `english_names.txt` contains 28,378 processed Census/SSA entries. `english_names_extra.txt` is a hand-curated supplement of names, products and technical abbreviations and is not sourced from Census or SSA; by owner decision on 2026-11-07 seven abbreviations (`ansi`, `goty`, `emtek`, `totp`, `algo`, `rhel`, `gorm`) moved into it. The IME no longer reads these files one by one: six English dictionaries (the list in `dict_work/dict_manifest.tsv`) are merged into one sorted table, `english_bundled.txt`, and the IME looks words up in that table (the word count is in its header). The table contains no word that was not already distributed. macOS's `/usr/share/dict/words` is not copied into the table or the app; the IME reads that system file in place.
-- **[GeoNames](https://www.geonames.org)** (CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/) — Source of the place-name dictionary (North American & European states/provinces + cities with population 50k+) used by the wrong-layout auto-correction.
+- **Bundled name data and table (changed 2026-11-07):** `english_names.txt` contains 28,378 processed Census/SSA entries. `english_names_extra.txt` is a hand-curated supplement of names, products and technical abbreviations (since 2026-11-13, #225, also weekdays, months, countries, nationalities and languages) and is not sourced from Census or SSA; by owner decision on 2026-11-07 seven abbreviations (`ansi`, `goty`, `emtek`, `totp`, `algo`, `rhel`, `gorm`) moved into it. The IME no longer reads these files one by one: six English dictionaries (the list in `dict_work/dict_manifest.tsv`) are merged into one sorted table, `english_bundled.txt`, and the IME looks words up in that table (the word count is in its header). The table contains no word that was not already distributed. macOS's `/usr/share/dict/words` is not copied into the table or the app; the IME reads that system file in place.
+- **[GeoNames](https://www.geonames.org)** (CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/) — Source of the place-name dictionary (states/provinces + cities with population 50k+ in seven North American and European countries — US, Canada, Mexico, UK, France, Spain, Italy) used by the wrong-layout auto-correction.
 - **[Wikidata](https://www.wikidata.org)** (Wikimedia, CC0 1.0 Public Domain) — Source of the football club & player dictionary (9 leagues across England, France, Spain, Italy) used by the wrong-layout auto-correction. Structured Korean/English labels and aliases also corroborated directly authored noun mappings on 2026-10-18; descriptions and media were not copied.
 ## Development tools
 
