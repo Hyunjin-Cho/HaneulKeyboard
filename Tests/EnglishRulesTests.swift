@@ -500,6 +500,28 @@ func runEnglishDictReview1112Tests() {
     // togo(새해)는 우리말 표제어라 veto가 지킨다. 넣지 않았다.
     expect(type("togo").committedText, "새해", "F-1 togo=새해는 우리말")
 
+    // ── F-2 오너 결정: "cg는 바껴도 된다 … rcs, rad는 뜻이 없으니 변경되면 안 된다".
+    // ㄱㅊㄴ(괜찮네)·ㄱㅁㅇ(고마워)은 초성체 보호에 넣었다. ㅊㅎ(cg)는 그대로 바뀌고, rad는 숫자 뒤 단위로는 바뀐다.
+    for (keys, form) in [("rcs", "ㄱㅊㄴ"), ("rad", "ㄱㅁㅇ")] {
+        expect(type(keys).committedText, form, "F-2 초성체 보호: \(form)")
+        expect(afterThe(keys), form, "F-2 영어 뒤에서도 초성체 보호: \(form)")
+        expect(type(keys + ManualToggle.hangulToKeys("요")!).committedText, form + "요", "F-2 초성체 + 꼬리: \(form)요")
+    }
+    expect(type("cg").committedText, "cg", "F-2 ㅊㅎ=cg는 그대로")
+    converts(["Rcs", "RCS"], "F-2 Title·ALLCAPS는 그대로")
+    for raw in ["3rad ", "3 rad ", "1.5rad ", "0.5 rad "] {
+        expect(typeViaController(raw).committedText, raw, "F-2 숫자 뒤 rad는 단위: \(raw)")
+    }
+    expect(typeWithPersonalDictionary("rad", PersonalDictionary(force: ["rad"])).client.committedText, "rad", "F-2 개인 사전 추가는 우선")
+    // 같은 원칙으로 자음만으로 된 키열은 s·ed 굴절 추정(dds+s → ddss)을 쓰지 않는다. 사전에 그대로 있는 낱말만 바꾼다.
+    for keys in ["ddss", "wwws", "wtfs", "qgcs", "rrts", "aceed"] {
+        expect(type(keys).committedText, hangul(keys), "F-2 자음만 키열은 굴절 추정 없음: \(keys)")
+        expect(afterThe(keys), hangul(keys), "F-2 영어 뒤에서도 굴절 추정 없음: \(keys)")
+    }
+    converts(["great", "test", "tests", "dress", "dressed", "street", "streets", "crafted", "asserted", "grasses", "Great", "GREAT"],
+             "F-2 자음만 키열이라도 사전에 있는 낱말은 그대로")
+    converts(["githubs", "googled", "netflixs"], "F-2 모음이 든 키열의 굴절 추정은 그대로")
+
     // ── F-6: NGSL 낱말의 흔한 복수형은 멀쩡한 한글이라 curated에 정확히 있어야 바뀐다. 검역(Tier A 전수 리뷰)을 통과한 20개를 넣었다.
     for word in list("alarms charms cleans disturbs firms formals forms fuels girls risks sharps sicks sighs signals signs snaps socials totals visuals whens") {
         expect(type(word).committedText, word, "F-6 복수형 무맥락: \(word)")
