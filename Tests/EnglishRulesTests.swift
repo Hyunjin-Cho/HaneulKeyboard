@@ -499,4 +499,14 @@ func runEnglishDictReview1112Tests() {
     }
     // togo(새해)는 우리말 표제어라 veto가 지킨다. 넣지 않았다.
     expect(type("togo").committedText, "새해", "F-1 togo=새해는 우리말")
+
+    // ── F-6: NGSL 낱말의 흔한 복수형은 멀쩡한 한글이라 curated에 정확히 있어야 바뀐다. 검역(Tier A 전수 리뷰)을 통과한 20개를 넣었다.
+    for word in list("alarms charms cleans disturbs firms formals forms fuels girls risks sharps sicks sighs signals signs snaps socials totals visuals whens") {
+        expect(type(word).committedText, word, "F-6 복수형 무맥락: \(word)")
+        expect(afterThe(word), word, "F-6 복수형 영어 뒤: the \(word)")
+    }
+    // 넣지 않은 것: 우리말 표제어(veto) goals=해민·rocks=개찬, 이름과 겹치는 coals=채민·disks=야난.
+    for keys in ["goals", "rocks", "coals", "disks"] {
+        expect(type(keys).committedText, hangul(keys), "F-6 넣지 않은 꼴은 한글: \(hangul(keys))")
+    }
 }

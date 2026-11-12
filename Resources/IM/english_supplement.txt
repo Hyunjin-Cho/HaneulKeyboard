@@ -5445,3 +5445,28 @@ russian
 sudan
 thai
 turkey
+
+# 2026-11-13 (#225): 리뷰 2026-11-12 english-dict-F-6. NGSL 낱말의 흔한 복수형인데 한글형이 멀쩡해(girls=햐긴·signs=냐훈)
+# curated에 정확히 있어야 바뀐다(굴절 추정은 깨진 한글 경로에만 쓴다). 검역 Tier A 22개 전수 리뷰 — 이름과 겹치는
+# coals=채민·disks=야난은 뺐다. goals=해민·rocks=개찬은 우리말 표제어라 등재해도 바뀌지 않아(Tier C) 넣지 않았다
+# (goal·rock처럼 S 등급에 올릴지는 오너 판단). 기록: dict_work/2026-11-13-plurals-audit.csv
+alarms
+charms
+cleans
+disturbs
+firms
+formals
+forms
+fuels
+girls
+risks
+sharps
+sicks
+sighs
+signals
+signs
+snaps
+socials
+totals
+visuals
+whens

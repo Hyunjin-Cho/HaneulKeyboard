@@ -1,0 +1,25 @@
+word,hangul_form,class,in_urimalsaem,standalone_before,standalone_after,context_before,context_after,trigger_before,trigger_after,tier,note,decision_2026_11_13
+alarms,밈근,clean,0,0,1,0,1,0,1,A,무맥락 신규 변환(R5) — 전수 리뷰 대상; 조사결합 의심('밈' 등재),english_supplement에 넣음
+coals,채민,clean,0,0,1,0,1,0,1,A,무맥락 신규 변환(R5) — 전수 리뷰 대상; 조사결합 의심('채' 등재),제외: 채민 = 이름
+disks,야난,clean,0,0,1,0,1,0,1,A,무맥락 신규 변환(R5) — 전수 리뷰 대상; 조사결합 의심('야' 등재),제외: 야난 = 이름(리뷰 지적)
+firms,랴근,clean,0,0,1,0,1,0,1,A,무맥락 신규 변환(R5) — 전수 리뷰 대상; 조사결합 의심('랴' 등재),english_supplement에 넣음
+formals,래그민,clean,0,0,1,0,1,0,1,A,무맥락 신규 변환(R5) — 전수 리뷰 대상; 조사결합 의심('래그' 등재),english_supplement에 넣음
+forms,래근,clean,0,0,1,0,1,0,1,A,무맥락 신규 변환(R5) — 전수 리뷰 대상; 조사결합 의심('래' 등재); 활용형 의심('래그' 등재),english_supplement에 넣음
+fuels,려딘,clean,0,0,1,0,1,0,1,A,무맥락 신규 변환(R5) — 전수 리뷰 대상; 조사결합 의심('려' 등재),english_supplement에 넣음
+sharps,놈겐,clean,0,0,1,0,1,0,1,A,무맥락 신규 변환(R5) — 전수 리뷰 대상; 조사결합 의심('놈' 등재),english_supplement에 넣음
+sicks,냐찬,clean,0,0,1,0,1,0,1,A,무맥락 신규 변환(R5) — 전수 리뷰 대상; 조사결합 의심('냐' 등재),english_supplement에 넣음
+sighs,냐혼,clean,0,0,1,0,1,0,1,A,무맥락 신규 변환(R5) — 전수 리뷰 대상; 조사결합 의심('냐' 등재),english_supplement에 넣음
+signs,냐훈,clean,0,0,1,0,1,0,1,A,무맥락 신규 변환(R5) — 전수 리뷰 대상; 조사결합 의심('냐' 등재),english_supplement에 넣음
+snaps,누멘,clean,0,0,1,0,1,0,1,A,무맥락 신규 변환(R5) — 전수 리뷰 대상; 조사결합 의심('누' 등재),english_supplement에 넣음
+totals,샛민,clean,0,0,1,0,1,0,1,A,무맥락 신규 변환(R5) — 전수 리뷰 대상; 조사결합 의심('샛' 등재),english_supplement에 넣음
+whens,조둔,clean,0,0,1,0,1,0,1,A,무맥락 신규 변환(R5) — 전수 리뷰 대상; 조사결합 의심('조' 등재); 활용형 의심('조두' 등재),english_supplement에 넣음
+charms,촘근,clean,0,0,1,0,1,0,1,A,무맥락 신규 변환(R5) — 전수 리뷰 대상,english_supplement에 넣음
+cleans,칟문,clean,0,0,1,0,1,0,1,A,무맥락 신규 변환(R5) — 전수 리뷰 대상,english_supplement에 넣음
+disturbs,얀셔균,clean,0,0,1,0,1,0,1,A,무맥락 신규 변환(R5) — 전수 리뷰 대상,english_supplement에 넣음
+girls,햐긴,clean,0,0,1,0,1,0,1,A,무맥락 신규 변환(R5) — 전수 리뷰 대상,english_supplement에 넣음
+risks,갸난,clean,0,0,1,0,1,0,1,A,무맥락 신규 변환(R5) — 전수 리뷰 대상,english_supplement에 넣음
+signals,냐후민,clean,0,0,1,0,1,0,1,A,무맥락 신규 변환(R5) — 전수 리뷰 대상,english_supplement에 넣음
+socials,내챠민,clean,0,0,1,0,1,0,1,A,무맥락 신규 변환(R5) — 전수 리뷰 대상,english_supplement에 넣음
+visuals,퍄녀민,clean,0,0,1,0,1,0,1,A,무맥락 신규 변환(R5) — 전수 리뷰 대상,english_supplement에 넣음
+goals,해민,clean,1,0,0,0,0,0,0,C,우리말샘 등재(veto) — 구조 룰 변환 불가,"제외: 해민 = 우리말 표제어(veto), 등재해도 변화 없음"
+rocks,개찬,clean,1,0,0,0,0,0,0,C,우리말샘 등재(veto) — 구조 룰 변환 불가,"제외: 개찬 = 우리말 표제어(veto), 등재해도 변화 없음"
