@@ -1,6 +1,6 @@
 # 슬래시 영어 입력
 
-기준일: 2026-10-28. 기준 커밋: main `175e1a7439dbcdd0edf6e7b2d587e79e177b0923`에 빌드99 후속 수정을 추가한 후보. [요구사항 #87](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/87). 사용자가 구현·기본 ON·삭제 후 한글 복귀를 요청했고, OFF 토글을 요구했다. 실제 설치본의 새 동작 검증 전에는 테스트 후보다.
+기준일: 2026-11-13(아래 2026-11-04·2026-11-12 절 추가 — #229). 처음 기준일: 2026-10-28. 기준 커밋: main `175e1a7439dbcdd0edf6e7b2d587e79e177b0923`에 빌드99 후속 수정을 추가한 후보. [요구사항 #87](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues/87). 사용자가 구현·기본 ON·삭제 후 한글 복귀를 요청했고, OFF 토글을 요구했다. 실제 설치본의 새 동작 검증 전에는 테스트 후보다.
 
 2026-10-28 후속: `/` 시작 때는 커서 위치를 제공하다가 바로 다음 Backspace에서 선택 위치가 `NSNotFound`로 바뀌는 호스트를 보완했다. 기존에는 이 상태를 이미 이동한 커서처럼 취급해 임시 영어가 남았다. 같은 세션의 바로 다음 일반 Backspace이며 다른 조합이 없을 때만 영어 상태를 끝내고 삭제는 앱에 한 번 맡긴다. 정상 좌표가 실제로 다른 위치를 가리키거나 중간 문자·이동·수정키·조합이 있으면 기존 보호를 유지한다. 실제 controller 메서드의 수정 전8실패 → 수정 후849/0·153시나리오, 슬래시797/0. 실행 조건은 위 기준 소스와 `scripts/run_controller_tests.py`·`scripts/run_slash_tests.sh`다. 사용자 발생 앱의 원인을 이 재현만으로 확정하지 않는다.
 
@@ -12,13 +12,17 @@
 
 2026-11-07 (#173): 수정키 삭제·잘라내기·실행 취소로 `/`가 문서 끝에서 사라지면 실제 NSTextView는 그 자리 읽기에 빈 문자열이 아니라 nil을 준다(실측). 같은 세션에서 `/`를 한 번이라도 읽은 호스트가 nil을 주고 커서가 시작 자리 이하이면 기호가 사라진 것으로 보고 현재 키부터 한글로 돌린다. 읽었다는 사실만 기억하고 글자는 저장하지 않는다. 처음부터 못 읽는 호스트는 추측하지 않고 기존 정책을 유지한다. IMK를 거친 실기기 값은 체크리스트로 확인한다. 근거: `SlashEnglishSession.triggerWasRead`, `Tests/SlashEnglishTests.swift`.
 
-위 조회는 `handle`에서만 하며 RPC 중 세션이 바뀌면 즉시 중단한다. 활성화 콜백에는 새 조회가 없다. 근거: `SlashEnglishSession.Context/captureTrigger/process/deletesTrigger`, `HaneulInputController.handle`. 새 상태에 보관하는 값은 시작 위치이며 원문 내용은 아니다.
+2026-11-04 (#87 오너 신고·결정): ① **Return도 종료 키**다 — Return·키패드 Enter(Cmd·Ctrl·Option 없이, Shift 줄바꿈 포함)는 원래 앱에 한 번 전달한 뒤 다음 키부터 한글로 돌아온다. 글자를 돌려주지 않는 터미널에서 `/clear`를 실행한 뒤 다음 입력이 영어로 남던 것을 고쳤다. ② **글자 조회가 안 되는 앱에서도 개수로 삭제를 알아챈다** — `/` 뒤에 앱이 넣은 글자 **수**만 세고(`typedAfterTrigger`), 그 수가 0일 때의 일반 Backspace를 시작 기호 삭제로 본다. 셀 수 없는 편집(이동·붙여넣기·수정키 삭제·Enter·dead key 등)이 끼면 개수를 버리고 개수로는 끝내지 않는다. 커서 위치를 주는 앱이면 개수와 커서가 맞는지도 보고(한 번이라도 어긋나면 그 뒤로 개수를 믿지 않는다), 커서가 늘 시작 자리인 앱(Ghostty형)은 따로 표시한다. 근거: `SlashEnglishSession.typedAfterTrigger/countedDeletionAllowed/process`.
+
+2026-11-12 (#224, 리뷰 input-core-F-4·F-5): ① **커서가 슬래시 낱말을 떠나면 그 키부터 한글** — 글자를 넣는 키에서 읽은 커서가 시작 기호보다 앞이거나, 같은 자리(커서가 맞은 적 있는 앱만)이거나, '기호 뒤 + 센 글자 수'보다 뒤면 그 키부터 한글로 돌린다. 추가 읽기는 없다. 낱말 안에서 좌우로 고치는 것은 영어를 유지하고, 화살표·단축키로 글자 수를 놓친 뒤의 아래쪽 이동은 판단하지 않는다(이동 키 자체로는 끝내지 않는 기존 결정 유지). ② **첫 키에서 시작 자리 다시 잡기** — 확정 직후 옛 커서를 알려 주는 앱에서 시작 자리를 잘못 잡으면 `and/or`가 `and/ㅐㄱ`이 됐다(가짜 호스트 재현). 시작 직후 첫 키에서 시작 자리 글자가 `/`가 아니면 커서 바로 앞 1글자를 한 번 더 읽어 `/` 자리를 다시 잡는다. 실제 앱(Chrome 주소창·Notion·Slack)에서 일어나는지는 실기 확인 항목이다. 근거: `SlashEnglishSession.isAwaitingFirstKey/relocateTrigger/caretLeftSlashWord`, `Tests/SlashEnglishTests.swift`.
+
+위 조회는 `handle`에서만 하며 RPC 중 세션이 바뀌면 즉시 중단한다. 활성화 콜백에는 새 조회가 없다. 근거: `SlashEnglishSession.Context/captureTrigger/process/deletesTrigger`, `HaneulInputController.handle`. 새 상태에 보관하는 값은 시작 위치이며 원문 내용은 아니다. *(2026-11-13 보충: 2026-11-04부터 `/` 뒤 글자 **개수**와 커서 상태 표시(늘 같은 자리·한 번 어긋남·한 번 맞음)도 보관한다 — 아래 절. 글자 내용·키 순서는 보관하지 않는다.)*
 
 저장 키·기본값·순수 상태 전이는 `Shared/SlashEnglishSession.swift`의 `defaultsKey/defaultEnabled/process/reset`가 소유한다. 기본 ON이며 `Sources/SlashEnglishSettingsSection.swift`가 IME defaults 도메인 `com.hyunjincho.inputmethod.haneul`에 ON/OFF를 쓴다. 위치는 입력 기능 → 단축키 변환 → 슬래시 영어 입력. 자동 변환 토글과 앱별 예외 목록은 이 명시적인 영어 상태와 독립적이다.
 
-`IMESources/HaneulInputController.swift::handle`에서 보안 입력 검사 뒤, 기존 Backspace·변환 단축키 앞에 상태 분기를 둔다. 시작은 `commitActiveBoundary("/")`로 앞 조합을 확정하고, 이후에는 키를 소비/재삽입하지 않고 false로 원래 앱에 전달한다. 일반 Space도 앱이 한 번 입력한다. Backspace·Shift+Space·지정 변환 키·Enter·Tab·Esc·구두점·Option/Ctrl/Cmd 단축키는 원래 앱 동작을 따른다. event 문자가 nil일 때만 기존 물리 키 fallback 원칙에 따라 슬래시/키패드와 Space를 판단한다. 실제 문자가 있으면 항상 문자가 우선이다.
+`IMESources/HaneulInputController.swift::handle`에서 보안 입력 검사 뒤, 기존 Backspace·변환 단축키 앞에 상태 분기를 둔다. 시작은 `commitActiveBoundary("/")`로 앞 조합을 확정하고, 이후에는 키를 소비/재삽입하지 않고 false로 원래 앱에 전달한다. 일반 Space도 앱이 한 번 입력한다. Backspace·Shift+Space·지정 변환 키·Tab·Esc·구두점·Option/Ctrl/Cmd 단축키는 원래 앱 동작을 따른다. *(2026-11-13 정정: Return·키패드 Enter는 2026-11-04부터 원래 앱에 한 번 전달한 뒤 이 상태를 직접 끝낸다 — 아래 2026-11-04 절.)* event 문자가 nil일 때만 기존 물리 키 fallback 원칙에 따라 슬래시/키패드와 Space를 판단한다. 실제 문자가 있으면 항상 문자가 우선이다.
 
-입력 소스 활성/비활성, 클라이언트 객체 교체, 보안 입력, 설정 OFF, **앱의 명시적인 commitComposition 요청**에서는 초기화한다. [Apple의 commitComposition 계약](https://developer.apple.com/documentation/objectivec/nsobject-swift.class/commitcomposition%28_%3A%29)은 입력 세션 종료와 상태 정리를 요구하고 종료 원인을 전달하지 않는다. 따라서 **일부 앱이 Enter/Tab/Esc 뒤 세션 종료를 요청하면 임시 영어도 끝날 수 있다.** 마지막 키 이후 commit 한 번을 무시하는 토큰은 다음 마우스·입력칸 이동을 잘못 무시할 수 있어 넣지 않았다. 이 제한과 같은 브라우저 프록시에서의 입력칸 이동은 실제 지원 앱에서 검증해야 한다. 정상적인 Space 종료와 안전 초기화는 구분한다.
+입력 소스 활성/비활성, 클라이언트 객체 교체, 보안 입력, 설정 OFF, **앱의 명시적인 commitComposition 요청**에서는 초기화한다. [Apple의 commitComposition 계약](https://developer.apple.com/documentation/objectivec/nsobject-swift.class/commitcomposition%28_%3A%29)은 입력 세션 종료와 상태 정리를 요구하고 종료 원인을 전달하지 않는다. 따라서 *(2026-11-13: Enter는 이제 입력기가 직접 끝내므로 이 문장은 Tab·Esc에만 해당한다)* **일부 앱이 Enter/Tab/Esc 뒤 세션 종료를 요청하면 임시 영어도 끝날 수 있다.** 마지막 키 이후 commit 한 번을 무시하는 토큰은 다음 마우스·입력칸 이동을 잘못 무시할 수 있어 넣지 않았다. 이 제한과 같은 브라우저 프록시에서의 입력칸 이동은 실제 지원 앱에서 검증해야 한다. 정상적인 Space 종료와 안전 초기화는 구분한다.
 
 입력 내용은 저장하거나 로그로 남기지 않고 클립보드·전역 이벤트 감시·추가 손쉬운 사용 권한을 사용하지 않는다. 활성화 callback에서 클라이언트의 커서/속성을 새로 읽지 않아 기존 Chromium 교착 방지 규칙을 보존한다.
 
