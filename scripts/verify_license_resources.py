@@ -62,6 +62,12 @@ def verify(app: Path) -> None:
         target = resources / name
         if not target.is_file() or target.read_bytes() != source.read_bytes():
             raise SystemExit(f"FAIL: missing/stale notice: {target}")
+    if app.name == "HaneulKeyboard.app":
+        # 2026-11-12 (#228, 리뷰 build-release-docs-F-5): 앱에 싣는 글꼴마다 OFL 사본도 같은 바이트로 실렸는지.
+        for source in sorted((ROOT / "Resources/Onboarding").glob("*-OFL.txt")):
+            target = resources / source.name
+            if not target.is_file() or target.read_bytes() != source.read_bytes():
+                raise SystemExit(f"FAIL: missing/stale font license: {target}")
     helper = app / "Contents/Helpers/HaneulKeyboardIM.app"
     if app.name == "HaneulKeyboard.app" and not helper.is_dir():
         raise SystemExit(f"FAIL: missing embedded IME: {helper}")
