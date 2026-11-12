@@ -71,6 +71,8 @@ enum RemovalSequence {
         let removeMainApps: () -> RemovalState
         /// 2026-11-07 (#176): 다른 계정이 시스템 입력기를 쓰는 중일 때의 안내. 제거를 막지 않는다.
         var otherAccountNotice: () -> RemovalState? = { nil }
+        /// 2026-11-13 (#226, 리뷰 install-update-F-4): 로그인할 때 열기 해제. 메인 앱을 실제로 지우기 바로 앞에서만 부른다(CLI는 기본값 — 아무것도 안 함).
+        var releaseLoginItem: () -> Void = {}
     }
     static func run(mode: RemovalReport.Mode, operations op: Operations) -> RemovalReport {
         var report = RemovalReport(mode: mode, steps: [])
@@ -124,6 +126,11 @@ enum RemovalSequence {
         if mode == .commandLine {
             add("main", "메인 앱", .needsUserAction("Finder에서 설치한 메인 앱을 휴지통으로 옮겨 주세요"), required: false)
         } else {
+            // 2026-11-13 (#226, 리뷰 install-update-F-4): 로그인 항목은 여기서 처음 푼다. 예전엔 등록 해제 단계에서 먼저 풀어,
+            // 그 뒤 단계(입력 소스·설정·관리자 암호)에서 멈추면 앱은 남았는데 로그인할 때 열리지 않았다. 지운 앱을 가리키는 항목을
+            // 남기지 않는다는 원래 목적은 삭제 직전에 풀어도 지켜진다. 여기까지 왔으면 설정이 이미 지워져, 삭제가 실패해도
+            // 다음 실행의 안내를 마칠 때 자동 등록이 다시 돈다.
+            op.releaseLoginItem()
             add("main", "메인 앱 제거", op.removeMainApps())
         }
         return report

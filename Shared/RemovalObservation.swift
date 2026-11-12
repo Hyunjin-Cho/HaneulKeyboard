@@ -199,9 +199,10 @@ enum RemovalObservation {
         guard let current = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue(),
               property(current, kTISPropertyInputSourceID) != nil else { return .unknown("현재 입력 소스를 읽지 못했어요") }
         if isOurs(current) {
-            guard let sources = inputSources(), let fallback = sources.first(where: {
-                !isOurs($0) && flag($0, kTISPropertyInputSourceIsEnabled) == true && flag($0, kTISPropertyInputSourceIsASCIICapable) == true
-            }), TISSelectInputSource(fallback) == noErr,
+            // 2026-11-13 (#226, 리뷰 install-update-F-3): 대체 소스는 선택 가능한 키보드 입력 소스로 고른다(`fallbackIndex`).
+            // 예전 조건(우리 것 아님·켜짐·ASCII 가능)에는 문자 팔레트도 걸렸고, 팔레트를 고르면 키보드 입력 소스가 그대로라 제거가 멈췄다.
+            guard let sources = inputSources(), let index = fallbackIndex(sources.map(snapshot)),
+                  TISSelectInputSource(sources[index]) == noErr,
                   let selected = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue(), !isOurs(selected) else {
                 return .failed("영문 입력 소스로 전환하지 못했어요. 입력 소스에서 영문 자판을 선택한 뒤 다시 시도해 주세요")
             }
@@ -218,6 +219,33 @@ enum RemovalObservation {
         var type: String?
         var enabled: Bool?
         var selected: Bool?
+        /// 2026-11-13 (#226): 대체 소스 고르기(`fallbackIndex`)에 쓴다.
+        var category: String?
+        var asciiCapable: Bool?
+        var selectCapable: Bool?
+    }
+
+    static func snapshot(_ source: TISInputSource) -> InputSourceSnapshot {
+        InputSourceSnapshot(id: property(source, kTISPropertyInputSourceID),
+            bundleID: property(source, kTISPropertyBundleID), type: property(source, kTISPropertyInputSourceType),
+            enabled: flag(source, kTISPropertyInputSourceIsEnabled), selected: flag(source, kTISPropertyInputSourceIsSelected),
+            category: property(source, kTISPropertyInputSourceCategory),
+            asciiCapable: flag(source, kTISPropertyInputSourceIsASCIICapable),
+            selectCapable: flag(source, kTISPropertyInputSourceIsSelectCapable))
+    }
+
+    /// 제거·자기 정리 때 우리 입력기 대신 고를 입력 소스. 2026-11-13 (#226, 리뷰 install-update-F-3):
+    /// 우리 것이 아니고, 켜져 있고, ASCII 입력이 되고, 선택할 수 있는 **키보드 입력 소스**(범주 `TISCategoryKeyboardInputSource`)만 고른다.
+    /// 문자 팔레트(이모지·기호, 길게 누르기, 받아쓰기 — 범주 `TISCategoryPaletteInputSource`)는 골라도 키보드 입력 소스가 바뀌지 않는다.
+    /// 키보드 자판(`TISTypeKeyboardLayout`, 예 ABC)을 먼저 고르고, 없으면 다른 입력기의 영문 모드를 고른다. 속성을 못 읽으면 제외한다.
+    static func fallbackIndex(_ sources: [InputSourceSnapshot]) -> Int? {
+        let candidates = sources.indices.filter { index in
+            let source = sources[index]
+            let ours = source.bundleID == imeID || (source.id?.hasPrefix(imeID) ?? false)
+            return !ours && source.enabled == true && source.asciiCapable == true && source.selectCapable == true
+                && source.category == kTISCategoryKeyboardInputSource as String
+        }
+        return candidates.first { sources[$0].type == kTISTypeKeyboardLayout as String } ?? candidates.first
     }
 
     /// TextInputSources.h: 자식 모드는 자신과 부모가 모두 enabled일 때만 선택 가능하다.
@@ -248,11 +276,7 @@ enum RemovalObservation {
     @MainActor static func observeInputSources() -> RemovalState {
         guard let sources = inputSources() else { return .unknown("입력 소스 목록을 조회하지 못했어요") }
         let current = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue()
-        let snapshots = sources.map {
-            InputSourceSnapshot(id: property($0, kTISPropertyInputSourceID),
-                bundleID: property($0, kTISPropertyBundleID), type: property($0, kTISPropertyInputSourceType),
-                enabled: flag($0, kTISPropertyInputSourceIsEnabled), selected: flag($0, kTISPropertyInputSourceIsSelected))
-        }
+        let snapshots = sources.map(snapshot)
         return inputSourceState(snapshots, currentID: current.flatMap { property($0, kTISPropertyInputSourceID) })
     }
 }

@@ -92,8 +92,7 @@ enum Uninstaller {
                 let ime = RemovalObservation.unregister(imeURLs, identifier: RemovalObservation.imeID)
                 guard ime.reachedGoal else { return ime }
                 if mode == .wholeProduct {
-                    // 2026-11-06 (#160): 로그인 항목이 지운 앱을 가리키지 않게 먼저 푼다. 실패해도 제거는 계속한다.
-                    onMain { try? LoginItem.set(enabled: false) }
+                    // 2026-11-13 (#226, 리뷰 install-update-F-4): 로그인 항목 해제는 여기(2026-11-06 #160)에서 메인 앱 삭제 직전(`releaseLoginItem`)으로 옮겼다.
                     return RemovalObservation.unregister(mainTargets.map(\.url), identifier: RemovalObservation.mainID)
                 }
                 return ime
@@ -119,7 +118,9 @@ enum Uninstaller {
             },
             otherAccountNotice: {
                 RemovalObservation.otherAccountNotice(removingSystemIME: imeTargets.contains { $0.url == RemovalObservation.systemIME })
-            }
+            },
+            // 로그인 항목이 지운 앱을 가리키지 않게 메인 앱을 지우기 바로 앞에서 푼다. 실패해도 제거는 계속한다.
+            releaseLoginItem: { onMain { try? LoginItem.set(enabled: false) } }
         ))
     }
 }
