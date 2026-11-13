@@ -113,7 +113,7 @@ macOS와 호스트 앱이 보안 입력(secure event input)을 올바르게 활�
 
 | 언제 | 어디로 | 무엇이 담기나 |
 |---|---|---|
-| 새 버전 확인 | `https://api.github.com/repos/Hyunjin-Cho/HaneulKeyboard/releases/latest` | **요청 본문 없음.** 앱이 넣는 헤더는 2개: `Accept: application/vnd.github+json`, `User-Agent: HaneulKeyboard/<버전>`. macOS 네트워크 기능(URLSession)이 표준 헤더를 덧붙입니다: 언어 설정 순서(`Accept-Language`, 예: `ko-KR,ko;q=0.9`)·압축 방식(`Accept-Encoding`)·연결(`Connection`)·호스트(`Host`) — 2026-11-13 로컬 서버로 실측(#226). |
+| 새 버전 확인 | `https://api.github.com/repos/Hyunjin-Cho/HaneulKeyboard/releases/latest` | **요청 본문 없음.** 앱이 넣는 헤더는 3개: `Accept: application/vnd.github+json`, `User-Agent: HaneulKeyboard/<버전>`, `Accept-Language: en`(누구에게나 같은 고정값 — macOS가 붙이던 이 Mac의 언어 설정 순서를 보내지 않도록 2026-11-13에 바꿨습니다). macOS 네트워크 기능(URLSession)이 표준 헤더를 덧붙입니다: 압축 방식(`Accept-Encoding`)·연결(`Connection`)·호스트(`Host`) — 2026-11-13 로컬 서버로 실측(#226). |
 | 새 버전 내려받기 (사용자가 **새 버전 설치** 버튼을 눌렀을 때만) | `https://github.com/.../releases/download/<버전>/HaneulKeyboard_<버전>.zip` (GitHub의 자산 CDN으로 자동 이동) | 위와 같은 헤더 |
 
 - **올려보내는 데이터가 없습니다**: 계정·이메일·기기 식별자·설치 ID·통계 어느 것도 보내지 않습니다. `User-Agent`에 담기는 것은 **앱 버전 하나**이며, 그 값은 공개된 릴리스 번호(예: `HaneulKeyboard/2026.08`)라 사용자를 가리키지 않습니다. 쿠키를 주고받지 않고(`httpCookieAcceptPolicy = .never`), 디스크 캐시 없는 세션(`ephemeral`)을 씁니다.
@@ -237,7 +237,7 @@ This is the **first feature that reaches the internet**, so it gets its own sect
 
 | When | Where | What it carries |
 |---|---|---|
-| Version check | `https://api.github.com/repos/Hyunjin-Cho/HaneulKeyboard/releases/latest` | **No request body.** The app adds two headers: `Accept: application/vnd.github+json` and `User-Agent: HaneulKeyboard/<version>`. macOS networking (URLSession) adds standard headers: your language preference order (`Accept-Language`, e.g. `ko-KR,ko;q=0.9`), compression (`Accept-Encoding`), `Connection`, and `Host` — measured against a local server on 2026-11-13 (#226). |
+| Version check | `https://api.github.com/repos/Hyunjin-Cho/HaneulKeyboard/releases/latest` | **No request body.** The app adds three headers: `Accept: application/vnd.github+json`, `User-Agent: HaneulKeyboard/<version>`, and `Accept-Language: en` (the same fixed value for everyone — since 2026-11-13 it replaces the language preference order of your Mac that macOS would otherwise send). macOS networking (URLSession) adds standard headers: compression (`Accept-Encoding`), `Connection`, and `Host` — measured against a local server on 2026-11-13 (#226). |
 | Download (only after you click **Install new version**) | `https://github.com/.../releases/download/<version>/HaneulKeyboard_<version>.zip` (redirected to GitHub's asset CDN) | The same headers as above |
 
 - **Nothing about you is uploaded**: no account, email, device identifier, install ID, or usage statistics. The `User-Agent` carries **one thing — the app version** (e.g. `HaneulKeyboard/2026.08`), a public release number that does not identify you. Cookies are refused (`httpCookieAcceptPolicy = .never`) and the session is `ephemeral` (no disk cache).
