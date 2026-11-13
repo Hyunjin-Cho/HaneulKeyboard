@@ -26,10 +26,15 @@ enum OrphanDecision {
         case missing
     }
 
+    /// 디스크를 보지 않고 글자만으로 만든 파일 URL. 2026-11-13 (#226, 좁은 재검토 install P3-1): `URL(fileURLWithPath:)`는 폴더인지 알려고
+    /// 그 경로를 디스크에서 한 번 조회한다 — 보호 폴더(데스크탑·문서·다운로드) 안 경로를 판단만 하려 해도 건드리게 된다.
+    /// 폴더 여부를 미리 정해 주면 조회하지 않는다. 아래 두 판단은 경로 구성요소와 `.`·`..` 정리만 쓰므로 결과는 같다.
+    static func lexicalURL(_ path: String) -> URL { URL(fileURLWithPath: path, isDirectory: true) }
+
     /// 경로가 휴지통(사용자 `~/.Trash`, 외장 볼륨 `.Trashes`) 안인가.
     /// 경로 구성요소 **정확 일치**로만 판정한다 — `Trash-like` 같은 폴더명에 걸리지 않게.
     static func isInTrash(_ path: String) -> Bool {
-        let components = URL(fileURLWithPath: path).standardizedFileURL.pathComponents
+        let components = lexicalURL(path).standardizedFileURL.pathComponents
         return components.contains(".Trash") || components.contains(".Trashes")
     }
 
@@ -118,7 +123,7 @@ enum OrphanDecision {
 
     /// `path`가 보호 폴더(`protectedRoots`) 자체이거나 그 아래인가.
     static func isProtectedLocation(_ path: String, protectedRoots: [String]) -> Bool {
-        let target = URL(fileURLWithPath: path).standardizedFileURL.path
+        let target = lexicalURL(path).standardizedFileURL.path
         return protectedRoots.contains { root in target == root || target.hasPrefix(root + "/") }
     }
 

@@ -150,6 +150,24 @@ import Foundation
             check(fm.fileExists(atPath: original.path + ".moved-away") && leftovers().isEmpty, "관리자 제거 \(kind): 원래 대상 보존·격리 폴더 정리")
         }
 
+        // 2026-11-13 (#226, 좁은 재검토 install P3-4): 격리 자리로 옮긴 뒤 지우다 일부가 남아도(잠긴 파일) 대상은 제자리에 없으니 성공으로 끝난다.
+        let lockedParent = root.appendingPathComponent("locked-quarantine")
+        try fm.createDirectory(at: lockedParent, withIntermediateDirectories: true)
+        let lockedTarget = try signedBundle("locked.app")
+        let lockingMover = root.appendingPathComponent("lock-after-move.sh")
+        try """
+        #!/bin/sh
+        /bin/mv "$@" || exit 1
+        /usr/bin/chflags uchg "$2/Contents/Info.plist"
+        """.write(to: lockingMover, atomically: true, encoding: .utf8)
+        try fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: lockingMover.path)
+        let lockedStatus = isolate(lockedTarget, parent: lockedParent, move: lockingMover.path)
+        let remnant = (try? fm.contentsOfDirectory(atPath: lockedParent.path)) ?? []
+        check(lockedStatus == 0 && !fm.fileExists(atPath: lockedTarget.path) && remnant.count == 1,
+              "관리자 제거: 옮긴 뒤 지우다 일부가 남아도 대상이 제자리에 없으면 성공(남은 조각은 격리 폴더 안)")
+        _ = tool("/usr/bin/chflags", ["-R", "nouchg", lockedParent.path])
+        try? fm.removeItem(at: lockedParent)
+
         let openParent = root.appendingPathComponent("open")
         try fm.createDirectory(at: openParent, withIntermediateDirectories: true)
         try fm.setAttributes([.posixPermissions: 0o777], ofItemAtPath: openParent.path)
@@ -253,6 +271,21 @@ import Foundation
                      home + "/.Trash/HaneulKeyboard.app", "/Users/other/Downloads/HaneulKeyboard.app"] {
             check(!protected(path), "고아 관찰: 보호 폴더 아님 \(path)")
         }
+        // 2026-11-13 (#226, 좁은 재검토 install P3-1): 판단에 쓰는 URL은 디스크를 보지 않는다 — 있는 폴더·있는 파일·없는 경로의 꼴이 같다.
+        let probeRoot = FileManager.default.temporaryDirectory.appendingPathComponent("haneul-lexical-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: probeRoot.appendingPathComponent("Real.app"), withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: probeRoot.appendingPathComponent("file.txt").path, contents: Data())
+        let shapes = ["Real.app", "file.txt", "Missing.app"].map { OrphanDecision.lexicalURL(probeRoot.appendingPathComponent($0).path).hasDirectoryPath }
+        check(Set(shapes).count == 1, "고아 관찰: 경로 판단은 디스크를 보지 않음(있는 폴더·파일·없는 경로가 같은 꼴)")
+        try? FileManager.default.removeItem(at: probeRoot)
+        let orphanSource = (try? String(contentsOfFile: "IMESources/OrphanDecision.swift", encoding: .utf8)) ?? ""
+        check(!orphanSource.isEmpty && !orphanSource.contains("URL(fileURLWithPath: path)"), "고아 관찰: 휴지통·보호 폴더 판단이 디스크를 보는 URL을 쓰지 않음")
+        for (path, trash) in [(home + "/.Trash/HaneulKeyboard.app/", true), (home + "/.Trash/../Applications/HaneulKeyboard.app", false),
+                              ("/Volumes/Ext/.Trashes/501/HaneulKeyboard.app", true), (home + "/Trash-like/HaneulKeyboard.app", false)] {
+            check(OrphanDecision.isInTrash(path) == trash, "고아 관찰: 휴지통 판단 \(path)")
+        }
+        check(protected(home + "/Downloads/") && protected(home + "/Downloads") && !protected(home + "/Downloads/../Applications/HaneulKeyboard.app"),
+              "고아 관찰: 끝 / ·`..`가 있어도 보호 폴더 판단이 같음")
         let installed = "/Applications/HaneulKeyboard.app"
         let downloads = home + "/Downloads/HaneulKeyboard.app"
         let trashed = home + "/.Trash/HaneulKeyboard.app"
