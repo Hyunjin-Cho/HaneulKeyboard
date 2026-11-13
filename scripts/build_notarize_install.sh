@@ -223,13 +223,45 @@ verify_release_artifacts() {
     echo
 }
 
+# 2026-11-13 (#226, 좁은 재검토 install P3-5): 앱 안 업데이트가 이 ZIP을 받아들일지 앱과 같은 코드(UpdateArchive)로 본다.
+verify_update_zip_format() {
+    local zip_path="$1"
+    local work
+    work="$(mktemp -d "/tmp/${TARGET}.zipformat.XXXXXX")"
+    echo "→ In-app updater archive check"
+    if ! xcrun swiftc -parse-as-library -target "$(uname -m)-apple-macos14.0" -module-cache-path "$work/module-cache" \
+        "$PROJECT_ROOT/Sources/UpdateDecisions.swift" "$PROJECT_ROOT/Sources/InstallDecisions.swift" \
+        "$PROJECT_ROOT/Shared/RemovalPolicy.swift" "$PROJECT_ROOT/IMESources/OrphanDecision.swift" \
+        "$PROJECT_ROOT/scripts/check_update_zip.swift" -o "$work/check_update_zip" >"$work/compile.log" 2>&1; then
+        echo "  ✗ could not build scripts/check_update_zip.swift:"
+        sed 's/^/    /' "$work/compile.log" | head -20
+        rm -rf "$work"
+        exit 1
+    fi
+    if ! "$work/check_update_zip" "$zip_path"; then
+        rm -rf "$work"
+        exit 1
+    fi
+    rm -rf "$work"
+}
+
 verify_final_zip_payload() {
     local zip_path="$1"
     local label="$2"
+    # 앱 안 업데이트가 받는 것은 메인 앱 ZIP뿐이다(입력기 단독 개발 타깃은 업데이트 대상이 아니다).
+    if [[ "$TARGET" == "HaneulKeyboard" ]]; then verify_update_zip_format "$zip_path"; fi
     cleanup_zip_verify_extract_root
     ZIP_VERIFY_EXTRACT_ROOT="$(mktemp -d "/tmp/${TARGET}.zipcheck.XXXXXX")"
     echo "→ Verify extracted $label"
     ditto -x -k "$zip_path" "$ZIP_VERIFY_EXTRACT_ROOT"
+    # 앱 안 업데이트처럼 풀린 맨 위가 앱 폴더 하나인지 본다(UpdateArchive.extractedTopLevelProblem과 같은 규칙).
+    local top_level
+    top_level="$(ls -A "$ZIP_VERIFY_EXTRACT_ROOT")"
+    if [[ "$top_level" != "$TARGET.app" ]]; then
+        echo "  ✗ $label: extracted top level must be exactly $TARGET.app (found: $(printf '%s' "$top_level" | tr '\n' ' '))"
+        cleanup_zip_verify_extract_root
+        exit 1
+    fi
     local extracted_app="$ZIP_VERIFY_EXTRACT_ROOT/$TARGET.app"
     require_path "$extracted_app" "$label app bundle"
     verify_codesign_bundle "$extracted_app" "$label app"

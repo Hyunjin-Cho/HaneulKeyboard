@@ -359,6 +359,10 @@ final class Updater {
         let extractDir = workDir.appendingPathComponent("extract", isDirectory: true)
         try fm.createDirectory(at: extractDir, withIntermediateDirectories: true)
         try extractGuarded(zip: zip, into: extractDir, limits: limits, log: workDir.appendingPathComponent("extract.log"))
+        // 2026-11-13 (#226, 좁은 재검토 install P3-5): 목록의 이름도 믿을 수 없다 — 맨 위가 앱 폴더 하나인지 본다.
+        // 이름만 읽고 앱 안은 열지 않는다(아래 링크 검사보다 먼저 와도 링크를 따라가지 않는다). 읽지 못하면 빈 목록 → 거부(fail-closed).
+        let topLevel = (try? fm.contentsOfDirectory(atPath: extractDir.path)) ?? []
+        if let problem = UpdateArchive.extractedTopLevelProblem(topLevel) { throw UpdateError.archiveRejected(problem) }
 
         // 배포 zip은 `ditto -c -k --keepParent`로 만들어 최상위가 HaneulKeyboard.app 하나다.
         let app = extractDir.appendingPathComponent(AppMoveDecision.destinationName)

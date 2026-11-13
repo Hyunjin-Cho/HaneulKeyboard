@@ -156,6 +156,31 @@ import Foundation
         return task.terminationStatus
     }
 
+    /// 2026-11-13 (#226, 좁은 재검토 install P3-5): 중앙 목록과 파일 머리글의 이름이 다른 무압축 ZIP을 직접 만든다(리뷰어 zipcraft 17번과 같은 꼴).
+    static func craftedZip(_ entries: [(local: String, central: String, data: Data)]) -> Data {
+        func le16(_ v: Int) -> [UInt8] { [UInt8(v & 0xff), UInt8((v >> 8) & 0xff)] }
+        func le32(_ v: UInt32) -> [UInt8] { (0..<4).map { UInt8((v >> (8 * UInt32($0))) & 0xff) } }
+        func crc32(_ bytes: [UInt8]) -> UInt32 {
+            var c: UInt32 = 0xffff_ffff
+            for b in bytes { c ^= UInt32(b); for _ in 0..<8 { c = (c >> 1) ^ (0xEDB8_8320 & (0 &- (c & 1))) } }
+            return ~c
+        }
+        var body: [UInt8] = [], central: [UInt8] = []
+        for entry in entries {
+            let local = Array(entry.local.utf8), name = Array(entry.central.utf8), data = [UInt8](entry.data)
+            let crc = crc32(data), size = UInt32(data.count), offset = UInt32(body.count)
+            body += le32(0x0403_4b50) + le16(20) + le16(0x0800) + le16(0) + le16(0) + le16(0x21)
+            body += le32(crc) + le32(size) + le32(size) + le16(local.count) + le16(0) + local + data
+            let mode: UInt32 = entry.central.hasSuffix("/") ? 0o40755 : 0o100644
+            central += le32(0x0201_4b50) + le16(20) + le16(20) + le16(0x0800) + le16(0) + le16(0) + le16(0x21)
+            central += le32(crc) + le32(size) + le32(size) + le16(name.count) + le16(0) + le16(0) + le16(0) + le16(0) + le32(mode << 16) + le32(offset) + name
+        }
+        let directoryOffset = UInt32(body.count)
+        body += central
+        body += le32(0x0605_4b50) + le16(0) + le16(0) + le16(entries.count) + le16(entries.count) + le32(UInt32(central.count)) + le32(directoryOffset) + le16(0)
+        return Data(body)
+    }
+
     /// 배포 스크립트와 같은 `ditto -c -k --keepParent`로 만든다.
     static func zip(_ app: URL, to zip: URL) -> Bool {
         tool("/usr/bin/ditto", ["-c", "-k", "--keepParent", app.path, zip.path]) == 0
@@ -245,6 +270,31 @@ import Foundation
         if case .failure(UpdateError.archiveRejected) = outside { check(true, "조립: 앱 폴더 밖 항목이 든 ZIP은 풀지 않음") }
         else { check(false, "조립: 앱 폴더 밖 항목 거부 \(outside)") }
         check(!fm.fileExists(atPath: outsideExtract.appendingPathComponent("HaneulKeyboard.app").path), "조립: 거부한 ZIP은 추출 폴더에 아무것도 없음")
+
+        // 2026-11-13 (#226, 좁은 재검토 install P3-5): 목록엔 앱 안 이름, 파일 머리글엔 앱 밖 이름. 목록 검사는 지나지만 ditto는 머리글 이름으로 풀므로,
+        // 풀린 맨 위를 보고 서명 검사 전에 거부한다. 같은 꼴에서 이름만 맞춘 ZIP은 이 검사를 지나 다음 단계(Info.plist 확인)까지 간다.
+        let good = "HaneulKeyboard.app/Contents/Resources/aaaaaaaaaaaaaaaa.txt"
+        let evil = "OUTSIDE_APP_" + String(repeating: "c", count: good.count - "OUTSIDE_APP_".count - 4) + ".txt"
+        func craft(_ archive: URL, local last: String) throws {
+            let app = try makeApp(archive.deletingLastPathComponent().appendingPathComponent("craft-src/HaneulKeyboard.app"), version: "2099.01.01", build: "999")
+            let plist = try Data(contentsOf: app.appendingPathComponent("Contents/Info.plist"))
+            let dirs = ["HaneulKeyboard.app/", "HaneulKeyboard.app/Contents/", "HaneulKeyboard.app/Contents/Resources/"]
+            try craftedZip(dirs.map { ($0, $0, Data()) } + [("HaneulKeyboard.app/Contents/Info.plist", "HaneulKeyboard.app/Contents/Info.plist", plist),
+                                                            (last, good, Data("x".utf8))]).write(to: archive)
+            check((try? Updater.inspectArchive(archive, limits: .release)) != nil, "조립 \(last == good ? "header-same" : "header-name"): 목록 검사는 통과하는 꼴")
+        }
+        let beforeHeader = recorder.calls.count
+        let (header, headerExtract) = try attempt("header-name", version: "2099.01.01", tag: "2099.01.01", custom: true) { try craft($0, local: evil) }
+        var headerReason = ""
+        if case .failure(UpdateError.archiveRejected(let reason)) = header { headerReason = reason }
+        check(headerReason.contains("맨 위") && recorder.calls.count == beforeHeader, "조립: 머리글 이름이 앱 밖인 ZIP은 풀린 맨 위를 보고 서명 검사 전에 거부")
+        check(fm.fileExists(atPath: headerExtract.appendingPathComponent(evil).path), "조립 header-name: ditto는 머리글 이름으로 푼다(이 검사가 필요한 이유)")
+        let (same, _) = try attempt("header-same", version: "2099.01.01", tag: "2099.01.01", custom: true) { try craft($0, local: good) }
+        if case .success = same { check(true, "조립: 이름이 맞는 같은 꼴 ZIP은 맨 위 검사를 지남") } else { check(false, "조립: 이름이 맞는 ZIP \(same)") }
+        check(UpdateArchive.extractedTopLevelProblem(["HaneulKeyboard.app"]) == nil
+              && UpdateArchive.extractedTopLevelProblem(["HaneulKeyboard.app", ".hidden"]) != nil
+              && UpdateArchive.extractedTopLevelProblem([]) != nil && UpdateArchive.extractedTopLevelProblem(["Other.app"]) != nil,
+              "조립: 맨 위는 정확히 앱 폴더 하나(숨은 항목·빈 목록·다른 이름 거부)")
 
         let (missing, _) = try attempt("no-app", version: "2099.01.01", tag: "2099.01.01", custom: true) { archive in
             let staging = archive.deletingLastPathComponent().appendingPathComponent("emptyzip")

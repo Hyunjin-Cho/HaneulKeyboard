@@ -67,8 +67,11 @@ struct RemovalAdminScript {
             /bin/rmdir "$quarantine" 2>/dev/null || true
             exit 75
         fi
-        /bin/rm -rf -- "$held"
-        /bin/rmdir "$quarantine" || true
+        # 2026-11-13 (#226, 좁은 재검토 install P3-4): 여기까지 오면 대상은 이미 제자리에 없다. 지우다 일부가 남아도(잠긴 파일 등) 실패로 끝내지 않는다 —
+        # 예전엔 `set -e`로 바로 끝나 화면이 '삭제 실패'라고 했는데, 다시 시도하면 '이미 없음'으로 지나갔다. 남은 조각은 root 전용 0700 격리 폴더 안에 있고
+        # 재시동 때 /private/tmp와 함께 사라진다. 성공 여부는 아래 마지막 줄(제자리에 없음)로 정한다.
+        /bin/rm -rf -- "$held" || true
+        /bin/rmdir "$quarantine" 2>/dev/null || true
         [ ! -e "$target" ] && [ ! -L "$target" ]
         """
     }

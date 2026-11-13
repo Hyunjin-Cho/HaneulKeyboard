@@ -426,7 +426,11 @@ struct ZipDirectoryLocation: Equatable, Sendable {
 /// ⚠️ ZIP이 적은 '풀린 크기'는 믿을 수 없다. 2026-11-13 실측: 1,000바이트로 적힌 항목을 `ditto -x -k`가 64MiB 끝까지 풀었다.
 /// 그래서 이 목록 검사는 정직한 큰 파일·이상한 경로를 미리 거르는 1차 관문이고, 실제 상한은 `Updater.extractGuarded`가
 /// 푸는 동안 디스크에 쌓인 양·항목 수·시간을 지켜보며(`extractionProblem`) 넘는 순간 해제를 멈춘다.
+/// ⚠️ 이름도 믿을 수 없다(2026-11-13 좁은 재검토 install P3-5 실측): `ditto -x -k`는 중앙 목록이 아니라 파일마다 붙은 머리글의 이름으로 푼다.
+/// 목록에는 앱 안 이름을, 머리글에는 다른 이름을 적으면 목록 검사를 지나 앱 폴더 밖(추출 폴더 맨 위)에 풀린다. `..`·절대 경로는 ditto가 떼어 내
+/// 추출 폴더 밖으로는 나가지 않는다. 그래서 풀고 난 뒤 맨 위가 앱 폴더 하나인지 `extractedTopLevelProblem`으로 다시 본다.
 /// 배포 ZIP(`ditto -c -k --keepParent`)은 주석·ZIP64가 없고 모든 항목이 `HaneulKeyboard.app/` 아래다. 그 밖의 꼴은 거부한다(fail-closed).
+/// 배포 스크립트도 만든 ZIP을 이 코드로 검사한다(`scripts/check_update_zip.swift`) — ZIP 만드는 방법이 바뀌어 현장 업데이트가 거부되는 일을 빌드에서 막는다.
 enum UpdateArchive {
     /// 끝에서 읽을 바이트 수. 끝 레코드(22바이트)와 바로 앞 ZIP64 위치 레코드(20바이트)를 본다.
     static let tailBytes = 64
@@ -498,6 +502,12 @@ enum UpdateArchive {
             guard isInsideApp(entry.name, appName: appName) else { return "\(appName) 밖의 항목이 있음" }
         }
         return nil
+    }
+
+    /// 풀고 난 뒤 추출 폴더 맨 위 판단. 정확히 앱 폴더 하나여야 한다(숨은 파일 포함). nil이면 통과.
+    /// 2026-11-13 (#226, 좁은 재검토 install P3-5): 목록 이름과 머리글 이름이 다른 ZIP을 여기서 거른다(위 enum 주석).
+    static func extractedTopLevelProblem(_ names: [String], appName: String = AppMoveDecision.destinationName) -> String? {
+        names == [appName] ? nil : "압축을 푼 맨 위에 \(appName) 말고 다른 항목이 있음(\(names.count)개)"
     }
 
     /// 푸는 동안의 판단. 디스크에 쌓인 양·항목 수·걸린 시간 중 하나라도 상한을 넘으면 멈출 이유를 돌려준다.
