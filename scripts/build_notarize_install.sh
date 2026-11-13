@@ -294,9 +294,15 @@ if ! security find-identity -p codesigning -v | grep -q "$DEVID_CERT_PATTERN"; t
 fi
 
 if [[ "${LOCAL_BUILD_ONLY:-0}" != "1" ]]; then
-    if ! xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1; then
-        echo "  ✗ notarytool keychain profile '$NOTARY_PROFILE' missing."
-        echo "    Re-create with: xcrun notarytool store-credentials \"$NOTARY_PROFILE\" --apple-id <email> --team-id 6RH6FXY82P"
+    # 2026-11-13: 예전엔 어떤 실패든 "프로필 없음"이라고만 했다 — 실제로는 애플 계약 만료(HTTP 403)였다. notarytool의 말을 그대로 보여 준다.
+    if ! notary_check=$(xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" 2>&1); then
+        echo "  ✗ notarytool could not use keychain profile '$NOTARY_PROFILE':"
+        printf '%s\n' "$notary_check" | head -5 | sed 's/^/    /'
+        if grep -q "403" <<<"$notary_check"; then
+            echo "    → Apple refused the request. Sign in at developer.apple.com/account and accept the pending agreement, then re-run."
+        else
+            echo "    If the profile is gone, re-create it: xcrun notarytool store-credentials \"$NOTARY_PROFILE\" --apple-id <email> --team-id 6RH6FXY82P"
+        fi
         exit 1
     fi
 fi
