@@ -34,9 +34,10 @@ final class KoreanComposer {
 
     /// The most recent commit, when it was English (lowercased; nil = the
     /// last commit was Korean or context was reset). Feeds EnglishDetector's
-    /// context rules — the WORD itself matters now (whitelistTriggers:
-    /// "want"+새→to fires, "github"+새 stays Korean). The controller resets
-    /// it on boundaries that end the English run.
+    /// context rules. The controller resets it on boundaries that end the English run.
+    /// 2026-11-13 (#224, 리뷰 english-dict-F-7, 오너 결정 "지금 조건문이 잘 작동한다"): 예전 주석은 "github 뒤의 새는 한글로 남는다"였지만
+    /// 트리거 목록은 2026-06-19 "앞이 영어면 무조건"으로 없어졌다 — 지금은 어떤 영어 낱말 뒤에서든 짧은 단어(새→to·내→so 등)가 바뀌고,
+    /// 2026-10-14부터는 ABC로 친 영어 뒤(바깥 문맥, 설정에서 끌 수 있음)에서도 같다. 오너가 이 동작을 그대로 두기로 했다.
     private(set) var lastEnglishWord: String?
     /// #14: 전환/커서 이동 뒤 첫 단어 한 번만 소비한다. 내부 체이닝과 별개다.
     private var externalEnglishWord: String?
