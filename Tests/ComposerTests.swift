@@ -2064,14 +2064,14 @@ struct ComposerTests {
         // 헬퍼는 키열을 받는다: so=내. 여는 따옴표는 클라이언트가 직접 넣으므로 커밋 목록엔 apple'·내만 남는다.
         expect(typeWordsViaController(["'apple'", "so"]).joined(separator: " "), "apple' 내", "축약형: 닫는 따옴표 뒤 한국어 보호(문맥 단절)")
         expect(typeWordsViaController(["apple", "so"]).joined(separator: " "), "apple so", "축약형: (대조) 따옴표 없는 영어 뒤에는 문맥 변환 유지")
-        // ⚠️ john's는 변환되지 않는다 — web2에는 대문자 "John"만 있고
-        // EnglishDetector.loadWords가 "소문자로 시작하는 줄"만 싣기 때문에 base
-        // "john"이 사전에 없다. 축약형 로직이 아니라 base 사전의 한계이고,
-        // `'`가 경계였던 예전과 결과가 같다(회귀 아님).
+        // base가 사전에 없으면 축약형도 한글로 남는다(축약형 로직이 아니라 base 사전의 몫, `'`가 경계였던 예전과 결과가 같다).
+        // 2026-11-13 (#225 후속): 예전 예시 john은 web2에 대문자 "John"만 있어 빠져 있었는데, 빠진 성씨를 되살리며 사전에 들어왔다 —
+        // 그래서 john's는 이제 바뀌고, '사전에 없는 base' 예시는 없는 철자 juhn으로 바꿨다.
         expect(
-            typeViaController("john's").committedText, "ㅓㅐㅗㅜ'ㄴ",
-            "축약형: base가 사전에 없으면(john) 한글 유지"
+            typeViaController("juhn's").committedText, "ㅓㅕㅗㅜ'ㄴ",
+            "축약형: base가 사전에 없으면(juhn) 한글 유지"
         )
+        expect(typeViaController("john's").committedText, "john's", "축약형: 되살린 이름 john의 소유격")
 
         // (c) 한국어 보호 — 두 관문을 모두 통과 못 해 친 그대로 남는다.
         expect(typeViaController("'dkssud").committedText, "'안녕", "축약형 보호: 여는 따옴표 '안녕")
