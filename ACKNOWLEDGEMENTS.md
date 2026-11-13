@@ -1,6 +1,6 @@
 # 감사의 글 (Acknowledgements)
 
-> 기준일: 2026-11-13 (2026-10-17 작성. 2026-11-07에 사전 탑재 방식·고지 원문·McBopomofo 고지를, 2026-11-08에 글꼴을 고운바탕에서 마루 부리로, 2026-11-13에 지명 사전 범위와 보충 목록 설명을 고쳤습니다)
+> 기준일: 2026-11-13 (2026-10-17 작성. 2026-11-07에 사전 탑재 방식·고지 원문·McBopomofo 고지를, 2026-11-08에 글꼴을 고운바탕에서 마루 부리로, 2026-11-13에 지명 사전 범위와 보충 목록 설명을 고치고, 개발 도구 절을 실제로 함께 개발한 도구(Claude)만 남겼습니다)
 
 하늘키보드는 혼자 만든 것이 아닙니다. 앞서 길을 닦아준 수많은 오픈소스와 도구, 그리고 그것을 가능케 한 사람들의 어깨 위에 서 있습니다.
 
@@ -145,11 +145,6 @@ special lists in order to help improve the overall quality of ESDB.
 - https://claude.com/claude-code
 - 설계 논의, 디버깅, 문서 작성 등 개발 과정 전반에 함께했습니다.
 
-### OpenAI — Codex · ChatGPT
-- https://openai.com/codex/
-- 기능 설계와 코드 구현, 기존 기능과의 충돌 검토, 테스트와 문서 정리에 함께했습니다.
-- 단청과 종이 질감을 담은 시작하기 안내의 시각 디자인, 이미지 제작과 인물 자세 작업에도 도움을 받았습니다.
-
 ## 참고한 오픈소스 입력기
 
 plist·entitlements 구조와 IME 아키텍처를 비교·학습하는 데 참고했습니다.
@@ -167,7 +162,7 @@ plist·entitlements 구조와 IME 아키텍처를 비교·학습하는 데 참�
 
 # Acknowledgements (English)
 
-> Updated: 2026-11-13 (first written 2026-10-10; on 2026-11-07 the dictionary bundling note, license texts and the McBopomofo notice were revised; on 2026-11-08 the fonts changed to MaruBuri; on 2026-11-13 the place-name coverage and the supplement list description were corrected)
+> Updated: 2026-11-13 (first written 2026-10-10; on 2026-11-07 the dictionary bundling note, license texts and the McBopomofo notice were revised; on 2026-11-08 the fonts changed to MaruBuri; on 2026-11-13 the place-name coverage and the supplement list description were corrected, and the development tools section now lists only the tool that actually co-developed the project, Claude)
 
 HaneulKeyboard builds on the work of the open-source projects, tools, and people who came before it.
 
@@ -246,7 +241,6 @@ special lists in order to help improve the overall quality of ESDB.
 ## Development tools
 
 - **Anthropic — [Claude](https://claude.com/claude-code)** — A companion throughout design, debugging, and documentation.
-- **OpenAI — [Codex · ChatGPT](https://openai.com/codex/)** — Helped with feature design, code implementation, compatibility reviews, tests, and documentation, as well as the dancheong and paper-textured onboarding artwork and character poses.
 
 ## Studied for reference
 
