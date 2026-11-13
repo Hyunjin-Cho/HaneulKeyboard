@@ -119,6 +119,11 @@ final class HaneulInputController: IMKInputController {
         let expected: [Int]
     }
     private var caretAnchor: CaretAnchor?
+    /// 2026-11-13 (#224, 좁은 재검토 input P2-1): 이 입력 세션에서 커서 값이 적어 둔 자리와 **한 번이라도 맞았는지**(그 세대 번호).
+    /// 조합 중에는 커서를 주고 키가 끝나면 0으로 되돌리는 앱(숨은 입력칸으로 키만 받는 편집기)에서는 클릭이 없어도 늘 '옮겨짐'으로 읽혀
+    /// 영어 문맥을 낱말마다 버렸다(`want to go` → `want 새 해`). 커서를 제대로 알려 주는 것이 확인된 세션에서만 이동으로 판정한다
+    /// — 슬래시 쪽 `caretMatched`와 같은 생각. 대가: 세션의 첫 영어 낱말 바로 뒤 클릭은 잡지 못한다.
+    private var caretTrustedSession: UInt?
 
     // Listen ONLY for .keyDown. macOS routes CapsLock-based Korean<->ABC
     // switching automatically via TICapsLockLanguageSwitchCapable in plist,
@@ -552,11 +557,19 @@ final class HaneulInputController: IMKInputController {
         // 위치를 모르면(읽기 실패·NSNotFound) 지금처럼 둔다. 보안 입력이 켜졌으면 읽지 않는다(tracedSelection).
         if let anchor, !composer.hasPendingComposition, composer.hasCaretDependentState {
             let selection = tracedSelection(client)
-            guard eventSession == sessionGeneration else { return false }
-            if Self.caretMoved(selection, from: anchor) {
-                composer.resetEnglishContext()
-                externalContextPending = true
+            if eventSession == sessionGeneration {
+                if selection.location != NSNotFound, anchor.expected.contains(selection.location) {
+                    caretTrustedSession = sessionGeneration
+                } else if caretTrustedSession == sessionGeneration, Self.caretMoved(selection, from: anchor) {
+                    composer.resetEnglishContext()
+                    externalContextPending = true
+                }
+            } else if isSecureInputActive() {
+                // 읽는 사이 보안 입력이 켜졌다 — 예전처럼 키를 그대로 넘긴다(비밀번호 칸 보호).
+                return false
             }
+            // 2026-11-13 (#224, 좁은 재검토 input P3-1): 읽는 사이 세션 콜백만 끼어든 경우에는 대조만 건너뛰고 키는 계속 처리한다.
+            // 예전엔 여기서 false를 돌려 한글 키가 영문 낱자로 들어갔다(`want tㅐ`). #224 전에는 이 읽기 자체가 없었다.
         }
 
         let shifted = mods.contains(.shift)

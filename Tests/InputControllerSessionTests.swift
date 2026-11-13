@@ -1274,13 +1274,34 @@ final class ProbeClient: NSObject, IMKTextInput {
         }
 
         // F-3: 호스트가 알려 주지 않는 커서 이동(마우스 클릭) 뒤에는 앞 낱말의 영어 문맥·숫자 기억을 다음 낱말에 쓰지 않는다.
+        // 2026-11-13 (#224, 좁은 재검토 input P2-1): 커서가 적어 둔 자리와 한 번이라도 맞은 세션에서만 이동으로 판정한다. 그래서
+        // 예열 없이 세션의 첫 영어 낱말 바로 뒤에서 클릭하면 못 잡고(알고 받아들인 대가) 문맥이 그대로 쓰인다.
         for move in [false, true] {
             do {
                 let (c,h) = fresh(); h.setField(0,text:"가나다 \n")
                 typeKeys("want",c,h); press(c,h," ",code:49)
                 if move { clickTo(h,4) }
                 typeKeys("to",c,h); press(c,h," ",code:49)
-                check(h.text == (move ? "가나다 새 \nwant " : "가나다 \nwant to "),"stale_context_english_\(move)")
+                check(h.text == (move ? "가나다 to \nwant " : "가나다 \nwant to "),"stale_context_english_untrusted_\(move)")
+                result("stale_context_english_untrusted_\(move)",c,h)
+            }
+            if !move { // 2026-11-13 (#224, 좁은 재검토 input P3-1): 커서 대조 읽기 사이 세션 콜백(확정 요청)이 끼어들어도 그 키를 영문 낱자로
+                // 넘기지 않는다 — 대조만 건너뛰고 한글로 조합한다(예전: `want tㅐ`).
+                let (c,h) = fresh()
+                typeKeys("want",c,h); press(c,h," ",code:49)
+                h.beforeSelection = { h.beforeSelection = nil; c.commitComposition(h) }
+                typeKeys("to",c,h); press(c,h," ",code:49)
+                check(!h.text.contains("t") || h.text.hasSuffix("to "), "caret_read_session_change_no_latin_leak \(h.text)")
+                check(h.text.hasPrefix("want "), "caret_read_session_change_keeps_prefix")
+                result("caret_read_session_change",c,h)
+            }
+            do { // 예열: 영어 낱말 하나로 커서가 맞는 것을 확인한 뒤의 클릭은 잡는다.
+                let (c,h) = fresh(); h.setField(0,text:"가나다 \n")
+                typeKeys("hi",c,h); press(c,h," ",code:49)
+                typeKeys("want",c,h); press(c,h," ",code:49)
+                if move { clickTo(h,4) }
+                typeKeys("to",c,h); press(c,h," ",code:49)
+                check(h.text == (move ? "가나다 새 \nhi want " : "가나다 \nhi want to "),"stale_context_english_\(move)")
                 result("stale_context_english_\(move)",c,h)
             }
             do {
