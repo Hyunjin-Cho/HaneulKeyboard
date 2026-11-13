@@ -22,7 +22,8 @@
 
 > **정식 버전 준비 중입니다.** 설치 파일은 준비가 끝나면 [릴리스 페이지](https://github.com/Hyunjin-Cho/HaneulKeyboard/releases)에 올라옵니다. 아래는 정식 버전 기준의 안내입니다.
 
-<!-- 2026-11-04 (#133): 데모 영상 자리. 새 영상이 준비되면 여기에 넣는다(옛 GIF 3개는 뺐다). -->
+<!-- 2026-11-13 (#133 #218): 데모 영상 = 홍보 영상 7차 README판(720p60). GitHub 첨부 주소는 홀로 한 줄이어야 재생기로 보인다. -->
+https://github.com/user-attachments/assets/838201b8-b306-4a13-9777-bdeba3387dae
 
 ---
 
