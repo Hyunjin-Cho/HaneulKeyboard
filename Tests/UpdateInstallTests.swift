@@ -35,9 +35,11 @@ import Foundation
     /// 리뷰 install-update-F-10: 앱이 직접 넣는 헤더는 둘이다. URLSession이 덧붙이는 표준 헤더는 로컬 서버 측정으로 확인했다(2026-11-13).
     private static func requestHeaders(_ check: (Bool, String) -> Void) {
         let request = Updater.request(for: URL(string: "https://api.github.com/repos/Hyunjin-Cho/HaneulKeyboard/releases/latest")!)
-        check(Set((request.allHTTPHeaderFields ?? [:]).keys) == ["Accept", "User-Agent"]
-              && request.value(forHTTPHeaderField: "User-Agent") == "HaneulKeyboard/\(Updater.currentVersion)",
-              "요청: 앱이 넣는 헤더는 Accept·User-Agent 둘")
+        // 2026-11-13 (#226, 오너 결정 가): 언어 설정 순서가 나가지 않게 Accept-Language를 고정값 en으로 직접 넣는다.
+        check(Set((request.allHTTPHeaderFields ?? [:]).keys) == ["Accept", "User-Agent", "Accept-Language"]
+              && request.value(forHTTPHeaderField: "User-Agent") == "HaneulKeyboard/\(Updater.currentVersion)"
+              && request.value(forHTTPHeaderField: "Accept-Language") == "en",
+              "요청: 앱이 넣는 헤더는 Accept·User-Agent·Accept-Language(en, 고정) 셋")
         let config = Updater.sessionConfiguration()
         check(config.httpCookieAcceptPolicy == .never && !config.httpShouldSetCookies && (config.urlCache?.diskCapacity ?? 0) == 0 && config.httpAdditionalHeaders == nil,
               "요청: 쿠키·디스크 캐시·추가 헤더 없음")

@@ -14,9 +14,10 @@ import Foundation
 ///   root 소유 설치본의 관리자 프롬프트다. 경로의 POSIX 인용 + 전체 명령의 AppleScript
 ///   리터럴 이스케이프로 보호한다(`UpdateReplacementScript`).
 /// - HTTPS만, 리다이렉트는 `UpdateDecision.allowedHosts` 안에서만 따라간다.
-/// - 나가는 데이터는 요청 헤더뿐이다. 앱이 넣는 헤더는 `Accept`·`User-Agent: HaneulKeyboard/<버전>` 둘이고,
-///   URLSession이 표준 헤더(`Accept-Language` — 사용자 언어 순서, `Accept-Encoding`, `Connection`, `Host`)를 덧붙인다
+/// - 나가는 데이터는 요청 헤더뿐이다. 앱이 넣는 헤더는 `Accept`·`User-Agent: HaneulKeyboard/<버전>`·`Accept-Language: en`이고,
+///   URLSession이 표준 헤더(`Accept-Encoding`, `Connection`, `Host`)를 덧붙인다
 ///   (2026-11-13 #226 실측: 같은 요청·세션 설정으로 127.0.0.1 서버에 보내 받은 헤더. HTTPS·HTTP/2에서의 차이는 확인 못 함).
+///   2026-11-13 오너 결정: URLSession이 붙이던 `Accept-Language`(이 Mac의 언어 설정 순서, 예 ko-KR)를 고정값 `en`으로 덮어쓴다.
 ///   키 입력·설정·사전 어떤 것도 보내지 않는다. (PRIVACY.md 「새 버전 알림과 설치」 절)
 /// - 자동 확인은 "새 버전 있음"을 **표시만** 한다. 설치는 사용자가 [새 버전 설치]를 눌러야 한다.
 ///
@@ -233,13 +234,15 @@ final class Updater {
         }
     }
 
-    /// 앱이 직접 넣는 헤더는 `Accept`·`User-Agent` 둘이다. URLSession이 표준 헤더를 덧붙인다(2026-11-13 #226 실측 — PRIVACY 9번 대조는 F 묶음).
+    /// 앱이 직접 넣는 헤더는 `Accept`·`User-Agent`·`Accept-Language` 셋이다. URLSession이 표준 헤더를 덧붙인다(2026-11-13 #226 실측).
+    /// `Accept-Language`는 사용자 언어 설정이 나가지 않게 고정값 `en`으로 직접 넣는다(2026-11-13 오너 결정) — 직접 넣으면 URLSession이 제 값을 붙이지 않는다(실측).
     /// 2026-11-13 (#226): 측정 도구가 같은 요청을 쓰도록 private을 뗐다.
     nonisolated static func request(for url: URL) -> URLRequest {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         request.setValue("HaneulKeyboard/\(currentVersion)", forHTTPHeaderField: "User-Agent")
+        request.setValue("en", forHTTPHeaderField: "Accept-Language")
         request.cachePolicy = .reloadIgnoringLocalCacheData
         return request
     }
