@@ -22,7 +22,8 @@
 
 > **정식 버전 준비 중입니다.** 설치 파일은 준비가 끝나면 [릴리스 페이지](https://github.com/Hyunjin-Cho/HaneulKeyboard/releases)에 올라옵니다. 아래는 정식 버전 기준의 안내입니다.
 
-<!-- 2026-11-04 (#133): 데모 영상 자리. 새 영상이 준비되면 여기에 넣는다(옛 GIF 3개는 뺐다). -->
+<!-- 2026-11-13 (#133 #218): 데모 영상 = 홍보 영상 7차 README판(720p60). GitHub 첨부 주소는 홀로 한 줄이어야 재생기로 보인다. -->
+https://github.com/user-attachments/assets/838201b8-b306-4a13-9777-bdeba3387dae
 
 ---
 
@@ -93,6 +94,7 @@
 - 숫자는 누르는 즉시 들어갑니다. 터미널의 `1. Yes / 2. No` 선택지도 한글 모드 그대로 고를 수 있습니다.
 - `10kg`, `1.5kg`, `35mm`, `12mp`처럼 숫자 뒤 단위를 알아봅니다. 값 환산은 하지 않습니다. [단위 지원](docs/measurement-units.md)
 - `800T`, `a24`, `a7r`처럼 등록된 숫자 섞인 이름도 바꿉니다. `800T는`, `a24에서`처럼 조사가 붙어도 됩니다.
+- `david`, `john`, `january`, `korea`처럼 흔한 영어 이름·요일·달·나라 이름도 바꿉니다. 한글 단어처럼 보이는 꼴(`susan` → `년무`)은 한국어를 지키느라 그대로 두니, 필요하면 개인 사전의 **변환 추가**에 넣어 주세요.
 
 ### 개인 사전
 **설정 → 개인 사전**에서 관리합니다. 이 Mac에만 저장됩니다.
@@ -119,7 +121,7 @@
 ## 업데이트와 버전
 
 - 새 버전은 매월 1일에 GitHub에서 확인하고(그날 Mac을 켜지 않았으면 다음에 켤 때), 처음 발견했을 때 한 번 알려 드립니다. 설정에서 알림을 끄거나 **지금 확인**을 누를 수 있습니다.
-- 설치는 **새 버전 설치**를 눌렀을 때만 시작합니다. 서명·Apple 공증·버전 상승을 모두 확인하고, 하나라도 어긋나면 기존 앱을 그대로 둡니다.
+- 설치는 **새 버전 설치**를 눌렀을 때만 시작합니다. 서명·Apple 공증·버전 상승, 그리고 받은 앱이 안내한 그 버전인지를 모두 확인하고, 하나라도 어긋나면 기존 앱을 그대로 둡니다.
 - 버전은 실제 배포 날짜입니다. 예를 들어 11월 4일에 배포하면 `2026.11.04`, 그 판의 급한 수정은 `2026.11.04_hotfix1`, `_hotfix2` …입니다. `2026.01`~`2026.07`은 순번으로 매긴 베타 이력입니다.
 
 ## 개인정보
@@ -220,7 +222,7 @@ PACKAGE_ONLY=1 bash scripts/build_notarize_install.sh HaneulKeyboard
 
 **Haneul**Keyboard is named after our beloved daughter, Haneul. Her name means "sky" in Korean.
 
-Real Korean words, initial-consonant slang and jamo emoticons are protected. Unknown misspellings are left as typed, not guessed. Automatic conversion can be turned off entirely or per app, and a personal dictionary lets you add or block words. Composing text is shown with a gray underline.
+Common English names, weekdays, months and country names convert too. Real Korean words, initial-consonant slang and jamo emoticons are protected. Unknown misspellings are left as typed, not guessed. Automatic conversion can be turned off entirely or per app, and a personal dictionary lets you add or block words. Composing text is shown with a gray underline.
 
 ## Install
 
@@ -236,7 +238,7 @@ On first launch, the **시작하기** guide walks you through installation, choo
 
 ## Updates and versions
 
-The menu bar app checks GitHub on the 1st of each month (or the next time you turn on your Mac, if it was off that day) and tells you once about a new version. It installs only when you click **새 버전 설치** (Install new version), after checking the signature, Apple notarization and that the version actually goes up. Versions are release dates: `2026.11.04` for a November 4 release, then `2026.11.04_hotfix1`, `_hotfix2` and so on for urgent fixes. `2026.01`–`2026.07` were sequential beta numbers.
+The menu bar app checks GitHub on the 1st of each month (or the next time you turn on your Mac, if it was off that day) and tells you once about a new version. It installs only when you click **새 버전 설치** (Install new version), after checking the signature, Apple notarization, that the version actually goes up and that the downloaded app is the announced version. Versions are release dates: `2026.11.04` for a November 4 release, then `2026.11.04_hotfix1`, `_hotfix2` and so on for urgent fixes. `2026.01`–`2026.07` were sequential beta numbers.
 
 ## Privacy
 
