@@ -428,11 +428,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     /// 2026-11-13 (#227, 리뷰 app-ui-F-6): 전체 제거가 도는 동안(다 지우고 종료를 기다리는 동안 포함)은 설정 창을 닫지 않는다.
     /// 결과 창(시트)이 이 창에 붙는다 — 닫힌 창에 붙은 결과는 보이지 않고, 다 지운 경우 `확인`을 누를 수 없어 앱이 끝나지 않았다.
     /// 닫기 버튼·⌘W 모두 여기를 지난다. 막을 때는 시스템 경고음만 낸다.
+    /// 2026-11-15 (#252): 다 지우고 종료를 기다리는데 결과 창이 이미 없으면 막지 않고 앱을 끝낸다(안전망 — `RemovalWindowDecision.closeResponse`).
     func windowShouldClose(_ sender: NSWindow) -> Bool {
-        guard sender === settingsWindow,
-              !RemovalWindowDecision.allowsClosingSettings(removingProduct: core.isRemovingProduct) else { return true }
-        NSSound.beep()
-        return false
+        guard sender === settingsWindow else { return true }
+        switch RemovalWindowDecision.closeResponse(removingNow: core.operationGate.operation == .removingProduct,
+                                                   finishedAwaitingExit: core.removalPendingExit,
+                                                   resultSheetShowing: sender.attachedSheet != nil) {
+        case .close:
+            return true
+        case .block:
+            NSSound.beep()
+            return false
+        case .quitApp:
+            NSApp.terminate(nil)
+            return false
+        }
     }
 
     /// 2026-11-13 (#227, 리뷰 app-ui-F-6): 그래도 결과가 나왔을 때 창이 화면에 없으면(닫혔거나 숨음) 다시 꺼낸다.

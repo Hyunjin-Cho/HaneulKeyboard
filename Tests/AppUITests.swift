@@ -321,14 +321,27 @@ func runInstallUpdatePresentationTests() {
 
 func runWindowAndLaunchTests() {
     // F-6: 전체 제거 중에는 설정 창을 닫지 않고, 결과가 나왔는데 창이 없으면 다시 꺼낸다.
-    expect(!RemovalWindowDecision.allowsClosingSettings(removingProduct: true), "제거 중에는 설정 창을 닫지 않는다")
-    expect(RemovalWindowDecision.allowsClosingSettings(removingProduct: false), "평소에는 닫힌다")
+    typealias W = RemovalWindowDecision
+    expectEqual(W.closeResponse(removingNow: true, finishedAwaitingExit: false, resultSheetShowing: false), .block, "제거 중에는 설정 창을 닫지 않는다")
+    expectEqual(W.closeResponse(removingNow: false, finishedAwaitingExit: false, resultSheetShowing: false), .close, "평소에는 닫힌다")
+    // 2026-11-15 (#252): 다 지운 뒤 결과 창이 떠 있으면 막고(버튼으로 끝낸다), 결과 창이 이미 없으면 앱을 끝낸다 — 예전엔 영원히 잠겼다.
+    expectEqual(W.closeResponse(removingNow: false, finishedAwaitingExit: true, resultSheetShowing: true), .block, "다 지운 뒤 결과 창이 있으면 막는다")
+    expectEqual(W.closeResponse(removingNow: false, finishedAwaitingExit: true, resultSheetShowing: false), .quitApp, "다 지운 뒤 결과 창이 없으면 앱을 끝낸다")
     expect(RemovalWindowDecision.shouldRevealSettings(windowVisible: false), "결과가 나왔는데 창이 없으면 다시 꺼낸다")
     expect(!RemovalWindowDecision.shouldRevealSettings(windowVisible: true), "창이 보이면 그대로")
     let app = readSource("Sources/HaneulKeyboardApp.swift") ?? ""
     let settings = readSource("Sources/SettingsView.swift") ?? ""
-    expect(app.contains("func windowShouldClose(") && app.contains("RemovalWindowDecision.allowsClosingSettings"),
-           "AppDelegate가 제거 중 설정 창 닫기를 막는다")
+    expect(app.contains("func windowShouldClose(") && app.contains("RemovalWindowDecision.closeResponse(") && app.contains("case .quitApp:"),
+           "AppDelegate가 제거 중 설정 창 닫기를 막고, 다 지운 뒤엔 앱을 끝낸다")
+    // 2026-11-15 (#252): 결과 창 버튼은 종료하지 않고 표시만 한다 — 종료는 시트가 다 닫힌 뒤(onDismiss). 같은 순간 종료는 AppKit이 거절했다(재현).
+    if let sheetStart = settings.range(of: "RemovalResultSheet(outcome:"), let sheetEnd = settings.range(of: ".interactiveDismissDisabled()", range: sheetStart.upperBound..<settings.endIndex) {
+        let buttons = String(settings[sheetStart.lowerBound..<sheetEnd.lowerBound])
+        expect(!buttons.contains("NSApp.terminate"), "결과 창 버튼 안에서 바로 종료하지 않는다")
+        expect(buttons.components(separatedBy: "exitAfterResultDismiss = uninstallResult?.fullyRemoved == true").count - 1 == 2, "두 버튼 모두 종료 여부만 적는다")
+    } else {
+        expect(false, "결과 창 코드 위치를 찾음")
+    }
+    expect(settings.contains("onDismiss: {") && settings.contains("if exitAfterResultDismiss { NSApp.terminate(nil) }"), "시트가 닫힌 뒤 종료")
     expect(app.contains("RemovalWindowDecision.shouldRevealSettings") && settings.contains("onRemovalFinished()"),
            "제거 결과가 나오면 설정 창을 다시 꺼낸다")
 
