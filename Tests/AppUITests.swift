@@ -440,7 +440,7 @@ func runMenuBarMenuTests() {
     expect(lines.allSatisfy { !$0.contains("…") && $0.count <= 30 }, "안내 줄은 짧게")
     expect(SecureInputNotice.menuLines(secureInputOn: false).isEmpty, "보안 입력이 꺼져 있으면 안내 없음")
     let readme = readSource("README.md") ?? ""
-    expect(readme.contains("로그인 화면에서 비밀번호 칸에 커서가 남아 있으면 한글이 잠시 멈춥니다."), "README 알려진 한계에 오너 문구")
+    expect(readme.contains("로그인 화면에서 비밀번호 칸에 커서가 남아 있으면 한글이 나오지 않습니다."), "README 알려진 한계에 오너 문구")
 }
 
 @main
