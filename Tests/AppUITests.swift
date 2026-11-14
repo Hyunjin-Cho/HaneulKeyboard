@@ -433,10 +433,12 @@ func runMenuBarMenuTests() {
         expect(false, "메뉴 코드 위치를 찾음")
     }
     expect(app.contains("item.image = NSImage(systemSymbolName: symbol"), "아이콘을 직접 단다")
+    // 2026-11-15 (#246): macOS 27은 메뉴 이미지를 보통 숨긴다 — 27 이상에서만 항상 보이게, 26 이하는 손대지 않는다.
+    expect(app.contains("if #available(macOS 27.0, *) { item.preferredImageVisibility = .visible }"), "macOS 27 이상에서 아이콘을 항상 보이게")
 
     let lines = SecureInputNotice.menuLines(secureInputOn: true)
     expectEqual(lines.count, 2, "보안 입력 안내 = 이유 한 줄 + 푸는 법 한 줄")
-    expect(lines.first?.contains("비밀번호 칸") == true && lines.last?.contains("돌아와요") == true, "안내 문구")
+    expect(lines.first == "비밀번호 칸에 커서가 있어 한글이 나오지 않아요" && lines.last?.contains("돌아와요") == true, "안내 문구(README와 같은 말)")
     expect(lines.allSatisfy { !$0.contains("…") && $0.count <= 30 }, "안내 줄은 짧게")
     expect(SecureInputNotice.menuLines(secureInputOn: false).isEmpty, "보안 입력이 꺼져 있으면 안내 없음")
     let readme = readSource("README.md") ?? ""

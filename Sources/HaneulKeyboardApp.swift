@@ -308,7 +308,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     private func add(_ menu: NSMenu, _ title: String, _ action: Selector, key: String = "", symbol: String? = nil) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
         item.target = self
-        if let symbol { item.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) }
+        if let symbol {
+            item.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+            // 2026-11-15 오너(#246): macOS 27부터 AppKit이 메뉴 항목 이미지를 보통 숨긴다(SDK NSMenuItem.h `preferredImageVisibility` 설명) —
+            // 후보 114에서 아이콘이 안 보였다. 27 이상에서만 항상 보이게 지정한다. 26 이하는 원래 이미지를 보이므로 그대로 둔다.
+            if #available(macOS 27.0, *) { item.preferredImageVisibility = .visible }
+        }
         menu.addItem(item)
         return item
     }
