@@ -19,8 +19,8 @@
 //      - `안녕 ` 이 들어가면 → 재현 안 됨(macOS가 이 상태에서는 다른 앱 입력칸을 막지 않거나, 입력기가 보는 값이 다르다).
 //      - 아예 아무 글자도 안 들어가면 → 그 결과를 그대로 적어 알려 준다(다른 원인).
 //   4) 도구를 끝낸 뒤(시간 만료 또는 Ctrl+C) 같은 TextEdit에서 `dkssud` + Space 가 `안녕 ` 으로 돌아오는지 확인한다.
-//   결과는 docs/manual-test-checklist.md 「다른 앱이 켠 전역 보안 입력」 항목에 적는다. 재현되면 입력기의 판정을 좁히는 설계가
-//   IMESources/HaneulInputController.swift 의 `isSecureInputActive` 주석에 있다(확인 뒤 구현).
+//   결과는 docs/manual-test-checklist.md 「다른 앱이 켠 전역 보안 입력」 항목에 적는다.
+//   2026-11-14: 재현됐고, 오너 결정으로 입력기 판정은 좁히지 않고 메뉴바 메뉴에서 알린다 — 경위는 `isSecureInputActive` 주석과 #224.
 
 import Carbon
 import Foundation

@@ -68,7 +68,7 @@ https://github.com/user-attachments/assets/838201b8-b306-4a13-9777-bdeba3387dae
 6. 슬래시 영어 입력
 7. 메뉴바와 응원하기
 
-3~6단계에서는 입력칸에 직접 쳐 볼 수 있습니다. 메뉴바 → **시작하기 다시 보기…**로 언제든 다시 열 수 있습니다. 손쉬운 사용의 **동작 줄이기**를 켜면 움직임 없이 보여 줍니다.
+3~6단계에서는 입력칸에 직접 쳐 볼 수 있습니다. 메뉴바 → **시작하기 다시 보기**로 언제든 다시 열 수 있습니다. 손쉬운 사용의 **동작 줄이기**를 켜면 움직임 없이 보여 줍니다.
 
 ## 기능 자세히
 
@@ -106,7 +106,7 @@ https://github.com/user-attachments/assets/838201b8-b306-4a13-9777-bdeba3387dae
 
 ## 설정
 
-메뉴바 아이콘 → **설정…**에서 엽니다. 메뉴바 아이콘은 **앱 관리**에서 끌 수 있고, 꺼도 한글 입력은 그대로 동작합니다. 아이콘을 꺼 둔 경우에는 응용 프로그램 폴더에서 하늘키보드를 열면 설정이 열립니다.
+메뉴바 아이콘 → **설정**에서 엽니다. 메뉴바 아이콘은 **앱 관리**에서 끌 수 있고, 꺼도 한글 입력은 그대로 동작합니다. 아이콘을 꺼 둔 경우에는 응용 프로그램 폴더에서 하늘키보드를 열면 설정이 열립니다.
 
 | 메뉴 | 들어 있는 것 |
 |---|---|
@@ -140,6 +140,7 @@ https://github.com/user-attachments/assets/838201b8-b306-4a13-9777-bdeba3387dae
 - 지금은 **두벌식**만 지원합니다.
 - **터미널(Terminal·Ghostty 등)에서는 변환 단축키로 단어를 바꾸거나 되돌릴 수 없습니다.** 자동 변환과 슬래시 입력은 동작합니다.
 - 일부 웹사이트의 비밀번호 칸에서는 한글이 입력될 수 있으니, 비밀번호는 **ABC**로 쳐 주세요.
+- 로그인 화면에서 비밀번호 칸에 커서가 남아 있으면 한글이 잠시 멈춥니다. 그 창을 닫거나 커서를 다른 곳으로 옮기면 돌아옵니다.
 - 앱이나 사이트의 입력 처리 방식에 따라 동작이 조금 다를 수 있습니다. 이상하면 [Issues](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues)로 알려 주세요.
 
 ## 개발
@@ -234,7 +235,7 @@ Users of the `2026.07` and older betas need to download the DMG once; those buil
 
 ## Getting started
 
-On first launch, the **시작하기** guide walks you through installation, choosing the input source and the main features in seven steps. Steps 3–6 have a field where you can try each feature. Reopen it any time from the menu bar with **시작하기 다시 보기…**.
+On first launch, the **시작하기** guide walks you through installation, choosing the input source and the main features in seven steps. Steps 3–6 have a field where you can try each feature. Reopen it any time from the menu bar with **시작하기 다시 보기**.
 
 ## Updates and versions
 
@@ -250,6 +251,7 @@ Your typing and personal dictionary never leave your Mac. The input method has n
 - Two-set (Dubeolsik) layout only
 - In terminals (Terminal, Ghostty and others), the conversion shortcut cannot change or revert words. Automatic conversion and slash input still work.
 - Some websites' password fields may accept Hangul, so type passwords with **ABC**.
+- While a password field on a login screen keeps the cursor, Hangul input pauses. It comes back once you close that window or move the cursor elsewhere.
 
 ## License and credits
 

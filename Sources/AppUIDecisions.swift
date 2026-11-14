@@ -305,6 +305,27 @@ enum UpdatePhaseKind: Equatable {
 }
 
 /// 「버전·업데이트」 상태 줄과 상태 아이콘 메뉴의 새 버전 줄.
+/// 2026-11-14 오너(#246): 메뉴바 메뉴의 항목 이름에서 줄임표(…)를 빼고, 창을 여는 세 항목에 아이콘(SF Symbols)을 직접 단다.
+/// macOS 26은 표준 「설정…」 항목에만 톱니를 스스로 붙여 셋 중 하나만 아이콘이 있었다 — 직접 달아 셋을 맞춘다. 종료 줄은 아이콘 없이 둔다.
+/// 응원하기 제목은 `SupportView.title`이 정본이라 여기 두지 않는다.
+enum MenuBarMenuItem {
+    static func onboardingTitle(hasCompleted: Bool) -> String { hasCompleted ? "시작하기 다시 보기" : "시작하기" }
+    static let settingsTitle = "설정"
+    static let onboardingSymbol = "book"
+    static let settingsSymbol = "gearshape"
+    static let supportSymbol = "heart"
+}
+
+/// 2026-11-14 (#224 오너 결정 "고치지 않고 알린다", #246): 다른 앱의 비밀번호 칸이 보안 입력을 켜 두면 입력기는 그동안 한글을 조합하지 않는다
+/// (예: 크롬 로그인 화면의 비밀번호 칸에 커서를 둔 채 다른 앱으로 넘어가면 크롬이 보안 입력을 계속 켜 둔다 — 실기기 측정).
+/// 입력기의 보호는 그대로 두고, 메뉴바 메뉴를 열 때 그 상태면 맨 위에 이유와 푸는 법을 보인다. 켠 앱 이름은 밝히지 않는다 —
+/// 시스템이 기록하는 '켠 앱' 값은 켤 때의 맨 앞 앱으로 남을 수 있어 엉뚱한 앱을 가리킬 수 있다(같은 날 실측).
+enum SecureInputNotice {
+    static func menuLines(secureInputOn: Bool) -> [String] {
+        secureInputOn ? ["비밀번호 칸에 커서가 있어 한글이 잠시 멈췄어요", "커서를 옮기거나 그 창을 닫으면 돌아와요"] : []
+    }
+}
+
 struct UpdateStatusPresentation: Equatable {
     enum Line: Equatable { case none, checking, newVersion, downloading, verifying, installing, failed }
 
