@@ -89,19 +89,14 @@ final class HaneulInputController: IMKInputController {
     /// 컨트롤러 시험이 시험용 판정을 넣어, 실제 Mac의 보안 입력 상태와 무관하게 켜짐·꺼짐 갈래를 모두 돌린다.
     /// 이 파일에서 시스템 함수 `IsSecureEventInputEnabled`를 직접 부르는 곳은 이 기본값 하나뿐이다(scripts/run_controller_tests.py가 센다).
     ///
-    /// 2026-11-12 (#224, 리뷰 input-core-F-2 — **설계만**, 실기기 확인 뒤 구현): `IsSecureEventInputEnabled`는 세션 전체 값이라
-    /// 뒤로 간 앱이 켜 둔 보안 입력에도 참이 된다. 오너 확인(scripts/hold_secure_input.swift)에서 "다른 앱이 켠 동안 TextEdit에
-    /// 한글이 안 들어간다"가 재현되면 이 자리에서만 좁힌다:
-    ///   ① 켜짐이 아니면 지금처럼 거짓.
-    ///   ② 켜짐이면 보안 입력을 쥔 프로세스 번호를 `CGSessionCopyCurrentDictionary()`의 `kCGSSessionSecureInputPID`로 읽는다
-    ///      (`ioreg -l -w 0 | grep SecureInput`에 보이는 값과 같다). 못 읽으면 참(지금처럼 보호).
-    ///   ③ 그 번호의 실행 파일이 **이 클라이언트 앱 번들 밖의 다른 일반 앱**으로 분명할 때만 거짓(조합 계속). 하나라도 모르면 참.
-    ///      도우미 프로세스(WebKit 웹 콘텐츠·XPC 등 앱 번들 밖에서 도는 것)나 loginwindow가 쥔 경우는 앞 앱의 비밀번호 칸일 수 있어
-    ///      참으로 둔다(보호 쪽으로 실패).
-    ///   ②③은 ①이 참일 때만 본다(키마다 프로세스를 조회하지 않는다). 원래 목적(비밀번호 칸 보호)은 그대로다.
-    ///   ⚠️ ③은 입력기가 다른 프로세스를 들여다보는 일이다. 입력기 경계 시험(Tests/InstallFlowTests.swift `imeTargetBoundary`)은
-    ///      입력기 소스에서 실행 중 앱 목록 API·프로세스 실행을 막고 있다 — 어떤 조회 수단(libproc의 실행 파일 경로 등)을 들일지는
-    ///      구현 전에 오너가 정한다.
+    /// 2026-11-14 (#224, 리뷰 input-core-F-2 — 오너 결정: **좁히지 않고 알린다**): `IsSecureEventInputEnabled`는 세션 전체 값이라
+    /// 뒤로 간 앱이 켜 둔 보안 입력에도 참이 된다. 실기기에서 재현했다 — 크롬 로그인 화면의 비밀번호 칸에 커서를 둔 채 다른 앱으로 가면
+    /// 크롬이 보안 입력을 계속 켜 두고, 그동안 이 입력기는 모든 앱에서 조합하지 않는다(애플 2벌식은 조합한다).
+    /// 좁히는 설계(켠 앱과 지금 클라이언트를 비교)는 두 검토(Fable 5.2·Codex)가 막았다: 시스템은 켠 앱을 하나만 알려 줘 여러 앱이 켜면
+    /// 지금 앱의 암호 프롬프트에서 보호가 꺼질 수 있고, 아무 프로세스나 먼저 켜 두면 보호를 끌 수 있게 되며, 조합으로 판정되면 읽기·기록 경로도 열린다.
+    /// 또 2026-11-12 이 자리의 설계 메모가 쓰려던 `CGSessionCopyCurrentDictionary()`의 `kCGSSessionSecureInputPID`는 켠 앱이 아니라
+    /// **맨 앞 앱**을 따라간다(실측) — 쓰지 않는다. 그래서 이 판정은 그대로 두고, 메뉴바 앱이 메뉴를 열 때 이유를 알린다(`SecureInputNotice`, #246).
+    /// 다시 좁히려면 #224 댓글의 실측과 검토 결과부터 본다.
     var isSecureInputActive: () -> Bool = { IsSecureEventInputEnabled() }
 
     /// 2026-11-12 (#224, 리뷰 input-core-F-1, 오너 결정 가): 직전 keyDown이 Shift가 붙은 글자 키였으면 그 시각(NSEvent.timestamp), 아니면 nil.

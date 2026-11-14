@@ -19,7 +19,7 @@ struct HaneulKeyboardApp: App {
         }
         .commands {
             CommandGroup(replacing: .appSettings) {
-                Button("설정…") { appDelegate.openSettingsFromCommand() }
+                Button(MenuBarMenuItem.settingsTitle) { appDelegate.openSettingsFromCommand() }
                     .keyboardShortcut(",", modifiers: .command)
             }
         }
@@ -242,6 +242,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         // (입력 소스 설명은 아이콘의 도움말·접근성 설명에 그대로 남는다 — `updateButtonDescription`.)
         // 할 일이 있을 때만(입력기가 꺼졌거나 없을 때, 새 버전이 있을 때) 맨 위에 한 줄이 생긴다.
         var hasNotice = false
+        // 2026-11-14 (#224 오너 결정, #246): 다른 앱이 켠 보안 입력 때문에 한글이 멈춘 동안이면 맨 위에 이유와 푸는 법(누를 수 없는 줄).
+        // 메뉴를 열 때 한 번만 본다 — 평소 비용 0. 입력기의 보호 동작은 바꾸지 않는다.
+        let secureLines = SecureInputNotice.menuLines(secureInputOn: IsSecureEventInputEnabled())
+        for line in secureLines {
+            let item = NSMenuItem(title: line, action: nil, keyEquivalent: "")
+            item.isEnabled = false
+            menu.addItem(item)
+        }
+        if !secureLines.isEmpty { hasNotice = true }
         // 2026-11-05 오너(#142): "영어로 전환"을 뺐다. 한영 전환은 Caps Lock과 시스템 입력 메뉴가 맡는다.
         // 2026-11-07 (#177, 리뷰 app-ui-F-1): 입력기 상태는 비동기로 읽는다. 읽기 전·작업 중에는 틀린 말("미설치")을 하지 않는다. (#32) 꺼진 상태는 한 번에 되살린다.
         // 2026-11-08 (#201): 열려 있는 메뉴를 나중에 고치지 않는다. 오너가 첫 설치 때 메뉴가 화면 끝까지 길게 나온 것을 봤다.
@@ -275,11 +284,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         }
         if hasNotice { menu.addItem(.separator()) }
 
-        add(menu, hasCompleted ? "시작하기 다시 보기…" : "시작하기…", #selector(showOnboarding))
+        // 2026-11-14 오너(#246): 줄임표를 빼고 세 항목에 아이콘(책·톱니·하트)을 단다 — `MenuBarMenuItem`.
+        add(menu, MenuBarMenuItem.onboardingTitle(hasCompleted: hasCompleted), #selector(showOnboarding), symbol: MenuBarMenuItem.onboardingSymbol)
         menu.addItem(.separator())
-        add(menu, "설정…", #selector(openSettings))
+        add(menu, MenuBarMenuItem.settingsTitle, #selector(openSettings), symbol: MenuBarMenuItem.settingsSymbol)
         // 2026-11-05 오너(#142): "새 버전 확인…"을 뺐다. 설정 → 버전·업데이트의 「지금 확인」이 같은 일을 한다.
-        add(menu, SupportView.title + "…", #selector(openSupport))
+        add(menu, SupportView.title, #selector(openSupport), symbol: MenuBarMenuItem.supportSymbol)
         menu.addItem(.separator())
         // 2026-11-05 오너(#142): 종료의 뜻을 분명히 한다 — 메뉴바 앱만 꺼진다. 입력기는 별도 프로세스라 계속 동작한다.
         let quitItem = add(menu, "메뉴바 앱 종료", #selector(quit), key: "q")
@@ -295,9 +305,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     }
 
     @discardableResult
-    private func add(_ menu: NSMenu, _ title: String, _ action: Selector, key: String = "") -> NSMenuItem {
+    private func add(_ menu: NSMenu, _ title: String, _ action: Selector, key: String = "", symbol: String? = nil) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
         item.target = self
+        if let symbol { item.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) }
         menu.addItem(item)
         return item
     }

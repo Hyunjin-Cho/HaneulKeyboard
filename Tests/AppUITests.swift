@@ -413,6 +413,36 @@ func runScrollResourceTests() {
     }
 }
 
+/// 2026-11-14 오너(#246) · #224 결정: 메뉴바 메뉴 줄임표 빼기·아이콘, 보안 입력 안내 줄.
+func runMenuBarMenuTests() {
+    typealias M = MenuBarMenuItem
+    for title in [M.onboardingTitle(hasCompleted: true), M.onboardingTitle(hasCompleted: false), M.settingsTitle] {
+        expect(!title.contains("…") && !title.contains("..."), "메뉴 항목에 줄임표 없음: \(title)")
+    }
+    expectEqual(M.onboardingTitle(hasCompleted: true), "시작하기 다시 보기", "안내를 끝냈으면 다시 보기")
+    expectEqual([M.onboardingSymbol, M.settingsSymbol, M.supportSymbol], ["book", "gearshape", "heart"], "아이콘 = 책·톱니·하트(오너 지정)")
+    let app = readSource("Sources/HaneulKeyboardApp.swift") ?? ""
+    let menuStart = app.range(of: "func menuNeedsUpdate")
+    let menuEnd = app.range(of: "func menuWillOpen")
+    if let menuStart, let menuEnd, menuStart.upperBound < menuEnd.lowerBound {
+        let menuBody = String(app[menuStart.upperBound..<menuEnd.lowerBound])
+        expect(!menuBody.contains("…\", #selector"), "메뉴를 만드는 곳에 줄임표 붙인 제목이 남지 않음")
+        expect(menuBody.contains("SupportView.title, #selector(openSupport), symbol: MenuBarMenuItem.supportSymbol"), "응원하기 줄에 하트")
+        expect(menuBody.contains("SecureInputNotice.menuLines(secureInputOn: IsSecureEventInputEnabled())"), "메뉴를 열 때 보안 입력을 본다")
+    } else {
+        expect(false, "메뉴 코드 위치를 찾음")
+    }
+    expect(app.contains("item.image = NSImage(systemSymbolName: symbol"), "아이콘을 직접 단다")
+
+    let lines = SecureInputNotice.menuLines(secureInputOn: true)
+    expectEqual(lines.count, 2, "보안 입력 안내 = 이유 한 줄 + 푸는 법 한 줄")
+    expect(lines.first?.contains("비밀번호 칸") == true && lines.last?.contains("돌아와요") == true, "안내 문구")
+    expect(lines.allSatisfy { !$0.contains("…") && $0.count <= 30 }, "안내 줄은 짧게")
+    expect(SecureInputNotice.menuLines(secureInputOn: false).isEmpty, "보안 입력이 꺼져 있으면 안내 없음")
+    let readme = readSource("README.md") ?? ""
+    expect(readme.contains("로그인 화면에서 비밀번호 칸에 커서가 남아 있으면 한글이 잠시 멈춥니다."), "README 알려진 한계에 오너 문구")
+}
+
 @main
 struct AppUITests {
     static func main() {
@@ -425,6 +455,7 @@ struct AppUITests {
         runStatusContrastTests()
         runInstallUpdatePresentationTests()
         runWindowAndLaunchTests()
+        runMenuBarMenuTests()
         print("AppUI: \(passes) passed, \(failures) failed")
         exit(failures == 0 ? 0 : 1)
     }
