@@ -242,8 +242,15 @@ enum SettingsEntryDecision {
 
 /// 2026-11-13 (#227, 리뷰 app-ui-F-6): 전체 제거가 도는 동안의 설정 창. 결과 창(시트)이 이 창에 붙고 앱 종료도 거기서 이어진다.
 enum RemovalWindowDecision {
-    /// 제거 중(또는 다 지우고 종료를 기다리는 중)에는 설정 창을 닫지 않는다 — 닫힌 창에 붙은 결과는 보이지 않는다.
-    static func allowsClosingSettings(removingProduct: Bool) -> Bool { !removingProduct }
+    /// 제거 중(또는 결과 창이 떠 있는 동안)에는 설정 창을 닫지 않는다 — 닫힌 창에 붙은 결과는 보이지 않는다(#227). 판정은 아래 `closeResponse`.
+    /// 2026-11-15 (#252): 설정 창 닫기 버튼·⌘W에 어떻게 답할지. 제거가 도는 중이거나 결과 창이 떠 있으면 막는다(경고음).
+    /// 다 지우고 종료를 기다리는데 결과 창이 이미 없으면(종료가 어떤 이유로 안 됐다) 막지 않고 앱을 끝낸다 — 예전엔 여기서 영원히 잠겼다.
+    enum CloseResponse: Equatable { case close, block, quitApp }
+    static func closeResponse(removingNow: Bool, finishedAwaitingExit: Bool, resultSheetShowing: Bool) -> CloseResponse {
+        if removingNow { return .block }
+        if finishedAwaitingExit { return resultSheetShowing ? .block : .quitApp }
+        return .close
+    }
     /// 결과가 나왔는데 창이 화면에 없으면(닫혔거나 숨음) 다시 앞으로 꺼낸다.
     static func shouldRevealSettings(windowVisible: Bool) -> Bool { !windowVisible }
 }

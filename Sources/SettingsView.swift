@@ -23,6 +23,9 @@ struct SettingsView: View {
     @State private var showingSupport = false
     @State private var showingUninstallConfirm = false
     @State private var uninstallResult: Uninstaller.Outcome?
+    /// 2026-11-15 (#252): 결과 창이 **다 닫힌 뒤** 앱을 끝낼지. 시트가 창에 붙어 있는 동안 `NSApp.terminate`를 부르면 AppKit이 조용히 거절해
+    /// 다 지운 뒤에도 앱이 남고 설정 창이 잠겼다(오너 실기기 113, 같은 구조의 재현 프로그램으로 확정). 그래서 버튼은 표시만 하고 종료는 `onDismiss`에서 한다.
+    @State private var exitAfterResultDismiss = false
 
     /// 2026-11-06 (#156): 닫으면 창을 놓아주므로 AppDelegate가 마지막 메뉴를 받아 두었다가 다시 열 때 넘겨준다.
     private let onTabChange: (SettingsTab) -> Void
@@ -126,26 +129,25 @@ struct SettingsView: View {
                 .sheet(isPresented: Binding(
                     get: { uninstallResult != nil },
                     set: { if !$0 { uninstallResult = nil } }
-                )) {
+                ), onDismiss: {
+                    // 2026-11-15 (#252): 시트가 창에서 떨어진 뒤라 종료가 거절되지 않는다.
+                    if exitAfterResultDismiss { NSApp.terminate(nil) }
+                }) {
                     if let outcome = uninstallResult {
                         RemovalResultSheet(outcome: outcome, onDone: {
-                            let canExit = uninstallResult?.fullyRemoved == true
-                            uninstallResult = nil
                             // 전체 제거 후 앱 자신(메뉴바)도 종료 — 파일만 지우면 실행 중인
                             // 프로세스가 남아 메뉴바가 그대로 보인다(#11).
                             // (review-0712 P2-2) 단, IME 삭제가 실패해 메인 앱을 일부러
                             // 남긴 경우엔 종료하지 않는다 — 바로 다시 시도할 수 있어야 한다.
-                            if canExit { NSApp.terminate(nil) }
+                            // 2026-11-15 (#252): 종료는 시트가 다 닫힌 뒤 `onDismiss`에서 한다.
+                            exitAfterResultDismiss = uninstallResult?.fullyRemoved == true
+                            uninstallResult = nil
                         }, onOpenInputSettings: {
-                            let canExit = uninstallResult?.fullyRemoved == true
+                            // 입력 소스 설정을 먼저 열고, 앱은 시트가 닫힌 뒤 끝낸다(메뉴바 정리).
+                            // (review-0712 P2-2) 재시도용으로 앱을 남긴 경우는 종료 안 함.
+                            exitAfterResultDismiss = uninstallResult?.fullyRemoved == true
                             IMEInstaller.openInputSourcesSettings()
                             uninstallResult = nil
-                            // 설정 창이 뜬 뒤 앱 종료(메뉴바 정리).
-                            // (review-0712 P2-2) 재시도용으로 앱을 남긴 경우는 종료 안 함.
-                            guard canExit else { return }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                                NSApp.terminate(nil)
-                            }
                         })
                         // 2026-11-08 (#201, Codex 리뷰): Esc로 닫히면 onDone을 거치지 않아 다 지운 뒤에도 앱이 남는다.
                         // 결과 창은 버튼으로만 닫는다.
