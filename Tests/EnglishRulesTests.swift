@@ -571,4 +571,8 @@ func runEnglishDictReview1112Tests() {
     for keys in ["goals", "rocks", "coals", "disks"] {
         expect(type(keys).committedText, hangul(keys), "F-6 넣지 않은 꼴은 한글: \(hangul(keys))")
     }
+    // 2026-11-16 오너 결정: chris(초갼)는 한글형이 멀쩡해 이름 사전으로는 안 바뀐다 — '갼'으로 끝나는 우리말이 없어 curated 예외로 넣었다.
+    expect(type("chris").committedText, "chris", "chris 예외: 초갼 → chris")
+    // 대조: 진짜 우리말이 되는 이름은 그대로 지킨다(ryan=교무 표제어).
+    expect(type("ryan").committedText, hangul("ryan"), "ryan은 교무(우리말) 그대로")
 }
