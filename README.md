@@ -139,7 +139,7 @@ https://github.com/user-attachments/assets/838201b8-b306-4a13-9777-bdeba3387dae
 - **macOS Sonoma 14 이상** · Apple Silicon과 Intel(Universal)
 - 지금은 **두벌식**만 지원합니다.
 - **터미널(Terminal·Ghostty 등)에서는 변환 단축키로 단어를 바꾸거나 되돌릴 수 없습니다.** 자동 변환과 슬래시 입력은 동작합니다.
-- 일부 웹사이트의 비밀번호 칸에서는 한글이 입력될 수 있으니, 비밀번호는 **ABC**로 쳐 주세요.
+- VS Code 같은 코드 편집기에서는 변환 단축키가 글자를 잘못 바꿀 수 있습니다.
 - 로그인 화면에서 비밀번호 칸에 커서가 남아 있으면 한글이 나오지 않습니다. 그 창을 닫거나 커서를 다른 곳으로 옮기면 돌아옵니다.
 - 앱이나 사이트의 입력 처리 방식에 따라 동작이 조금 다를 수 있습니다. 이상하면 [Issues](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues)로 알려 주세요.
 
@@ -250,7 +250,7 @@ Your typing and personal dictionary never leave your Mac. The input method has n
 - macOS Sonoma 14 or later, Universal (Apple Silicon and Intel)
 - Two-set (Dubeolsik) layout only
 - In terminals (Terminal, Ghostty and others), the conversion shortcut cannot change or revert words. Automatic conversion and slash input still work.
-- Some websites' password fields may accept Hangul, so type passwords with **ABC**.
+- In code editors such as VS Code, the conversion shortcut may change the wrong characters.
 - While a password field on a login screen keeps the cursor, Hangul does not appear. It comes back once you close that window or move the cursor elsewhere.
 
 ## License and credits

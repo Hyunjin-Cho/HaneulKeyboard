@@ -2,7 +2,7 @@
 
 입력기(IME)는 키보드 입력을 다루는 민감한 소프트웨어입니다. 하늘키보드가 무엇을 보고, 무엇을 저장하고, 무엇을 하지 않는지 명확하게 적습니다. 아래 모든 내용은 [공개된 소스 코드](https://github.com/Hyunjin-Cho/HaneulKeyboard)로 직접 검증할 수 있습니다.
 
-_최종 수정: 2026-11-13_ (2026-11-12 전체 코드 리뷰 수정과 대조: 보안 입력 재확인, 커서 위치 확인, 업데이트 요청 헤더 실측과 검증 항목. 그 전 2026-11-07에 호스트 앱에서 읽는 범위·저장되는 값·로그·진단을 고쳤습니다)
+_최종 수정: 2026-11-16_ (2026-11-16: 보안 입력 칸의 동작을 실측대로 고쳐 씀 — 비밀번호 칸 4번. 2026-11-12 전체 코드 리뷰 수정과 대조: 보안 입력 재확인, 커서 위치 확인, 업데이트 요청 헤더 실측과 검증 항목. 그 전 2026-11-07에 호스트 앱에서 읽는 범위·저장되는 값·로그·진단을 고쳤습니다)
 
 ## 한눈에 보기
 
@@ -11,7 +11,7 @@ _최종 수정: 2026-11-13_ (2026-11-12 전체 코드 리뷰 수정과 대조: �
 | 키 입력을 보나요? | 한국어 입력기가 **활성화된 동안만**, 한글 조합을 위해 봅니다. macOS의 모든 IME가 동일하게 동작합니다. |
 | 네트워크로 전송하나요? | **입력기는 인터넷에 접속하지 않습니다.** 입력·설정·사전을 자동으로 업로드하지 않습니다. 단어 제안은 사용자가 고른 메일 앱/브라우저에 직접 적은 제안 내용을 넘깁니다(8번). 메뉴바 앱의 업데이트 조회·다운로드는 9번을 따릅니다. |
 | 입력 내용을 저장하나요? | **아니요.** 입력한 내용을 저장하거나 학습하지 않습니다 — 모든 판정은 메모리에서만 일어납니다. 예외는 **사용자가 직접 관리하는 개인 사전**뿐입니다: 설정에서 직접 적은 단어 목록과, Shift+Space로 **되돌린** 변환의 (한글 표기, 영어) 쌍 최근 50개가 **이 기기 안의 설정 파일에만** 남습니다 (아래 7번). |
-| 비밀번호도 보나요? | **macOS와 호스트 앱이 보안 입력을 올바르게 활성화한 필드에서는 받지 않습니다.** 다만 일부 브라우저의 웹 비밀번호 칸은 보안 입력이 켜지지 않아 키를 받을 수 있습니다. 민감한 내용은 영문(ABC) 모드로 입력하는 것을 권장합니다. |
+| 비밀번호도 보나요? | **보안 입력이 켜진 칸(대부분의 비밀번호 칸)에서는 한글을 조합하지 않고 키를 그대로 넘깁니다.** 그래서 한글 모드인 채로 쳐도 비밀번호는 영문으로 들어갑니다. 어느 칸에서든 입력 내용을 저장하거나 보내지 않습니다. |
 | 주장을 검증할 수 있나요? | 네. 앱 소스는 Apache License 2.0으로 공개하며 LICENSE·NOTICE를 동봉합니다. 사전·글꼴은 별도 고지를 따릅니다. |
 
 ## 상세
@@ -61,7 +61,11 @@ _최종 수정: 2026-11-13_ (2026-11-12 전체 코드 리뷰 수정과 대조: �
 
 ### 4. 보안 입력 필드 (비밀번호 등)
 
-macOS와 호스트 앱이 보안 입력(secure event input)을 올바르게 활성화한 필드에서는 **macOS가 OS 차원에서 서드파티 IME를 우회**하므로 하늘키보드는 해당 키 입력을 전달받지 않습니다. 다만 일부 브라우저의 웹 비밀번호 칸은 macOS가 보안 입력을 켜지 않아 하늘키보드가 키를 받고 한글을 조합할 수 있습니다. 이는 애플 기본 입력기를 포함한 모든 한글 입력기에 동일한 플랫폼 한계입니다. 민감한 내용은 영문(ABC) 모드로 입력하는 것을 권장합니다. 어느 경우에도 하늘키보드는 입력 내용을 저장하거나 전송하지 않습니다.
+macOS와 호스트 앱이 보안 입력(secure event input)을 켠 칸에서는 하늘키보드가 **한글을 조합하지 않고 키를 그대로 넘깁니다.** 그래서 한글 모드인 채로 비밀번호를 쳐도 영문으로 들어갑니다(2026-11-14 실측: 크롬·사파리의 웹 비밀번호 칸도 보안 입력을 켭니다). 보안 입력을 켜지 않는 입력칸은 일반 입력칸과 같게 다룹니다.
+
+보안 입력은 칸마다가 아니라 Mac 전체에 하나뿐인 상태라, 다른 앱의 비밀번호 칸에 커서가 남아 있는 동안에는 다른 앱에서도 한글이 나오지 않습니다. 이때 메뉴바 메뉴를 열면 이유를 알려 드립니다. 그 창을 닫거나 커서를 옮기면 돌아옵니다.
+
+어느 경우에도 하늘키보드는 입력 내용을 저장하거나 전송하지 않습니다.
 
 ### 5. 진단 로그 (2026-11-07 코드와 대조해 고침)
 
@@ -69,7 +73,7 @@ macOS와 호스트 앱이 보안 입력(secure event input)을 올바르게 활�
 - **출시 빌드의 입력기는 키 입력을 로그에 남기지 않습니다.** 키 코드를 기록하는 줄은 개발용 Debug 빌드에만 컴파일되고(그 줄도 키 코드를 `privacy: .private`로 가립니다), 출시 빌드에는 없습니다. 커서 위치·읽은 길이 같은 되돌리기 진단 줄도 Debug 빌드에만 있습니다. 출시 빌드의 입력기가 남기는 것은 입력기가 활성화·비활성화되는 시점을 알리는 `activateServer`·`deactivateServer` 문자열(대개 입력칸이나 앱을 옮길 때 찍힙니다), 입력기 시작 실패 오류, 메인 앱이 지워졌을 때 입력기가 스스로 정리하는 단계의 결과(`orphan:` 줄)입니다 ([`IMESources/HaneulInputController.swift`](./IMESources/HaneulInputController.swift), [`IMESources/OrphanWatcher.swift`](./IMESources/OrphanWatcher.swift)).
 - **선택 진단 추적(R12):** 기본은 꺼짐입니다. `haneul.roundTripTraceStart`·`haneul.roundTripTraceEnd`(시작·끝 Unix 시각, 간격 30분 이하) 두 값을 직접 `defaults write`로 넣었을 때만 켜지고, 그 시간 안에서 최대 512건을 `roundtrip` 범주에 남깁니다. 기록하는 것은 이벤트 이름·단계 이름·조합 중인지·직전 변환 쌍이 있는지와 그 변환의 종류(자동·자판·등록 단어)·되돌리기 번호와, 입력기의 컨트롤러 객체마다 새로 만드는 무작위 식별자(UUID — 사용자나 기기를 가리키지 않습니다)뿐입니다. 글자·키 코드·좌표·앱 이름·입력칸 식별자는 받지 않습니다. 이 줄은 공개(public)로 기록되어 `log show`로 읽을 수 있습니다 ([`IMESources/RoundTripTrace.swift`](./IMESources/RoundTripTrace.swift)).
 - **메인 앱의 로그:** 설치·업데이트·입력기 갱신의 진행 상황과 실패 사유를 남깁니다. 설치 위치(파일 경로)와 업데이트 버전 번호가 공개로 기록될 수 있고, 경로에 macOS 사용자 계정 이름이 들어갈 수 있습니다. 입력한 내용은 담기지 않습니다.
-- 보안 입력이 올바르게 활성화된 필드의 키는 위 4번대로 IME에 전달되지 않으므로 로그에도 남지 않습니다.
+- 보안 입력이 켜진 칸의 키는 위 4번대로 조합하지 않고 그대로 넘기며, 로그에도 남지 않습니다.
 
 ### 6. 검증
 
@@ -86,7 +90,7 @@ macOS와 호스트 앱이 보안 입력(secure event input)을 올바르게 활�
 | 최근 되돌린 변환 | 입력기가 영어로 바꿨다가 사용자가 Shift+Space로 **되돌린** 단어의 (한글 표기, 영어) 쌍. 최근 50개, 같은 쌍은 하나만 | 입력기(되돌린 순간) |
 
 - **저장 위치**: 입력기의 설정 도메인 `com.hyunjincho.inputmethod.haneul` (`~/Library/Preferences/`)의 `haneul.personalDict.force` · `haneul.personalDict.block` · `haneul.recentReverts` 키. 일반 텍스트 목록이라 `defaults read com.hyunjincho.inputmethod.haneul` 로 직접 확인할 수 있습니다.
-- **저장하지 않는 것**: 키 입력 자체, 앞뒤 문맥(문장), 어느 앱에서 쳤는지, 시각. "최근 되돌린 변환"은 입력기가 **스스로 화면에 넣었던** 영어 단어를 사용자가 취소했을 때 그 단어와 한글 표기만 남기며, 변환되지 않은 입력이나 한글 문장은 어떤 경우에도 기록하지 않습니다. 보안 입력이 켜진 필드에서는 위 4번대로 아예 입력기에 도달하지 않으므로 기록될 수 없습니다. 로그에도 남기지 않습니다.
+- **저장하지 않는 것**: 키 입력 자체, 앞뒤 문맥(문장), 어느 앱에서 쳤는지, 시각. "최근 되돌린 변환"은 입력기가 **스스로 화면에 넣었던** 영어 단어를 사용자가 취소했을 때 그 단어와 한글 표기만 남기며, 변환되지 않은 입력이나 한글 문장은 어떤 경우에도 기록하지 않습니다. 보안 입력이 켜진 칸에서는 위 4번대로 조합·변환을 하지 않으므로 기록될 것이 없습니다. 로그에도 남기지 않습니다.
 - **자동 수집 없음**: 사용자가 직접 적거나 직접 되돌린 것만 남고, 입력기가 스스로 단어를 모으거나 학습하지 않습니다. 개인 사전은 입력기 쪽에만 있고 입력기에는 네트워크 코드가 없으므로(2번), 어디로도 전송되지 않습니다 — 업데이트 확인 요청(9번)에도 담기지 않습니다.
 - **지우는 방법**: 설정 창에서 항목별 삭제(−) 또는 "최근 기록 지우기". **전체 제거**(설정 → 앱 관리 → 하늘키보드 전체 제거…)는 정식 사용자·시스템 입력기 파일의 부재와 실행 종료·필수 등록·입력 소스 정리를 확인한 뒤 개인 설정을 정리합니다. 입력기 제거 실패·관리자 요청 취소·조회 불명 상태에서는 개인 사전과 설정을 보존합니다. 필수 정리가 실패하면 재시도용 메인 앱도 남깁니다. **Finder에서 메인 앱을 휴지통으로 옮겼을 때의 자동 입력기 정리는 개인 사전·설정을 항상 보존합니다**(2026-10-11 사용자 승인 B안). 개발용 복구 CLI `scripts/uninstall.sh`도 같은 `Shared/RemovalPolicy.swift:RemovalSequence`와 관측 함수를 사용하며, 메인 앱은 수동으로 제거하도록 안내합니다. 설정 정리는 제품 설정 키의 부재를 확인하는 방식이며 macOS가 빈 설정 파일을 남길 수 있습니다.
 - 구현: [`IMESources/PersonalDictionary.swift`](./IMESources/PersonalDictionary.swift)(판정·형식), [`Sources/PersonalDictionarySettingsSection.swift`](./Sources/PersonalDictionarySettingsSection.swift)(설정 화면), [`IMESources/HaneulInputController.swift`](./IMESources/HaneulInputController.swift)(되돌리기 기록 시점)
@@ -130,7 +134,7 @@ macOS와 호스트 앱이 보안 입력(secure event input)을 올바르게 활�
 
 An IME is sensitive software — it handles your keyboard input. This document states plainly what HaneulKeyboard sees, what it stores, and what it does not do. Every claim below is verifiable against the [public source code](https://github.com/Hyunjin-Cho/HaneulKeyboard).
 
-_Last updated: 2026-11-13_ (checked against the fixes from the 2026-11-12 full code review: secure-input re-checks, caret-position checks, measured update request headers and the added verification steps; on 2026-11-07 the host-app reads, stored values, logs and diagnostics were re-checked)
+_Last updated: 2026-11-16_ (2026-11-16: rewrote how secure-input fields are handled to match measurements — passwords, #4. checked against the fixes from the 2026-11-12 full code review: secure-input re-checks, caret-position checks, measured update request headers and the added verification steps; on 2026-11-07 the host-app reads, stored values, logs and diagnostics were re-checked)
 
 ## At a Glance
 
@@ -139,7 +143,7 @@ _Last updated: 2026-11-13_ (checked against the fixes from the 2026-11-12 full c
 | Does it see my keystrokes? | Only **while active as the selected input source**, to compose Hangul. Every IME on macOS works this way. |
 | Does it send anything over the network? | **The IME does not access the internet.** Input, settings, and dictionaries are not automatically uploaded. Word suggestions hand the user-selected draft to a mail app/browser (#8). The menu bar app checks/downloads updates as described in #9. |
 | Does it store what I type? | **No.** Nothing you type is stored or learned — all decisions happen in memory only. The one exception is the **personal dictionary you manage yourself**: the word lists you enter in Settings, and the (Hangul form, English) pairs of the last 50 conversions you **reverted** with Shift+Space, kept **only in this device's preferences** (see #7). |
-| Can it see my passwords? | **Not in fields where macOS and the host app correctly enable secure input.** Some browser-based password fields do not enable it, however, so the IME may receive those keystrokes. We recommend using English (ABC) mode for sensitive input. |
+| Can it see my passwords? | **In fields with secure input on (most password fields), it does not compose Hangul and passes your keys through unchanged**, so a password typed in Korean mode still goes in as English letters. In no field does it store or send what you type. |
 | Can I verify these claims? | Yes. App code is open under Apache License 2.0 with LICENSE and NOTICE; bundled data/fonts retain their own licenses. |
 
 ## Details
@@ -189,7 +193,11 @@ In other words: **the process that can see your typing (the IME) does not reach 
 
 ### 4. Secure input fields (passwords, etc.)
 
-In fields where macOS and the host app correctly enable secure event input, **macOS bypasses third-party IMEs at the OS level**, so HaneulKeyboard does not receive those keystrokes. Some browser-based password fields do not cause macOS to enable secure input, however, and HaneulKeyboard may then receive the keystrokes and compose Hangul. This is a platform limitation that also affects Apple's input methods. We recommend using English (ABC) mode for sensitive input. In all cases, HaneulKeyboard neither stores nor transmits what you type.
+In fields where macOS and the host app turn on secure event input, HaneulKeyboard **does not compose Hangul and passes your keys through unchanged**, so a password typed in Korean mode still goes in as English letters (measured on 2026-11-14: web password fields in Chrome and Safari turn secure input on). Fields that do not turn it on are treated like any other field.
+
+Secure input is a single state for the whole Mac, not per field: while a password field in another app keeps the cursor, Hangul does not appear in other apps either. Opening the menu bar menu then tells you why; closing that window or moving the cursor brings it back.
+
+In all cases, HaneulKeyboard neither stores nor transmits what you type.
 
 ### 5. Diagnostic logging (corrected against the code 2026-11-07)
 
@@ -197,7 +205,7 @@ In fields where macOS and the host app correctly enable secure event input, **ma
 - **The release IME does not log keystrokes.** The line that records key codes is compiled only into developer Debug builds (and even it redacts the key code with `privacy: .private`); it is not in release builds. The diagnostic lines about caret positions and read lengths during a revert are Debug-only as well. What the release IME does log is the `activateServer`/`deactivateServer` strings marking when the IME is activated or deactivated (typically when you switch fields or apps), an error if the input method server cannot start, and the step results of its own cleanup when the main app was removed (`orphan:` lines) ([`IMESources/HaneulInputController.swift`](./IMESources/HaneulInputController.swift), [`IMESources/OrphanWatcher.swift`](./IMESources/OrphanWatcher.swift)).
 - **Optional diagnostic trace (R12):** off by default. It turns on only when you set the two values `haneul.roundTripTraceStart` and `haneul.roundTripTraceEnd` yourself with `defaults write` (start and end Unix times no more than 30 minutes apart); inside that window it writes at most 512 records to the `roundtrip` category. A record holds an event name, a stage name, whether a composition is in progress, whether a last-conversion pair exists and which kind of conversion it was (automatic, keyboard-layout, or registered word), a revert sequence number, and a random identifier (a UUID created per controller object in the IME; it identifies neither you nor your device). It never receives text, key codes, coordinates, app names, or client identifiers. These lines are logged as public and can be read with `log show` ([`IMESources/RoundTripTrace.swift`](./IMESources/RoundTripTrace.swift)).
 - **The menu bar app's logs:** progress and failure reasons of installation, updates, and IME refresh. The install location (a file path) and update version numbers may be logged as public, and the path can contain your macOS account name. Nothing you type is included.
-- Keystrokes from fields where secure input is correctly enabled do not reach the IME (see #4), so they do not appear in logs.
+- Keystrokes from fields with secure input on are passed through without composition (see #4) and do not appear in logs.
 
 ### 6. Verifiability
 
@@ -214,7 +222,7 @@ The **Personal dictionary** section in Settings lets you correct the wrong-layou
 | Recently reverted | (Hangul form, English) pairs of conversions the IME made and you **reverted** with Shift+Space. Last 50, one entry per pair | The IME, at the moment you revert |
 
 - **Where**: the IME's defaults domain `com.hyunjincho.inputmethod.haneul` (`~/Library/Preferences/`), keys `haneul.personalDict.force`, `haneul.personalDict.block`, `haneul.recentReverts`. They are plain lists — `defaults read com.hyunjincho.inputmethod.haneul` shows exactly what is there.
-- **What is not stored**: keystrokes, surrounding text, which app you were typing in, timestamps. "Recently reverted" records only an English word **the IME itself had inserted** and you then cancelled, plus its Hangul form; unconverted input and Korean sentences are never recorded. Fields with secure input enabled never reach the IME (#4), so nothing from them can be recorded. Nothing is written to logs.
+- **What is not stored**: keystrokes, surrounding text, which app you were typing in, timestamps. "Recently reverted" records only an English word **the IME itself had inserted** and you then cancelled, plus its Hangul form; unconverted input and Korean sentences are never recorded. In fields with secure input on, nothing is composed or converted (#4), so there is nothing to record. Nothing is written to logs.
 - **No automatic collection**: only what you enter or revert yourself is kept; the IME does not gather or learn words on its own. The personal dictionary lives in the IME, which has no networking code at all (#2), so it is never transmitted — and it is not part of the update check either (#9).
 - **How to delete**: delete entries or clear recent records in Settings. Full removal verifies absence of both canonical IME bundles, stopped IME processes, required registrations, and disabled input sources before clearing product preferences. Failed or unobservable IME cleanup preserves personal data; a failed required step preserves the main app for retry. **Finder-triggered IME self-cleanup always preserves personal dictionaries and preferences** (owner-approved option B, 2026-10-11). The developer recovery CLI uses the same Swift policy and observations, and leaves main-app removal to Finder. Empty preference files can remain after macOS confirms the product keys are absent.
 - Implementation: [`IMESources/PersonalDictionary.swift`](./IMESources/PersonalDictionary.swift) (decision and format), [`Sources/PersonalDictionarySettingsSection.swift`](./Sources/PersonalDictionarySettingsSection.swift) (Settings UI), [`IMESources/HaneulInputController.swift`](./IMESources/HaneulInputController.swift) (when a revert is recorded)
