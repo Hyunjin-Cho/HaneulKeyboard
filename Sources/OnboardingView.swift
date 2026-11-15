@@ -378,9 +378,8 @@ struct OnboardingView: View {
                 // 2026-11-08 오너(#201): ABC는 macOS가 빼지 못하게 막아 두어 '남겨 주세요'가 필요 없다. Caps Lock 전환 설정은 맥 사용자가 다 안다.
                 // 2026-11-09 오너(#216): 남아 있던 `Caps Lock을 누르면 한글과 영어가 바뀌어요.`도 뺐다 — 맥 사용자는 다 안다.
                 Label("기존 Apple ‘두벌식’은 빼 주세요.", systemImage: "keyboard")
-                // 2026-11-07 (#187): 입력기라 가장 정직해야 하는 대목이다. 근거는 PRIVACY.md 4번과 README 알려진 한계.
-                // 2026-11-08 오너(#201): 이유를 먼저, 할 일을 뒤에 쓴다.
-                Label("일부 웹사이트의 비밀번호 칸에서는 한글이 입력될 수 있으니 비밀번호는 영문(ABC)으로 쳐 주세요.", systemImage: "lock")
+                // 2026-11-15 오너: 비밀번호 칸 주의 줄을 뺐다. 크롬·사파리 비밀번호 칸은 보안 입력을 켜고(2026-11-14 실측),
+                // 그 상태면 이 입력기는 한글 모드여도 키를 영문 그대로 넘긴다 — "한글이 입력될 수 있으니 ABC로"는 지금 동작과 반대말이었다.
                 if let message = sourceError ?? core.imeSettingsRefreshWarning {
                     Text(message).foregroundStyle(FeedbackStatus.warning.color(in: colorScheme))
                         .textSelection(.enabled)
