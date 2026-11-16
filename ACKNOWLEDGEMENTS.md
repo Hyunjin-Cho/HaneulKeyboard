@@ -1,6 +1,6 @@
 # 감사의 글 (Acknowledgements)
 
-> 기준일: 2026-11-13 (2026-10-17 작성. 2026-11-07에 사전 탑재 방식·고지 원문·McBopomofo 고지를, 2026-11-08에 글꼴을 고운바탕에서 마루 부리로, 2026-11-13에 지명 사전 범위와 보충 목록 설명을 고치고, 개발 도구 절을 실제로 함께 개발한 도구(Claude)만 남겼습니다)
+> 기준일: 2026-11-16 (2026-10-17 작성. 2026-11-16에 바뀌는 사전 낱말 수를 확인하는 곳으로 바꿨습니다(#259). 2026-11-07에 사전 탑재 방식·고지 원문·McBopomofo 고지를, 2026-11-08에 글꼴을 고운바탕에서 마루 부리로, 2026-11-13에 지명 사전 범위와 보충 목록 설명을 고치고, 개발 도구 절을 실제로 함께 개발한 도구(Claude)만 남겼습니다)
 
 하늘키보드는 혼자 만든 것이 아닙니다. 앞서 길을 닦아준 수많은 오픈소스와 도구, 그리고 그것을 가능케 한 사람들의 어깨 위에 서 있습니다.
 
@@ -122,11 +122,13 @@ special lists in order to help improve the overall quality of ESDB.
 
 2026-11-07부터 입력기는 아래 사전 파일을 하나씩 읽지 않고, 영어 사전 여섯 개를 합쳐 정렬한 표 `english_bundled.txt` 하나로 찾습니다(`dict_work/dict_manifest.tsv`가 합칠 목록의 정본이고, 낱말 수는 표 머리말의 `count`에 있습니다). 이 표에는 새로 배포하는 낱말이 없고 이미 배포하던 낱말을 합친 것입니다. 표를 만든 원본 중 `english_supplement.txt`·`english_common.txt` 둘은 입력기 번들에 그대로도 들어 있고, 나머지 넷은 표로만 들어갑니다. macOS의 `/usr/share/dict/words`는 이 표에 복사하지 않고, 입력기가 시스템 파일을 그 자리에서 읽습니다.
 
-| 원본 사전 파일(저장소) | 규모 | 구성 |
-|---|---:|---|
-| `english_names.txt` | 28,378개 | Census 성씨와 SSA 이름을 가공·필터링한 목록 |
-| `english_modern.txt` | 71,348개 | SCOWL size 70을 가공·필터링한 목록 |
-| `english_names_extra.txt` | 수작업 보충 목록 | Census/SSA 출처가 아닌, 유명인·이름·제품·기술 약어를 수작업으로 선별한 목록. 2026-11-07 오너 결정으로 약어 7개(`ansi`·`goty`·`emtek`·`totp`·`algo`·`rhel`·`gorm`)가 이 목록으로 내려왔고, 2026-11-13(#225)부터 요일·달·나라·국적·언어 이름이 들어 있습니다 |
+낱말 수는 사전을 고칠 때마다 바뀌므로 아래 표에 적지 않습니다. 저장소의 각 파일은 `grep -vc '^#' <파일>`로 셀 수 있고, 합친 표의 전체 수는 `english_bundled.txt` 머리말의 `count` 줄에 있습니다(2026-11-16 #259: 옛 숫자가 남아 있어 바꿨습니다).
+
+| 원본 사전 파일(저장소) | 구성 |
+|---|---|
+| `english_names.txt` | Census 성씨와 SSA 이름을 가공·필터링한 목록 |
+| `english_modern.txt` | SCOWL size 70을 가공·필터링한 목록 |
+| `english_names_extra.txt` | 수작업 보충 목록. Census/SSA 출처가 아닌, 유명인·이름·제품·기술 약어를 수작업으로 선별한 목록. 2026-11-07 오너 결정으로 약어 7개(`ansi`·`goty`·`emtek`·`totp`·`algo`·`rhel`·`gorm`)가 이 목록으로 내려왔고, 2026-11-13(#225)부터 요일·달·나라·국적·언어 이름이 들어 있습니다 |
 
 ### GeoNames — 전 세계 지명 데이터
 - https://www.geonames.org
@@ -162,7 +164,7 @@ plist·entitlements 구조와 IME 아키텍처를 비교·학습하는 데 참�
 
 # Acknowledgements (English)
 
-> Updated: 2026-11-13 (first written 2026-10-10; on 2026-11-07 the dictionary bundling note, license texts and the McBopomofo notice were revised; on 2026-11-08 the fonts changed to MaruBuri; on 2026-11-13 the place-name coverage and the supplement list description were corrected, and the development tools section now lists only the tool that actually co-developed the project, Claude)
+> Updated: 2026-11-16 (first written 2026-10-10; on 2026-11-16 changing entry counts were replaced with where to find them (#259); on 2026-11-07 the dictionary bundling note, license texts and the McBopomofo notice were revised; on 2026-11-08 the fonts changed to MaruBuri; on 2026-11-13 the place-name coverage and the supplement list description were corrected, and the development tools section now lists only the tool that actually co-developed the project, Claude)
 
 HaneulKeyboard builds on the work of the open-source projects, tools, and people who came before it.
 
@@ -205,9 +207,9 @@ SOFTWARE.
 - **[Urimalsaem (우리말샘)](https://opendict.korean.go.kr)** (National Institute of Korean Language, CC-BY-SA 2.0 KR — license: https://creativecommons.org/licenses/by-sa/2.0/kr/ , legal code: https://creativecommons.org/licenses/by-sa/2.0/kr/legalcode.ko) — Source of the 677k Korean headwords used by the wrong-layout auto-correction to verify real Korean words. The existing 2026-06-03 snapshot also informed noun/POS/sense checks for the 2026-10-18 explicitly triggered noun expansion; definitions and examples are not bundled. Per-entry sources for that expansion are in the [added noun list](dict_work/2026-10-18-phonetic-reviewed-nouns.tsv).
 - **[NIKL Korean vocabulary list for learners](https://www.korean.go.kr/front/etcData/etcDataView.do?etc_seq=71)** (KOGL Type 1) — Used for noun coverage checks on 2026-10-18, not as an English translation source.
 - **[New General Service List (NGSL)](https://www.newgeneralservicelist.com)** (Browne, C., Culligan, B., & Phillips, J., CC BY-SA 4.0 — license: https://creativecommons.org/licenses/by-sa/4.0/ , legal code: https://creativecommons.org/licenses/by-sa/4.0/legalcode) — Source of the 2,809 high-frequency modern English lemmas (10k+ word forms) used by the wrong-layout auto-correction to verify real English words. HaneulKeyboard sorted, filtered and selected inflected forms from this list when producing `english_common.txt` and related files (changes indicated); the method is in `dict_work/SOURCE_FORMATS.md` and the file headers.
-- **[US Census Bureau — 2010 Census Surnames](https://www.census.gov/topics/population/genealogy/data/2010_surnames.html)** (Public Domain) — The source dataset contains about 162k surnames. After processing and filtering, Census surnames and SSA first names are bundled together in `english_names.txt` (28,378 entries).
+- **[US Census Bureau — 2010 Census Surnames](https://www.census.gov/topics/population/genealogy/data/2010_surnames.html)** (Public Domain) — The source dataset contains about 162k surnames. After processing and filtering, Census surnames and SSA first names are bundled together in `english_names.txt` (count the entries in the file itself; the number changes, so it is not written here).
 - **[US Social Security Administration — Baby Names](https://www.ssa.gov/oact/babynames/)** (Public Domain) — Source of the first-name data (yearly birth registrations since 1880) used for recognizing personal names.
-- **[SCOWL / ESDB (English Speller Database)](https://wordlist.aspell.net)** (Kevin Atkinson, MIT-like license — Copyright 2000-2026 by Kevin Atkinson) — The source size-70 American English list contains about 167k words; the processed and filtered `english_modern.txt` bundled with the app contains 71,348 entries. Thanks to Kevin Atkinson and contributors (including Alan Beale of 12dicts) for decades of curating English spelling data. On 2026-11-07 the notice below was copied verbatim from the `Copyright` file of the public SCOWL/ESDB repository (https://github.com/en-wl/wordlist), taking the part before the `===` line, which that file names as the notice for a generated word list. This document does not decide whether that part is the one that applies to the list this app used (size 70, US spelling).
+- **[SCOWL / ESDB (English Speller Database)](https://wordlist.aspell.net)** (Kevin Atkinson, MIT-like license — Copyright 2000-2026 by Kevin Atkinson) — The source size-70 American English list contains about 167k words; the processed and filtered `english_modern.txt` bundled with the app is much smaller (count the entries in the file itself; the number changes, so it is not written here). Thanks to Kevin Atkinson and contributors (including Alan Beale of 12dicts) for decades of curating English spelling data. On 2026-11-07 the notice below was copied verbatim from the `Copyright` file of the public SCOWL/ESDB repository (https://github.com/en-wl/wordlist), taking the part before the `===` line, which that file names as the notice for a generated word list. This document does not decide whether that part is the one that applies to the list this app used (size 70, US spelling).
 
 ```text
 Copyright 2000-2026 by Kevin Atkinson
@@ -235,7 +237,7 @@ addition, he gave me an incredible amount of feedback and created a number of
 special lists in order to help improve the overall quality of ESDB.
 ```
 
-- **Bundled name data and table (changed 2026-11-07):** `english_names.txt` contains 28,378 processed Census/SSA entries. `english_names_extra.txt` is a hand-curated supplement of names, products and technical abbreviations (since 2026-11-13, #225, also weekdays, months, countries, nationalities and languages) and is not sourced from Census or SSA; by owner decision on 2026-11-07 seven abbreviations (`ansi`, `goty`, `emtek`, `totp`, `algo`, `rhel`, `gorm`) moved into it. The IME no longer reads these files one by one: six English dictionaries (the list in `dict_work/dict_manifest.tsv`) are merged into one sorted table, `english_bundled.txt`, and the IME looks words up in that table (the word count is in its header). The table contains no word that was not already distributed. macOS's `/usr/share/dict/words` is not copied into the table or the app; the IME reads that system file in place.
+- **Bundled name data and table (changed 2026-11-07):** `english_names.txt` holds the processed Census/SSA entries (count them with `grep -vc '^#'` on the file; corrected 2026-11-16, #259, because an outdated number had been left here). `english_names_extra.txt` is a hand-curated supplement of names, products and technical abbreviations (since 2026-11-13, #225, also weekdays, months, countries, nationalities and languages) and is not sourced from Census or SSA; by owner decision on 2026-11-07 seven abbreviations (`ansi`, `goty`, `emtek`, `totp`, `algo`, `rhel`, `gorm`) moved into it. The IME no longer reads these files one by one: six English dictionaries (the list in `dict_work/dict_manifest.tsv`) are merged into one sorted table, `english_bundled.txt`, and the IME looks words up in that table (the word count is in its header). The table contains no word that was not already distributed. macOS's `/usr/share/dict/words` is not copied into the table or the app; the IME reads that system file in place.
 - **[GeoNames](https://www.geonames.org)** (CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/) — Source of the place-name dictionary (states/provinces + cities with population 50k+ in seven North American and European countries — US, Canada, Mexico, UK, France, Spain, Italy) used by the wrong-layout auto-correction.
 - **[Wikidata](https://www.wikidata.org)** (Wikimedia, CC0 1.0 Public Domain) — Source of the football club & player dictionary (9 leagues across England, France, Spain, Italy) used by the wrong-layout auto-correction. Structured Korean/English labels and aliases also corroborated directly authored noun mappings on 2026-10-18; descriptions and media were not copied.
 ## Development tools
