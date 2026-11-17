@@ -32,9 +32,9 @@ if particles.exists():
     sources.append(particles)
 sources.append(ROOT / "Tests/VocabularyExtensionTests.swift")
 resources = list((ROOT / "Resources/IM").glob("english*.txt")) + [
-    ROOT / "Resources/IM/korean_words.txt", ROOT / "dict_work/dict_manifest.tsv",
-    ROOT / "dict_work/2026-10-14-nature-camera-coverage.txt",
-    ROOT / "dict_work/2026-10-06-nature-film-coverage.txt",
+    ROOT / "Resources/IM/korean_words.txt", ROOT / "dictionary/dict_manifest.tsv",
+    ROOT / "dictionary/records/2026-10-14-nature-camera-coverage.txt",
+    ROOT / "dictionary/records/2026-10-06-nature-film-coverage.txt",
 ]
 tracked = sources + resources
 

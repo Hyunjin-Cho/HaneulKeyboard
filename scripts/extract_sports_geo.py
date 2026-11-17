@@ -15,7 +15,7 @@
 선수 필터(사용자 결정): 토큰이 (정확히 5자 & 두벌식 모음키 yuiophjklbnm 시작)
 또는 (6자 이상)일 때만 채택 — 모음 시작/긴 길이로 한국어 충돌을 구조적으로 회피.
 
-뒤 단계(이 스크립트 밖, 절차 정본은 dict_work/SOURCE_FORMATS.md §5):
+뒤 단계(이 스크립트 밖, 절차 정본은 dictionary/SOURCE_FORMATS.md §5):
   scripts/audit_wordlist.sh --candidates <srcdir>/sports_geo_raw.txt --role broad --out <csv>
   → class가 all_jamo(완성 음절 0)인 줄을 뺀 나머지가 english_sports_geo.txt 본문이다.
   → 그 뒤 scripts/build_english_table.py로 번들 표를 다시 만든다.

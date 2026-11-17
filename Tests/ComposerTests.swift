@@ -922,7 +922,7 @@ func runMath109Tests() {
 
 // MARK: - 사전 manifest (review-0712 P3-5)
 
-/// `dict_work/dict_manifest.tsv` 한 줄 — 번들 영어 사전 하나의 계약.
+/// `dictionary/dict_manifest.tsv` 한 줄 — 번들 영어 사전 하나의 계약.
 struct DictManifestEntry {
     let name: String
     let role: String        // "curated" (curated+broad) | "broad" (broad 전용)
@@ -937,7 +937,7 @@ struct DictManifestEntry {
 /// `english_sports_geo.txt`(28,360줄)가 런타임에만 있고 테스트·검역에서는
 /// 빠져도 아무도 몰랐다. 이제 어긋나면 이 파일의 assertion이 실패한다.
 enum DictManifest {
-    static let path = "dict_work/dict_manifest.tsv"
+    static let path = "dictionary/dict_manifest.tsv"
 
     static func load() -> [DictManifestEntry] {
         guard let text = try? String(contentsOfFile: path, encoding: .utf8) else { return [] }
@@ -3128,7 +3128,7 @@ struct ComposerTests {
         expect(typeViaControllerWithPersonalDictionary("x9q", .empty).committedText, "ㅌ9ㅂ", "개인 사전 제거 후 미등록 이름 유지")
 
         // 2026-10-06 (#74): 대표 범주의 실제 컨트롤러 경로 + 개인 사전 금지 우선 회귀.
-        let categoryText = try! String(contentsOfFile: "dict_work/2026-10-06-nature-film-coverage.txt", encoding: .utf8)
+        let categoryText = try! String(contentsOfFile: "dictionary/records/2026-10-06-nature-film-coverage.txt", encoding: .utf8)
         let categoryWords = categoryText.split(separator: "\n").map(String.init).filter { !$0.hasPrefix("#") && !$0.isEmpty }
         expect(categoryWords.count, 201, "범주 대표 이름 표본 수")
         for name in categoryWords {
@@ -3140,7 +3140,7 @@ struct ComposerTests {
 
         // 2026-10-08: 아트 용어의 실제 입력 결과와 개인 사전 금지 우선.
         // slab=니뮤는 한글 표현 보호 때문에 curated 승격에서 제외했다.
-        let artText = try! String(contentsOfFile: "dict_work/2026-10-08-art-design-coverage.txt", encoding: .utf8)
+        let artText = try! String(contentsOfFile: "dictionary/records/2026-10-08-art-design-coverage.txt", encoding: .utf8)
         let artWords = artText.split(separator: "\n").map(String.init).filter { !$0.hasPrefix("#") && !$0.isEmpty }
         expect(artWords.count, 202, "아트·디자인 대표 용어 표본 수")
         for word in artWords {

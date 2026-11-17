@@ -21,7 +21,7 @@
 
 조건: macOS 로컬 사전 + 번들 사전, 개인 사전 없음, 자동 변환 ON, 실제 키 대소문자 보존. 변경 전 코어는 `cdd26cdf87cea727c1604cc01dcae502191eecc1`의 KoreanComposer/EnglishDetector/PersonalDictionary, 변경 후는 2026-10-07 빌드 53의 로컬 변경이다. 전후에 동일한 174개 목록과 사전을 사용했다. 이 수치를 모든 국제 단위/모든 접두사 조합에 대한 완전 지원으로 해석하지 않는다.
 
-근거: [변경 전 CSV](../dict_work/2026-10-07-unit-before.csv), [변경 후 CSV](../dict_work/2026-10-07-unit-audit.csv). 각 행에 한글 조합 결과, 한국어 사전 충돌 여부, 네 입력 조건의 실제 출력이 있다.
+근거: [변경 전 CSV](../dictionary/records/2026-10-07-unit-before.csv), [변경 후 CSV](../dictionary/records/2026-10-07-unit-audit.csv). 각 행에 한글 조합 결과, 한국어 사전 충돌 여부, 네 입력 조건의 실제 출력이 있다.
 
 ### 2026-10-08: 메가픽셀 약어 추가
 
@@ -30,7 +30,7 @@
 - 코어에서 `mp`, `MP`, `Mp`, `12mp`, `12MP`, `12Mp`, `12 mp`, `12 MP`, `12.5mp`, `12.5MP` 변환 확인.
 - OFF·개인 사전 금지·전체 수량 되돌리기·뒤의 한국어 문맥 보호 확인.
 - 최신 **177개 목록** 전수 결과: 단독 **132개**, 숫자 붙임/Space 1개/소수 조건 각각 **172개** 변환. 기존 보류 5개는 동일.
-- 근거: [2026-10-08 CSV](../dict_work/2026-10-08-unit-audit.csv), `Tests/ComposerTests.swift` 메가픽셀 검사. 설치본 IMK 실기는 남아 있다.
+- 근거: [2026-10-08 CSV](../dictionary/records/2026-10-08-unit-audit.csv), `Tests/ComposerTests.swift` 메가픽셀 검사. 설치본 IMK 실기는 남아 있다.
 
 ### 2026-11-10: 숫자 뒤 단위 + 조사, 소문자 바이트 단위 (#222, 오너 결정 B안)
 

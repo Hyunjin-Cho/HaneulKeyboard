@@ -10,12 +10,12 @@
 - **기준을 바꿨다.** 예전 배치는 우리말샘에 뜻 항목이 둘 이상이면 기계적으로 보류해서(`hold_multiple_senses` 961행) 집·책·꽃·나무·산·강·달·별 같은 말까지 빠졌다. 국립국어원 학습용 기초 명사 3,266개 중 2,293개가 사전에 없었다. 이제는 **일상에서 뜻이 둘인 말만** 뺀다(오너 2026-11-05 "눈 같이 의미가 2개 있는 건 패스").
 - **2026-10-28 보류 25개를 다시 봤다.** 화장실·카페·코·유리·밥·사탕·개미·로켓 등 22개를 되돌렸고, 뜻이 정말 둘인 과도·대두·수수는 그대로 뺐다.
 - **자판 충돌을 막았다.** 자판 그대로 옮기면 영어가 되는 새(to)·내(so)·무(an)·해(go)·애(do)는 넣지 않았다. 넣으면 단축키 자판 변환이 깨진다.
-- [채택 목록](../dict_work/2026-11-05-phonetic-basic-words.tsv), [보류 목록과 이유](../dict_work/2026-11-05-phonetic-basic-words-held.tsv). 쌍은 사람이 한 줄씩 판단해 직접 썼고, 행별 외부 대조는 하지 않았다.
+- [채택 목록](../dictionary/records/2026-11-05-phonetic-basic-words.tsv), [보류 목록과 이유](../dictionary/records/2026-11-05-phonetic-basic-words-held.tsv). 쌍은 사람이 한 줄씩 판단해 직접 썼고, 행별 외부 대조는 하지 않았다.
 - 동작은 그대로다. 명시적 단축키에서 등록 표기 전체만 바꾸고, 일반 Space는 한글을 유지한다.
 
 ## 2026-10-28 일상 대표 뜻 세 항목 복원 — 후속 빌드102 (#104)
 
-사용자가 **선반→shelf·세제→detergent·장갑→gloves**를 일상 대표 뜻으로 확정해 복원했다. 세 항목은 빌드100의 원래 항목 객체와 채택 근거를 복원하고 오너 확정 메모를 더했다. 직전 빌드101의 기존4,526개 객체는 모두 보존했다. 기본 명사 추가분은 **835개**, 현재 사전은 **한글4,529표기 / 고유 영문4,317결과**이며 기본4,494개와 숫자 별칭35개다. [현재 채택835개·출처](../dict_work/2026-10-28-phonetic-basic-nouns.tsv), [보류218개·이유](../dict_work/2026-10-28-phonetic-basic-nouns-held.tsv)를 대조한다. JSON SHA `d977f5b942930bd43af62fcbcd648bf8a95fcdc8e805eaf3eb8282e09b509125`, 630,114바이트.
+사용자가 **선반→shelf·세제→detergent·장갑→gloves**를 일상 대표 뜻으로 확정해 복원했다. 세 항목은 빌드100의 원래 항목 객체와 채택 근거를 복원하고 오너 확정 메모를 더했다. 직전 빌드101의 기존4,526개 객체는 모두 보존했다. 기본 명사 추가분은 **835개**, 현재 사전은 **한글4,529표기 / 고유 영문4,317결과**이며 기본4,494개와 숫자 별칭35개다. [현재 채택835개·출처](../dictionary/records/2026-10-28-phonetic-basic-nouns.tsv), [보류218개·이유](../dictionary/records/2026-10-28-phonetic-basic-nouns-held.tsv)를 대조한다. JSON SHA `d977f5b942930bd43af62fcbcd648bf8a95fcdc8e805eaf3eb8282e09b509125`, 630,114바이트.
 
 기존 **배→pear·사과→apple·선물→gift 유지**도 사용자 결정으로 확정됐다. 이전에 제외한28개 중 위 세 단어만 복원했고 나머지25개는 그대로 제외한다. 한글 표기마다 고정한 영문 결과 하나를 쓰며, 다른 뜻 후보는 사용자가 준비한다. 이번에는 후보 선택 UI나 문맥에 따른 뜻 선택을 구현하지 않았다. 사전의 전체 다의어 전수 검수를 마쳤다는 의미가 아니다.
 
@@ -23,7 +23,7 @@
 
 ## 2026-10-28 다의어28개 1차 제외 — 빌드101 당시 기록
 
-빌드100의 신규860개 중 선반(shelf/lathe), 세제(detergent/tax system), 장갑(gloves/armor) 등 **28개**를 뜻 변환 사전에서 제외했다. 새로 보강한 항목은 832개, 총 **한글4,526표기 / 고유 영문4,314결과**다. 나머지 4,526개 객체는 그대로 보존했다. [현재 채택 목록](../dict_work/2026-10-28-phonetic-basic-nouns.tsv)과 [현재 보류 목록·뜻 출처(당시221개)](../dict_work/2026-10-28-phonetic-basic-nouns-held.tsv)를 대조한다. JSON SHA `557edcccdc0503274aaeb670ae775d0afde36fc270b2d3301fc89e6dfbe21645`, 628,777바이트.
+빌드100의 신규860개 중 선반(shelf/lathe), 세제(detergent/tax system), 장갑(gloves/armor) 등 **28개**를 뜻 변환 사전에서 제외했다. 새로 보강한 항목은 832개, 총 **한글4,526표기 / 고유 영문4,314결과**다. 나머지 4,526개 객체는 그대로 보존했다. [현재 채택 목록](../dictionary/records/2026-10-28-phonetic-basic-nouns.tsv)과 [현재 보류 목록·뜻 출처(당시221개)](../dictionary/records/2026-10-28-phonetic-basic-nouns-held.tsv)를 대조한다. JSON SHA `557edcccdc0503274aaeb670ae775d0afde36fc270b2d3301fc89e6dfbe21645`, 628,777바이트.
 
 이번에는 서로 다른 영문 뜻이 확인된 신규 항목만 제거했다. 사전 뜻 레코드가 둘 이상이라는 이유만으로 같은 영어로 설명되는 세부 뜻·옛말·지명까지 일괄 제외하지 않았다. 당시에는 기존 배→pear·사과→apple·선물→gift 등 지정 대응을 바꾸지 않고 확인을 기다렸다. 이후 확정한 유지/복원 범위는 위 빌드102 기록을 따른다. 전체 사전의 다의어 전수 검수가 끝났다는 뜻은 아니다.
 
@@ -37,7 +37,7 @@
 
 새 한영 쌍은 직접 작성하고 의미를 검수했다. 기존 우리말샘 원본의 품사·뜻 자료와 대조하고 별도 검토에서 다의어·영어 의미 범위를 다시 확인했다. 여러 뜻이나 비유가 있더라도 같은 기본 영어로 설명되면 무조건 제외하지 않으며, 서로 다른 일상 뜻에 별개 영어가 필요한 표기는 보류했다. 예전 배치의 사람 지칭 전체 제외는 이력으로 보존하고 이번에는 친구·부모·학생 등 일반 관계/역할 명사를 포함했다. 실제 인명·음악 그룹 제외 결정과 기존 지정 대응은 유지한다. 외부 영어 사전으로 모든 대응을 전수 확인했다는 뜻은 아니다. 원문 뜻풀이·예문·미디어는 제품에 포함하지 않는다.
 
-[채택 목록과 행별 방법/출처](../dict_work/2026-10-28-phonetic-basic-nouns.tsv), [보류 목록과 이유](../dict_work/2026-10-28-phonetic-basic-nouns-held.tsv). JSON은 631,052바이트, SHA-256 `84682cd3eb11764c1099f3c0f99905a7d98d15fdf9d48da6f6951a51af7b8269`다. 수량·목록 대조는 `python3 scripts/audit_phonetic_dictionary.py`, 모든 추가 쌍의 명시적 변환·일반 Space 보존·원문/NFD 왕복·설정/개인 사전·뒤 문맥 회귀는 `bash scripts/run_ime_tests.sh`로 확인한다.
+[채택 목록과 행별 방법/출처](../dictionary/records/2026-10-28-phonetic-basic-nouns.tsv), [보류 목록과 이유](../dictionary/records/2026-10-28-phonetic-basic-nouns-held.tsv). JSON은 631,052바이트, SHA-256 `84682cd3eb11764c1099f3c0f99905a7d98d15fdf9d48da6f6951a51af7b8269`다. 수량·목록 대조는 `python3 scripts/audit_phonetic_dictionary.py`, 모든 추가 쌍의 명시적 변환·일반 Space 보존·원문/NFD 왕복·설정/개인 사전·뒤 문맥 회귀는 `bash scripts/run_ime_tests.sh`로 확인한다.
 
 명사 사전 확장과 영어+조사 분리는 별도 경로다. `레스토랑에서`의 조사를 자동으로 잘라 `restaurant에서`로 번역하지 않는다. 일반 Space는 기존 영타 판정만 사용하고, 명시적 단축키의 등록 표기 전체 조회를 유지한다. 실제 호스트 입력 검증은 #100/#84에서 추적한다.
 
@@ -45,7 +45,7 @@
 
 사용자 승인으로 일반 명사 **1,507개**를 더해 현재 **한글3,694개 / 고유 영문3,564개**다. 기존2,187개 객체·번호35개·분류를 보존했다. 키보드→keyboard는 기존 등록이며 무선키보드·기계식키보드·가습기·반도체·침실·형광펜 등을 추가했다. 조사 에이전트가 우리말샘과 공식 기초어휘를 대조하고 루트가 한영 쌍을 전부 읽어 검토했다. 뜻풀이 전부의 직접 독해나 한국어 명사 전체 수록은 아니다.
 
-[1,507개 목록과 항목별 출처](../dict_work/2026-10-18-phonetic-reviewed-nouns.tsv). 입력 검사110,683/0, 사전 구조 감사와 Release Universal 메인·IME 무서명 컴파일, 단독·내장 사전 바이트 대조 통과. SHA `98966f22ab6b5a42e6475ac86c09de887544f70355c58b81215b0b6dc0c8db82`/512,898바이트. 일반Space·정확 표기·원문 쌍 보존 규칙은 유지한다.
+[1,507개 목록과 항목별 출처](../dictionary/records/2026-10-18-phonetic-reviewed-nouns.tsv). 입력 검사110,683/0, 사전 구조 감사와 Release Universal 메인·IME 무서명 컴파일, 단독·내장 사전 바이트 대조 통과. SHA `98966f22ab6b5a42e6475ac86c09de887544f70355c58b81215b0b6dc0c8db82`/512,898바이트. 일반Space·정확 표기·원문 쌍 보존 규칙은 유지한다.
 
 **R12 실제 OS 원문 복귀 버그는 아직 미해결이다.** 중간 commitComposition 뒤 쌍이 사라지면 잘못된 자판 복귀가 나오는 조건을 격리 검사로 재현했지만 실제 콜백 순서는 미확인이다. 새 설치·공증은 하지 않았다. 당시 후속 조사 문서는 공개되지 않아 링크를 걷었다(2026-11-07 #178). 아래 수량·검사는 각 단계 당시 기록이다.
 
@@ -53,7 +53,7 @@
 
 옷→clothes, 매치→match, 맥스→max, 삼각대→tripod를 포함해 생활용품·의류·주방·문구·교통·자연·장비 표기 **138개**를 추가했다. 후보154개 중 기존14개는 원래 대응을 보존했고, 백합(꽃/조개)·드라이버(도구/운전/소프트웨어)는 이번 추가에서 보류했다. 기존2,049개 항목 객체는 변경 없이 보존했다. 현재 **2,187개 한글 → 2,148개 영문 결과**, 번호별칭35개는 유지한다. 무한한 명사 범위를 모두 지원했다고 판단하지 않는다.
 
-대응은 루트가 일반 어휘 지식으로 직접 작성·자체 검토했다. 독립 에이전트를 부르지 않았다. Cambridge 직접 페이지 요청은403이었으며 외부 원문 확인 완료로 기록하지 않았다. 신규 채택 목록과 방법은 [138개 표본](../dict_work/2026-10-18-phonetic-common-nouns.tsv), 원본은 `Resources/IM/phonetic_dictionary.json`이다.
+대응은 루트가 일반 어휘 지식으로 직접 작성·자체 검토했다. 독립 에이전트를 부르지 않았다. Cambridge 직접 페이지 요청은403이었으며 외부 원문 확인 완료로 기록하지 않았다. 신규 채택 목록과 방법은 [138개 표본](../dictionary/records/2026-10-18-phonetic-common-nouns.tsv), 원본은 `Resources/IM/phonetic_dictionary.json`이다.
 
 전체 입력 검사48,896/0, 기존 AppKit 입력검사322/0, 사전 구조/범주 감사 통과. 새138개도 기존 명사 표본과 함께 자동OFF·개인금지·영어문맥·조사 미조회·명시 변환·원문 복귀를 검사했다. 사전 SHA256 `b31b29747ecd27186981cd96c7b126f841fe23b7fd3932599ecd92715b1e84df`. 근거 `.tmp/feedback89-2026-10-18/ime-final.log`, `onboarding-tests.log`, `dictionary-audit.json`.
 
@@ -65,7 +65,7 @@
 
 이번 신규 후보에서는 가위(도구/가위눌림), 화장지(화장실 종이/티슈), 강아지·호랑이(동물/사람 지칭)를 제외했다. 용량·눈·밤·말·차 같은 애매한 단독 표기도 새로 추가하지 않는다. 기존 사과→apple·배→pear·선물→gift 등 사용자 지정 의미와 기존 직무 항목은 삭제하지 않았다. 모든 사람 이름을 영문으로 바꾸는 기능을 추가한 것이 아니다.
 
-영문 대응은 직접 작성하고 독립 검토했다. 확인 가능한 국립국어원·Cambridge·제조사 자료와 자체 작성한 동의어/긴 표현은 방법을 구분해 기록했으며 뜻풀이·예문·사전 전체를 복제하지 않았다. 원본 `Resources/IM/phonetic_dictionary.json`, 새 목록 [일반 명사62개](../dict_work/2026-10-14-phonetic-common-nouns.tsv). 자료 조회 실패를 확인 완료로 기록하지 않는다.
+영문 대응은 직접 작성하고 독립 검토했다. 확인 가능한 국립국어원·Cambridge·제조사 자료와 자체 작성한 동의어/긴 표현은 방법을 구분해 기록했으며 뜻풀이·예문·사전 전체를 복제하지 않았다. 원본 `Resources/IM/phonetic_dictionary.json`, 새 목록 [일반 명사62개](../dictionary/records/2026-10-14-phonetic-common-nouns.tsv). 자료 조회 실패를 확인 완료로 기록하지 않는다.
 
 이번 확대에서 변환 알고리즘은 바꾸지 않았다. 기존 **직전 원문 쌍 → 정확히 등록된 한글 전체 → 설정에 따른 자판 배열 토글**을 유지한다. 일반 Space에는 의미 조회가 없고, 단축키를 누를 때만 등록 영어로 바꾼다. 조사·단어 일부·오타의 뜻을 추측하지 않으며, 저장용량도 긴 표기를 정확히 입력했을 때만 지원한다. 발음 변환 뒤 내/새가 자동 영어로 바뀌지 않고 개인 사전도 변경하지 않는다.
 
@@ -75,7 +75,7 @@
 
 ## 2026-10-10 추가 — 당시 상태
 
-기존1,903개 대응을 보존하고 과일16·과학64·현물1·외형3의 **84개**를 추가했다. 현재 **1,987개 한글 → 1,962개 영문 결과**, 번호별칭35개는 그대로다. 원본과 TSV는 `Resources/IM/phonetic_dictionary.json` 및 `dict_work/2026-10-10-phonetic-fruit-science.tsv`다. 수량은 해당 작업 트리에서 `audit_phonetic_dictionary.py`로 실측했다.
+기존1,903개 대응을 보존하고 과일16·과학64·현물1·외형3의 **84개**를 추가했다. 현재 **1,987개 한글 → 1,962개 영문 결과**, 번호별칭35개는 그대로다. 원본과 TSV는 `Resources/IM/phonetic_dictionary.json` 및 `dictionary/records/2026-10-10-phonetic-fruit-science.tsv`다. 수량은 해당 작업 트리에서 `audit_phonetic_dictionary.py`로 실측했다.
 
 사과→apple, 알파→alpha, 현물→spot, 솔리드→solid, 글래스/글라스→glass를 지원한다. 베타→beta, 감마→gamma는 이미 있어 그대로 유지했다. 기존 파이→pie, 시그마→Sigma도 보존하고 과학 의미는 파이상수→pi, 시그마기호→sigma로 등록했다. Shift+Space 또는 설정한 단축키에서만 호출하며 일반 Space 자동 변환 사전에 합치지 않는다.
 
@@ -117,7 +117,7 @@
 
 유지한 분야 확장은 애니메이션64 / 영화111 / 생활1 / 금융193 / 브랜드38 / 제작 도구18개다. 사용자 결정으로 인물76명·음악 그룹4개를 제거하고 관련 분류·출처 메타데이터도 정리했다. 나머지1,903개 항목은 입력·출력·분류를 그대로 보존했다. 애니메이션과 디스코드는 이전부터 등록되어 새 수량으로 중복 계산하지 않는다.
 
-전체 분야는 [어휘 분류](vocabulary-categories.md), 추가 목록은 [스포츠 등319개](../dict_work/2026-10-09-phonetic-expansion.tsv), [창작·생활·컴퓨터 등801개](../dict_work/2026-10-09-phonetic-creative-everyday-computing.tsv), [분야 확장425개](../dict_work/2026-10-09-phonetic-animation-film-finance.tsv)로 구분한다.
+전체 분야는 [어휘 분류](vocabulary-categories.md), 추가 목록은 [스포츠 등319개](../dictionary/records/2026-10-09-phonetic-expansion.tsv), [창작·생활·컴퓨터 등801개](../dictionary/records/2026-10-09-phonetic-creative-everyday-computing.tsv), [분야 확장425개](../dictionary/records/2026-10-09-phonetic-animation-film-finance.tsv)로 구분한다.
 
 기본 항목은 1,868개, 숫자 별칭은35개다. JSON 크기는 264,858바이트, SHA-256은 `acbbe9e39f65dac77daee2fe7b418df77ee6048f2da44210e623c56e2e70dee8`다. 수량·크기·해시는 `python3 scripts/audit_phonetic_dictionary.py`로 다시 산출한다.
 
@@ -162,7 +162,7 @@
 
 `/usr/share/dict/words`에는 대문자로 시작하는 `American`만 있다. `EnglishDetector.loadWords`는 기존 고유명사 보호 정책에 따라 그 항목을 제외한다. `american`은 번들 영어 파일에도 없어서 자동 변환에 도달하지 않았다. `english_supplement.txt`에 소문자 항목 1개만 추가하고 로더/한국어 보호 규칙은 유지했다.
 
-실제 코어 검역에서 한글형 `믇걏무`는 깨진 조합이며 우리말샘과 충돌하지 않았다(Tier C, 변경 전 미변환→변경 후 변환). `rider`·`sports`·`football`·`baseball`은 기존 영타 변환이 이미 동작하여 중복 추가하지 않았다. 근거: [검역 CSV](../dict_work/2026-10-09-american-audit.csv), `Tests/PhoneticTests.swift`의 소문자/첫 대문자/전체 대문자·american football 입력 검사.
+실제 코어 검역에서 한글형 `믇걏무`는 깨진 조합이며 우리말샘과 충돌하지 않았다(Tier C, 변경 전 미변환→변경 후 변환). `rider`·`sports`·`football`·`baseball`은 기존 영타 변환이 이미 동작하여 중복 추가하지 않았다. 근거: [검역 CSV](../dictionary/records/2026-10-09-american-audit.csv), `Tests/PhoneticTests.swift`의 소문자/첫 대문자/전체 대문자·american football 입력 검사.
 
 ## 검증과 현재 상태
 

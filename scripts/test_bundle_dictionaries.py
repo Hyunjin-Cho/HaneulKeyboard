@@ -2,7 +2,7 @@
 """2026-11-07 (#175): 빌드 없이 잡을 수 있는 번들 사전 사고를 여기서 막는다.
 
 1. 번들 표가 번들 사전 합집합과 정확히 같은가. 오너 결정으로 web2 낱말은 저장소와 앱에 들어가면 안 된다.
-2. project.yml의 입력기 리소스와 제외 목록이 dict_work/dict_manifest.tsv와 맞는가.
+2. project.yml의 입력기 리소스와 제외 목록이 dictionary/dict_manifest.tsv와 맞는가.
    표가 번들에서 빠지면 오류 없이 번들 사전 낱말이 변환되지 않는다.
 3. scripts/verify_license_resources.py가 표 누락·낡은 사본을 거부하는가(가짜 번들로 확인한다).
    2026-11-07 (#178): 가짜 입력기에도 실제로 컴파일한 작은 실행 파일을 넣는다 — 검증기가 입력기 바이너리의 네트워크 심볼도 보기 때문이다.
@@ -37,7 +37,7 @@ def check(condition, label):
 
 def manifest():
     rows = []
-    for line in (ROOT / "dict_work/dict_manifest.tsv").read_text(encoding="utf-8").splitlines():
+    for line in (ROOT / "dictionary/dict_manifest.tsv").read_text(encoding="utf-8").splitlines():
         if line.strip() and not line.startswith("#"):
             fields = line.split("\t")
             rows.append((fields[0].strip(), fields[1].strip()))
@@ -56,7 +56,7 @@ def check_table():
     check(body == sorted(set(body)), "표: 바이트 순 정렬, 중복 없음")
     check(f"# count: {len(body)}" in header, "표: count 머리글")
     check(any("NOT included" in line and "eb2" in line for line in header), "표 머리글: web2가 포함되지 않는다고 적는다")
-    check(not (ROOT / "dict_work/web2_snapshot.txt").exists(), "저장소에 web2 사본을 두지 않는다")
+    check(not (ROOT / "dictionary/web2_snapshot.txt").exists(), "저장소에 web2 사본을 두지 않는다")
     result = subprocess.run([sys.executable, str(ROOT / "scripts/build_english_table.py"), "--check"], capture_output=True, text=True)
     check(result.returncode == 0, "build_english_table.py --check 통과")
 

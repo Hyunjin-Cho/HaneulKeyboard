@@ -46,7 +46,7 @@
 | P13 | 2026-11-06 (#152): 완성된 조사여도, 지금까지 친 글자가 우리말샘의 더 긴 단어로 이어질 수 있으면 미리보기를 미룬다. 확정 판정은 그대로다. | `헷가`는 `헷갈리다`로 이어지므로 입력 중에는 한글, 그대로 Space를 누르면 `gpt가`. `헷는`은 이어질 말이 없어 `gpt는` 표시 |
 | P12 | 미확정 상태의 변환 단축키는 혼합 표시와 원문을 왕복한다. 원문 선택은 같은 단어의 Space까지 유지하고, 전체 삭제·확정·넘침 시 해제한다. | 원문을 선택한 직후 Space에서 재변환하지 않음. 미확정 왕복은 최근 되돌림 기록에 저장하지 않음 |
 
-**어간 거부 (2026-11-06, #152).** 우리말샘에는 기본형만 있어 어간은 사전에 없다. 그래서 `얕`이 영어 이름 `dix`로 넘어가 `얕은` + Space가 `dix은`으로 확정됐다. `X다`가 표제어면 `X`는 어간으로 보고 영어로 바꾸지 않는다(`KoreanDictionary` 거부 바로 뒤, `EnglishDetector.shouldConvert`). 이 기준으로 잃는 영어는 `epfl`(데리)·`dix`(얕) 둘이다. 전수 수치는 `dict_work/2026-11-06-live-preview-audit.md`.
+**어간 거부 (2026-11-06, #152).** 우리말샘에는 기본형만 있어 어간은 사전에 없다. 그래서 `얕`이 영어 이름 `dix`로 넘어가 `얕은` + Space가 `dix은`으로 확정됐다. `X다`가 표제어면 `X`는 어간으로 보고 영어로 바꾸지 않는다(`KoreanDictionary` 거부 바로 뒤, `EnglishDetector.shouldConvert`). 이 기준으로 잃는 영어는 `epfl`(데리)·`dix`(얕) 둘이다. 전수 수치는 `dictionary/records/2026-11-06-live-preview-audit.md`.
 
 미완성 조사 연장은 표시를 안정시키는 임시 상태다. `github엣`에서 클릭하면 보였던 문자열을 보존하지만, Space·구두점 같은 활성 경계에서는 완성 조사 판정을 다시 하므로 인정되지 않은 조사는 기존 한글 원문으로 확정한다. 새 조사를 추측해서 자동 완성하지 않는다. 미리보기 중의 원문은 화면 문자열을 역산하지 않고 조합기 원본에서 가져온다.
 
@@ -103,13 +103,13 @@
 | 13 | R5 한글 두 음절 이상 + curated 정확 일치 | 의미 있는 내부 Shift 제한. 무작위 인명·옛 영어 broad 목록은 쓰지 않음 |
 | 14 | R2 추가 문맥 판정 | 직전 영어 + 대문자/단음절/사전 등급 제한 |
 
-2026-10-28 보완(#104): 사용자 지정 `spark`를 `Resources/IM/english_supplement.txt`에 추가했다. `넴가`는 완성 한글 두 음절로 조합되지만 번들 한국어 표제어에 없고, 기존 broad 영어 사전에는 `spark`가 있었다. 검토 목록에 정확한 영어 한 단어를 추가해 기존 R5를 통과시키며, 한국어 보호나 Shift 판정은 바꾸지 않는다. 후보 검역의 Tier A·`넴` 표제어 경고는 [검역 결과](../dict_work/2026-10-28-spark-audit.csv)와 [등록 근거](../dict_work/2026-10-28-spark-registration.tsv)에 남긴다. 일반 Space 확정 시 `넴가 → spark`, 자동 변환 OFF·개인 금지 시 원문 보존, 변환 단축키로 저장 원문 왕복을 검사한다.
+2026-10-28 보완(#104): 사용자 지정 `spark`를 `Resources/IM/english_supplement.txt`에 추가했다. `넴가`는 완성 한글 두 음절로 조합되지만 번들 한국어 표제어에 없고, 기존 broad 영어 사전에는 `spark`가 있었다. 검토 목록에 정확한 영어 한 단어를 추가해 기존 R5를 통과시키며, 한국어 보호나 Shift 판정은 바꾸지 않는다. 후보 검역의 Tier A·`넴` 표제어 경고는 [검역 결과](../dictionary/records/2026-10-28-spark-audit.csv)와 [등록 근거](../dictionary/records/2026-10-28-spark-registration.tsv)에 남긴다. 일반 Space 확정 시 `넴가 → spark`, 자동 변환 OFF·개인 금지 시 원문 보존, 변환 단축키로 저장 원문 왕복을 검사한다.
 
-2026-11-08 오너 요청(#194): 2글자는 한글로 조합되지 않는 꼴(모음+모음, 모음+자음, 자음+자음)만 단독 변환한다. `so`(내)처럼 멀쩡한 글자가 되는 꼴은 넣지 않고, 쓰지 않는 말인 `am`(므)·`ai`(먀)·`fm`(르)만 예외다. 초성체로 쓰는 것(`rc`=ㄱㅊ, `da`=ㅇㅁ)과 우는 표정(`mb`=ㅡㅠ)은 뺐다. 단어별 기록: [등록표](../dict_work/2026-11-08-two-letter-registration.tsv).
+2026-11-08 오너 요청(#194): 2글자는 한글로 조합되지 않는 꼴(모음+모음, 모음+자음, 자음+자음)만 단독 변환한다. `so`(내)처럼 멀쩡한 글자가 되는 꼴은 넣지 않고, 쓰지 않는 말인 `am`(므)·`ai`(먀)·`fm`(르)만 예외다. 초성체로 쓰는 것(`rc`=ㄱㅊ, `da`=ㅇㅁ)과 우는 표정(`mb`=ㅡㅠ)은 뺐다. 단어별 기록: [등록표](../dictionary/records/2026-11-08-two-letter-registration.tsv).
 
 2026-11-13 (#225, 오너 결정): ① **초성체 `ㄱㅊㄴ`(괜찮네 → rcs)·`ㄱㅁㅇ`(고마워 → rad)는 한글로 둔다**(`protectedSlang`). 뜻이 없는 영어 꼴이라서다. `ㅊㅎ`(축하 → cg)는 오너가 "바뀌어도 된다"고 해 그대로이고, `rad`는 숫자 뒤(3rad·1.5rad)에서는 단위로 계속 바뀐다. ② **자음 키만 친 키열은 굴절 추정 없이 사전과 정확히 일치할 때만 바꾼다** — `ㅇㅇㄴㄴ`(ddss = dds + s)처럼 사전에 없는 약어 복수형이 영어로 바뀌던 것을 막는다(자음 4개 전수에서 무맥락 변환 702 → 441). 대신 `acts`·`devs`·`recs`·`csvs`·`faqs`·`avgs`·`decs`·`defs`·`exts`는 단독으로 더 바뀌지 않는다. 자모+조사 꼴(`ㅠ만`→baks 등 9건)은 원인이 같지만 모음 키가 있어 이번 원칙 밖이다(오너 판단 대기, #225).
 
-실행 목록: `shortWords`, `standaloneShortWords`, `consonantPairShortWords`, `standaloneOverrideEnglish`, `contextOverrideEnglish`, `triggerOverrideEnglish`, `protectedSlang`. 숫자나 사전 전체를 이 문서에 복사하지 않는다. 사전 원본 목록은 [`dict_manifest.tsv`](../dict_work/dict_manifest.tsv)를 확인한다.
+실행 목록: `shortWords`, `standaloneShortWords`, `consonantPairShortWords`, `standaloneOverrideEnglish`, `contextOverrideEnglish`, `triggerOverrideEnglish`, `protectedSlang`. 숫자나 사전 전체를 이 문서에 복사하지 않는다. 사전 원본 목록은 [`dict_manifest.tsv`](../dictionary/dict_manifest.tsv)를 확인한다.
 
 ## 특수 입력과 되돌리기
 
@@ -129,18 +129,18 @@
 - **쌍이 낡았을 때:** 커서 위치를 알고 글자를 읽었는데 저장한 쌍이 안 보이면 쌍을 버리고 수동 경로로 넘어간다. 읽기가 잘렸거나 범위를 선택 중이면 전처럼 스페이스가 들어간다. 쌍이 있는데 커서 위치 자체를 모르면 키만 소비한다.
 - **늦은 읽기:** 자동 변환 되돌리기가 거부로 읽혀도 한글로 되돌리는 방향은 영어 문맥을 바로 끊는다. 실제 반영 여부는 다음 키에서 그 자리를 읽어 확인한다. 바뀌었으면 최근 되돌림에 기록한다. 옛 영어가 그대로면 진짜 거부(Terminal.app형)이니 기록하지 않고 끊기 전 문맥으로 되돌린다. 어느 쪽인지 모르면 끊어 둔 채로 둔다. `DeferredPairToggle`, `settleDeferredPairToggle`
 
-2026-11-07 보완(#174, 오너 결정). 수치와 전후 비교는 `dict_work/2026-11-07-rules174-audit.md`:
+2026-11-07 보완(#174, 오너 결정). 수치와 전후 비교는 `dictionary/records/2026-11-07-rules174-audit.md`:
 
 - **끝 모음(`해ㅠ`·`네ㅜ`):** 직전에 영어가 없을 때 고빈도 1음절 26개(`sadTailHeads`) 뒤에 ㅠ·ㅜ·ㅡ만 이어지면 영어로 바꾸지 않는다(`해ㅠ`→`gob`, `네ㅜ`→`spn`이 되지 않는다). `지ㅠ`·`구ㅠ`·`소ㅠ`·`데ㅠ`(약어 wlb·rnb·thb·epb의 한글형)도 같다(`sadTailExactForms`). 영어 문맥(`the son`·`I won`)·Title Case(`Son`)·숫자 뒤 단위(`10 ton`)는 그대로 변환된다. 무맥락 `son`·`won`·`don`·`wlb` 등이 변환되지 않는 것은 오너가 받아들인 결과다. `EnglishDetector.shouldConvert`의 보호 초성체 검사 바로 뒤.
 - **초성체·혼합 Shift 오타:** `protectedSlang`에 ㄱㄱㅅ(rrt)·ㄴㄱ(sr)·ㅇㅁㅇ(dad)·ㅁㅇㅁ(ada)·ㅈㅁㅈㅁ(wawa)·ㅁㅇㅁㅇ(adad)를 더했다. 두벌식에서 다른 자모를 내는 Shift 키(Q W E R T O P)의 대문자가 섞였는데 Title Case·ALL CAPS가 아니면(`떄문에`=`EOans…`, `옛`=`DPt`) 영어 경로(R3·첫 자음 Shift·단독 목록·자음열·ㅑ 1음절)에서 막는다. `Dad`·`DAD`는 그대로 변환된다. 등록된 단위 기호는 대소문자까지 같으면 이 차단을 건너뛴다(`GPa`). MAIN 경로에는 이 차단을 넣지 않았다(`iPhone`·`macOS`·`YouTube`·`sRGB` 같은 영어 표기가 그 경로로 온다). 근거: `EnglishDetector.englishCasing`.
 - **`The` 예외:** 키열이 정확히 `The`일 때만 변환한다(`isSentenceStartThe`). `the`·`THE`·`쏟은`(키 `Thedms`)은 그대로이고, 조사 분리의 앞말로는 쓰지 않는다(`쏟는`이 `The는`이 되지 않는다).
 - **`cos`:** 단독 변환을 뺐다(#109의 결정을 바꿨다). `챈`은 채다의 활용형이라 `눈치 챈 사람`이 깨졌다. 직전 영어(`the cos`)·`Cos`·`COS`·개인 사전으로는 변환된다(`contextOverrideEnglish`).
-- **약어 7개:** ansi·goty·emtek·totp·algo·rhel·gorm을 curated(`english_supplement`)에서 broad(`english_names_extra`)로 내렸다. 한글형이 구어·이름과 겹쳐서다. 무맥락에서는 한글로 남는다. 기록은 [`SOURCE_FORMATS.md`](../dict_work/SOURCE_FORMATS.md).
+- **약어 7개:** ansi·goty·emtek·totp·algo·rhel·gorm을 curated(`english_supplement`)에서 broad(`english_names_extra`)로 내렸다. 한글형이 구어·이름과 겹쳐서다. 무맥락에서는 한글로 남는다. 기록은 [`SOURCE_FORMATS.md`](../dictionary/SOURCE_FORMATS.md).
 - **개인 사전 등록 표기 보존:** 변환 추가에 적은 대소문자를 그대로 저장·표시하고(`QuickTime`), 그 표기와 키열이 정확히 같으면 혼합 Shift 차단을 건너뛴다. 소문자로 등록한 `got`은 `goT`(`했`)를, `work`는 `wOrk`(`쟤가`)를 바꾸지 않는다. 금지는 대소문자와 무관하다. 옛 소문자 항목은 그대로 동작한다. `PersonalDictionary.registeredSpellings`·`decision`.
 - **조사 분리:** 앞말이 표제어이면 다른 자리에서 끊지 않는다(`부메랑은`이 `qnap랑은`이 되지 않는다). 사용자가 그 앞말을 직접 추가했으면 그 뜻이 우선이다. `EnglishParticleSplitter`.
 - **알려진 제한(실패로 세지 않는다):** 영어 문맥 뒤에 조사가 붙은 꼴(`the son은`)과 숫자 뒤 약어(`10 thb`)는 한글로 남는다. 조사 앞말을 문맥 없이 판정하는 기존 설계 때문이다. **앞에 자모가 붙는 꼴**(`ㅠ개`→`bro`, `ㅠ무`→`ban`, `ㄴㄴ구`→`ssrn`, `ㅎㅎ제`→`ggwp` 등)은 이번 결정에 없어 그대로 영어로 바뀐다. 이번 결정은 끝에 붙는 꼴만 다뤘다.
 
-2026-11-07 보완(#175): 입력기는 영어 사전을 펼치지 않고 파일에서 찾는다. 시스템 단어 파일(`/usr/share/dict/words`)은 복사하지 않고 그 자리에서 매핑하며(오너 결정), 번들 사전 여섯 개는 정렬 표 `english_bundled.txt` 하나로 찾는다. 판정 결과는 이전 방식과 같다(대조 기록 `dict_work/2026-11-07-english-inplace-audit.md`). 사전을 고친 뒤에는 `scripts/build_english_table.py`를 돌린다([`SOURCE_FORMATS.md`](../dict_work/SOURCE_FORMATS.md)).
+2026-11-07 보완(#175): 입력기는 영어 사전을 펼치지 않고 파일에서 찾는다. 시스템 단어 파일(`/usr/share/dict/words`)은 복사하지 않고 그 자리에서 매핑하며(오너 결정), 번들 사전 여섯 개는 정렬 표 `english_bundled.txt` 하나로 찾는다. 판정 결과는 이전 방식과 같다(대조 기록 `dictionary/records/2026-11-07-english-inplace-audit.md`). 사전을 고친 뒤에는 `scripts/build_english_table.py`를 돌린다([`SOURCE_FORMATS.md`](../dictionary/SOURCE_FORMATS.md)).
 
 ## 초창기 조건은 어디에 남아 있는가
 

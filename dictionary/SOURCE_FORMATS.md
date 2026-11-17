@@ -212,12 +212,12 @@ zymurgy
   1. `'`가 든 줄을 버리고 소문자로 바꾼 뒤 `^[a-z]{3,}$`만 남긴다(SCOWL의 대문자 줄 `Aachen`도 `aachen`으로 들어온다).
   2. web2에서 `^[a-z][A-Za-z]{2,}$`인 줄만 소문자로 모아 뺀다(`python3 -c 'import sys; sys.path.insert(0, "scripts"); from pathlib import Path; from build_english_table import loader_words; print("\n".join(sorted(loader_words(Path("/usr/share/dict/words")))))'`).
   3. 번들 사전(manifest의 나머지)에 이미 있는 낱말을 뺀다(같은 필터).
-  4. `dict_work/scowl_exclusions_alljamo4.txt`(≤4자모 전부-자모, 초성체 보호)를 뺀다.
+  4. `dictionary/scowl_exclusions_alljamo4.txt`(≤4자모 전부-자모, 초성체 보호)를 뺀다.
   5. `scripts/audit_wordlist.sh --role broad`로 검역한 뒤 머지하고 「사전을 고친 뒤 번들 표 다시 만들기」를 따른다.
 - ⚠️ 이 기준으로 다시 돌리면 web2에 대문자 줄로만 있던 낱말(고유명사)이 SCOWL에서 새로 들어온다. 몇 개가 늘어나는지는 SCOWL 원본이 이 Mac에
   없어 2026-11-13에 재지 못했다(확인 못 함) — 다시 받으면(위 URL·revision) 검역 결과로 수를 먼저 보고 머지 여부를 정한다.
   같은 날 닫힌 묶음(요일·달·나라·국적·언어) 102개만 손으로 넣었다: 깨진 한글형 94개는 `english_names_extra`, 멀쩡한 한글형 8개는
-  `english_supplement`(기록: `dict_work/2026-11-13-closed-sets-audit.csv`).
+  `english_supplement`(기록: `dictionary/records/2026-11-13-closed-sets-audit.csv`).
 
 ### 현대어 검증 (2026-06-10)
 
@@ -277,7 +277,7 @@ zymurgy
 
 사전을 추가·삭제하거나 `build_english_wordlists.py`로 재생성해 머지한 **뒤에는 반드시** 이 순서로 한다.
 
-1. 사전 `Resources/IM/<이름>.txt`를 고친다. 사전 목록 자체를 바꾸면 `dict_work/dict_manifest.tsv`부터 고친다(정본).
+1. 사전 `Resources/IM/<이름>.txt`를 고친다. 사전 목록 자체를 바꾸면 `dictionary/dict_manifest.tsv`부터 고친다(정본).
 2. `python3 scripts/build_english_table.py` — 표를 다시 쓴다. 필터는 `EnglishDetector.isWordLine`과 같다(첫 글자 a-z, 3자 이상, ASCII 알파벳만, 소문자화). 머리말의 `# count:`는 낱말 수와 맞아야 한다.
 3. `python3 scripts/build_english_table.py --check` — 표가 번들 사전 합집합과 다르면 실패한다(파일을 쓰지 않는다).
 4. `bash scripts/run_ime_tests.sh`와 `bash scripts/audit_wordlist.sh --smoke` — 표가 어긋나거나 번들 설정이 어긋나면 둘 다 실패한다. `scripts/test_bundle_dictionaries.py`가 표 ⊆ 합집합과 합집합 ⊆ 표, `project.yml` 입력기 리소스의 제외 목록(= manifest의 broad 전용 사전)을 대조한다.
@@ -291,11 +291,11 @@ zymurgy
 2026-11-13 정정(#225, 리뷰 english-dict-F-5): 예전엔 여기에 `~/Downloads/HaneulDictSources/`를 "통째로 지워도 된다"고 적었다. 그 폴더에는
 지명·축구 사전의 생성 스크립트(유일한 사본이었다 — 이제 `scripts/extract_sports_geo.py`)와 그날 Wikidata 질의 결과(`sports_geo_raw.txt`,
 다시 질의하면 달라진다)가 있었다. 지우지 않는다. NGSL·Census·SSA·SCOWL 원본은 2026-11-13 이 Mac에 없다 — 위 각 절의 URL과 SHA-256으로 다시 받는다.
-- `dict_work/exclusions.txt` — theory(소대교 충돌) + 인명 전부-자모 2,685
-- `dict_work/scowl_exclusions_alljamo4.txt` — SCOWL ≤4자모 전부-자모 826 (btw·lol류)
-  - 2026-11-08 (#194): 오너 요청으로 bio와 쓰는 말 93개를 수작업 사전에 다시 넣었다. 재생성해도 제외 목록은 SCOWL diff에만 적용되므로 그대로 남는다. 기록: `dict_work/2026-11-08-shortwords-registration.tsv`, `exclusion_overlap_baseline.tsv`.
-재생성 시: `build_english_wordlists.py --exclude dict_work/exclusions.txt`,
-SCOWL diff에는 `comm -23 ... dict_work/scowl_exclusions_alljamo4.txt` (위 §4 레시피).
+- `dictionary/exclusions.txt` — theory(소대교 충돌) + 인명 전부-자모 2,685
+- `dictionary/scowl_exclusions_alljamo4.txt` — SCOWL ≤4자모 전부-자모 826 (btw·lol류)
+  - 2026-11-08 (#194): 오너 요청으로 bio와 쓰는 말 93개를 수작업 사전에 다시 넣었다. 재생성해도 제외 목록은 SCOWL diff에만 적용되므로 그대로 남는다. 기록: `dictionary/records/2026-11-08-shortwords-registration.tsv`, `exclusion_overlap_baseline.tsv`.
+재생성 시: `build_english_wordlists.py --exclude dictionary/exclusions.txt`,
+SCOWL diff에는 `comm -23 ... dictionary/scowl_exclusions_alljamo4.txt` (위 §4 레시피).
 
 2026-11-07 (#174): 생성기는 NGSL·인명 후보에만 제외 목록을 적용한다. 배포 사전 전체와 제외 목록의 겹침은
-`dict_work/exclusion_overlap_baseline.tsv`가 그날 값으로 고정하고, 새 겹침이 생기면 `scripts/run_ime_tests.sh`가 실패한다.
+`dictionary/exclusion_overlap_baseline.tsv`가 그날 값으로 고정하고, 새 겹침이 생기면 `scripts/run_ime_tests.sh`가 실패한다.
