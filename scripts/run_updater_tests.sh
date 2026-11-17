@@ -29,10 +29,10 @@ for configuration in Release Debug; do
 flags=(-parse-as-library)
 if [[ "$configuration" == Debug ]]; then flags+=(-D DEBUG); fi
 swiftc "${flags[@]}" -target "$(uname -m)-apple-macos14.0" \
-  Shared/RemovalPolicy.swift Shared/RemovalObservation.swift Shared/RemovalAdminScript.swift Sources/RemovalMainAppOperations.swift Sources/ProductOperationGate.swift \
-  Sources/Updater.swift Sources/UpdateReplacement.swift Sources/UpdateTransport.swift Sources/BundleTrust.swift Sources/UpdateDecisions.swift Sources/InstallDecisions.swift \
-  Sources/IMEInstaller.swift Sources/AppMover.swift Sources/InputSourceSettings.swift Sources/UninstallManager.swift Sources/InputSwitcher.swift Sources/Logging.swift \
-  IMESources/OrphanDecision.swift Sources/LoginItem.swift \
+  Shared/RemovalPolicy.swift Shared/RemovalObservation.swift Shared/RemovalAdminScript.swift Sources/Install/RemovalMainAppOperations.swift Sources/App/ProductOperationGate.swift \
+  Sources/Update/Updater.swift Sources/Update/UpdateReplacement.swift Sources/Update/UpdateTransport.swift Shared/BundleTrust.swift Sources/Update/UpdateDecisions.swift Sources/Install/InstallDecisions.swift \
+  Sources/Install/IMEInstaller.swift Sources/Install/AppMover.swift Sources/Install/InputSourceSettings.swift Sources/Install/UninstallManager.swift Sources/Install/InputSwitcher.swift Sources/App/Logging.swift \
+  IMESources/OrphanDecision.swift Sources/App/LoginItem.swift \
   scripts/RemovalCommand.swift Tests/UpdaterTests.swift Tests/UpdateSecurityTests.swift Tests/UpdateReplacementTests.swift Tests/UninstallTests.swift Tests/InputSourceSettingsTests.swift Tests/InstallFlowTests.swift Tests/UpdateInstallTests.swift -o "$TEST_DIR/updater-tests"
 echo "$configuration"
 "$TEST_DIR/updater-tests"

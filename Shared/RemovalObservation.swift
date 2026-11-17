@@ -17,7 +17,7 @@ struct RemovalCancelled: LocalizedError {
 /// 2026-10-11: 같은 정책을 쓰되 실제 OS 관측 오류는 숨기지 않는다.
 /// 2026-11-07 (#176): 이 파일은 입력기에도 컴파일되므로 입력기가 자기 정리에 쓰는 것만 둔다 — 관측, 자기 번들 삭제,
 /// lsregister 등록 해제, 입력 소스 끄기(`secureInput`). ps·kill·defaults 실행과 설정 정리는
-/// `Sources/RemovalMainAppOperations.swift`에 있어 입력기 바이너리에 들어가지 않는다.
+/// `Sources/Install/RemovalMainAppOperations.swift`에 있어 입력기 바이너리에 들어가지 않는다.
 enum RemovalObservation {
     static let mainID = "com.hyunjincho.haneulkeyboard"
     static let imeID = "com.hyunjincho.inputmethod.haneul"

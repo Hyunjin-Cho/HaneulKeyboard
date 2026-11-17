@@ -35,7 +35,8 @@ def swift_literals() -> tuple[set[str], list[tuple[str, set[str]]]]:
     plain: set[str] = set()
     interpolated: list[tuple[str, set[str]]] = []  # (보간 앞 글자, 같은 파일의 일반 리터럴)
     for directory in SOURCE_DIRS:
-        for path in sorted((ROOT / directory).glob("*.swift")):
+        # 2026-11-17 (폴더 정리): Sources는 기능별 하위 폴더로 나뉜다 — 바로 아래만 보면 소스 글을 하나도 못 읽는다.
+        for path in sorted((ROOT / directory).rglob("*.swift")):
             found = LITERAL.findall(path.read_text(encoding="utf-8"))
             file_plain = {text for text in found if "\\(" not in text}
             plain |= file_plain

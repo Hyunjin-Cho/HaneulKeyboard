@@ -248,7 +248,7 @@ import Foundation
         ticks = 0
         check(!AppHandoffDecision.waitUntilTerminated(timeout: 1, step: 0.25, isTerminated: { false }, pause: { _ in ticks += 1 }) && ticks == 4,
               "앱 이동: 끝나지 않으면 정해진 시간 뒤 포기(새로 띄우지 않음)")
-        let mover = (try? String(contentsOfFile: "Sources/AppMover.swift", encoding: .utf8)) ?? ""
+        let mover = (try? String(contentsOfFile: "Sources/Install/AppMover.swift", encoding: .utf8)) ?? ""
         check(mover.contains("handOff(to: destURL, replacedInstalledCopy: false") && mover.contains("handOff(to: destURL, replacedInstalledCopy: true")
               && mover.components(separatedBy: "createsNewApplicationInstance = true").count - 1 == 1,
               "앱 이동: 두 갈래 모두 같은 넘겨주기 판단을 거침")
@@ -594,7 +594,7 @@ import Foundation
         var propagated = false
         do { try await Updater.relaunchCleaningUp(workDir: work) { throw Boom() } } catch { propagated = error is Boom }
         check(propagated, "업데이트: 재실행 실패는 그대로 올라감")
-        let updater = (try? String(contentsOfFile: "Sources/Updater.swift", encoding: .utf8)) ?? ""
+        let updater = (try? String(contentsOfFile: "Sources/Update/Updater.swift", encoding: .utf8)) ?? ""
         check(updater.contains("Self.relaunchCleaningUp(workDir: workDir)"), "업데이트: 설치 경로가 정리 후 재실행을 씀")
     }
 
@@ -611,7 +611,7 @@ import Foundation
 
     /// install-update-F-9: 판단은 `launchSequence`가 실제로 돌려 본다. 앱 시작 코드는 시험 빌드에 못 넣어, 그 함수를 거치는지만 원문으로 본다.
     private static func launchOrder(_ check: (Bool, String) -> Void) {
-        let app = (try? String(contentsOfFile: "Sources/HaneulKeyboardApp.swift", encoding: .utf8)) ?? ""
+        let app = (try? String(contentsOfFile: "Sources/App/HaneulKeyboardApp.swift", encoding: .utf8)) ?? ""
         check(app.contains("let core = AppCore(activateIMEOnLaunch: false)"), "앱 시작: 코어를 만들 때 입력기를 건드리지 않음")
         check(app.contains("AppLaunchSequence.run("), "앱 시작: 옮기기 판단과 입력기 갱신을 한 순서로 묶음")
         check(app.components(separatedBy: "ensureIMEActive").count - 1 == 1, "앱 시작: 입력기 갱신을 그 순서 밖에서 부르지 않음")
@@ -710,12 +710,16 @@ import Foundation
         func text(_ path: String) -> String {
             (try? String(contentsOf: root.appendingPathComponent(path), encoding: .utf8)) ?? ""
         }
-        let imeFiles = ["IMESources", "Shared"].flatMap { directory in
-            ((try? fm.contentsOfDirectory(atPath: root.appendingPathComponent(directory).path)) ?? [])
+        // 2026-11-17 (폴더 정리): 하위 폴더까지 훑고, 목록의 파일이 실제로 있는지도 본다 — 없는 파일은 빈 글이라 금지어 검사가 헛돈다.
+        let imeFiles = ["IMESources", "Shared"].flatMap { directory -> [String] in
+            let walker = fm.enumerator(atPath: root.appendingPathComponent(directory).path)
+            return ((walker?.allObjects as? [String]) ?? [])
                 .filter { $0.hasSuffix(".swift") }
                 .map { "\(directory)/\($0)" }
-        } + ["Sources/BundleTrust.swift"]
-        check(imeFiles.count > 3, "입력기 경계: 입력기 소스를 찾음")
+        }
+        check(imeFiles.count > 20 && imeFiles.contains("Shared/BundleTrust.swift")
+              && imeFiles.allSatisfy { fm.fileExists(atPath: root.appendingPathComponent($0).path) },
+              "입력기 경계: 입력기 소스를 찾음(\(imeFiles.count)개, BundleTrust 포함)")
         for forbidden in ["kill(", "/bin/ps", "/usr/bin/defaults", "NSRunningApplication", "CFPreferencesSetValue"] {
             let offenders = imeFiles.filter { text($0).contains(forbidden) }
             check(offenders.isEmpty, "입력기 경계: \(forbidden) 없음 \(offenders)")
@@ -732,10 +736,10 @@ import Foundation
             return
         }
         let imeTarget = project[start.upperBound..<end.lowerBound]
-        check(!imeTarget.contains("- path: Sources\n") && !imeTarget.contains("RemovalMainAppOperations"),
+        check(!imeTarget.contains("- path: Sources") && !imeTarget.contains("RemovalMainAppOperations"),
               "입력기 경계: 메인 앱 전용 파일이 입력기 타깃에 없음")
         check(project.contains("      - path: Sources\n"), "입력기 경계: 메인 앱 타깃은 Sources 폴더를 통째로 포함")
-        let mainOnly = text("Sources/RemovalMainAppOperations.swift")
+        let mainOnly = text("Sources/Install/RemovalMainAppOperations.swift")
         check(mainOnly.contains("stopIMEProcesses") && mainOnly.contains("clearProductSettings"),
               "입력기 경계: 프로세스 종료·설정 정리는 메인 앱 전용 파일에 있음")
         let listed = text("scripts/uninstall.sh") + text("scripts/run_updater_tests.sh")

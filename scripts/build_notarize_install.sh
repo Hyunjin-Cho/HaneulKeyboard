@@ -230,7 +230,7 @@ verify_update_zip_format() {
     work="$(mktemp -d "/tmp/${TARGET}.zipformat.XXXXXX")"
     echo "→ In-app updater archive check"
     if ! xcrun swiftc -parse-as-library -target "$(uname -m)-apple-macos14.0" -module-cache-path "$work/module-cache" \
-        "$PROJECT_ROOT/Sources/UpdateDecisions.swift" "$PROJECT_ROOT/Sources/InstallDecisions.swift" \
+        "$PROJECT_ROOT/Sources/Update/UpdateDecisions.swift" "$PROJECT_ROOT/Sources/Install/InstallDecisions.swift" \
         "$PROJECT_ROOT/Shared/RemovalPolicy.swift" "$PROJECT_ROOT/IMESources/OrphanDecision.swift" \
         "$PROJECT_ROOT/scripts/check_update_zip.swift" -o "$work/check_update_zip" >"$work/compile.log" 2>&1; then
         echo "  ✗ could not build scripts/check_update_zip.swift:"

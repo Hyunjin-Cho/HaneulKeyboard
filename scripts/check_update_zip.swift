@@ -1,6 +1,6 @@
 // 2026-11-13 (#226, 좁은 재검토 install P3-5): 배포 스크립트가 만든 ZIP을 앱의 업데이트 목록 검사(`UpdateArchive`)와 **같은 코드**로 본다.
 // 앱은 배포 ZIP의 꼴(주석·ZIP64 없음, 모든 항목이 HaneulKeyboard.app/ 아래)에 묶여 있어서, ZIP 만드는 방법이 바뀌면 현장 업데이트가 거부된다.
-// 그 어긋남을 빌드에서 멈추게 하는 관문이다. 사용: build_notarize_install.sh가 Sources/UpdateDecisions.swift 등과 함께 컴파일해 돌린다.
+// 그 어긋남을 빌드에서 멈추게 하는 관문이다. 사용: build_notarize_install.sh가 Sources/Update/UpdateDecisions.swift 등과 함께 컴파일해 돌린다.
 // 종료 코드: 0 = 통과, 1 = 거부(이유 출력), 2 = 사용법 오류.
 import Foundation
 

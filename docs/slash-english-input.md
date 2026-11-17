@@ -18,7 +18,7 @@
 
 위 조회는 `handle`에서만 하며 RPC 중 세션이 바뀌면 즉시 중단한다. 활성화 콜백에는 새 조회가 없다. 근거: `SlashEnglishSession.Context/captureTrigger/process/deletesTrigger`, `HaneulInputController.handle`. 새 상태에 보관하는 값은 시작 위치이며 원문 내용은 아니다. *(2026-11-13 보충: 2026-11-04부터 `/` 뒤 글자 **개수**와 커서 상태 표시(늘 같은 자리·한 번 어긋남·한 번 맞음)도 보관한다 — 아래 절. 글자 내용·키 순서는 보관하지 않는다.)*
 
-저장 키·기본값·순수 상태 전이는 `Shared/SlashEnglishSession.swift`의 `defaultsKey/defaultEnabled/process/reset`가 소유한다. 기본 ON이며 `Sources/SlashEnglishSettingsSection.swift`가 IME defaults 도메인 `com.hyunjincho.inputmethod.haneul`에 ON/OFF를 쓴다. 위치는 입력 기능 → 단축키 변환 → 슬래시 영어 입력. 자동 변환 토글과 앱별 예외 목록은 이 명시적인 영어 상태와 독립적이다.
+저장 키·기본값·순수 상태 전이는 `Shared/SlashEnglishSession.swift`의 `defaultsKey/defaultEnabled/process/reset`가 소유한다. 기본 ON이며 `Sources/Settings/SlashEnglishSettingsSection.swift`가 IME defaults 도메인 `com.hyunjincho.inputmethod.haneul`에 ON/OFF를 쓴다. 위치는 입력 기능 → 단축키 변환 → 슬래시 영어 입력. 자동 변환 토글과 앱별 예외 목록은 이 명시적인 영어 상태와 독립적이다.
 
 `IMESources/HaneulInputController.swift::handle`에서 보안 입력 검사 뒤, 기존 Backspace·변환 단축키 앞에 상태 분기를 둔다. 시작은 `commitActiveBoundary("/")`로 앞 조합을 확정하고, 이후에는 키를 소비/재삽입하지 않고 false로 원래 앱에 전달한다. 일반 Space도 앱이 한 번 입력한다. Backspace·Shift+Space·지정 변환 키·Tab·Esc·구두점·Option/Ctrl/Cmd 단축키는 원래 앱 동작을 따른다. *(2026-11-13 정정: Return·키패드 Enter는 2026-11-04부터 원래 앱에 한 번 전달한 뒤 이 상태를 직접 끝낸다 — 아래 2026-11-04 절.)* event 문자가 nil일 때만 기존 물리 키 fallback 원칙에 따라 슬래시/키패드와 Space를 판단한다. 실제 문자가 있으면 항상 문자가 우선이다.
 

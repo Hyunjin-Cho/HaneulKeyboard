@@ -3,7 +3,7 @@
 
 입력기는 앱 샌드박스도 네트워크 차단도 없는 일반 프로세스라, 막는 것은 '코드가 없다'는 사실뿐이다. 그 사실이 조용히 깨지는 것을 두 곳에서 잡는다.
 
-1. 소스: project.yml의 입력기 타깃이 컴파일하는 소스(IMESources/·Shared/·Sources/BundleTrust.swift)에
+1. 소스: project.yml의 입력기 타깃이 컴파일하는 소스(IMESources/·Shared/ — 2026-11-17 #267부터 이 두 폴더뿐)에
    알려진 네트워크 API 이름이 없다. 주석은 보지 않는다.
 2. 바이너리: 빌드된 입력기의 `nm -u`·`otool -L`에 네트워크 심볼·프레임워크가 없다 — 이 검사는 scripts/verify_license_resources.py가
    번들 검증 때 한다. 여기서는 그 검사기가 진짜로 잡는지 실제 컴파일한 작은 실행 파일(URLSession·BSD 소켓·Network.framework를 일부러 쓴
@@ -84,7 +84,8 @@ def source_findings(text: str):
 
 def check_sources(root: Path):
     paths = ime_source_paths(root)
-    check({"IMESources", "Shared"} <= set(paths), f"project.yml: 입력기 소스에 IMESources·Shared가 있다 ({paths})")
+    # 2026-11-17 (#267): BundleTrust를 Shared로 옮겨 입력기 소스가 정확히 두 폴더가 됐다. 다른 경로가 끼면 실패한다.
+    check(sorted(paths) == ["IMESources", "Shared"], f"project.yml: 입력기 소스는 IMESources·Shared 둘뿐이다 ({paths})")
     files = source_files(root, paths)
     check(len(files) > 20, f"입력기 소스 파일을 찾았다 ({len(files)}개)")
     for path in files:

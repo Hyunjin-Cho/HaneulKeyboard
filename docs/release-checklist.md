@@ -12,7 +12,7 @@
 
 ## 1. 반드시 지킬 규칙
 
-근거는 전부 [`Sources/UpdateDecisions.swift`](../Sources/UpdateDecisions.swift)의 `UpdateDecision`·`CalVer`다.
+근거는 전부 [`Sources/Update/UpdateDecisions.swift`](../Sources/Update/UpdateDecisions.swift)의 `UpdateDecision`·`CalVer`다.
 
 | 규칙 | 어기면 | 근거 |
 |---|---|---|
