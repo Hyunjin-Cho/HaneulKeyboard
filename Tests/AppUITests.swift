@@ -28,6 +28,10 @@ let appSourcePaths: [String] = {
     return walker.compactMap { $0 as? String }.filter { $0.hasSuffix(".swift") }.map { "Sources/" + $0 }.sorted()
 }()
 
+/// 앱 화면 검사(설정 키 리터럴·상태 글자색)가 훑는 파일. 2026-11-17 (#267 Codex 리뷰 P2): BundleTrust는 Shared로 옮겼지만
+/// 예전처럼 검사 범위에 남긴다(Shared의 다른 파일은 정의 파일이라 넣지 않는다 — HaneulDefaultsKeys가 키의 정본).
+let appScanPaths: [String] = appSourcePaths + ["Shared/BundleTrust.swift"]
+
 /// 앱 소스를 파일 이름으로 찾아 읽는다. 없거나 같은 이름이 둘 이상이면 실패로 센다(빈 글로 조용히 넘어가지 않게).
 func appSource(_ name: String) -> String {
     let hits = appSourcePaths.filter { ($0 as NSString).lastPathComponent == name }
@@ -149,7 +153,7 @@ func runDefaultsKeyTests() {
     // 앱 쪽에 같은 문자열이 상수 밖에 다시 퍼지지 않았는지(복제 회귀 방지). 정의 파일 자신은 제외한다.
     expect(appSourcePaths.count >= 40, "앱 소스를 하위 폴더까지 찾음: \(appSourcePaths.count)개")
     var strays: [String] = []
-    for path in appSourcePaths {
+    for path in appScanPaths {
         guard let text = readSource(path) else { expect(false, "앱 소스 읽기: \(path)"); continue }
         let file = (path as NSString).lastPathComponent
         for literal in ["\"com.hyunjincho.inputmethod.haneul\"", "\"haneul.hasCompletedOnboarding\"",
@@ -216,7 +220,7 @@ func runStatusContrastTests() {
 
     // 앱 화면 소스에 시스템 초록·주황·빨강 글자가 다시 들어오지 않게(버튼 칠 `tint: .red`는 글자가 아니라 제외).
     var strays: [String] = []
-    for path in appSourcePaths {
+    for path in appScanPaths {
         guard let text = readSource(path) else { expect(false, "앱 소스 읽기: \(path)"); continue }
         let file = (path as NSString).lastPathComponent
         for pattern in ["foregroundStyle(.red)", "foregroundStyle(.orange)", "foregroundStyle(.green)",

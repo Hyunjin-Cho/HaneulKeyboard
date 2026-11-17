@@ -720,6 +720,9 @@ import Foundation
         check(imeFiles.count > 20 && imeFiles.contains("Shared/BundleTrust.swift")
               && imeFiles.allSatisfy { fm.fileExists(atPath: root.appendingPathComponent($0).path) },
               "입력기 경계: 입력기 소스를 찾음(\(imeFiles.count)개, BundleTrust 포함)")
+        // 2026-11-17 (#267 Codex 리뷰 P2): 읽기에 실패하면 빈 글이 되어 금지어 검사가 위반 없음으로 센다 — 못 읽은 파일을 실패로 본다.
+        let unreadable = imeFiles.filter { text($0).isEmpty }
+        check(unreadable.isEmpty, "입력기 경계: 입력기 소스를 모두 읽음 \(unreadable)")
         for forbidden in ["kill(", "/bin/ps", "/usr/bin/defaults", "NSRunningApplication", "CFPreferencesSetValue"] {
             let offenders = imeFiles.filter { text($0).contains(forbidden) }
             check(offenders.isEmpty, "입력기 경계: \(forbidden) 없음 \(offenders)")
