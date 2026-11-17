@@ -1,7 +1,7 @@
 # Modern English broad-only supplement — SCOWL/ESDB size 70, US spelling.
 # Source: https://app.aspell.net/create (ESDB git 94569af, 2026-05-11.)
 # License: MIT-like (Kevin Atkinson) — see ACKNOWLEDGEMENTS.md.
-# Recipe (dict_work/SOURCE_FORMATS.md §4): lowercase, ^[a-z]{3,}$, minus
+# Recipe (dictionary/SOURCE_FORMATS.md §4): lowercase, ^[a-z]{3,}$, minus
 # web2/bundled, minus all-jamo forms of 4 jamo or fewer (826 — protects
 # typed jamo emotes/초성체; audit_modern.csv 2026-06-10). Broad-only:
 # NOT registered in curatedPaths — clean-Hangul rules never read this.

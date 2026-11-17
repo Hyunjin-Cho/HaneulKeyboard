@@ -58,7 +58,7 @@ xeon
 
 # 2026-10-14 (#74/#16/#17): source-checked nature, camera/film and brand names.
 # Broad only: all 75 have broken Korean forms; Tier A/B=0, C=75.
-# Sources and exclusions: dict_work/2026-10-14-nature-camera-extension.tsv.
+# Sources and exclusions: dictionary/records/2026-10-14-nature-camera-extension.tsv.
 # No synthesized spellings, all-jamo entries, Korean veto or guard overrides.
 adox
 aerocolor
@@ -142,7 +142,7 @@ lsp
 
 # 2026-10-14 (#74): original named examples verified with manufacturers.
 # Broad only: eight broken Korean forms, Tier A/B=0, C=8; no guard changes.
-# Source titles/spellings: dict_work/2026-10-14-nature-camera-extension.tsv.
+# Source titles/spellings: dictionary/records/2026-10-14-nature-camera-extension.tsv.
 contax
 filmomat
 lecreuset
@@ -158,7 +158,7 @@ zwilling
 # (standalone jamo or non-KS X 1001 syllable), Tier A/B=0, C=13.
 # All-jamo forms (max=ㅡㅁㅌ, mod=ㅡㅐㅇ, ker=ㅏㄷㄱ, inf=ㅑㅜㄹ, sqrt=ㄴㅂㄱㅅ) were
 # reviewed one by one: none is a known 초성체/jamo slang. Audit:
-# dict_work/2026-11-01-dict106-audit.csv. No guard or veto changes.
+# dictionary/records/2026-11-01-dict106-audit.csv. No guard or veto changes.
 pele
 kawaii
 max
@@ -175,7 +175,7 @@ laplacian
 # 2026-11-07 (#174): owner decision, review english-dict-F-7. Abbreviations moved
 # down from english_supplement (curated) to broad only: their clean Hangul forms
 # look like Korean (ansi=무냐, goty=해쇼, emtek=듯다, totp=새세, algo=미해, rhel=고디,
-# gorm=해그) and are not everyday English. Record: dict_work/2026-11-07-demote174-*.
+# gorm=해그) and are not everyday English. Record: dictionary/records/2026-11-07-demote174-*.
 ansi
 goty
 emtek
@@ -184,11 +184,11 @@ algo
 rhel
 gorm
 # 2026-11-08 (#194): owner-requested bio. It was in no bundled list and not in web2 (bios was), so no rule could reach it.
-# All-jamo form (bio=ㅠㅑㅐ) needs broad only. No guard or veto changes. Record: dict_work/2026-11-08-bio-registration.tsv.
+# All-jamo form (bio=ㅠㅑㅐ) needs broad only. No guard or veto changes. Record: dictionary/records/2026-11-08-bio-registration.tsv.
 bio
 # 2026-11-08 (#194): owner asked to add what is needed. Reinstated everyday abbreviations from the SCOWL all-jamo exclusion
-# (dict_work/scowl_exclusions_alljamo4.txt, slang protection), plus jan/jun to complete month names. All forms are all-jamo or broken,
-# none is in Urimalsaem or protectedSlang. Broad only. Record: dict_work/2026-11-08-shortwords-*.
+# (dictionary/scowl_exclusions_alljamo4.txt, slang protection), plus jan/jun to complete month names. All forms are all-jamo or broken,
+# none is in Urimalsaem or protectedSlang. Broad only. Record: dictionary/records/2026-11-08-shortwords-*.
 acct
 asst
 bbc
@@ -282,7 +282,7 @@ yup
 # (standalone jamo or a non-KS X 1001 syllable); broad audit Tier A/B=0, C=94. All-jamo forms were reviewed one by one
 # (iraq=ㅑㄱㅁㅂ, july=ㅓㅕㅣㅛ like jun=ㅓㅕㅜ above, uae=ㅕㅁㄷ; madagascar and philippines are 10+ jamo): none is a known
 # 초성체/jamo slang, an Urimalsaem headword or in protectedSlang. Clean forms (thai=소먀 …) went to english_supplement;
-# togo=새해 is an Urimalsaem headword and stays out. Names (david, john …) are out of scope. Record: dict_work/2026-11-13-closed-sets-audit.csv.
+# togo=새해 is an Urimalsaem headword and stays out. Names (david, john …) are out of scope. Record: dictionary/records/2026-11-13-closed-sets-audit.csv.
 albania
 america
 angola

@@ -49,7 +49,7 @@ private struct VocabularyExtensionTests {
     }
 
     static func main() throws {
-        let manifest = try words("dict_work/dict_manifest.tsv")
+        let manifest = try words("dictionary/dict_manifest.tsv")
         var curated = [String]()
         for line in manifest {
             let fields = line.split(separator: "\t").map(String.init)
@@ -61,7 +61,7 @@ private struct VocabularyExtensionTests {
         KoreanDictionary.wordlistPath = "Resources/IM/korean_words.txt"
         expect(KoreanDictionary.isLoaded, "실제 한국어 보호 사전 온전한 로드")
 
-        let additions = try words("dict_work/2026-10-14-nature-camera-coverage.txt")
+        let additions = try words("dictionary/records/2026-10-14-nature-camera-coverage.txt")
         expect(additions.count == 91 && Set(additions).count == 91, "출처 확인된 확장 표본 91개")
         for word in additions {
             let original = type(word, auto: false).0
@@ -81,7 +81,7 @@ private struct VocabularyExtensionTests {
                    "수동 영어→한글 되돌리기는 원래 표기: \(word)")
         }
 
-        let originals = try words("dict_work/2026-10-06-nature-film-coverage.txt")
+        let originals = try words("dictionary/records/2026-10-06-nature-film-coverage.txt")
         expect(originals.count == 201, "기존 범주 표본 201개 유지")
         for word in originals {
             expect(type(word).0 == word, "기존 201 표본 회귀: \(word)")

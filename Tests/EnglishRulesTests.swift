@@ -257,7 +257,7 @@ func runEnglishTableTests() {
     expect(body == expected.sorted(), true, "표: 번들 사전 합집합과 정확히 같다 (어긋나면 scripts/build_english_table.py)")
     let foreign = Set(body).subtracting(expected).sorted()
     expect(foreign.count, 0, "표 ⊆ 번들 사전 합집합: 번들 사전에 없는 낱말 \(foreign.prefix(10))")
-    expect(FileManager.default.fileExists(atPath: "dict_work/web2_snapshot.txt"), false, "표: web2 사본을 저장소에 두지 않는다")
+    expect(FileManager.default.fileExists(atPath: "dictionary/web2_snapshot.txt"), false, "표: web2 사본을 저장소에 두지 않는다")
     guard let table = SortedWordTable(path: tablePath) else {
         expect(false, true, "표: 파일 열기")
         return
@@ -426,7 +426,7 @@ private func runSystemWordFileTests(scratch: String) {
 /// 2026-11-07 (#174, F-6): 배포 사전과 제외 목록의 겹침을 기준선 파일과 대조한다.
 /// 기준선은 겹침의 기록일 뿐이다. 오너의 의도된 재등록인지는 여기서 판단하지 않는다.
 private func runExclusionOverlapCheck() {
-    let baselinePath = "dict_work/exclusion_overlap_baseline.tsv"
+    let baselinePath = "dictionary/exclusion_overlap_baseline.tsv"
     func lines(_ path: String) -> [String] {
         ((try? String(contentsOfFile: path, encoding: .utf8)) ?? "")
             .split(separator: "\n").map(String.init).filter { !$0.isEmpty && !$0.hasPrefix("#") }
@@ -440,7 +440,7 @@ private func runExclusionOverlapCheck() {
     for entry in DictManifest.load() {
         let words = Set(lines(entry.path))
         for name in exclusions {
-            for word in lines("dict_work/\(name)") where words.contains(word) {
+            for word in lines("dictionary/\(name)") where words.contains(word) {
                 actual.insert("\(entry.name)\t\(name)\t\(word)")
             }
         }

@@ -1,6 +1,6 @@
 # 감사의 글 (Acknowledgements)
 
-> 기준일: 2026-11-17 (2026-05-27 초기 공개 때 처음 넣고 2026-10-10에 다시 썼습니다. 2026-11-07에 사전 탑재 방식·고지 원문·McBopomofo 고지를, 2026-11-08에 글꼴을 고운바탕에서 마루 부리로, 2026-11-13에 지명 사전 범위와 보충 목록 설명을 고치고 개발 도구 절을 실제로 함께 개발한 도구(Claude)만 남겼습니다. 2026-11-16에 바뀌는 사전 낱말 수를 확인하는 곳으로 바꿨습니다(#259). 2026-11-17에 영어 절을 한국어 절과 같은 구성으로 맞추고, 머리말 날짜를 바로잡고, 코드 리뷰에 쓴 Codex를 개발 도구에 적었습니다(#263). 같은 날 폴더 정리에 맞춰 소스 파일 경로를 고쳤습니다(#267).)
+> 기준일: 2026-11-17 (2026-05-27 초기 공개 때 처음 넣고 2026-10-10에 다시 썼습니다. 2026-11-07에 사전 탑재 방식·고지 원문·McBopomofo 고지를, 2026-11-08에 글꼴을 고운바탕에서 마루 부리로, 2026-11-13에 지명 사전 범위와 보충 목록 설명을 고치고 개발 도구 절을 실제로 함께 개발한 도구(Claude)만 남겼습니다. 2026-11-16에 바뀌는 사전 낱말 수를 확인하는 곳으로 바꿨습니다(#259). 2026-11-17에 영어 절을 한국어 절과 같은 구성으로 맞추고, 머리말 날짜를 바로잡고, 코드 리뷰에 쓴 Codex를 개발 도구에 적었습니다(#263). 같은 날 폴더 정리에 맞춰 소스 파일과 사전 기록 경로(`dict_work/` → `dictionary/`)를 고쳤습니다(#267).)
 
 하늘키보드는 혼자 만든 것이 아닙니다. 앞서 길을 닦아준 수많은 오픈소스와 도구, 그리고 그것을 가능케 한 사람들의 어깨 위에 서 있습니다.
 
@@ -63,7 +63,7 @@ SOFTWARE.
 - https://opendict.korean.go.kr
 - 라이선스: CC-BY-SA 2.0 KR — https://creativecommons.org/licenses/by-sa/2.0/kr/ (조항 원문: https://creativecommons.org/licenses/by-sa/2.0/kr/legalcode.ko)
 - 영타 자동 변환이 "이 글자가 실존하는 한국어 단어인가"를 판정할 때 쓰는 **표제어 67.7만 개**([`Resources/IM/korean_words.txt`](./Resources/IM/korean_words.txt))의 출처입니다. 우리말의 보고를 모두에게 열어준 국립국어원과 우리말샘 참여자들께 감사드립니다.
-- 2026-10-18 일반 명사 확장에서는 기존2026-06-03 원자료의 명사·뜻 번호·뜻 수·외국어 표기를 대조했습니다. 영어 대응은 직접 작성·검토했으며 원문 정의·예문을 제품에 복제하지 않았습니다. 항목별 출처와 직접 작성·대조 수준은 [추가 명사 목록](dict_work/2026-10-18-phonetic-reviewed-nouns.tsv)에 기록했습니다(2026-11-07: 공개되지 않는 문서를 가리키던 링크를 이 목록으로 바꿨습니다).
+- 2026-10-18 일반 명사 확장에서는 기존2026-06-03 원자료의 명사·뜻 번호·뜻 수·외국어 표기를 대조했습니다. 영어 대응은 직접 작성·검토했으며 원문 정의·예문을 제품에 복제하지 않았습니다. 항목별 출처와 직접 작성·대조 수준은 [추가 명사 목록](dictionary/records/2026-10-18-phonetic-reviewed-nouns.tsv)에 기록했습니다(2026-11-07: 공개되지 않는 문서를 가리키던 링크를 이 목록으로 바꿨습니다).
 
 ### 국립국어원 한국어 학습용 어휘 목록
 - 출처: https://www.korean.go.kr/front/etcData/etcDataView.do?etc_seq=71
@@ -73,7 +73,7 @@ SOFTWARE.
 ### New General Service List (NGSL)
 - https://www.newgeneralservicelist.com
 - 라이선스: CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0/ (조항 원문: https://creativecommons.org/licenses/by-sa/4.0/legalcode) — Browne, C., Culligan, B., & Phillips, J. (2013). *The New General Service List*.
-- 하늘키보드는 이 목록을 정렬·필터링하고 굴절형을 골라 `english_common.txt` 등으로 가공했습니다(변경 표시). 가공 방식은 `dict_work/SOURCE_FORMATS.md`와 파일 머리말에 있습니다.
+- 하늘키보드는 이 목록을 정렬·필터링하고 굴절형을 골라 `english_common.txt` 등으로 가공했습니다(변경 표시). 가공 방식은 `dictionary/SOURCE_FORMATS.md`와 파일 머리말에 있습니다.
 - 영타 자동 변환이 "이 입력이 실제 쓰이는 영어 단어인가"를 판정할 때 쓰는 **현대 영어 고빈도 lemma 2,809개**(굴절형 포함 1만여 형태)의 출처입니다. 영어 학습자를 위해 데이터를 공개해준 세 분 연구자께 감사드립니다.
 
 ### 미국 인구조사국 (US Census Bureau) — 2010 Census 성씨 데이터
@@ -120,7 +120,7 @@ special lists in order to help improve the overall quality of ESDB.
 
 ### 가공 후 앱 탑재 규모
 
-2026-11-07부터 입력기는 아래 사전 파일을 하나씩 읽지 않고, 영어 사전 여섯 개를 합쳐 정렬한 표 `english_bundled.txt` 하나로 찾습니다(`dict_work/dict_manifest.tsv`가 합칠 목록의 정본이고, 낱말 수는 표 머리말의 `count`에 있습니다). 이 표에는 새로 배포하는 낱말이 없고 이미 배포하던 낱말을 합친 것입니다. 표를 만든 원본 중 `english_supplement.txt`·`english_common.txt` 둘은 입력기 번들에 그대로도 들어 있고, 나머지 넷은 표로만 들어갑니다. macOS의 `/usr/share/dict/words`는 이 표에 복사하지 않고, 입력기가 시스템 파일을 그 자리에서 읽습니다.
+2026-11-07부터 입력기는 아래 사전 파일을 하나씩 읽지 않고, 영어 사전 여섯 개를 합쳐 정렬한 표 `english_bundled.txt` 하나로 찾습니다(`dictionary/dict_manifest.tsv`가 합칠 목록의 정본이고, 낱말 수는 표 머리말의 `count`에 있습니다). 이 표에는 새로 배포하는 낱말이 없고 이미 배포하던 낱말을 합친 것입니다. 표를 만든 원본 중 `english_supplement.txt`·`english_common.txt` 둘은 입력기 번들에 그대로도 들어 있고, 나머지 넷은 표로만 들어갑니다. macOS의 `/usr/share/dict/words`는 이 표에 복사하지 않고, 입력기가 시스템 파일을 그 자리에서 읽습니다.
 
 낱말 수는 사전을 고칠 때마다 바뀌므로 아래 표에 적지 않습니다. 저장소의 각 파일은 `grep -vc '^#' <파일>`로 셀 수 있고, 합친 표의 전체 수는 `english_bundled.txt` 머리말의 `count` 줄에 있습니다(2026-11-16 #259: 옛 숫자가 남아 있어 바꿨습니다).
 
@@ -139,7 +139,7 @@ special lists in order to help improve the overall quality of ESDB.
 - https://www.wikidata.org
 - 라이선스: CC0 1.0 (퍼블릭 도메인)
 - 영타 자동 변환의 **축구 클럽·선수 사전**(잉글랜드·프랑스·스페인·이탈리아 9개 리그)의 출처입니다. 구조화된 지식을 퍼블릭 도메인으로 공개한 Wikidata 커뮤니티에 감사드립니다.
-- 2026-10-18 명사 보강에서는 후보의 한국어·영어 명칭/별칭을 보조 대조했습니다. 구조화된 명칭은 CC0이며 설명문·이미지는 복제하지 않았습니다. 항목별 링크와 직접 작성/대조 수준은 [추가 목록](dict_work/2026-10-18-phonetic-reviewed-nouns.tsv)에 기록했습니다.
+- 2026-10-18 명사 보강에서는 후보의 한국어·영어 명칭/별칭을 보조 대조했습니다. 구조화된 명칭은 CC0이며 설명문·이미지는 복제하지 않았습니다. 항목별 링크와 직접 작성/대조 수준은 [추가 목록](dictionary/records/2026-10-18-phonetic-reviewed-nouns.tsv)에 기록했습니다.
 
 ## 개발에 함께한 도구
 
@@ -168,7 +168,7 @@ plist·entitlements 구조와 IME 아키텍처를 비교·학습하는 데 참�
 
 # Acknowledgements (English)
 
-> Updated: 2026-11-17 (first added in the 2026-05-27 initial release and rewritten on 2026-10-10. On 2026-11-07 the dictionary bundling note, license texts and the McBopomofo notice were revised; on 2026-11-08 the fonts changed from Gowun Batang to MaruBuri; on 2026-11-13 the place-name coverage and the supplement list description were corrected, and the development tools section was left with only the tool that actually co-developed the project, Claude. On 2026-11-16 changing entry counts were replaced with where to find them (#259). On 2026-11-17 this English half was rewritten to match the Korean half section by section, the header dates were corrected, and Codex was added to the development tools for code review (#263). The same day, source file paths were updated for the folder reorganization (#267).)
+> Updated: 2026-11-17 (first added in the 2026-05-27 initial release and rewritten on 2026-10-10. On 2026-11-07 the dictionary bundling note, license texts and the McBopomofo notice were revised; on 2026-11-08 the fonts changed from Gowun Batang to MaruBuri; on 2026-11-13 the place-name coverage and the supplement list description were corrected, and the development tools section was left with only the tool that actually co-developed the project, Claude. On 2026-11-16 changing entry counts were replaced with where to find them (#259). On 2026-11-17 this English half was rewritten to match the Korean half section by section, the header dates were corrected, and Codex was added to the development tools for code review (#263). The same day, source file and dictionary record paths (`dict_work/` → `dictionary/`) were updated for the folder reorganization (#267).)
 
 HaneulKeyboard was not made alone. It stands on the shoulders of the countless open-source projects and tools that paved the way, and of the people who made them possible.
 
@@ -231,7 +231,7 @@ SOFTWARE.
 - https://opendict.korean.go.kr
 - License: CC-BY-SA 2.0 KR — https://creativecommons.org/licenses/by-sa/2.0/kr/ (legal code: https://creativecommons.org/licenses/by-sa/2.0/kr/legalcode.ko)
 - Source of the **677k headwords** ([`Resources/IM/korean_words.txt`](./Resources/IM/korean_words.txt)) that the wrong-layout auto-conversion uses to decide "is this a real Korean word?". Thanks to the National Institute of Korean Language and the Urimalsaem contributors for opening this treasury of the Korean language to everyone.
-- For the 2026-10-18 common-noun expansion, the nouns, sense numbers, sense counts and foreign-language notations in the existing 2026-06-03 source data were cross-checked. The English mappings were written and reviewed by us; definitions and examples are not copied into the product. Per-entry sources and the level of direct authoring or cross-checking are recorded in the [added noun list](dict_work/2026-10-18-phonetic-reviewed-nouns.tsv) (2026-11-07: a link to an unpublished document was replaced with this list).
+- For the 2026-10-18 common-noun expansion, the nouns, sense numbers, sense counts and foreign-language notations in the existing 2026-06-03 source data were cross-checked. The English mappings were written and reviewed by us; definitions and examples are not copied into the product. Per-entry sources and the level of direct authoring or cross-checking are recorded in the [added noun list](dictionary/records/2026-10-18-phonetic-reviewed-nouns.tsv) (2026-11-07: a link to an unpublished document was replaced with this list).
 
 ### NIKL Korean vocabulary list for learners
 - Source: https://www.korean.go.kr/front/etcData/etcDataView.do?etc_seq=71
@@ -241,7 +241,7 @@ SOFTWARE.
 ### New General Service List (NGSL)
 - https://www.newgeneralservicelist.com
 - License: CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0/ (legal code: https://creativecommons.org/licenses/by-sa/4.0/legalcode) — Browne, C., Culligan, B., & Phillips, J. (2013). *The New General Service List*.
-- HaneulKeyboard sorted and filtered this list and selected inflected forms to produce `english_common.txt` and related files (changes indicated). The method is in `dict_work/SOURCE_FORMATS.md` and the file headers.
+- HaneulKeyboard sorted and filtered this list and selected inflected forms to produce `english_common.txt` and related files (changes indicated). The method is in `dictionary/SOURCE_FORMATS.md` and the file headers.
 - Source of the **2,809 high-frequency modern English lemmas** (10k+ word forms including inflections) that the wrong-layout auto-conversion uses to decide "is this input a real English word?". Thanks to the three researchers who published this data for English learners.
 
 ### US Census Bureau — 2010 Census surnames
@@ -288,7 +288,7 @@ special lists in order to help improve the overall quality of ESDB.
 
 ### Bundled size after processing
 
-Since 2026-11-07 the IME no longer reads the dictionary files below one by one; it looks words up in a single sorted table, `english_bundled.txt`, that merges six English dictionaries (`dict_work/dict_manifest.tsv` is the authoritative list of what is merged, and the word count is in the table header's `count`). The table distributes no new words; it merges words that were already distributed. Of its sources, `english_supplement.txt` and `english_common.txt` are also bundled in the IME as they are, and the other four are bundled only through the table. macOS's `/usr/share/dict/words` is not copied into this table; the IME reads that system file in place.
+Since 2026-11-07 the IME no longer reads the dictionary files below one by one; it looks words up in a single sorted table, `english_bundled.txt`, that merges six English dictionaries (`dictionary/dict_manifest.tsv` is the authoritative list of what is merged, and the word count is in the table header's `count`). The table distributes no new words; it merges words that were already distributed. Of its sources, `english_supplement.txt` and `english_common.txt` are also bundled in the IME as they are, and the other four are bundled only through the table. macOS's `/usr/share/dict/words` is not copied into this table; the IME reads that system file in place.
 
 Entry counts change whenever the dictionaries are edited, so they are not written in the table below. Count a file in the repository with `grep -vc '^#' <file>`; the merged table's total is the `count` line in the `english_bundled.txt` header (2026-11-16, #259: an outdated number had been left here).
 
@@ -307,7 +307,7 @@ Entry counts change whenever the dictionaries are edited, so they are not writte
 - https://www.wikidata.org
 - License: CC0 1.0 (public domain)
 - Source of the **football club and player dictionary** (9 leagues across England, France, Spain and Italy) for the wrong-layout auto-conversion. Thanks to the Wikidata community for publishing structured knowledge in the public domain.
-- For the 2026-10-18 noun expansion, the Korean and English labels and aliases of candidates were used as a secondary cross-check. Structured labels are CC0; descriptions and images were not copied. Per-entry links and the level of direct authoring or cross-checking are recorded in the [added list](dict_work/2026-10-18-phonetic-reviewed-nouns.tsv).
+- For the 2026-10-18 noun expansion, the Korean and English labels and aliases of candidates were used as a secondary cross-check. Structured labels are CC0; descriptions and images were not copied. Per-entry links and the level of direct authoring or cross-checking are recorded in the [added list](dictionary/records/2026-10-18-phonetic-reviewed-nouns.tsv).
 
 ## Tools used in development
 

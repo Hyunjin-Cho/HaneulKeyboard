@@ -41368,8 +41368,8 @@
     "people": "Common family, relationship and occupation nouns are included. Proper person names and music groups remain excluded. Historical person-denoting restrictions below describe earlier batches only.",
     "ambiguity": "Owner rule 2026-11-05: skip only words with two everyday meanings, such as 눈 (eye/snow). A second dictionary sense alone no longer holds a word back; earlier batches held about a thousand basic words for that reason, including 집, 책, 꽃, 나무. The 2026-10-28 targeted holds such as 화장실, 카페, 코, 유리, 밥, 개미 are reviewed again and restored under this rule, except those with two everyday meanings. Words whose keyboard-layout keys spell an English word (새=to, 내=so, 무=an, 해=go, 애=do) stay out so the layout shortcut keeps working.",
     "authoring": "Pairs written and judged one by one by Claude against the NIKL learner noun list and earlier held lists. English pairs are directly authored; no dictionary definitions or examples are copied. Not externally corroborated row by row.",
-    "record": "dict_work/2026-11-05-phonetic-basic-words.tsv",
-    "exclusionRecord": "dict_work/2026-11-05-phonetic-basic-words-held.tsv",
+    "record": "dictionary/records/2026-11-05-phonetic-basic-words.tsv",
+    "exclusionRecord": "dictionary/records/2026-11-05-phonetic-basic-words-held.tsv",
     "excludedThisBatch": [
       "눈",
       "밤",
@@ -41429,7 +41429,7 @@
         "직선"
       ],
       "criterion": "Of the 28 targeted removals, the owner confirmed everyday representative meanings for 선반=shelf, 세제=detergent and 장갑=gloves. Those three are restored; the other 25 remain excluded. Existing owner-designated 배=pear, 사과=apple and 선물=gift stay unchanged. This is not a complete dictionary-wide sense audit.",
-      "record": "dict_work/2026-10-28-phonetic-basic-nouns-held.tsv",
+      "record": "dictionary/records/2026-10-28-phonetic-basic-nouns-held.tsv",
       "initialRemovedEntries": 28,
       "restoredEntries": 3,
       "restoredMappings": {
@@ -41456,7 +41456,7 @@
       {
         "reviewedOn": "2026-10-14",
         "addedEntries": 62,
-        "record": "dict_work/2026-10-14-phonetic-common-nouns.tsv",
+        "record": "dictionary/records/2026-10-14-phonetic-common-nouns.tsv",
         "excludedThisBatch": [
           "가위",
           "강아지",
@@ -41467,7 +41467,7 @@
       {
         "reviewedOn": "2026-10-18",
         "addedEntries": 138,
-        "record": "dict_work/2026-10-18-phonetic-common-nouns.tsv"
+        "record": "dictionary/records/2026-10-18-phonetic-common-nouns.tsv"
       },
       {
         "reviewedOn": "2026-10-18",
@@ -41496,8 +41496,8 @@
           "물": "water"
         },
         "authoring": "Pairs authored directly, screened against the existing NIKL Urimalsaem 2026-06-03 noun/sense metadata, and reviewed pair by pair by the root. English source corroboration and selected definition checks are identified per row; not every definition was manually read. No definitions, examples or corpus are shipped.",
-        "record": "dict_work/2026-10-18-phonetic-reviewed-nouns.tsv",
-        "exclusionRecord": "dict_work/2026-10-18-phonetic-reviewed-nouns-held.tsv",
+        "record": "dictionary/records/2026-10-18-phonetic-reviewed-nouns.tsv",
+        "exclusionRecord": "dictionary/records/2026-10-18-phonetic-reviewed-nouns-held.tsv",
         "sourceRecord": "docs/feedback/2026-10-18-build89/04-noun-expansion-review.md"
       },
       {
@@ -41505,8 +41505,8 @@
         "scope": "Finite explicitly registered basic noun meanings and transparent compound labels. Exact explicit shortcut only; no contextual translation.",
         "addedEntries": 835,
         "ambiguity": "Use directly reviewed everyday literal meanings. Owner-confirmed representative mappings override the targeted ambiguity holds for 선반=shelf, 세제=detergent and 장갑=gloves. Existing 배=pear, 사과=apple and 선물=gift are confirmed unchanged. The other 25 confirmed ambiguous spellings remain held. Rare homonyms or several source definitions sharing one English meaning are not automatically removed. This targeted decision does not claim a complete dictionary-wide ambiguity audit.",
-        "record": "dict_work/2026-10-28-phonetic-basic-nouns.tsv",
-        "exclusionRecord": "dict_work/2026-10-28-phonetic-basic-nouns-held.tsv",
+        "record": "dictionary/records/2026-10-28-phonetic-basic-nouns.tsv",
+        "exclusionRecord": "dictionary/records/2026-10-28-phonetic-basic-nouns-held.tsv",
         "excludedThisBatch": [
           "눈",
           "밤",

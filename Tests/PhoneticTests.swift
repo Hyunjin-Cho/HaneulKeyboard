@@ -153,7 +153,7 @@ func runPhoneticTests() {
 
     // 2026-10-14: 새 일반 명사는 영어 문맥·설정·개인 금지와 섞어 검사한다.
     // 사전 확장이 문장 추측이나 조사 제거로 번지지 않는지 확인한다.
-    for fixturePath in ["dict_work/2026-10-14-phonetic-common-nouns.tsv", "dict_work/2026-10-18-phonetic-common-nouns.tsv", "dict_work/2026-10-18-phonetic-reviewed-nouns.tsv", "dict_work/2026-10-28-phonetic-basic-nouns.tsv"] {
+    for fixturePath in ["dictionary/records/2026-10-14-phonetic-common-nouns.tsv", "dictionary/records/2026-10-18-phonetic-common-nouns.tsv", "dictionary/records/2026-10-18-phonetic-reviewed-nouns.tsv", "dictionary/records/2026-10-28-phonetic-basic-nouns.tsv"] {
         if let nounFixture = try? String(contentsOfFile: fixturePath, encoding: .utf8) {
             for line in nounFixture.split(separator: "\n").dropFirst() {
                 let columns = line.split(separator: "\t", omittingEmptySubsequences: false).map(String.init)

@@ -52,10 +52,10 @@ done
 [[ "$COMPOUND" == "on" || "$COMPOUND" == "off" ]] || { echo "--compound는 on 또는 off만 가능" >&2; exit 2; }
 
 # ── 기본 베이스 구성 ──
-# (review-0712 P3-5) 목록을 여기 직접 적지 않고 dict_work/dict_manifest.tsv를
+# (review-0712 P3-5) 목록을 여기 직접 적지 않고 dictionary/dict_manifest.tsv를
 # 읽는다. 예전엔 런타임(EnglishDetector)·테스트·이 스크립트가 각자 목록을 들고
 # 있어서, english_sports_geo.txt가 런타임에만 있고 검역에서는 빠져도 몰랐다.
-MANIFEST="dict_work/dict_manifest.tsv"
+MANIFEST="dictionary/dict_manifest.tsv"
 # 2026-11-07 (#175): 번들 사전은 표에 합쳐져 있고 web2는 시스템 파일 그대로다(시스템 파일이라 manifest 밖).
 # 표가 낡았으면 검역 결과가 거짓이 되므로 먼저 멈춘다.
 if [[ -z "$BASE" ]]; then

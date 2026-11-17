@@ -4,7 +4,7 @@
 # Generated: 2026-06-10 scripts/build_english_wordlists.py (exclusions: 2,686 — all-jamo 포함, dedupe: NGSL+supplement+web2)
 # Merged: 2026-06-10 — audit_wordlist.sh 검역(Tier A/B = 0 실측) 통과본
 # Role: broad 전용 — 깨진-한글 룰만 사용. curatedPaths 등록 금지 (clean 충돌 검증 불가 롱테일)
-# 2026-11-13 (#225 후속, 오너 "빠진 이름 넣자"): 옛 생성기가 시스템 낱말 파일의 대문자 줄(David 등)을 '이미 있음'으로 세고 뺀 성씨 485개를 되살렸다 — Census 2010 상위 30,000 재생성 대조, 검역 Tier A 2(sia·cid)와 전부-자모 중 자모 3개 이하·이모티콘 반복 26개와 한글 보호 시험에서 `ㅡ대`를 바꾼 meo는 제외(dict_work/2026-11-13-surnames-restore.tsv).
+# 2026-11-13 (#225 후속, 오너 "빠진 이름 넣자"): 옛 생성기가 시스템 낱말 파일의 대문자 줄(David 등)을 '이미 있음'으로 세고 뺀 성씨 485개를 되살렸다 — Census 2010 상위 30,000 재생성 대조, 검역 Tier A 2(sia·cid)와 전부-자모 중 자모 3개 이하·이모티콘 반복 26개와 한글 보호 시험에서 `ㅡ대`를 바꾼 meo는 제외(dictionary/records/2026-11-13-surnames-restore.tsv).
 aaden
 aadhya
 aadya

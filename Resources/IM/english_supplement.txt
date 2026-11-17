@@ -5296,7 +5296,7 @@ superia
 velvia
 
 # 2026-10-06 (#74): 과일·식물·꽃·생물·필름/카메라 대표 이름 보완.
-# 실제 코어 검역: dict_work/2026-10-06-nature-film-audit.csv.
+# 실제 코어 검역: dictionary/records/2026-10-06-nature-film-audit.csv.
 # clean 6개는 한글 표제어와 겹치지 않는 이름을 개별 검토했다.
 # all_jamo 4개(agfa/instax/monstera/portra)는 요청 범주의 등록된 이름만 허용.
 acros
@@ -5396,7 +5396,7 @@ american
 # 2026-10-14 (#74): six existing broad nature words individually reviewed.
 # All six Korean forms are absent from Urimalsaem; no veto override added.
 # coral (책미) / eland (디뭉) stem warnings were reviewed, not suppressed.
-# Sources and decisions: dict_work/2026-10-14-nature-camera-extension.tsv.
+# Sources and decisions: dictionary/records/2026-10-14-nature-camera-extension.tsv.
 angelfish
 cockatiel
 coral
@@ -5411,7 +5411,7 @@ fork
 
 # 2026-10-28 (#104): owner-requested spark; clean 넴가 is absent from Urimalsaem.
 # Curated exact entry reaches existing R5, without a Korean-veto override.
-# Tier A and the 넴 stem warning are retained in dict_work/2026-10-28-spark-audit.csv.
+# Tier A and the 넴 stem warning are retained in dictionary/records/2026-10-28-spark-audit.csv.
 spark
 
 # 2026-11-01 (#106): owner-requested math terms with clean Hangul forms.
@@ -5420,7 +5420,7 @@ spark
 theorem
 curl
 # 2026-11-08 (#194): owner asked to add what is needed. Three-consonant forms reach only through curated (EnglishDetector units == 3).
-# Forms are all-jamo, so R5 clean rules do not apply. std stays out: owner excluded it on 2026-11-01 (#109). Record: dict_work/2026-11-08-shortwords-*.
+# Forms are all-jamo, so R5 clean rules do not apply. std stays out: owner excluded it on 2026-11-01 (#109). Record: dictionary/records/2026-11-08-shortwords-*.
 ads
 avg
 dec
@@ -5436,7 +5436,7 @@ vga
 # 한글형이 멀쩡해 broad로는 닿지 않는 8개. 시스템 낱말 파일에 대문자 줄로만 있어(Thai·Russia) 입력기가 건너뛰던 말이다.
 # 검역(audit_wordlist.sh --role curated) Tier A 8개 전수 리뷰: 엿초·호뭄·견냠·소먀·두히뭉·견냐무·녕무·셔가됴 모두 우리말 표제어·
 # 이름·흔한 꼴이 아니다. 깨진 한글형 94개는 english_names_extra(broad)에 넣었고, togo=새해는 표제어라 뺐다.
-# 기록: dict_work/2026-11-13-closed-sets-audit.csv
+# 기록: dictionary/records/2026-11-13-closed-sets-audit.csv
 dutch
 england
 ghana
@@ -5449,7 +5449,7 @@ turkey
 # 2026-11-13 (#225): 리뷰 2026-11-12 english-dict-F-6. NGSL 낱말의 흔한 복수형인데 한글형이 멀쩡해(girls=햐긴·signs=냐훈)
 # curated에 정확히 있어야 바뀐다(굴절 추정은 깨진 한글 경로에만 쓴다). 검역 Tier A 22개 전수 리뷰 — 이름과 겹치는
 # coals=채민·disks=야난은 뺐다. goals=해민·rocks=개찬은 우리말 표제어라 등재해도 바뀌지 않아(Tier C) 넣지 않았다
-# (goal·rock처럼 S 등급에 올릴지는 오너 판단). 기록: dict_work/2026-11-13-plurals-audit.csv
+# (goal·rock처럼 S 등급에 올릴지는 오너 판단). 기록: dictionary/records/2026-11-13-plurals-audit.csv
 alarms
 charms
 cleans
@@ -5473,5 +5473,5 @@ whens
 
 # 2026-11-16 오너 결정: 이름 chris는 한글형이 멀쩡해(초갼) 이름 사전(broad)으로는 바뀌지 않는다. '갼'으로 끝나는 우리말이 없어
 # 예외로 curated에 넣는다(오너 "예외로 등록해도 돼"). 한국어 말뭉치(표제어·활용형·명사+조사·음절)에 '초갼' 0건.
-# 검역 Tier A 1(조사결합 의심 '초' 등재 — '갼'은 조사가 아니라 해당 없음). 기록: dict_work/2026-11-16-chris-exception.csv
+# 검역 Tier A 1(조사결합 의심 '초' 등재 — '갼'은 조사가 아니라 해당 없음). 기록: dictionary/records/2026-11-16-chris-exception.csv
 chris

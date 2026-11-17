@@ -55,7 +55,7 @@ enum EnglishDetector {
     ///                         선수 + 약어. GeoNames CC-BY + Wikidata CC0.
     ///                         검역 Tier A/B=0 → clean 충돌 없음, broad 전용)
     ///
-    /// (review-0712 P3-5) 이 목록의 **정본은 `dict_work/dict_manifest.tsv`**다.
+    /// (review-0712 P3-5) 이 목록의 **정본은 `dictionary/dict_manifest.tsv`**다.
     /// 2026-11-07 (#175)부터 런타임은 표(`english_bundled.txt`)와 curated 둘만 번들에서 읽고, 이 이름 목록은 테스트가 manifest와 대조하는 데 쓴다.
     /// manifest와 어긋나면 `scripts/run_ime_tests.sh`가 실패한다. 사전을
     /// 추가·제거할 땐 manifest를 먼저 고치고 scripts/build_english_table.py를 돌릴 것.
@@ -119,12 +119,12 @@ enum EnglishDetector {
         "pr",
         // 2026-11-01 (#109) 수학 약어 — 오너 지정(A안). 모두 모음으로 시작하는 2글자라
         // pd·pr과 같은 R1 경로다: ln=ㅣㅜ, pi=ㅔㅑ, mu=ㅡㅕ, nu=ㅜㅕ. 우리말샘 미등재·
-        // 초성체 슬랭 목록에 없음을 검역으로 확인했다(dict_work/2026-11-01-dict106-*).
+        // 초성체 슬랭 목록에 없음을 검역으로 확인했다(dictionary/records/2026-11-01-dict106-*).
         "ln", "pi", "mu", "nu",
         // 2026-11-07 (#194) pm(ㅔㅡ): 오후. 그 전에는 단위(피코미터) 경로로 소문자 pm만 바뀌어 PM·Pm(ㅖㅡ)이 그대로 남았다.
         "pm",
         // 2026-11-08 오너 요청(#194): 모음으로 시작해 한글로 조합되지 않는 2글자를 넓혔다(mg·ui와 같은 꼴). 전수 대조와 등록표는
-        // dict_work/2026-11-08-two-letter-registration.tsv. 우는 표정과 겹치는 mb(ㅡㅠ)와 합쳐져 한 글자가 되는 hk(ㅘ)·ho(ㅙ)는 넣지 않았다.
+        // dictionary/records/2026-11-08-two-letter-registration.tsv. 우는 표정과 겹치는 mb(ㅡㅠ)와 합쳐져 한 글자가 되는 hk(ㅘ)·ho(ㅙ)는 넣지 않았다.
         "oh", "uh", "yo", "hi", "ya", "ye", "ow",
         "ip", "hp", "lp", "kb", "uk", "jp", "un", "ph", "op",
         "bj", "nh", "lh", "pb", "pk", "ob", "ol", "ny", "io", "bl",

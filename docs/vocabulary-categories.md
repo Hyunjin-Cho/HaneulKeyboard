@@ -8,7 +8,7 @@
 - `standaloneShortWords`(veto 뒤, 멀쩡한 1음절): abs=뮨, xi=탸 — gpt=헷·dmg=읗과 같은 방식
 - **2026-11-07 오너 결정(#174):** cos=챈은 단독 변환에서 뺐다. 챈은 채다의 활용형이라 "눈치 챈 사람"이 "눈치 cos 사람"이 됐다. 영어 문맥(`the cos`)과 `Cos`·`COS`, 개인 사전으로는 계속 쓸 수 있다.
 - **넣지 않음:** 자음 3개 초성형 gcd·det·arg·std·csc(초성체와 겹칠 수 있어 오너 제외), 실존 한국어 cot·cosh·dy·rho, 자음 2개 dx·dt(2글자 정책 대기).
-- **수학 용어 130개 표본 도달:** 112 → 119(그날 기준, cos 포함). 근거: [후](../dict_work/2026-11-01-math109-reach-after.csv).
+- **수학 용어 130개 표본 도달:** 112 → 119(그날 기준, cos 포함). 근거: [후](../dictionary/records/2026-11-01-math109-reach-after.csv).
 
 ## 2026-11-01 영타 사전: 이름·대중어·수학 용어 (#106)
 
@@ -18,38 +18,38 @@
 - **broad(`english_names_extra`) 13개:** pele, kawaii, max, mod, ker, inf, sqrt, cbrt, cov, arcsin, arccos, arctan, laplacian — 모두 깨진 한글형, 검역 Tier C.
 - **curated(`english_supplement`) 2개:** theorem(소댁드), curl(쳐기) — 멀쩡한 한글형이지만 우리말샘 미등재, Tier A 개별 검토.
 - **수학 용어 130개 표본 도달:** 99 → 112. 남은 18개는 한글 보호 예외를 넓혀야 하는 12개(ln·pi·mu·nu·cos·abs·xi·gcd·det·arg·std·csc, 오너 결정 대기), 실존 한국어 4개(cot=챗·cosh=채노·dy=요·rho=괘), 자음 2개 2개(dx·dt, 2글자 정책 대기)다.
-- 근거: [등록 기록](../dict_work/2026-11-01-dict106-registration.tsv), [검역](../dict_work/2026-11-01-dict106-audit.csv), [수학 표본 전](../dict_work/2026-11-01-dict106-math-reach-before.csv)·[후](../dict_work/2026-11-01-dict106-math-reach-after.csv). 단독 `ml` 변환은 [단위 문서](measurement-units.md)에 있다.
+- 근거: [등록 기록](../dictionary/records/2026-11-01-dict106-registration.tsv), [검역](../dictionary/records/2026-11-01-dict106-audit.csv), [수학 표본 전](../dictionary/records/2026-11-01-dict106-math-reach-before.csv)·[후](../dictionary/records/2026-11-01-dict106-math-reach-after.csv). 단독 `ml` 변환은 [단위 문서](measurement-units.md)에 있다.
 
 ## 2026-10-28 일상 대표 뜻 복원 — 후속 빌드102
 
-기준 main `813f304` 이후 #104 소스에서 사용자 확정에 따라 **선반→shelf·세제→detergent·장갑→gloves** 세 항목만 복원했다. 기존4,526개 항목 객체는 모두 보존했고, 이번 기본 명사 보강은 **835개**, 총 **한글4,529표기 / 고유 영문4,317결과**다. 숫자35별칭은 그대로다. 배→pear·사과→apple·선물→gift 유지도 확정했으며, 다른 뜻 후보는 사용자가 준비한다. 새 후보 선택 UI는 이번 범위에 없고 나머지25개 제외는 유지한다. 전체 사전의 다의어 감사 완료로 보고하지 않는다. JSON SHA `d977f5b942930bd43af62fcbcd648bf8a95fcdc8e805eaf3eb8282e09b509125`. [현재 채택/출처](../dict_work/2026-10-28-phonetic-basic-nouns.tsv), [현재 보류/뜻 근거](../dict_work/2026-10-28-phonetic-basic-nouns-held.tsv), [기능·변경 이력](phonetic-conversion.md).
+기준 main `813f304` 이후 #104 소스에서 사용자 확정에 따라 **선반→shelf·세제→detergent·장갑→gloves** 세 항목만 복원했다. 기존4,526개 항목 객체는 모두 보존했고, 이번 기본 명사 보강은 **835개**, 총 **한글4,529표기 / 고유 영문4,317결과**다. 숫자35별칭은 그대로다. 배→pear·사과→apple·선물→gift 유지도 확정했으며, 다른 뜻 후보는 사용자가 준비한다. 새 후보 선택 UI는 이번 범위에 없고 나머지25개 제외는 유지한다. 전체 사전의 다의어 감사 완료로 보고하지 않는다. JSON SHA `d977f5b942930bd43af62fcbcd648bf8a95fcdc8e805eaf3eb8282e09b509125`. [현재 채택/출처](../dictionary/records/2026-10-28-phonetic-basic-nouns.tsv), [현재 보류/뜻 근거](../dictionary/records/2026-10-28-phonetic-basic-nouns-held.tsv), [기능·변경 이력](phonetic-conversion.md).
 
 Developer ID 서명 로컬 검증본102의 메인 앱·입력기 적용을 마쳤고, 설치 자원 동일성·개인 설정 보존을 확인했다. 실제 호스트 앱의 물리 키 입력 확인과 공증·공개 배포는 별도로 남아 있다.
 
 ## 2026-10-28 다의어 1차 제외 — 빌드101 당시 기록
 
-기준 main `f9eedff` 이후 #100 소스에서 확실한 신규 다의어28개를 제외했다. 총 **한글4,526표기 / 고유 영문4,314결과**, 이번 기본 명사 보강은860→832개다. 당시에는 같은 영어로 설명되는 세부 뜻과 기존 지정 예외를 일괄 삭제하지 않고 범위 답변을 기다렸다. 이후 결정은 위 빌드102 기록을 따른다. [현재 목록](../dict_work/2026-10-28-phonetic-basic-nouns.tsv), [보류와 뜻 근거](../dict_work/2026-10-28-phonetic-basic-nouns-held.tsv), [현재 기능·팝업 이력](phonetic-conversion.md). 아래860/4554수량은 빌드100 당시 기록이다.
+기준 main `f9eedff` 이후 #100 소스에서 확실한 신규 다의어28개를 제외했다. 총 **한글4,526표기 / 고유 영문4,314결과**, 이번 기본 명사 보강은860→832개다. 당시에는 같은 영어로 설명되는 세부 뜻과 기존 지정 예외를 일괄 삭제하지 않고 범위 답변을 기다렸다. 이후 결정은 위 빌드102 기록을 따른다. [현재 목록](../dictionary/records/2026-10-28-phonetic-basic-nouns.tsv), [보류와 뜻 근거](../dictionary/records/2026-10-28-phonetic-basic-nouns-held.tsv), [현재 기능·팝업 이력](phonetic-conversion.md). 아래860/4554수량은 빌드100 당시 기록이다.
 
 ## 2026-10-28 등록 한글→영문 기본 명사 추가 — 빌드100 당시 기록
 
-기준 main `d2c451b` 이후 #100 소스: 기본 명사 860개 추가, **한글 4,554표기 / 고유 영문 4,339결과**다. 기존3,694객체와 숫자35별칭을 보존했다. 이 합계는 브랜드·전문용어·별칭도 포함하며 일반 명사만의 수량이 아니다. 학교→school·식당→restaurant·주방→kitchen·가게→store·친구→friend 등을 보강했다. [채택/출처](../dict_work/2026-10-28-phonetic-basic-nouns.tsv), [보류 이유](../dict_work/2026-10-28-phonetic-basic-nouns-held.tsv), [최신 기능 범위](phonetic-conversion.md). 자동 영타 사전이나 영어+조사 분리의 목록과 합산하지 않는다. 아래 이전 날짜는 당시 기록이다.
+기준 main `d2c451b` 이후 #100 소스: 기본 명사 860개 추가, **한글 4,554표기 / 고유 영문 4,339결과**다. 기존3,694객체와 숫자35별칭을 보존했다. 이 합계는 브랜드·전문용어·별칭도 포함하며 일반 명사만의 수량이 아니다. 학교→school·식당→restaurant·주방→kitchen·가게→store·친구→friend 등을 보강했다. [채택/출처](../dictionary/records/2026-10-28-phonetic-basic-nouns.tsv), [보류 이유](../dictionary/records/2026-10-28-phonetic-basic-nouns-held.tsv), [최신 기능 범위](phonetic-conversion.md). 자동 영타 사전이나 영어+조사 분리의 목록과 합산하지 않는다. 아래 이전 날짜는 당시 기록이다.
 
 
 과거 기록 기준일: **2026-10-18**. 당시 HEAD `de12669` + `feat/T01-particle-rebuild` 미커밋 변경. 최신 등록 한글 사전과 이전 영타 참조 목록 이력을 구분한다. 실제 설치본89와 로컬 후보는 다르다.
 
 ## 2026-10-18 당시 — 후속 명사1,507개 추가
 
-첫138개 보강에 이어 일반 명사1,507개를 더했다. 현재 **한글3,694개 / 고유 영문3,564개**, 기본3,659개+번호35개다. 기존2,187개 객체와 분류를 그대로 보존했다. 우리말샘의 품사·뜻 수 대조와 루트의 한영 쌍 검토를 거쳤으며 전체 명사 지원 완료는 아니다. [새 목록과 항목별 출처](../dict_work/2026-10-18-phonetic-reviewed-nouns.tsv), 원본 `Resources/IM/phonetic_dictionary.json`. 입력110,683/0·사전 감사·Release Universal 메인/IME 무서명 컴파일 통과. 사전 SHA `98966f22ab6b5a42e6475ac86c09de887544f70355c58b81215b0b6dc0c8db82`.
+첫138개 보강에 이어 일반 명사1,507개를 더했다. 현재 **한글3,694개 / 고유 영문3,564개**, 기본3,659개+번호35개다. 기존2,187개 객체와 분류를 그대로 보존했다. 우리말샘의 품사·뜻 수 대조와 루트의 한영 쌍 검토를 거쳤으며 전체 명사 지원 완료는 아니다. [새 목록과 항목별 출처](../dictionary/records/2026-10-18-phonetic-reviewed-nouns.tsv), 원본 `Resources/IM/phonetic_dictionary.json`. 입력110,683/0·사전 감사·Release Universal 메인/IME 무서명 컴파일 통과. 사전 SHA `98966f22ab6b5a42e6475ac86c09de887544f70355c58b81215b0b6dc0c8db82`.
 
 ## 2026-10-14 당시 — 일반 명사62개 추가
 
 사용자 승인으로 일반 명사66개를 검토해62개를 추가했다. 생활용품·장소·자연·동물·언어·명시 용량 표현이며 새 애매한 뜻/사람 지칭 가위·화장지·강아지·호랑이는 제외했다. 단어word·물water·책상desk·저장용량storage capacity를 지원하고 용량 단독은 추가하지 않는다. 기존1,987개 항목 객체를 보존해 **2,049개 한글 / 2,019개 영문 결과**, 기본2,014개+번호35개다. `everyday/nature`는새메타데이터분류이며제품카테고리enum·자동영타사전은변경하지않았다.
 
-정본 [명사62개 대응·검증방식·공개 참고](../dict_work/2026-10-14-phonetic-common-nouns.tsv)와 [등록 사전](phonetic-conversion.md). 대응은직접작성/독립검토했고공식참고확인과자체작성동의어·긴표현을구분했다. 입력33,941/0·문맥215/0·슬래시553/0·독립NSTextView245/0. 일반Space번역·조사제거·인명추론없음. 최신사전SHA `fd357f774ffe1ff10767ffbc405bfa9719cfe54a3776f6590d804499f745ab6c`, `.tmp/nouns88-2026-10-14/dictionary-audit.json` 실측. 아래영타목록보완은다른사전의이력이며발음사전을변경하지않았다는문장은그작업범위기준이다.
+정본 [명사62개 대응·검증방식·공개 참고](../dictionary/records/2026-10-14-phonetic-common-nouns.tsv)와 [등록 사전](phonetic-conversion.md). 대응은직접작성/독립검토했고공식참고확인과자체작성동의어·긴표현을구분했다. 입력33,941/0·문맥215/0·슬래시553/0·독립NSTextView245/0. 일반Space번역·조사제거·인명추론없음. 최신사전SHA `fd357f774ffe1ff10767ffbc405bfa9719cfe54a3776f6590d804499f745ab6c`, `.tmp/nouns88-2026-10-14/dictionary-audit.json` 실측. 아래영타목록보완은다른사전의이력이며발음사전을변경하지않았다는문장은그작업범위기준이다.
 
 ## 2026-10-14 — 생명체·촬영·브랜드·개발 영문 참조 목록 보완
 
-기존 [201개 대표 표본](../dict_work/2026-10-06-nature-film-coverage.txt)과 2026-10-06의 45개 보완을 실제 조합기로 다시 확인하고 모두 보존했다. 기존 기록을 전체 미구현으로 해석하지 않았다. 291개 조사 후보에서 이미 지원되는 항목을 제외한 뒤, 박물관·식물원·제조사의 직접 자료로 철자를 확인하여 초기 81개를 보완했다. #16 후속 대조에서 `lsp`·`fork` 두 항목을 추가하고, 완료 범위 대조에서 #74 본문에 남아 있던 카메라·현상·생활 브랜드 8개를 공식 제조사 자료로 확인해 **최종 91개 항목을 보완**했다. `jaboticaba`는 확인 자료에 있었지만 이미 시스템 사전으로 변환되어 중복 추가하지 않았다.
+기존 [201개 대표 표본](../dictionary/records/2026-10-06-nature-film-coverage.txt)과 2026-10-06의 45개 보완을 실제 조합기로 다시 확인하고 모두 보존했다. 기존 기록을 전체 미구현으로 해석하지 않았다. 291개 조사 후보에서 이미 지원되는 항목을 제외한 뒤, 박물관·식물원·제조사의 직접 자료로 철자를 확인하여 초기 81개를 보완했다. #16 후속 대조에서 `lsp`·`fork` 두 항목을 추가하고, 완료 범위 대조에서 #74 본문에 남아 있던 카메라·현상·생활 브랜드 8개를 공식 제조사 자료로 확인해 **최종 91개 항목을 보완**했다. `jaboticaba`는 확인 자료에 있었지만 이미 시스템 사전으로 변환되어 중복 추가하지 않았다.
 
 - `Resources/IM/english_names_extra.txt`: 새 이름·약어 **84개**. 전부 깨진 한글형이므로 broad 역할로만 등록했다. 초기 75개의 변경 전 코어 검역과 후속 `lsp`·#74 본문8개의 최신 코어 검역을 합친 기록은 Tier A/B=0, C=84이며 모두 한국어 표제어와 충돌하지 않았다.
 - `Resources/IM/english_supplement.txt`: 기존 broad 목록이나 시스템 사전에만 있던 생물 이름 6개와 `fork`, 총 **7개**를 curated에 추가했다. angelfish·cockatiel·coral·eland·guanaco·turtle·fork의 완성 한글형을 각각 검토했으며 전체 한국어 표제어와 충돌하지 않았다. 검역의 Tier A=7은 무맥락 변환이 새로 생긴다는 뜻이며, 경고를 없애거나 veto를 우회했다는 뜻은 아니다. coral의 `책미`·eland의 `디뭉`·fork의 `래가`는 각각 `책`·`디`·`래`에 대한 어근 경고도 기록하고 검토했다.
@@ -73,19 +73,19 @@ Developer ID 서명 로컬 검증본102의 메인 앱·입력기 적용을 마�
 검증은 실제 `KoreanComposer`·`EnglishDetector`·`PersonalDictionary`를 사용하는 [독립 어휘 테스트](../Tests/VocabularyExtensionTests.swift)로 수행했다. **변경 전 코어와 최신 입력 코어에서 각각 2,632 통과, 0 실패**다. 최종 91개 활성 확정, 자동 변환 OFF, 수동 경계, 원문 되돌림, 개인 금지 우선, #74 본문8개의 단독·영어 문맥 변환과 한국어 veto 보호, 기존 201개 표본과 한국어·반복키·얼굴 자모 보호, 미등록 오타 `aplle`·`applle`의 미변환을 확인했다. 전체 IME 검사도 변경 전/후 각각 **25,281 통과, 0 실패**다. `ㅡㅁㅡ` 같은 분리 자모는 순차 타이핑에서 재조합될 수 있으므로 화면에 조합된 원문과 변환 후를 비교하고 판정기의 분리 자모 보호도 별도로 확인한다. 이 검사는 실제 앱 이벤트·실기 설치 확인을 대신하지 않는다.
 
 - 실행: `python3 Tests/run_vocabulary_extension_tests.py`.
-- [철자·공식 출처·역할·판정·제외 기록](../dict_work/2026-10-14-nature-camera-extension.tsv), [추가 91개 표본](../dict_work/2026-10-14-nature-camera-coverage.txt).
-- [broad 검역](../dict_work/2026-10-14-nature-camera-broad-audit.csv), [curated 검역](../dict_work/2026-10-14-nature-camera-curated-audit.csv).
-- [현재 코어 도달성 결과](../dict_work/2026-10-14-nature-camera-after.csv): 91개 모두 무맥락 변환에 도달, 미도달/검사 불가 0개.
+- [철자·공식 출처·역할·판정·제외 기록](../dictionary/records/2026-10-14-nature-camera-extension.tsv), [추가 91개 표본](../dictionary/records/2026-10-14-nature-camera-coverage.txt).
+- [broad 검역](../dictionary/records/2026-10-14-nature-camera-broad-audit.csv), [curated 검역](../dictionary/records/2026-10-14-nature-camera-curated-audit.csv).
+- [현재 코어 도달성 결과](../dictionary/records/2026-10-14-nature-camera-after.csv): 91개 모두 무맥락 변환에 도달, 미도달/검사 불가 0개.
 - 후보 검역은 해당 전체 단어와 명시한 도달성 목록의 변화만 측정한다. curated 구성 단어 추가로 생기는 모든 다른 붙여쓰기 조합을 전수 검역했다는 뜻은 아니다. 복합어 정책·한글/개인 금지·모호한 분해의 검증은 `Tests/InputInferenceTests.swift`에 있고, 특정 조합의 변화는 `audit_wordlist.sh --reachability ... --compound on|off`로 별도 비교한다.
 - 코어/자원 SHA와 실행 결과는 로컬 산출물(`.tmp/`, 저장소에 없음)에 있었다. 같은 검사는 `python3 Tests/run_vocabulary_extension_tests.py`로 다시 돌린다(2026-11-07 #178: 저장소에 없는 파일 링크를 걷었다).
 
 이는 선별한 표본의 누락 보완이며 세계 전체 생명체·브랜드·장비 이름의 수록 완료가 아니다. 한글 이름을 영어로 번역하는 발음 사전은 이번에 변경하지 않았다. 실제 배포 빌드의 자원 포함과 설치 입력 확인은 남아 있다.
 
-2026-10-14 당시 여섯 번들 파일의 로더 기준 중복 제거 참조 항목은 **130,300개**였다(당시 기록. 2026-11-07 #175부터 입력기는 이 여섯 파일을 합쳐 정렬한 `Resources/IM/english_bundled.txt` 하나로 찾으며 낱말 수는 그 파일 머리말의 `count`와 `python3 scripts/build_english_table.py --check`로 확인한다. 합칠 목록의 정본은 `dict_work/dict_manifest.tsv`다). `english_names_extra.txt`는 53→137개, `english_supplement.txt`는 5,286→5,293개이며 나머지 네 파일은 보존했다. 단어별 사전 역할이 바뀐 91항목과 고유 참조 항목의 증가 89개는 서로 다른 수치다. macOS `/usr/share/dict/words`·코드 약어/단위/숫자 목록은 이 번들 합계에 넣지 않는다.
+2026-10-14 당시 여섯 번들 파일의 로더 기준 중복 제거 참조 항목은 **130,300개**였다(당시 기록. 2026-11-07 #175부터 입력기는 이 여섯 파일을 합쳐 정렬한 `Resources/IM/english_bundled.txt` 하나로 찾으며 낱말 수는 그 파일 머리말의 `count`와 `python3 scripts/build_english_table.py --check`로 확인한다. 합칠 목록의 정본은 `dictionary/dict_manifest.tsv`다). `english_names_extra.txt`는 53→137개, `english_supplement.txt`는 5,286→5,293개이며 나머지 네 파일은 보존했다. 단어별 사전 역할이 바뀐 91항목과 고유 참조 항목의 증가 89개는 서로 다른 수치다. macOS `/usr/share/dict/words`·코드 약어/단위/숫자 목록은 이 번들 합계에 넣지 않는다.
 
 ## 2026-10-10 확장 이력 — 과일·과학·현물·외형
 
-`dict_work/2026-10-10-phonetic-fruit-science.tsv`의 직접 작성한 대응을 원본 JSON과 대조하여 **84개** 추가했다. 기존1,903개는 전부 보존했다. 총1,987개 한글 →1,962개 영문 결과이며, 최신 전체 수량/분류는 `scripts/audit_phonetic_dictionary.py` 출력이 정본이다.
+`dictionary/records/2026-10-10-phonetic-fruit-science.tsv`의 직접 작성한 대응을 원본 JSON과 대조하여 **84개** 추가했다. 기존1,903개는 전부 보존했다. 총1,987개 한글 →1,962개 영문 결과이며, 최신 전체 수량/분류는 `scripts/audit_phonetic_dictionary.py` 출력이 정본이다.
 
 | 추가 분야 | 새 한글 표기 | 예시 |
 |---|---:|---|
@@ -107,7 +107,7 @@ Developer ID 서명 로컬 검증본102의 메인 앱·입력기 적용을 마�
 
 ## 기존 자동 변환 사전의 분야
 
-`dict_work/dict_manifest.tsv`와 `Resources/IM/english_supplement.txt`의 구획을 확인했다. 일반 영어, 현대 영어, 인명·지명뿐 아니라 다음 보충 분야가 있다.
+`dictionary/dict_manifest.tsv`와 `Resources/IM/english_supplement.txt`의 구획을 확인했다. 일반 영어, 현대 영어, 인명·지명뿐 아니라 다음 보충 분야가 있다.
 
 - 브랜드·소비자 IT·PC 부품·통신·가전·반도체
 - AI·개발자 용어·게임 산업·게임 타이틀·캐릭터
@@ -131,7 +131,7 @@ Developer ID 서명 로컬 검증본102의 메인 앱·입력기 적용을 마�
 | `english_sports_geo.txt` | 28,360 |
 | `english_supplement.txt` | 5,286 |
 
-2026-10-14 기준 여섯 번들 파일(합칠 목록의 정본은 `dict_work/dict_manifest.tsv`, 2026-11-07부터 입력기는 이 여섯을 합친 `english_bundled.txt` 표 하나로 찾는다)의 중복 제거 합계는 **130,211개**였다. 위 표의 파일별 수도 그날 값이다. macOS `/usr/share/dict/words`, 코드의 짧은 약어/단위/숫자 목록은 이 수에 넣지 않았다. 참조 목록에 있는 모든 항목이 무조건 변환되는 것은 아니며 한국어 충돌·문맥 규칙에 따른다.
+2026-10-14 기준 여섯 번들 파일(합칠 목록의 정본은 `dictionary/dict_manifest.tsv`, 2026-11-07부터 입력기는 이 여섯을 합친 `english_bundled.txt` 표 하나로 찾는다)의 중복 제거 합계는 **130,211개**였다. 위 표의 파일별 수도 그날 값이다. macOS `/usr/share/dict/words`, 코드의 짧은 약어/단위/숫자 목록은 이 수에 넣지 않았다. 참조 목록에 있는 모든 항목이 무조건 변환되는 것은 아니며 한국어 충돌·문맥 규칙에 따른다.
 
 ## 새 대응 사전의 분류
 
@@ -243,4 +243,4 @@ Developer ID 서명 로컬 검증본102의 메인 앱·입력기 적용을 마�
 - [CME 용어집](https://www.cmegroup.com/education/glossary), [Investor.gov 용어집](https://www.investor.gov/introduction-investing/investing-basics/glossary): 금융·투자 용어. 선물→gift는 이 자료에서 유추한 것이 아니라 사용자 지정이다.
 - [Discord 브랜드](https://discord.com/branding), [Atlassian 제품](https://www.atlassian.com/software), [Toon Boom Harmony](https://www.toonboom.com/products/harmony): 플랫폼·도구 표기.
 
-근거: `Resources/IM/phonetic_dictionary.json`, `scripts/audit_phonetic_dictionary.py`, [스포츠 등 319개 TSV](../dict_work/2026-10-09-phonetic-expansion.tsv), [이전 801개 TSV](../dict_work/2026-10-09-phonetic-creative-everyday-computing.tsv), [분야 확장425개 TSV](../dict_work/2026-10-09-phonetic-animation-film-finance.tsv), [기능 명세](phonetic-conversion.md).
+근거: `Resources/IM/phonetic_dictionary.json`, `scripts/audit_phonetic_dictionary.py`, [스포츠 등 319개 TSV](../dictionary/records/2026-10-09-phonetic-expansion.tsv), [이전 801개 TSV](../dictionary/records/2026-10-09-phonetic-creative-everyday-computing.tsv), [분야 확장425개 TSV](../dictionary/records/2026-10-09-phonetic-animation-film-finance.tsv), [기능 명세](phonetic-conversion.md).

@@ -145,7 +145,7 @@ https://github.com/user-attachments/assets/838201b8-b306-4a13-9777-bdeba3387dae
 
 ## 개발
 
-<!-- 2026-11-17 (#267): 폴더 정리에 맞춰 Sources 하위 폴더를 적었다. -->
+<!-- 2026-11-17 (#267): 폴더 정리에 맞춰 Sources 하위 폴더를 적고, dict_work를 dictionary로 바꿨다. -->
 ```text
 Sources/        메뉴바 앱(입력기는 이 폴더를 쓰지 않습니다)
   App/          시작점 · 메뉴바 · 앱 상태
@@ -159,7 +159,7 @@ IMESources/     두벌식 조합 · 영타 판정 · 직접 전환 · 개인 사
 Shared/         앱과 입력기가 함께 쓰는 판단(슬래시 입력 · 서명 확인 등)
 Resources/      입력기 사전 · 아이콘 · 안내/설치 그림 · 글꼴
 Tests/ scripts/ 테스트 · 사전 검역 · 빌드 · 공증 도구
-dict_work/      사전 목록 정본(manifest) · 출처 · 검역 결과
+dictionary/     사전 목록·제외 목록 정본 · 출처 · 검역 기록(records/)
 docs/           기능 명세 · 배포/실기기 확인 목록
 ```
 

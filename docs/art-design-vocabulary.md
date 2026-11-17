@@ -45,8 +45,8 @@
 
 - `bash scripts/run_ime_tests.sh`: **3,147 passed, 0 failed**. 기존 한글/숫자/단위 회귀 + 202개 아트 토큰과 mp/MP/Mp 검사.
 - `bash scripts/audit_wordlist.sh --smoke`: PASS.
-- `bash scripts/audit_wordlist.sh --reachability dict_work/2026-10-08-art-design-coverage.txt --out /tmp/art-reach.csv`: 미도달 1개(slab), 검사 불가 0개가 의도한 결과.
-- [대표 표본](../dict_work/2026-10-08-art-design-coverage.txt), [추가 전](../dict_work/2026-10-08-art-design-before.csv), [후보 전체 검역](../dict_work/2026-10-08-art-design-audit.csv), [실제 추가 후](../dict_work/2026-10-08-art-design-after.csv).
+- `bash scripts/audit_wordlist.sh --reachability dictionary/records/2026-10-08-art-design-coverage.txt --out /tmp/art-reach.csv`: 미도달 1개(slab), 검사 불가 0개가 의도한 결과.
+- [대표 표본](../dictionary/records/2026-10-08-art-design-coverage.txt), [추가 전](../dictionary/records/2026-10-08-art-design-before.csv), [후보 전체 검역](../dictionary/records/2026-10-08-art-design-audit.csv), [실제 추가 후](../dictionary/records/2026-10-08-art-design-after.csv).
 - 제품: `Resources/IM/english_supplement.txt`, `EnglishDetector.shouldConvert`, `KoreanComposer.commit`. 회귀: `Tests/ComposerTests.swift`의 아트·디자인 표본 검사.
 
 ## 출처
