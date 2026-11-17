@@ -223,14 +223,19 @@ enum AppBundleWatchDecision {
 enum MenuBarIconDecision {
     static let defaultsKey = "haneul.showsMenuBarIcon"
 
-    enum LaunchWindow: Equatable { case onboarding, settings, none }
+    /// `updateDone` = 설정의 「설치·업데이트」를 열어 업데이트 완료 줄을 보인다(2026-11-18 #273).
+    enum LaunchWindow: Equatable { case onboarding, settings, updateDone, none }
 
     /// 저장값이 없으면(처음 실행, 전체 제거 뒤) 켜짐이다.
     static func isVisible(storedValue: Any?) -> Bool { storedValue as? Bool ?? true }
 
-    static func launchWindow(onboardingDone: Bool, iconVisible: Bool, launchedAsLoginItem: Bool) -> LaunchWindow {
+    /// 2026-11-18 (#273): 업데이트 직후의 첫 실행이면 아이콘을 켜 뒀어도 설정을 다시 연다. 오너 실기기에서 「새 버전 설치」를 누르자
+    /// 설정 창이 사라진 채 아무 말이 없어 이상했다. 로그인 실행은 사용자가 연 것이 아니라 종전대로 창을 띄우지 않는다(완료 줄은 설정을 열면 보인다).
+    static func launchWindow(onboardingDone: Bool, iconVisible: Bool, launchedAsLoginItem: Bool, justUpdated: Bool = false) -> LaunchWindow {
         if !onboardingDone { return .onboarding }
-        if iconVisible || launchedAsLoginItem { return .none }
+        if launchedAsLoginItem { return .none }
+        if justUpdated { return .updateDone }
+        if iconVisible { return .none }
         return .settings
     }
 }

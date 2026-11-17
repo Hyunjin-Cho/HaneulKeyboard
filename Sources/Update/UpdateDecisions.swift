@@ -174,6 +174,36 @@ enum UpdateDecision {
     /// 교체 대상이 우리 앱인지 판별하는 기준 — `AppMoveDecision`과 같은 값.
     static let appBundleID = AppMoveDecision.mainAppBundleID
 
+    /// 2026-11-18 (#273): 앱 안 업데이트는 새 앱을 열고 옛 앱을 끝낼 뿐 "업데이트로 열렸다"는 표시를 넘기지 않는다(2026.11.17까지 그렇다).
+    /// 그래서 새 앱이 처음 켜질 때 스스로 알아챈다. 방금 이 버전으로 올라왔으면 그 버전(표시용 원문)을, 아니면 nil.
+    /// - `lastLaunched`(이 앱이 실행할 때마다 남기는 버전)가 있으면 그보다 올라갔는지만 본다. 같은 버전 재실행·내린 버전은 nil.
+    /// - 없으면 그 값을 남기지 않던 옛 판에서 온 것이다. 옛 앱은 확인할 때마다 최신 버전을 저장하고(`Updater.latestVersionKey`),
+    ///   앱 안 업데이트는 그 확인 결과로만 시작하므로 저장값이 지금 버전과 같으면 거기서 올라온 것이다.
+    ///   처음 설치(전체 제거 뒤 포함)는 저장값이 없거나 시작하기를 마치지 않아 nil.
+    static func justUpdatedVersion(current: String, lastLaunched: String?, latestSeen: String?, onboardingDone: Bool) -> String? {
+        guard let now = CalVer(current) else { return nil }
+        if let lastLaunched {
+            guard let before = CalVer(lastLaunched) else { return nil }
+            return before < now ? now.text : nil
+        }
+        guard onboardingDone, let latestSeen, let seen = CalVer(latestSeen), seen == now else { return nil }
+        return now.text
+    }
+
+    /// 2026-11-18 (#273): 업데이트 완료 줄. 버전은 숫자로 끝나 읽는 소리로 조사를 고른다 —
+    /// 0(십·이십·삼십)·3(삼)·6(육)은 받침이 있어 "으로", 나머지(1 일·7 칠·8 팔의 ㄹ 받침 포함)는 "로".
+    static func updateDoneMessage(version: String) -> String {
+        let particle = version.last.map { "036".contains($0) } == true ? "으로" : "로"
+        return "\(version)\(particle) 업데이트했어요."
+    }
+
+    /// 2026-11-18 (#273): 업데이트 완료 줄의 「바뀐 내용 보기」. 재실행 뒤에는 서버 응답(`html_url`)이 없어 태그로 만든다.
+    /// 태그는 `CalVer`를 통과한 원문(숫자·점·`_hotfixN`)만 받는다.
+    static func releasePageURL(repository: String = defaultRepository, tag: String) -> URL? {
+        guard isValidRepository(repository), let version = CalVer(tag), version.text == tag else { return nil }
+        return URL(string: "https://github.com/\(repository)/releases/tag/\(tag)")
+    }
+
     /// 백그라운드 확인 주기는 달력의 달이다(아래 `shouldCheckNow`). 사용자에게 주기 설정을 요구하지 않는다.
     /// 2026-11-08 오너(#201): 매일(24시간) → 매월 1일. 그날 Mac을 켜지 않았으면 그다음 처음 켤 때 확인한다.
     static var checkCalendar: Calendar {

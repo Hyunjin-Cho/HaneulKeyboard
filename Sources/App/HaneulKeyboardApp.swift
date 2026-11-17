@@ -69,6 +69,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
             onGone: { NSApp.terminate(nil) })
         watcher.start()
         bundleWatcher = watcher
+        // 2026-11-18 (#273): 업데이트 직후의 첫 실행인지 자동 확인(아래 `startAutomaticChecks`)이 최신 버전 기록을 바꾸기 전에 판단한다.
+        let onboardingDone = UserDefaults.standard.bool(forKey: HaneulDefaultsKey.hasCompletedOnboarding)
+        let justUpdated = core.updater.noteLaunch(onboardingDone: onboardingDone) != nil
         // (멀티모니터 좌상단 버그 — 근본 수정) status item 생성을 다음 런루프로 지연한다.
         // 재부팅 직후 메뉴바 레이아웃이 끝나기 전에 status item을 만들면 button의 window
         // 좌표가 (0,0)으로 잡혀 statusItem.menu 자동 팝업이 메뉴를 화면 좌상단에 띄웠다.
@@ -80,11 +83,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
             self.applyMenuBarIconPreference()
             self.registerLoginItemIfNeeded()
             switch MenuBarIconDecision.launchWindow(
-                onboardingDone: UserDefaults.standard.bool(forKey: HaneulDefaultsKey.hasCompletedOnboarding),
+                onboardingDone: onboardingDone,
                 iconVisible: self.menuBarIconVisible,
-                launchedAsLoginItem: self.launchedAsLoginItem) {
+                launchedAsLoginItem: self.launchedAsLoginItem,
+                justUpdated: justUpdated) {
             case .onboarding: self.showOnboarding()
             case .settings: self.showSettings(tab: .appManagement)
+            case .updateDone: self.showSettings(tab: .update)
             case .none: self.openSettingsIfIconHidden()
             }
         }

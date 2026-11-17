@@ -35,6 +35,20 @@ struct UpdateSettingsSection: View {
                 .fixedSize()
             }
 
+            // 2026-11-18 (#273): 업데이트 직후의 첫 실행이면 완료 줄. 할 일(새 버전·진행·오류)이 생기면 그 상태 줄이 대신한다.
+            if presentation.line == .none, let updated = updater.justUpdatedTo {
+                HStack(spacing: 12) {
+                    Label(UpdateDecision.updateDoneMessage(version: updated), systemImage: "checkmark.circle.fill")
+                        .font(SettingsTypography.body)
+                        .foregroundStyle(FeedbackStatus.success.adaptiveColor)
+                    if let page = UpdateDecision.releasePageURL(repository: Updater.repository, tag: updated) {
+                        Link("바뀐 내용 보기", destination: page)
+                            .font(SettingsTypography.body)
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+
             if presentation.line != .none {
                 HStack(spacing: 12) {
                     statusLine
