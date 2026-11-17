@@ -868,13 +868,19 @@ func runMenuBarIconTests() {
     expect(MenuBarIconDecision.isVisible(storedValue: true), true, "아이콘: 켜 둠")
     expect(MenuBarIconDecision.isVisible(storedValue: false), false, "아이콘: 꺼 둠")
     expect(MenuBarIconDecision.isVisible(storedValue: "no"), true, "아이콘: 이상한 값이면 켜짐으로 본다")
-    func win(_ done: Bool, _ icon: Bool, _ login: Bool) -> String {
-        switch MenuBarIconDecision.launchWindow(onboardingDone: done, iconVisible: icon, launchedAsLoginItem: login) {
+    func win(_ done: Bool, _ icon: Bool, _ login: Bool, updated: Bool = false) -> String {
+        switch MenuBarIconDecision.launchWindow(onboardingDone: done, iconVisible: icon, launchedAsLoginItem: login, justUpdated: updated) {
         case .onboarding: return "안내"
         case .settings: return "설정"
+        case .updateDone: return "업데이트 완료"
         case .none: return "없음"
         }
     }
+    // 2026-11-18 (#273): 업데이트 직후의 첫 실행
+    expect(win(true, true, false, updated: true), "업데이트 완료", "업데이트 뒤: 아이콘을 켜 둬도 설정의 설치·업데이트를 다시 연다")
+    expect(win(true, false, false, updated: true), "업데이트 완료", "업데이트 뒤: 아이콘을 꺼 둬도 앱 관리 대신 설치·업데이트")
+    expect(win(true, true, true, updated: true), "없음", "업데이트 뒤: 로그인 실행이면 창 없음")
+    expect(win(false, true, false, updated: true), "안내", "업데이트 뒤: 안내를 안 끝냈으면 안내가 먼저")
     expect(win(false, true, false), "안내", "아이콘: 안내를 안 끝냈으면 안내")
     expect(win(false, false, true), "안내", "아이콘: 안내 우선은 로그인 실행에서도 종전대로")
     expect(win(true, true, false), "없음", "아이콘: 켜져 있으면 창 없이 시작")

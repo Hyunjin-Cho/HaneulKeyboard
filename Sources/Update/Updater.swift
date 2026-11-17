@@ -43,6 +43,8 @@ final class Updater {
     private(set) var lastCheck: Date?
     private(set) var autoCheckEnabled: Bool
     private(set) var latestVersion: String?
+    /// 2026-11-18 (#273): 이번 실행이 업데이트 직후의 첫 실행이면 올라온 버전. 설정의 완료 줄이 쓴다(앱이 떠 있는 동안만).
+    private(set) var justUpdatedTo: String?
 
     /// AppDelegate가 실제 알림 창에 연결한다. 설치는 이 콜백에서 시작하지 않는다.
     @ObservationIgnored var onUpdateAvailable: ((AvailableUpdate) -> Void)?
@@ -52,6 +54,8 @@ final class Updater {
     static let lastCheckKey = "haneul.updateLastCheck"
     static let latestVersionKey = "haneul.updateLatestVersion"
     static let lastNotifiedVersionKey = "haneul.updateLastNotifiedVersion"
+    /// 2026-11-18 (#273): 마지막으로 실행한 버전. 업데이트 뒤 첫 실행을 알아채는 데만 쓴다.
+    static let lastLaunchedVersionKey = "haneul.updateLastLaunchedVersion"
     static let repositoryOverrideKey = "haneul.updateRepoOverride"
     static let allowUnofficialRepositoryKey = "haneul.updateAllowUnofficialRepo"
 
@@ -96,6 +100,22 @@ final class Updater {
         autoCheckEnabled = enabled
         defaults.set(enabled, forKey: Self.autoCheckKey)
         haneulLog("HaneulKeyboard: update auto-check \(enabled ? "on" : "off")")
+    }
+
+    /// 2026-11-18 (#273): 실행할 때 한 번 부른다(앱 옮기기 판단이 끝나 남는 인스턴스에서). 판단은 `UpdateDecision.justUpdatedVersion`.
+    /// 판단한 뒤 이번 버전을 남겨 같은 버전으로 다시 켤 때는 다시 알리지 않는다. 제거 중에는 쓰지 않는다.
+    @discardableResult
+    func noteLaunch(onboardingDone: Bool, current: String = Updater.currentVersion) -> String? {
+        guard !removalPaused else { return nil }
+        let updated = UpdateDecision.justUpdatedVersion(
+            current: current,
+            lastLaunched: defaults.string(forKey: Self.lastLaunchedVersionKey),
+            latestSeen: defaults.string(forKey: Self.latestVersionKey),
+            onboardingDone: onboardingDone)
+        if let text = CalVer(current)?.text { defaults.set(text, forKey: Self.lastLaunchedVersionKey) }
+        justUpdatedTo = updated
+        if let updated { haneulLog("HaneulKeyboard: first launch after update to \(updated)") }
+        return updated
     }
 
     // 2026-09-21 (#19): 다운로드는 `nonisolated`한 정적 함수에서 돌므로 요청 조립·버전 읽기도

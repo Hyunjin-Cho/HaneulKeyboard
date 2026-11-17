@@ -70,8 +70,10 @@ enum TestPreferenceDomains {
     static let inline = prefix + "updater-inline-tests"
     static let offDuringCheck = prefix + "updater-off-during-check"
     static let security = prefix + "update-security-tests"
+    /// 2026-11-18 (#273): 업데이트 뒤 첫 실행 판단(`Updater.noteLaunch`).
+    static let launch = prefix + "updater-launch-tests"
     static let removal = [prefix + "removal-tests.main", prefix + "removal-tests.ime", prefix + "removal-tests.global"]
-    static var all: [String] { [updater, inline, offDuringCheck, security] + removal }
+    static var all: [String] { [updater, inline, offDuringCheck, security, launch] + removal }
 
     /// 지운 뒤 같은 이름으로 새로 만든 저장소를 돌려준다.
     static func fresh(_ name: String) -> UserDefaults {
@@ -291,6 +293,61 @@ func resolvedTemporaryRoot(_ name: String) -> URL? {
         await raceUpdater.installAvailableUpdate()
         check(raceGate.operation == .removingInputMethod, "업데이트: IME 제거 작업권을 뺏지 않음")
         raceGate.finish(inputRemoval)
+
+        // 2026-11-18 (#273): 업데이트 뒤 첫 실행 알아채기 — 판단 함수
+        func justUpdated(_ current: String, last: String?, seen: String?, done: Bool = true) -> String? {
+            UpdateDecision.justUpdatedVersion(current: current, lastLaunched: last, latestSeen: seen, onboardingDone: done)
+        }
+        check(justUpdated("2026.11.17", last: nil, seen: "2026.11.17") == "2026.11.17", "업데이트 뒤: 실행 기록 없는 옛 판 + 확인한 최신 = 지금 버전")
+        check(justUpdated("2026.11.17", last: nil, seen: "2026.11.17", done: false) == nil, "업데이트 뒤: 시작하기 전(처음 설치)이면 아님")
+        check(justUpdated("2026.11.17", last: nil, seen: nil) == nil, "업데이트 뒤: 확인 기록도 없으면 아님")
+        check(justUpdated("2026.11.17", last: nil, seen: "2026.11.30") == nil, "업데이트 뒤: 확인한 최신이 다른 버전이면 아님")
+        check(justUpdated("2026.11.17", last: nil, seen: "2026.11.17_hotfix1") == nil, "업데이트 뒤: 핫픽스 번호까지 같아야 한다")
+        check(justUpdated("2026.11.30", last: "2026.11.17", seen: nil) == "2026.11.30", "업데이트 뒤: 실행 기록보다 올라감")
+        check(justUpdated("2026.11.17_hotfix1", last: "2026.11.17", seen: nil) == "2026.11.17_hotfix1", "업데이트 뒤: 같은 날 핫픽스도 올라감")
+        check(justUpdated("2026.11.17", last: "2026.11.17", seen: "2026.11.17") == nil, "업데이트 뒤: 같은 버전 재실행은 아님")
+        check(justUpdated("2026.9", last: "2026.11.17", seen: "2026.11.17") == nil, "업데이트 뒤: 내린 버전은 아님")
+        check(justUpdated("2026.11.30", last: "깨진 값", seen: "2026.11.30") == nil, "업데이트 뒤: 실행 기록이 깨졌으면 알리지 않는다")
+        check(justUpdated("v2026.11.17", last: nil, seen: "2026.11.17") == nil, "업데이트 뒤: 지금 버전을 못 읽으면 아님")
+        // 완료 줄 문구 — 버전 끝 숫자의 소리로 조사를 고른다
+        check(UpdateDecision.updateDoneMessage(version: "2026.11.17") == "2026.11.17로 업데이트했어요.", "완료 줄: 17(칠) → 로")
+        check(UpdateDecision.updateDoneMessage(version: "2026.11.18") == "2026.11.18로 업데이트했어요.", "완료 줄: 18(팔) → 로")
+        check(UpdateDecision.updateDoneMessage(version: "2026.11.19") == "2026.11.19로 업데이트했어요.", "완료 줄: 19(구) → 로")
+        check(UpdateDecision.updateDoneMessage(version: "2026.11.20") == "2026.11.20으로 업데이트했어요.", "완료 줄: 20(이십) → 으로")
+        check(UpdateDecision.updateDoneMessage(version: "2026.11.23") == "2026.11.23으로 업데이트했어요.", "완료 줄: 23(삼) → 으로")
+        check(UpdateDecision.updateDoneMessage(version: "2026.11.26") == "2026.11.26으로 업데이트했어요.", "완료 줄: 26(육) → 으로")
+        check(UpdateDecision.updateDoneMessage(version: "2026.11.17_hotfix1") == "2026.11.17_hotfix1로 업데이트했어요.", "완료 줄: 핫픽스 1(일) → 로")
+        check(UpdateDecision.updateDoneMessage(version: "2026.11.17_hotfix10") == "2026.11.17_hotfix10으로 업데이트했어요.", "완료 줄: 핫픽스 10(십) → 으로")
+        // 「바뀐 내용 보기」 주소
+        check(UpdateDecision.releasePageURL(tag: "2026.11.17")?.absoluteString
+              == "https://github.com/Hyunjin-Cho/HaneulKeyboard/releases/tag/2026.11.17", "완료 줄: 릴리스 페이지 주소")
+        check(UpdateDecision.releasePageURL(tag: "2026.11.17_hotfix2")?.absoluteString
+              == "https://github.com/Hyunjin-Cho/HaneulKeyboard/releases/tag/2026.11.17_hotfix2", "완료 줄: 핫픽스 릴리스 페이지 주소")
+        check(UpdateDecision.releasePageURL(tag: "2026.11.17/../x") == nil, "완료 줄: 버전이 아닌 태그는 주소를 만들지 않는다")
+        check(UpdateDecision.releasePageURL(repository: "evil/../repo", tag: "2026.11.17") == nil, "완료 줄: 잘못된 저장소 이름 거절")
+
+        // 실제 Updater — 실행할 때 기록하고 같은 버전으로 다시 켜면 알리지 않는다
+        let launchDefaults = TestPreferenceDomains.fresh(TestPreferenceDomains.launch)
+        launchDefaults.set("2026.11.30", forKey: Updater.latestVersionKey)   // 옛 판(2026.11.17)이 확인하며 남긴 값
+        let launchA = Updater(defaults: launchDefaults, session: session, now: { clock })
+        check(launchA.noteLaunch(onboardingDone: true, current: "2026.11.30") == "2026.11.30", "첫 실행: 옛 판에서 앱 안 업데이트로 올라옴")
+        check(launchA.justUpdatedTo == "2026.11.30", "첫 실행: 설정 완료 줄에 쓸 버전")
+        check(launchDefaults.string(forKey: Updater.lastLaunchedVersionKey) == "2026.11.30", "첫 실행: 실행한 버전 기록")
+        let launchB = Updater(defaults: launchDefaults, session: session, now: { clock })
+        check(launchB.noteLaunch(onboardingDone: true, current: "2026.11.30") == nil && launchB.justUpdatedTo == nil, "다시 실행: 같은 버전이면 알리지 않는다")
+        let launchC = Updater(defaults: launchDefaults, session: session, now: { clock })
+        check(launchC.noteLaunch(onboardingDone: true, current: "2026.12.01") == "2026.12.01", "다음 업데이트: 실행 기록보다 올라가면 알린다")
+        let freshDefaults = TestPreferenceDomains.fresh(TestPreferenceDomains.launch)
+        let launchFresh = Updater(defaults: freshDefaults, session: session, now: { clock })
+        check(launchFresh.noteLaunch(onboardingDone: false, current: "2026.11.30") == nil, "처음 설치: 알리지 않는다")
+        check(freshDefaults.string(forKey: Updater.lastLaunchedVersionKey) == "2026.11.30", "처음 설치: 실행한 버전은 기록")
+        let pausedDefaults = TestPreferenceDomains.fresh(TestPreferenceDomains.launch)
+        let pausedUpdater = Updater(defaults: pausedDefaults, session: session, now: { clock })
+        check(pausedUpdater.pauseForRemoval(), "제거 중 실행 기록: 정지")
+        check(pausedUpdater.noteLaunch(onboardingDone: true, current: "2026.11.30") == nil
+              && pausedDefaults.object(forKey: Updater.lastLaunchedVersionKey) == nil, "제거 중: 실행 기록을 쓰지 않는다")
+        TestPreferenceDomains.clear(TestPreferenceDomains.launch)
+
         await UpdateSecurityTests.run { check($0, $1) }
         UpdateReplacementTests.run { check($0, $1) }
         UninstallTests.run { check($0, $1) }
