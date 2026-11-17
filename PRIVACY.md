@@ -2,7 +2,7 @@
 
 입력기(IME)는 키보드 입력을 다루는 민감한 소프트웨어입니다. 하늘키보드가 무엇을 보고, 무엇을 저장하고, 무엇을 하지 않는지 명확하게 적습니다. 아래 모든 내용은 [공개된 소스 코드](https://github.com/Hyunjin-Cho/HaneulKeyboard)로 직접 검증할 수 있습니다.
 
-_최종 수정: 2026-11-16_ (2026-11-16: 보안 입력 칸의 동작을 실측대로 고쳐 씀 — 비밀번호 칸 4번. 같은 날 출시 전 점검으로 사전 낱말 수를 확인하는 곳으로 바꾸고, 응원하기 버튼 이름과 User-Agent 예시를 화면·버전 규칙에 맞춤(#259). 2026-11-12 전체 코드 리뷰 수정과 대조: 보안 입력 재확인, 커서 위치 확인, 업데이트 요청 헤더 실측과 검증 항목. 그 전 2026-11-07에 호스트 앱에서 읽는 범위·저장되는 값·로그·진단을 고쳤습니다)
+_최종 수정: 2026-11-17_ (2026-11-17: 폴더 정리로 소스 파일 링크 경로를 고침(#267). 2026-11-16: 보안 입력 칸의 동작을 실측대로 고쳐 씀 — 비밀번호 칸 4번. 같은 날 출시 전 점검으로 사전 낱말 수를 확인하는 곳으로 바꾸고, 응원하기 버튼 이름과 User-Agent 예시를 화면·버전 규칙에 맞춤(#259). 2026-11-12 전체 코드 리뷰 수정과 대조: 보안 입력 재확인, 커서 위치 확인, 업데이트 요청 헤더 실측과 검증 항목. 그 전 2026-11-07에 호스트 앱에서 읽는 범위·저장되는 값·로그·진단을 고쳤습니다)
 
 ## 한눈에 보기
 
@@ -38,7 +38,7 @@ _최종 수정: 2026-11-16_ (2026-11-16: 보안 입력 칸의 동작을 실측�
 | | 네트워크 |
 |---|---|
 | **입력기**(`HaneulKeyboardIM.app`, 소스 `IMESources/`) — 키 입력을 보는 쪽 | **코드가 한 줄도 없습니다.** URLSession·소켓 어느 것도 쓰지 않습니다. `grep -r URLSession IMESources/` 로 직접 확인할 수 있습니다. 2026-11-07부터 `scripts/run_ime_tests.sh`가 입력기 소스(`IMESources/`·`Shared/`)에 알려진 네트워크 API 이름이 없는지 검사하고, 빌드한 입력기 바이너리가 네트워크 심볼을 가져다 쓰지 않는지도 번들 검증(`scripts/verify_license_resources.py`)이 봅니다. 이 검사는 알려진 이름을 지키는 장치이지 운영체제가 막아 주는 것은 아닙니다. |
-| **메뉴바 앱**(`HaneulKeyboard.app`, 소스 `Sources/`) — 설치·설정을 맡는 쪽. 키 입력을 보지 않습니다 | **업데이트 확인과 사용자가 선택한 업데이트 다운로드**에 인터넷을 씁니다. 아래 9번에 설명하며, 요청과 흐름은 [`Sources/Updater.swift`](./Sources/Updater.swift), 제한된 응답·다운로드 수신은 [`Sources/UpdateTransport.swift`](./Sources/UpdateTransport.swift)가 맡습니다(2026-10-14 정정). 단어 제안의 외부 작성창은 8번에 따로 설명합니다. |
+| **메뉴바 앱**(`HaneulKeyboard.app`, 소스 `Sources/`) — 설치·설정을 맡는 쪽. 키 입력을 보지 않습니다 | **업데이트 확인과 사용자가 선택한 업데이트 다운로드**에 인터넷을 씁니다. 아래 9번에 설명하며, 요청과 흐름은 [`Sources/Update/Updater.swift`](./Sources/Update/Updater.swift), 제한된 응답·다운로드 수신은 [`Sources/Update/UpdateTransport.swift`](./Sources/Update/UpdateTransport.swift)가 맡습니다(2026-10-14 정정). 단어 제안의 외부 작성창은 8번에 따로 설명합니다. |
 
 즉 **키 입력을 보는 프로세스(입력기)는 인터넷에 접속하지 않습니다**(네트워크 코드가 한 줄도 없습니다 — `grep`으로 확인할 수 있습니다). 그리고 인터넷에 접속하는 메뉴바 앱은 **다른 앱에서 치는 키 입력**을 보지 않습니다. *(2026-09-21 정정: 샌드박스가 강제로 막는 것이 아니라 **코드가 없다**는 것이 사실입니다.)*
 
@@ -93,7 +93,7 @@ macOS와 호스트 앱이 보안 입력(secure event input)을 켠 칸에서는 
 - **저장하지 않는 것**: 키 입력 자체, 앞뒤 문맥(문장), 어느 앱에서 쳤는지, 시각. "최근 되돌린 변환"은 입력기가 **스스로 화면에 넣었던** 영어 단어를 사용자가 취소했을 때 그 단어와 한글 표기만 남기며, 변환되지 않은 입력이나 한글 문장은 어떤 경우에도 기록하지 않습니다. 보안 입력이 켜진 칸에서는 위 4번대로 조합·변환을 하지 않으므로 기록될 것이 없습니다. 로그에도 남기지 않습니다.
 - **자동 수집 없음**: 사용자가 직접 적거나 직접 되돌린 것만 남고, 입력기가 스스로 단어를 모으거나 학습하지 않습니다. 개인 사전은 입력기 쪽에만 있고 입력기에는 네트워크 코드가 없으므로(2번), 어디로도 전송되지 않습니다 — 업데이트 확인 요청(9번)에도 담기지 않습니다.
 - **지우는 방법**: 설정 창에서 항목별 삭제(−) 또는 "최근 기록 지우기". **전체 제거**(설정 → 앱 관리 → 하늘키보드 전체 제거…)는 정식 사용자·시스템 입력기 파일의 부재와 실행 종료·필수 등록·입력 소스 정리를 확인한 뒤 개인 설정을 정리합니다. 입력기 제거 실패·관리자 요청 취소·조회 불명 상태에서는 개인 사전과 설정을 보존합니다. 필수 정리가 실패하면 재시도용 메인 앱도 남깁니다. **Finder에서 메인 앱을 휴지통으로 옮겼을 때의 자동 입력기 정리는 개인 사전·설정을 항상 보존합니다**(2026-10-11 사용자 승인 B안). 개발용 복구 CLI `scripts/uninstall.sh`도 같은 `Shared/RemovalPolicy.swift:RemovalSequence`와 관측 함수를 사용하며, 메인 앱은 수동으로 제거하도록 안내합니다. 설정 정리는 제품 설정 키의 부재를 확인하는 방식이며 macOS가 빈 설정 파일을 남길 수 있습니다.
-- 구현: [`IMESources/PersonalDictionary.swift`](./IMESources/PersonalDictionary.swift)(판정·형식), [`Sources/PersonalDictionarySettingsSection.swift`](./Sources/PersonalDictionarySettingsSection.swift)(설정 화면), [`IMESources/HaneulInputController.swift`](./IMESources/HaneulInputController.swift)(되돌리기 기록 시점)
+- 구현: [`IMESources/PersonalDictionary.swift`](./IMESources/PersonalDictionary.swift)(판정·형식), [`Sources/Settings/PersonalDictionarySettingsSection.swift`](./Sources/Settings/PersonalDictionarySettingsSection.swift)(설정 화면), [`IMESources/HaneulInputController.swift`](./IMESources/HaneulInputController.swift)(되돌리기 기록 시점)
 
 ### 8. 단어 제안 (2026-10-10 개정)
 
@@ -103,7 +103,7 @@ macOS와 호스트 앱이 보안 입력(secure event input)을 켠 칸에서는 
 - 이메일은 기본 메일 앱의 작성창을 열고, 사용자가 직접 발송합니다. 메일 앱의 임시보관함 저장·동기화는 해당 앱의 설정을 따릅니다.
 - GitHub는 미리 채운 작성 페이지를 기본 브라우저로 엽니다. URL의 내용은 브라우저 요청을 통해 GitHub에 전달될 수 있으며, 공개 이슈로 등록하는 동작은 사용자가 직접 합니다. GitHub 계정이 필요합니다.
 - 제안 내용에 비밀번호·개인정보를 적지 마세요. 실제 제출 전 내용을 확인할 수 있습니다.
-- 구현: `Sources/WordSuggestion.swift`의 `emailURL`·`issueURL`, `Sources/WordSuggestionSettingsSection.swift`의 작성창 열기, `Sources/PersonalDictionarySettingsSection.swift`의 `suggestRecent`.
+- 구현: `Sources/Settings/WordSuggestion.swift`의 `emailURL`·`issueURL`, `Sources/Settings/WordSuggestionSettingsSection.swift`의 작성창 열기, `Sources/Settings/PersonalDictionarySettingsSection.swift`의 `suggestRecent`.
 
 ### 8-1. 응원하기 (2026-11-07 추가, 2026-11-16 버튼 이름을 화면과 맞춤)
 
@@ -126,7 +126,7 @@ macOS와 호스트 앱이 보안 입력(secure event input)을 켠 칸에서는 
 - **켜져 있을 때(기본값)**: 한 달에 한 번 확인합니다(2026-11-08 변경, 예전에는 하루에 한 번). 앱 실행 약 15초 뒤와 실행 중 매시간 마지막 성공 확인이 이번 달 1일보다 앞인지 살펴보고, 확인할 때가 되면 위 첫 번째 요청만 보냅니다. 1일에 Mac을 켜지 않았으면 그다음 처음 켤 때 확인합니다. 실패하면 다음 시간에 재시도합니다. 새 버전을 발견하면 현재·새 버전 안내창을 한 번 띄우며, 같은 버전은 재실행 뒤에도 자동으로 반복해서 알리지 않습니다. ‘지금 확인’의 결과는 같은 설정 화면에 표시하고 별도 알림창을 띄우지 않습니다. 설정에서 확인한 버전도 이후 자동으로 반복 안내하지 않습니다. 새 버전이 있어도 **알리기만 하고 자동으로 설치하지 않습니다** — 내려받기는 사용자가 **새 버전 설치**를 눌러야 시작합니다.
 - **받은 파일을 검증한 뒤에만 설치합니다**: 번들 ID, 서명 Team(개발자 인증서), `codesign --verify --deep --strict`(**애플이 발급한 인증서 사슬로 우리 Team이 서명했는지**까지 요구합니다 — 2026-09-21 강화), `spctl -a -t exec`(애플 공증), 버전이 실제로 올라갔는지, 받은 앱의 버전이 안내한 새 버전과 같은지(2026-11-13 #226) — **여섯 가지가 전부 통과할 때만** 응용 프로그램 폴더의 앱을 바꿉니다. 하나라도 어긋나면 받은 파일을 버리고 기존 앱을 그대로 둡니다. 검증에 앞서 압축을 푼 결과가 **추출 폴더 안의 실제 앱 폴더인지**(심볼릭 링크가 아닌지)도 확인합니다. 압축은 풀기 전에 목록(항목 수·크기·경로)을 보고, 푸는 동안에도 쌓인 양을 지켜봐 2,000항목·512MiB·120초를 넘으면 멈추고 지웁니다(2026-11-13 #226). 설치 직전에는 복사본의 번들 ID·버전·서명을 한 번 더 확인합니다. 주소는 HTTPS의 GitHub 도메인으로 제한하며, 다른 곳으로 이동시키려는 응답은 따라가지 않습니다.
 - **기기에 남는 것(업데이트 기능 한정 — 다른 설정값은 3번)**: 메인 앱 설정 도메인 `com.hyunjincho.haneulkeyboard`의 `haneul.updateAutoCheck`(켜짐/꺼짐), `haneul.updateLastCheck`(마지막 성공 확인 시각), `haneul.updateLatestVersion`(최근 확인한 최신 버전), `haneul.updateLastNotifiedVersion`(이미 알린 버전) 네 값입니다. 어디로도 전송되지 않습니다.
-- 구현: [`Sources/Updater.swift`](./Sources/Updater.swift)(요청·업데이트 흐름), [`Sources/UpdateTransport.swift`](./Sources/UpdateTransport.swift)(응답·다운로드 크기 제한), [`Sources/UpdateReplacement.swift`](./Sources/UpdateReplacement.swift)(교체·실패 복구), [`Sources/UpdateDecisions.swift`](./Sources/UpdateDecisions.swift)(판단 규칙), [`Sources/UpdateSettingsSection.swift`](./Sources/UpdateSettingsSection.swift)(설정 화면)
+- 구현: [`Sources/Update/Updater.swift`](./Sources/Update/Updater.swift)(요청·업데이트 흐름), [`Sources/Update/UpdateTransport.swift`](./Sources/Update/UpdateTransport.swift)(응답·다운로드 크기 제한), [`Sources/Update/UpdateReplacement.swift`](./Sources/Update/UpdateReplacement.swift)(교체·실패 복구), [`Sources/Update/UpdateDecisions.swift`](./Sources/Update/UpdateDecisions.swift)(판단 규칙), [`Sources/Settings/UpdateSettingsSection.swift`](./Sources/Settings/UpdateSettingsSection.swift)(설정 화면)
 
 ---
 
@@ -134,7 +134,7 @@ macOS와 호스트 앱이 보안 입력(secure event input)을 켠 칸에서는 
 
 An IME is sensitive software — it handles your keyboard input. This document states plainly what HaneulKeyboard sees, what it stores, and what it does not do. Every claim below is verifiable against the [public source code](https://github.com/Hyunjin-Cho/HaneulKeyboard).
 
-_Last updated: 2026-11-16_ (2026-11-16: rewrote how secure-input fields are handled to match measurements — passwords, #4. The same day, a pre-release check replaced dictionary entry counts with where to find them, added section 8-1 to this English text, and aligned the Sponsor button name and the User-Agent example with the app and the version scheme (#259). checked against the fixes from the 2026-11-12 full code review: secure-input re-checks, caret-position checks, measured update request headers and the added verification steps; on 2026-11-07 the host-app reads, stored values, logs and diagnostics were re-checked)
+_Last updated: 2026-11-17_ (2026-11-17: updated source file link paths for the folder reorganization, #267. 2026-11-16: rewrote how secure-input fields are handled to match measurements — passwords, #4. The same day, a pre-release check replaced dictionary entry counts with where to find them, added section 8-1 to this English text, and aligned the Sponsor button name and the User-Agent example with the app and the version scheme (#259). checked against the fixes from the 2026-11-12 full code review: secure-input re-checks, caret-position checks, measured update request headers and the added verification steps; on 2026-11-07 the host-app reads, stored values, logs and diagnostics were re-checked)
 
 ## At a Glance
 
@@ -170,7 +170,7 @@ The distinction matters because HaneulKeyboard is **two processes**.
 | | Networking |
 |---|---|
 | **The IME** (`HaneulKeyboardIM.app`, source `IMESources/`) — the part that sees your keystrokes | **Not a single line.** No URLSession, no sockets. Verify with `grep -r URLSession IMESources/`. Since 2026-11-07 `scripts/run_ime_tests.sh` also checks that the IME sources (`IMESources/`, `Shared/`) contain no known networking API names, and the bundle verification (`scripts/verify_license_resources.py`) checks that the built IME binary imports no networking symbols. These checks guard known names; they are not enforced by the operating system. |
-| **The menu bar app** (`HaneulKeyboard.app`, source `Sources/`) — the part that handles installation and settings, and never sees keystrokes | Uses the internet for **update checks and user-selected update downloads**, described in #9. [`Sources/Updater.swift`](./Sources/Updater.swift) handles requests and flow; [`Sources/UpdateTransport.swift`](./Sources/UpdateTransport.swift) receives bounded responses and downloads (corrected 2026-10-14). External word-suggestion drafts are described separately in #8. |
+| **The menu bar app** (`HaneulKeyboard.app`, source `Sources/`) — the part that handles installation and settings, and never sees keystrokes | Uses the internet for **update checks and user-selected update downloads**, described in #9. [`Sources/Update/Updater.swift`](./Sources/Update/Updater.swift) handles requests and flow; [`Sources/Update/UpdateTransport.swift`](./Sources/Update/UpdateTransport.swift) receives bounded responses and downloads (corrected 2026-10-14). External word-suggestion drafts are described separately in #8. |
 
 In other words: **the process that can see your typing (the IME) does not reach the internet** (it contains no networking code — verifiable with grep), and the menu bar app that reaches the internet cannot see **what you type in other apps**. *(corrected 2026-09-21: this is the absence of networking code, not a sandbox that forbids it.)*
 
@@ -225,7 +225,7 @@ The **Personal dictionary** section in Settings lets you correct the wrong-layou
 - **What is not stored**: keystrokes, surrounding text, which app you were typing in, timestamps. "Recently reverted" records only an English word **the IME itself had inserted** and you then cancelled, plus its Hangul form; unconverted input and Korean sentences are never recorded. In fields with secure input on, nothing is composed or converted (#4), so there is nothing to record. Nothing is written to logs.
 - **No automatic collection**: only what you enter or revert yourself is kept; the IME does not gather or learn words on its own. The personal dictionary lives in the IME, which has no networking code at all (#2), so it is never transmitted — and it is not part of the update check either (#9).
 - **How to delete**: delete entries or clear recent records in Settings. Full removal verifies absence of both canonical IME bundles, stopped IME processes, required registrations, and disabled input sources before clearing product preferences. Failed or unobservable IME cleanup preserves personal data; a failed required step preserves the main app for retry. **Finder-triggered IME self-cleanup always preserves personal dictionaries and preferences** (owner-approved option B, 2026-10-11). The developer recovery CLI uses the same Swift policy and observations, and leaves main-app removal to Finder. Empty preference files can remain after macOS confirms the product keys are absent.
-- Implementation: [`IMESources/PersonalDictionary.swift`](./IMESources/PersonalDictionary.swift) (decision and format), [`Sources/PersonalDictionarySettingsSection.swift`](./Sources/PersonalDictionarySettingsSection.swift) (Settings UI), [`IMESources/HaneulInputController.swift`](./IMESources/HaneulInputController.swift) (when a revert is recorded)
+- Implementation: [`IMESources/PersonalDictionary.swift`](./IMESources/PersonalDictionary.swift) (decision and format), [`Sources/Settings/PersonalDictionarySettingsSection.swift`](./Sources/Settings/PersonalDictionarySettingsSection.swift) (Settings UI), [`IMESources/HaneulInputController.swift`](./IMESources/HaneulInputController.swift) (when a revert is recorded)
 
 ### 8. Word suggestions (revised 2026-10-10)
 
@@ -235,7 +235,7 @@ Settings and **Suggest…** in the reverted-word list open a review form. Choose
 - Email opens the default mail application's composer; the user sends it. Draft storage/synchronization follows that application's settings.
 - GitHub opens a pre-filled issue page in the default browser. The URL contents may reach GitHub through the browser request; the user creates the public issue manually. A GitHub account is required.
 - Do not include passwords or personal information. Review the draft before submitting.
-- Implementation: `Sources/WordSuggestion.swift` (`emailURL`, `issueURL`), `Sources/WordSuggestionSettingsSection.swift`, and `Sources/PersonalDictionarySettingsSection.swift` (`suggestRecent`).
+- Implementation: `Sources/Settings/WordSuggestion.swift` (`emailURL`, `issueURL`), `Sources/Settings/WordSuggestionSettingsSection.swift`, and `Sources/Settings/PersonalDictionarySettingsSection.swift` (`suggestRecent`).
 
 ### 8-1. Support (added to this English text 2026-11-16 to match the Korean text)
 
@@ -258,4 +258,4 @@ This is the **first feature that reaches the internet**, so it gets its own sect
 - **On (the default)**: the app checks once a month (changed 2026-11-08; previously once a day). About 15 seconds after launch and hourly while running, it looks at whether its last successful check was before the 1st of the current month. If the Mac was not on that day, it checks the next time the app runs. It sends the first request only when due; failed checks retry on the next hourly tick. A notice shows the current and new versions once per new version, including across restarts. “Check now” displays its result in the same settings screen without a separate notice window. A version seen there is not announced again by automatic checks. Even when a new version exists, it is **only announced, never installed automatically** — downloading begins only when you click **Install new version**.
 - **Downloads are verified before anything is installed**: bundle ID, signing Team (developer certificate), `codesign --verify --deep --strict` (which since 2026-09-21 also requires that an Apple-issued certificate chain and **our Team** produced the signature), `spctl -a -t exec` (Apple notarization), a genuine version increase, and a match between the downloaded app's version and the announced release (2026-11-13, #226) — the app in your Applications folder is replaced **only if all six pass**. If any check fails, the download is discarded and your existing app is left untouched. Before any of that, the extracted bundle must be a **real directory inside the extraction folder**, not a symbolic link. The archive's entry list (count, sizes, paths) is checked before extraction and the output is watched while extracting; past 2,000 entries, 512 MiB, or 120 seconds it stops and deletes the files (2026-11-13, #226). Right before installing, the copy's bundle ID, version, and signature are checked once more. Addresses are restricted to GitHub's HTTPS domains, and redirects pointing elsewhere are not followed.
 - **What stays on your device (update feature only — other settings are in #3)**: four values in the main app's defaults domain `com.hyunjincho.haneulkeyboard` — `haneul.updateAutoCheck` (on/off), `haneul.updateLastCheck` (last successful check), `haneul.updateLatestVersion` (last known latest version), and `haneul.updateLastNotifiedVersion` (already announced version). None is transmitted.
-- Implementation: [`Sources/Updater.swift`](./Sources/Updater.swift) (requests and update flow), [`Sources/UpdateTransport.swift`](./Sources/UpdateTransport.swift) (response/download size limits), [`Sources/UpdateReplacement.swift`](./Sources/UpdateReplacement.swift) (replacement and failure recovery), [`Sources/UpdateDecisions.swift`](./Sources/UpdateDecisions.swift) (decision rules), [`Sources/UpdateSettingsSection.swift`](./Sources/UpdateSettingsSection.swift) (Settings UI)
+- Implementation: [`Sources/Update/Updater.swift`](./Sources/Update/Updater.swift) (requests and update flow), [`Sources/Update/UpdateTransport.swift`](./Sources/Update/UpdateTransport.swift) (response/download size limits), [`Sources/Update/UpdateReplacement.swift`](./Sources/Update/UpdateReplacement.swift) (replacement and failure recovery), [`Sources/Update/UpdateDecisions.swift`](./Sources/Update/UpdateDecisions.swift) (decision rules), [`Sources/Settings/UpdateSettingsSection.swift`](./Sources/Settings/UpdateSettingsSection.swift) (Settings UI)

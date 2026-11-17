@@ -6,7 +6,7 @@
 
 **설치본에 어떤 변경이 들어 있는지는 이 문서에 적지 않는다.** 후보 번호는 `project.yml`의 `CURRENT_PROJECT_VERSION`, 설치된 버전·빌드는 `bash scripts/postinstall_probe.sh`, 후보에 든 변경은 `git log --oneline -20`과 아래 각 절의 날짜·티켓 번호에서 확인한다(2026-11-07 #178: '최신은 후보102' 같은 번호가 박힌 안내를 걷었다). 자동 검사·Release 컴파일·로컬 설치 확인은 실제 호스트 앱의 물리 키 검증을 대신하지 않는다. 로컬 Developer ID 검증본과 공증 배포본도 구분한다.
 
-현재 합격 기준은 아래 활성 검사 절을 따른다(날짜가 붙은 절은 그 날짜 코드 기준이다). 2026-11-13(#229, 리뷰 build-release-docs-F-8): 날짜 없이 '현재'처럼 읽히던 옛 절은 지금 화면과 다른 것(설정 4메뉴 시절)을 맨 아래 과거 기록으로 옮기고, 나머지는 절 첫 줄에 작성 시점과 지금과 다른 점을 적었다. 맨 아래 **과거 후보별 검사 기록**은 당시 빌드·문구·수량을 보존한 참고 자료이며 현재 합격 기준과 구분한다. 2026-10-11 리뷰 F-3 반영 근거: `IMESources/PersonalDictionary.swift:normalizedForceEntry`, `Sources/WordSuggestion.swift:issueURL/emailURL`, `Sources/WordSuggestionSettingsSection.swift:open`, `PRIVACY.md` 8번.
+현재 합격 기준은 아래 활성 검사 절을 따른다(날짜가 붙은 절은 그 날짜 코드 기준이다). 2026-11-13(#229, 리뷰 build-release-docs-F-8): 날짜 없이 '현재'처럼 읽히던 옛 절은 지금 화면과 다른 것(설정 4메뉴 시절)을 맨 아래 과거 기록으로 옮기고, 나머지는 절 첫 줄에 작성 시점과 지금과 다른 점을 적었다. 맨 아래 **과거 후보별 검사 기록**은 당시 빌드·문구·수량을 보존한 참고 자료이며 현재 합격 기준과 구분한다. 2026-10-11 리뷰 F-3 반영 근거: `IMESources/PersonalDictionary.swift:normalizedForceEntry`, `Sources/Settings/WordSuggestion.swift:issueURL/emailURL`, `Sources/Settings/WordSuggestionSettingsSection.swift:open`, `PRIVACY.md` 8번.
 
 ## 후보 116 — 전체 제거 뒤 앱 종료 (#252)
 
@@ -340,7 +340,7 @@
 
 ### 유지한 동작 — 실패로 세지 않는다
 
-- 앱을 시작할 때 입력기를 다시 켜는 동작은 2026-06-06 회귀 이력(반복 등록이 입력 소스 목록에 중복 행을 쌓은 사고, 기록은 `Sources/IMEInstaller.swift`의 `registerWithTIS` 주석)이 있어 이번 수정에서도 그대로 유지했다.
+- 앱을 시작할 때 입력기를 다시 켜는 동작은 2026-06-06 회귀 이력(반복 등록이 입력 소스 목록에 중복 행을 쌓은 사고, 기록은 `Sources/Install/IMEInstaller.swift`의 `registerWithTIS` 주석)이 있어 이번 수정에서도 그대로 유지했다.
 - 슬래시의 Esc·Ctrl+C는 임시 영어를 끝내지 않는다(오너 결정, #181). 터미널의 Ctrl+C/U/J/M은 오너가 실사용 뒤 정하기로 했다(#87).
 
 ## 2026-11-06 터미널·웹 앱 입력: 2026-11-04 리뷰의 실기기 확인 항목 (#87 #124 #167)
@@ -522,7 +522,7 @@
 - [ ] 이미 등록·활성화된 상태의 시작하기2단계는 ‘＋로 다시 추가’ 대신 **하늘키보드 선택**을 안내한다. 선택 후 실제 IME 경로의 프로세스와 한글 조합·자동 변환을 확인한다.
 - [ ] 링크·잘못된 소유자·캐시 읽기/삭제 실패는 입력기 설치 성공과 별도로 목록 갱신 실패를 표시한다. 최신 목록에서 반복 실행/재개방해도 입력 소스가 중복되지 않는다.
 
-근거: `Sources/InputSourceSettings.swift:InputSourceSettingsCache/InputSourceSettings`, `Sources/IMEInstaller.swift:activateBundle/openInputSourcesSettings`, `Tests/InputSourceSettingsTests.swift`, `scripts/test_postinstall_probe.py`. **2026-10-12 빌드71 실제 목록 누락·캐시 갱신 후 표시 확인은 진단 근거이며, 최신 후보 설치 검사를 대신하지 않는다.**
+근거: `Sources/Install/InputSourceSettings.swift:InputSourceSettingsCache/InputSourceSettings`, `Sources/Install/IMEInstaller.swift:activateBundle/openInputSourcesSettings`, `Tests/InputSourceSettingsTests.swift`, `scripts/test_postinstall_probe.py`. **2026-10-12 빌드71 실제 목록 누락·캐시 갱신 후 표시 확인은 진단 근거이며, 최신 후보 설치 검사를 대신하지 않는다.**
 
 ## DMG 드래그 설치 (2026-10-28 작성)
 
@@ -532,7 +532,7 @@
 - [ ] DMG를 더블클릭하면 설치 화면이 열린다. 기본 그림은 `Resources/Installer/layout.json`의 `defaultVariant`(2026-11-04부터 `maeul` — 안내 리소 그림을 이어받은 마을 어귀, 옛 `saekdong` 색동 보자기는 보존)다. 아이콘/한글·영문 안내가 잘리지 않는다. Finder의 Applications 바로가기와 앱은 실제로 드래그할 수 있다. (2026-11-07 #178: 옛 '종이·처마·손글씨·곡선 화살표' 설명을 고쳤다.)
 - [ ] Applications로 복사 후 그 위치의 앱을 실행한다. DMG 안에서 직접 실행하면 기존 AppMover 안내가 정상 동작한다.
 - [ ] 첫 설치용 DMG와 같은 날짜/접미어의 업데이트 ZIP가 함께 게시된다. 앱 안 업데이트는 ZIP를 선택하고 이후 IME도 갱신한다.
-- [ ] ZIP과 DMG는 같은 공개 버전(날짜 + `_hotfixN`)으로 함께 게시한다. 기본판은 하루 1개, 핫픽스는 `_hotfix1`~`_hotfix999`(숫자로 비교, 0을 앞에 붙이지 않는다)다. 같은 공개 버전의 재게시는 하지 않는다. (2026-11-04 오너 결정 #131이 2026-10-10의 '핫픽스 하나' 규칙을 바꿨다. 2026-11-07 #178: 이 줄이 옛 규칙을 적고 있어 고쳤다. 근거 `Sources/UpdateDecisions.swift`의 `CalVer.hotfixNumber(ofSuffix:)`, [릴리스 체크리스트](release-checklist.md)의 버전 번호 절.)
+- [ ] ZIP과 DMG는 같은 공개 버전(날짜 + `_hotfixN`)으로 함께 게시한다. 기본판은 하루 1개, 핫픽스는 `_hotfix1`~`_hotfix999`(숫자로 비교, 0을 앞에 붙이지 않는다)다. 같은 공개 버전의 재게시는 하지 않는다. (2026-11-04 오너 결정 #131이 2026-10-10의 '핫픽스 하나' 규칙을 바꿨다. 2026-11-07 #178: 이 줄이 옛 규칙을 적고 있어 고쳤다. 근거 `Sources/Update/UpdateDecisions.swift`의 `CalVer.hotfixNumber(ofSuffix:)`, [릴리스 체크리스트](release-checklist.md)의 버전 번호 절.)
 
 ## 설치 피드백·등록 한글 표기 변환 실기 (#84/#86, 2026-10-28 작성)
 
@@ -583,7 +583,7 @@
 - [ ] 창을 닫았다 다시 열어도 두루마리 펼침과 7번 영상이 나온다. 닫은 뒤 메모리는 아래 「닫은 창의 메모리」 절로 본다.
 - [ ] 투명도 줄이기·동작 줄이기, VoiceOver, macOS 14 실제 기기에서도 배치와 조작을 확인한다.
 
-근거: `Sources/OnboardingView.swift`(`size`·`presetHeights`·`stageAspect`), `Sources/OnboardingScroll.swift`, `Sources/OnboardingScrollData.swift`, `Sources/OnboardingStage.swift`, `Tests/AppUITests.swift`(두루마리 JSON 디코드와 참조 PNG 존재).
+근거: `Sources/Onboarding/OnboardingView.swift`(`size`·`presetHeights`·`stageAspect`), `Sources/Onboarding/OnboardingScroll.swift`, `Sources/Onboarding/OnboardingScrollData.swift`, `Sources/Onboarding/OnboardingStage.swift`, `Tests/AppUITests.swift`(두루마리 JSON 디코드와 참조 PNG 존재).
 
 ## 슬래시 영어 입력 (#87, 2026-10-28 작성)
 
@@ -609,7 +609,7 @@
 - [ ] 활성 안내창에서 좌우키로 이동하고, 연습 입력칸에서는 문자 커서가 이동한다. 다른 앱/설정창에는 영향을 주지 않는다.
 - [ ] ‘사과 → apple → 사과’와 ‘카메라 → camera → 카메라’를 조합 중/공백 뒤/연속 단축키로 확인한다. R12는 코어 검사 통과와 별개로 실제 OS IMK 검증이 남았다.
 
-근거: `Sources/OnboardingPageNavigation.swift`, `Sources/OnboardingView.swift`, `Sources/HaneulKeyboardApp.swift`. 빌드89 후속 인계 문서는 공개되지 않아 링크를 걷었다(2026-11-07 #178). 이전 팝업 구현 기록은 전환 안내 역사(비공개 아카이브 `untracked-docs/2026-11-04/`로 옮김, 2026-11-04 #129)에 보존한다.
+근거: `Sources/Onboarding/OnboardingPageNavigation.swift`, `Sources/Onboarding/OnboardingView.swift`, `Sources/App/HaneulKeyboardApp.swift`. 빌드89 후속 인계 문서는 공개되지 않아 링크를 걷었다(2026-11-07 #178). 이전 팝업 구현 기록은 전환 안내 역사(비공개 아카이브 `untracked-docs/2026-11-04/`로 옮김, 2026-11-04 #129)에 보존한다.
 
 ## 온보딩
 
@@ -625,7 +625,7 @@
 
 - [ ] macOS 입력 메뉴에서 하늘키보드를 선택하면 입력 소스의 ‘하늘’ 배지가 나타나고, 앱 처마 아이콘의 ~~메뉴 첫 줄·~~툴팁·접근성 설명이 `현재 입력 소스: 하늘키보드`로 갱신된다(2026-11-07 #177: 예전 '현재 한국어' 문구를 입력 소스 이름 그대로로 바꿨다). 앱 아이콘에 `한` 글자를 추가하는 조건은 없다.
 - [ ] ABC 입력 소스로 바꾸면 macOS 입력 소스 표시는 ABC이며 앱 처마 아이콘의 ~~메뉴 첫 줄·~~툴팁·접근성 설명이 `현재 입력 소스: ABC`로 갱신된다. 일본어 같은 다른 입력 소스는 그 이름 그대로 표시하고 '영어'라고 하지 않는다. Apple 두벌식은 이름 뒤에 `(하늘키보드가 아니에요)`가 붙고, 읽지 못하면 `현재 입력 소스를 확인하지 못했어요`가 보인다.
-- [ ] 입력 소스를 여러 번 바꿔도 macOS 배지와 앱의 ~~`현재 입력 소스` 줄·~~툴팁이 일치한다. 근거: `Sources/AppUIDecisions.swift`의 `InputSourceDescription`, `Sources/HaneulKeyboardApp.swift`의 `setupStatusItem`·`updateButtonDescription`.
+- [ ] 입력 소스를 여러 번 바꿔도 macOS 배지와 앱의 ~~`현재 입력 소스` 줄·~~툴팁이 일치한다. 근거: `Sources/App/AppUIDecisions.swift`의 `InputSourceDescription`, `Sources/App/HaneulKeyboardApp.swift`의 `setupStatusItem`·`updateButtonDescription`.
 - [ ] 하늘키보드 활성 상태에서 Caps Lock을 짧게 누르면 한↔영 입력 소스가 전환되고 이어서 입력한 문자가 올바른다.
 - [ ] Caps Lock을 길게 누르는 macOS 대문자 Caps Lock 동작과 짧게 누르는 한영 전환이 구분된다.
 - [ ] **Caps Lock 시스템 옵션 OFF** (#56, 2026-09-21): 시스템 설정 → 키보드 → 입력 소스의 "Caps Lock으로 ABC 전환" 옵션을 **꺼둔** 상태에서 Caps Lock을 눌러도 언어가 바뀌지 않는다(바뀌면 OS 버그 — 우리는 `TICapsLockLanguageSwitchCapable`로 OS에 위임하므로 우리 코드로 못 고친다. Apple Community 2025-09 리포트: 옵션이 꺼져 있어도 Caps Lock이 언어를 바꿈). 확인 후 옵션을 다시 켠다.
@@ -657,7 +657,7 @@
 - [ ] 영타 자동 변환 전역 OFF와 앱별 제외는 새 두 기능에도 우선한다. 한글 발음의 등록 단어 변환·슬래시 입력·명시적인 자판 변환은 각각 기존 독립 설정을 유지한다.
 - [ ] 입력기만 제거/실패·취소/Finder 자동 정리에서는 새 두 키가 보존되고, 입력기 제거 성공 후 전체 제거에서는 제품 설정 도메인과 함께 지워진다. 실제 제거는 공증 보류 해제 후 승인된 검사 계정에서만 수행한다.
 
-근거: `Shared/InputInferencePolicy.swift:externalEnglishContextEnabled/dictionaryCompoundEnabled`, `Sources/EnglishConversionSettingsTab.swift:body`, `IMESources/ExternalEnglishContext.swift`, `IMESources/KoreanComposer.swift`, `IMESources/EnglishDetector.swift`. 자동 검사는 실제 OS 입력 소스·주변 텍스트 제공 동작을 대신하지 않는다.
+근거: `Shared/InputInferencePolicy.swift:externalEnglishContextEnabled/dictionaryCompoundEnabled`, `Sources/Settings/EnglishConversionSettingsTab.swift:body`, `IMESources/ExternalEnglishContext.swift`, `IMESources/KoreanComposer.swift`, `IMESources/EnglishDetector.swift`. 자동 검사는 실제 OS 입력 소스·주변 텍스트 제공 동작을 대신하지 않는다.
 
 ### 변환 단축키 선택 · 앱별 자동 변환 끄기 (#54, 2026-09-21)
 
@@ -795,7 +795,7 @@
 
 ## 2026-10-12 B안 설치·제거 안전성 — 실제 제품 검증 대기
 
-기준: 사용자 승인 2026-10-11 B안. 코드 경로: `Shared/RemovalPolicy.swift:RemovalSequence` · `Shared/RemovalObservation.swift` · `Shared/RemovalAdminScript.swift` · `Sources/RemovalMainAppOperations.swift`(메인 앱 전용 — 프로세스 조회·종료·정리 실행 코드, 입력기 바이너리에는 들어가지 않는다. 2026-11-07 #176) · `AppCore.removeFullProduct` · `OrphanWatcher.selfRemove`. 아래는 로컬 자동 검사를 실제 제품 완료로 확대하지 않기 위한 실기 조건이다.
+기준: 사용자 승인 2026-10-11 B안. 코드 경로: `Shared/RemovalPolicy.swift:RemovalSequence` · `Shared/RemovalObservation.swift` · `Shared/RemovalAdminScript.swift` · `Sources/Install/RemovalMainAppOperations.swift`(메인 앱 전용 — 프로세스 조회·종료·정리 실행 코드, 입력기 바이너리에는 들어가지 않는다. 2026-11-07 #176) · `AppCore.removeFullProduct` · `OrphanWatcher.selfRemove`. 아래는 로컬 자동 검사를 실제 제품 완료로 확대하지 않기 위한 실기 조건이다.
 
 - [ ] 서명된 Release 후보를 테스트 계정에 설치 → 입력기 설치/활성화 → 한글·영타 변환·한영 전환 확인.
 - [ ] 입력기만 제거: 활성/비활성/이미 없음 모두 결과 확인, 개인 사전·메인 앱 보존, 재설치 성공.
@@ -1000,7 +1000,7 @@
 - [ ] 18pt 아이콘과 메뉴 이름 사이에 10pt 간격이 있고 서로 겹치거나 잘리지 않는다. 클릭과 키보드 위/아래 화살표로 선택한 본문이 바뀐다. VoiceOver에는 선택한 본문의 조작부만 나타난다.
 - [ ] 창은 **800×688 고정**(본문 660 + 제목 막대 28을 겹쳐 그림이 맨 위까지 올라간다, #135)이고 크기 조절이 안 되며, 메뉴를 바꿔도 창이 튀지 않는다. 닫았다 다시 열면 마지막 선택과 창 자리를 유지한다(#156).
 - [ ] 위쪽에 메뉴마다 따로 찍은 리소 정물 띠(높이 128pt)가 있고, 그 위에 `하늘키보드 설정`과 메뉴 이름이 제목으로(2026-11-08 #209: 고운바탕 → 마루부리) 보인다. 띠는 움직이지 않고 사람도 없다. 긴 본문만 스크롤되고 띠와 왼쪽 메뉴는 제자리에 남는다.
-- [ ] 띠 그림은 밝은/어두운 모드 모두 종이 그림 그대로 밝고 제목·카드·메뉴 이름·스크롤바를 가리지 않는다. 메뉴를 바꾸면 띠가 그 메뉴의 그림(입력 기능·개인 사전·버전·업데이트·앱 관리 네 장)으로 바뀐다. 실패: 빈 띠(그림 자원을 못 읽음), 옛 매듭·단청 장식이 남아 있다. 근거: `Sources/SettingsBrand.swift`의 `SettingsBand`.
+- [ ] 띠 그림은 밝은/어두운 모드 모두 종이 그림 그대로 밝고 제목·카드·메뉴 이름·스크롤바를 가리지 않는다. 메뉴를 바꾸면 띠가 그 메뉴의 그림(입력 기능·개인 사전·버전·업데이트·앱 관리 네 장)으로 바뀐다. 실패: 빈 띠(그림 자원을 못 읽음), 옛 매듭·단청 장식이 남아 있다. 근거: `Sources/Settings/SettingsBrand.swift`의 `SettingsBand`.
 - [ ] 설정 설명·목록·오류 문구는 14pt 일반체, 항목 이름과 주요 조작부는 17pt 굵은 글씨로 읽힌다. 손글씨 제목 크기는 유지하고 긴 설명에 말줄임/잘림이 없다.
 - [ ] 「앱 관리」 바로 아래에 목록 선택과 별도인 **응원하기** 버튼이 있다. 기존 후원 안내창을 열고 닫기/Esc로 복귀하며, 선택한 메뉴·입력 중인 사전·스크롤 상태를 바꾸지 않는다. VoiceOver에서는 후원 안내를 여는 버튼으로 읽힌다.
 - [ ] 「입력 기능」은 위의 **자동 변환 / 단축키 변환** 선택으로 두 페이지를 바꾼다. 자동 변환에는 영타 자동 변환·다른 입력기의 영어 문맥·등록 단어 조합 인식·앱별 자동 변환 끄기, 단축키 변환에는 변환 단축키·자판 변환·등록 단어 변환·변환 되돌리기·슬래시 영어 입력·한영 전환 안내가 있다. 페이지와 왼쪽 메뉴를 바꿔도 선택·상태를 유지하고 숨겨진 페이지의 제어는 접근성 탐색에 나타나지 않는다. 「기본 사용」 구획·상태 카드·현재 입력 모드는 없다. 한영 전환 안내는 단축키 변환의 별도ON/OFF 제어다. 슬래시 영어 입력은 기본 ON이며 OFF도 저장·재실행 후 유지된다. 설치 상태/버튼은 「앱 관리」에서 확인한다.
@@ -1044,11 +1044,11 @@
 설정 화면(#88)의 옛 항목:
 
 - [ ] 왼쪽 위 기존 처마, 오른쪽 위 리소그래프 매듭 두 개, 왼쪽 아래 단청 문양이 보인다. 밝은/어두운 모드에서 배경 사각형이 없고 제목·카드·메뉴 이름·스크롤바를 가리지 않는다. 메뉴 이동과 본문 스크롤 중에도 장식은 고정되고 클릭·VoiceOver 탐색을 막지 않는다. 자산·생성 프롬프트(비공개 아카이브 `untracked-docs/2026-11-04/`로 옮김, 2026-11-04 #129).
-- [ ] 단청은 <b>211.2×211.2pt(직전 176pt +20%)</b>다. x=-51.2/y=+73.6pt로 그림 영역 오른쪽 끝을 메뉴/본문 세로 구분선(160pt)에 맞추며, 크기·가로 위치는 유지하고 직전보다32pt 위로 올렸다. 중심 꽃의 아래쪽은 보이고 그림의 아래 끝은 잘린다. 메뉴/스크롤 전환에도 위치가 고정되며 본문·메뉴를 덮지 않는다. 근거: `Sources/SettingsBrand.swift:SettingsCornerArtwork.dancheongSize/dancheongLift/body`. 실제 설치본 검증은 별도다.
+- [ ] 단청은 <b>211.2×211.2pt(직전 176pt +20%)</b>다. x=-51.2/y=+73.6pt로 그림 영역 오른쪽 끝을 메뉴/본문 세로 구분선(160pt)에 맞추며, 크기·가로 위치는 유지하고 직전보다32pt 위로 올렸다. 중심 꽃의 아래쪽은 보이고 그림의 아래 끝은 잘린다. 메뉴/스크롤 전환에도 위치가 고정되며 본문·메뉴를 덮지 않는다. 근거: `Sources/Settings/SettingsBrand.swift:SettingsCornerArtwork.dancheongSize/dancheongLift/body`. 실제 설치본 검증은 별도다.
 
 ### 2026-10-06 다음 배포 후보 — 숫자 이름·개인 사전·후원 안내
 
-아래는 코어 테스트 통과와 별개로 **서명·설치한 실제 앱에서** 확인한다. 구현 근거: `IMESources/KoreanComposer.swift`의 `handleDigit`/`commitAlphanumeric`/`wordBeforeCursor`, `IMESources/PersonalDictionary.swift`의 정규화/판정, `Sources/SupportView.swift`, `Sources/HaneulKeyboardApp.swift`의 `openSupport`.
+아래는 코어 테스트 통과와 별개로 **서명·설치한 실제 앱에서** 확인한다. 구현 근거: `IMESources/KoreanComposer.swift`의 `handleDigit`/`commitAlphanumeric`/`wordBeforeCursor`, `IMESources/PersonalDictionary.swift`의 정규화/판정, `Sources/Support/SupportView.swift`, `Sources/App/HaneulKeyboardApp.swift`의 `openSupport`.
 
 - [ ] TextEdit에서 하늘 입력 소스를 선택한 뒤 `T800 800T a24 A24 a16z a7R`을 입력한다. 스페이스에서 전체 이름이 영어로 바뀌고 대소문자가 그대로다. 각각 변환 단축키를 두 번 눌러 전체가 왕복한다.
 - [ ] `약2알 물2리터 ㄱ2 ㅋㅋ123 쟤가`는 그대로다. `a1` 입력 뒤 숫자를 지우고 `k`를 입력하면 `마`로 조합된다.

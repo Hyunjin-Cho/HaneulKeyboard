@@ -1,6 +1,6 @@
 # 감사의 글 (Acknowledgements)
 
-> 기준일: 2026-11-17 (2026-05-27 초기 공개 때 처음 넣고 2026-10-10에 다시 썼습니다. 2026-11-07에 사전 탑재 방식·고지 원문·McBopomofo 고지를, 2026-11-08에 글꼴을 고운바탕에서 마루 부리로, 2026-11-13에 지명 사전 범위와 보충 목록 설명을 고치고 개발 도구 절을 실제로 함께 개발한 도구(Claude)만 남겼습니다. 2026-11-16에 바뀌는 사전 낱말 수를 확인하는 곳으로 바꿨습니다(#259). 2026-11-17에 영어 절을 한국어 절과 같은 구성으로 맞추고, 머리말 날짜를 바로잡고, 코드 리뷰에 쓴 Codex를 개발 도구에 적었습니다(#263).)
+> 기준일: 2026-11-17 (2026-05-27 초기 공개 때 처음 넣고 2026-10-10에 다시 썼습니다. 2026-11-07에 사전 탑재 방식·고지 원문·McBopomofo 고지를, 2026-11-08에 글꼴을 고운바탕에서 마루 부리로, 2026-11-13에 지명 사전 범위와 보충 목록 설명을 고치고 개발 도구 절을 실제로 함께 개발한 도구(Claude)만 남겼습니다. 2026-11-16에 바뀌는 사전 낱말 수를 확인하는 곳으로 바꿨습니다(#259). 2026-11-17에 영어 절을 한국어 절과 같은 구성으로 맞추고, 머리말 날짜를 바로잡고, 코드 리뷰에 쓴 Codex를 개발 도구에 적었습니다(#263). 같은 날 폴더 정리에 맞춰 소스 파일 경로를 고쳤습니다(#267).)
 
 하늘키보드는 혼자 만든 것이 아닙니다. 앞서 길을 닦아준 수많은 오픈소스와 도구, 그리고 그것을 가능케 한 사람들의 어깨 위에 서 있습니다.
 
@@ -32,7 +32,7 @@
 - 저장소: https://github.com/openvanilla/McBopomofo
 - 라이선스: MIT
 - 대만어(주음) 입력기. macOS의 TIS(Text Input Services) 입력기 **등록·설치 메커니즘**을 이해하고 구현하는 데 결정적인 참고가 되었습니다. 사인·노타리된 메인 앱이 입력기 번들을 설치하는 패턴이 특히 큰 도움이 되었습니다.
-- 2026-11-07 오너 결정으로 MIT 고지를 싣습니다. 대조한 사실은 이렇습니다. 입력기 등록 코드(`Sources/IMEInstaller.swift`)에서 TIS 입력 소스 목록을 훑는 머리 4줄이 McBopomofo의 `InputSourceHelper`와 거의 같고, 그 밖은 직접 구현했습니다. 이 사실을 더 크게도 작게도 적지 않습니다.
+- 2026-11-07 오너 결정으로 MIT 고지를 싣습니다. 대조한 사실은 이렇습니다. 입력기 등록 코드(`Sources/Install/IMEInstaller.swift`)에서 TIS 입력 소스 목록을 훑는 머리 4줄이 McBopomofo의 `InputSourceHelper`와 거의 같고, 그 밖은 직접 구현했습니다. 이 사실을 더 크게도 작게도 적지 않습니다.
 - McBopomofo의 MIT 라이선스 원문(저작권 줄과 허가 문구):
 
 ```text
@@ -168,7 +168,7 @@ plist·entitlements 구조와 IME 아키텍처를 비교·학습하는 데 참�
 
 # Acknowledgements (English)
 
-> Updated: 2026-11-17 (first added in the 2026-05-27 initial release and rewritten on 2026-10-10. On 2026-11-07 the dictionary bundling note, license texts and the McBopomofo notice were revised; on 2026-11-08 the fonts changed from Gowun Batang to MaruBuri; on 2026-11-13 the place-name coverage and the supplement list description were corrected, and the development tools section was left with only the tool that actually co-developed the project, Claude. On 2026-11-16 changing entry counts were replaced with where to find them (#259). On 2026-11-17 this English half was rewritten to match the Korean half section by section, the header dates were corrected, and Codex was added to the development tools for code review (#263).)
+> Updated: 2026-11-17 (first added in the 2026-05-27 initial release and rewritten on 2026-10-10. On 2026-11-07 the dictionary bundling note, license texts and the McBopomofo notice were revised; on 2026-11-08 the fonts changed from Gowun Batang to MaruBuri; on 2026-11-13 the place-name coverage and the supplement list description were corrected, and the development tools section was left with only the tool that actually co-developed the project, Claude. On 2026-11-16 changing entry counts were replaced with where to find them (#259). On 2026-11-17 this English half was rewritten to match the Korean half section by section, the header dates were corrected, and Codex was added to the development tools for code review (#263). The same day, source file paths were updated for the folder reorganization (#267).)
 
 HaneulKeyboard was not made alone. It stands on the shoulders of the countless open-source projects and tools that paved the way, and of the people who made them possible.
 
@@ -200,7 +200,7 @@ HaneulKeyboard was not made alone. It stands on the shoulders of the countless o
 - Repository: https://github.com/openvanilla/McBopomofo
 - License: MIT
 - A Bopomofo (Zhuyin) input method for Taiwanese Mandarin. It was a decisive reference for understanding and implementing how a macOS TIS (Text Input Services) input method is **registered and installed**. The pattern of a signed, notarized main app installing the IME bundle helped especially.
-- By the owner's decision on 2026-11-07 its MIT notice is included. What a comparison found: in our IME registration code (`Sources/IMEInstaller.swift`), the first four lines of the loop that walks the TIS input source list are nearly identical to McBopomofo's `InputSourceHelper`; the rest is our own implementation. This is stated neither larger nor smaller than that.
+- By the owner's decision on 2026-11-07 its MIT notice is included. What a comparison found: in our IME registration code (`Sources/Install/IMEInstaller.swift`), the first four lines of the loop that walks the TIS input source list are nearly identical to McBopomofo's `InputSourceHelper`; the rest is our own implementation. This is stated neither larger nor smaller than that.
 - McBopomofo's MIT license text (copyright line and permission notice):
 
 ```text

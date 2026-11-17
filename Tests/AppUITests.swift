@@ -2,7 +2,7 @@ import Foundation
 
 // 2026-11-07 (#177): 메인 앱 화면 쪽 판단·자원 검사. 화면(AppKit·SwiftUI)은 띄우지 않는다.
 //   scripts/run_onboarding_tests.sh  (저장소 루트에서 실행 — 자원 경로는 현재 폴더 기준)
-// 컴파일: Shared/HaneulDefaultsKeys.swift · Sources/AppUIDecisions.swift · Sources/OnboardingScrollData.swift
+// 컴파일: Shared/HaneulDefaultsKeys.swift · Sources/App/AppUIDecisions.swift · Sources/Onboarding/OnboardingScrollData.swift
 
 var failures = 0
 var passes = 0
@@ -19,6 +19,23 @@ let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
 
 func readSource(_ path: String) -> String? {
     try? String(contentsOf: root.appendingPathComponent(path), encoding: .utf8)
+}
+
+/// 2026-11-17 (폴더 정리): 앱 소스는 `Sources/` 아래 기능별 하위 폴더에 있다. 하위 폴더까지 훑는다.
+/// 예전처럼 `Sources` 바로 아래만 보면 파일을 옮긴 뒤 검사가 아무 파일도 안 읽고 통과한다.
+let appSourcePaths: [String] = {
+    guard let walker = FileManager.default.enumerator(atPath: root.appendingPathComponent("Sources").path) else { return [] }
+    return walker.compactMap { $0 as? String }.filter { $0.hasSuffix(".swift") }.map { "Sources/" + $0 }.sorted()
+}()
+
+/// 앱 소스를 파일 이름으로 찾아 읽는다. 없거나 같은 이름이 둘 이상이면 실패로 센다(빈 글로 조용히 넘어가지 않게).
+func appSource(_ name: String) -> String {
+    let hits = appSourcePaths.filter { ($0 as NSString).lastPathComponent == name }
+    guard hits.count == 1, let text = readSource(hits[0]) else {
+        expect(false, "앱 소스 찾기: \(name) — \(hits.count)개")
+        return ""
+    }
+    return text
 }
 
 // MARK: - 안내 1페이지 설치 칸 강조 (#187)
@@ -130,10 +147,11 @@ func runDefaultsKeyTests() {
                "입력기(\(use.file))가 같은 키를 쓴다: \(use.key)")
     }
     // 앱 쪽에 같은 문자열이 상수 밖에 다시 퍼지지 않았는지(복제 회귀 방지). 정의 파일 자신은 제외한다.
-    let appFiles = (try? FileManager.default.contentsOfDirectory(atPath: root.appendingPathComponent("Sources").path)) ?? []
+    expect(appSourcePaths.count >= 40, "앱 소스를 하위 폴더까지 찾음: \(appSourcePaths.count)개")
     var strays: [String] = []
-    for file in appFiles where file.hasSuffix(".swift") {
-        guard let text = readSource("Sources/" + file) else { continue }
+    for path in appSourcePaths {
+        guard let text = readSource(path) else { expect(false, "앱 소스 읽기: \(path)"); continue }
+        let file = (path as NSString).lastPathComponent
         for literal in ["\"com.hyunjincho.inputmethod.haneul\"", "\"haneul.hasCompletedOnboarding\"",
                         "\"haneul.autoEnglishEnabled\"", "\"haneul.mainAppPath\"", "\"haneul.mainAppFileID\""]
         where text.contains(literal) {
@@ -182,9 +200,9 @@ func runStatusContrastTests() {
     expectEqual((StatusRGB(0, 0, 0).contrast(with: StatusRGB(1, 1, 1)) * 100).rounded(), 2100, "대조군: 검정/흰색 = 21:1")
 
     // 위에 옮겨 쓴 바탕 값이 소스와 같은지(소스가 바뀌면 이 검사를 고친다).
-    let riso = readSource("Sources/OnboardingRiso.swift") ?? ""
-    let style = readSource("Sources/FeedbackStyle.swift") ?? ""
-    let onboarding = readSource("Sources/OnboardingView.swift") ?? ""
+    let riso = appSource("OnboardingRiso.swift")
+    let style = appSource("FeedbackStyle.swift")
+    let onboarding = appSource("OnboardingView.swift")
     for (text, literal) in [(riso, "ivory = Color(red: 247 / 255, green: 242 / 255, blue: 229 / 255)"),
                             (riso, "meok = Color(red: 0.150, green: 0.140, blue: 0.128)"),
                             (riso, "cyan = Color(red: 3 / 255, green: 150 / 255, blue: 251 / 255)"),
@@ -197,10 +215,10 @@ func runStatusContrastTests() {
     }
 
     // 앱 화면 소스에 시스템 초록·주황·빨강 글자가 다시 들어오지 않게(버튼 칠 `tint: .red`는 글자가 아니라 제외).
-    let appFiles = (try? FileManager.default.contentsOfDirectory(atPath: root.appendingPathComponent("Sources").path)) ?? []
     var strays: [String] = []
-    for file in appFiles where file.hasSuffix(".swift") {
-        guard let text = readSource("Sources/" + file) else { continue }
+    for path in appSourcePaths {
+        guard let text = readSource(path) else { expect(false, "앱 소스 읽기: \(path)"); continue }
+        let file = (path as NSString).lastPathComponent
         for pattern in ["foregroundStyle(.red)", "foregroundStyle(.orange)", "foregroundStyle(.green)",
                         "foregroundStyle(Color.red)", "foregroundStyle(Color.orange)", "foregroundStyle(Color.green)",
                         "titleColor: .red"] where text.contains(pattern) {
@@ -245,10 +263,10 @@ func runInstallUpdatePresentationTests() {
     expectEqual(S.resolve(statusKnown: false, busy: false, installed: false, disabled: false, refreshNeeded: false, blockedBySystemInstall: false).status,
                 .checking, "읽기 전 = 확인 중")
     // 화면이 버튼 이름을 이 상수에서 가져오는지(문자열이 갈라지면 안내가 다시 없는 버튼을 가리킨다).
-    let section = readSource("Sources/InputMethodSettingsSection.swift") ?? ""
+    let section = appSource("InputMethodSettingsSection.swift")
     expect(section.contains("Button(maru: InputMethodSectionPresentation.installButtonTitle)")
            && section.contains("Button(maru: InputMethodSectionPresentation.updateButtonTitle)"), "입력기 버튼 이름은 상수에서")
-    let updateSection = readSource("Sources/UpdateSettingsSection.swift") ?? ""
+    let updateSection = appSource("UpdateSettingsSection.swift")
     expect(updateSection.contains("refreshNotice(") && !updateSection.contains("위 ‘입력기 업데이트’"), "갱신 안내 문장은 판단 함수에서")
 
     // 업데이트 상태 줄과 메뉴 줄(F-2).
@@ -282,7 +300,7 @@ func runInstallUpdatePresentationTests() {
     expectEqual(I.disabled.menuAction, .reenable, "꺼짐 줄을 누르면 다시 켜기")
     expectEqual(I.ready.menuAction, .none, "정상 = 줄 없음")
     expectEqual(I.checking.menuAction, .none, "확인 중 = 줄 없음")
-    let app = readSource("Sources/HaneulKeyboardApp.swift") ?? ""
+    let app = appSource("HaneulKeyboardApp.swift")
     expect(app.contains("presentation.menuAction") && app.contains("#selector(openInstallSettings)"), "메뉴가 입력기 줄 동작을 판단 함수에서 고른다")
     expect(app.contains("showsMenuNotice"), "메뉴의 새 버전 줄도 같은 판단을 쓴다")
 
@@ -329,8 +347,8 @@ func runWindowAndLaunchTests() {
     expectEqual(W.closeResponse(removingNow: false, finishedAwaitingExit: true, resultSheetShowing: false), .quitApp, "다 지운 뒤 결과 창이 없으면 앱을 끝낸다")
     expect(RemovalWindowDecision.shouldRevealSettings(windowVisible: false), "결과가 나왔는데 창이 없으면 다시 꺼낸다")
     expect(!RemovalWindowDecision.shouldRevealSettings(windowVisible: true), "창이 보이면 그대로")
-    let app = readSource("Sources/HaneulKeyboardApp.swift") ?? ""
-    let settings = readSource("Sources/SettingsView.swift") ?? ""
+    let app = appSource("HaneulKeyboardApp.swift")
+    let settings = appSource("SettingsView.swift")
     expect(app.contains("func windowShouldClose(") && app.contains("RemovalWindowDecision.closeResponse(") && app.contains("case .quitApp:"),
            "AppDelegate가 제거 중 설정 창 닫기를 막고, 다 지운 뒤엔 앱을 끝낸다")
     // 2026-11-15 (#252): 결과 창 버튼은 종료하지 않고 표시만 한다 — 종료는 시트가 다 닫힌 뒤(onDismiss). 같은 순간 종료는 AppKit이 거절했다(재현).
@@ -365,7 +383,7 @@ func runWindowAndLaunchTests() {
            "실행 경로가 아이콘이 실제로 보이는지 확인한다")
 
     // F-9: 되돌린 단어 한 줄의 두 버튼을 VoiceOver가 따로 누를 수 있게 줄을 하나로 합치지 않는다.
-    let dictionary = readSource("Sources/PersonalDictionarySettingsSection.swift") ?? ""
+    let dictionary = appSource("PersonalDictionarySettingsSection.swift")
     expect(!dictionary.contains("accessibilityElement(children: .combine)"), "되돌린 단어 줄을 한 요소로 합치지 않는다")
 }
 
@@ -434,7 +452,7 @@ func runMenuBarMenuTests() {
     }
     expectEqual(M.onboardingTitle(hasCompleted: true), "시작하기 다시 보기", "안내를 끝냈으면 다시 보기")
     expectEqual([M.onboardingSymbol, M.settingsSymbol, M.supportSymbol], ["book", "gearshape", "heart"], "아이콘 = 책·톱니·하트(오너 지정)")
-    let app = readSource("Sources/HaneulKeyboardApp.swift") ?? ""
+    let app = appSource("HaneulKeyboardApp.swift")
     let menuStart = app.range(of: "func menuNeedsUpdate")
     let menuEnd = app.range(of: "func menuWillOpen")
     if let menuStart, let menuEnd, menuStart.upperBound < menuEnd.lowerBound {

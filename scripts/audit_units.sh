@@ -11,5 +11,5 @@ swiftc -O -module-cache-path "$UNIT_AUDIT_WORK/cache" -o "$UNIT_AUDIT_WORK/audit
   IMESources/Contractions.swift IMESources/AlphanumericWords.swift IMESources/MeasurementUnits.swift \
   IMESources/PhoneticDictionary.swift IMESources/EnglishParticleSplitter.swift IMESources/KoreanComposer.swift IMESources/EnglishDetector.swift \
   IMESources/KoreanDictionary.swift IMESources/PersonalDictionary.swift \
-  Tools/MeasurementUnitAudit.swift
+  scripts/MeasurementUnitAudit.swift
 "$UNIT_AUDIT_WORK/audit"

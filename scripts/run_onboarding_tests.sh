@@ -7,9 +7,9 @@ TEST_DIR=$(mktemp -d)
 trap 'rm -rf "$TEST_DIR"' EXIT
 swiftc -parse-as-library -o "$TEST_DIR/onboarding-tests" \
   Shared/InputInferencePolicy.swift \
-  Sources/OnboardingPracticeField.swift Sources/AppFont.swift \
-  Sources/OnboardingPracticeProgress.swift \
-  Sources/OnboardingPageNavigation.swift \
+  Sources/Onboarding/OnboardingPracticeField.swift Sources/Style/AppFont.swift \
+  Sources/Onboarding/OnboardingPracticeProgress.swift \
+  Sources/Onboarding/OnboardingPageNavigation.swift \
   IMESources/HangulJamo.swift IMESources/KeyboardLayout2Set.swift \
   IMESources/Contractions.swift IMESources/AlphanumericWords.swift IMESources/MeasurementUnits.swift \
   IMESources/PhoneticDictionary.swift IMESources/EnglishParticleSplitter.swift IMESources/KoreanComposer.swift IMESources/ManualToggle.swift \
@@ -21,8 +21,8 @@ swiftc -parse-as-library -o "$TEST_DIR/onboarding-tests" \
 # 제품이 쓰는 같은 소스(OnboardingScrollData.swift 등)를 그대로 컴파일한다.
 swiftc -parse-as-library -o "$TEST_DIR/app-ui-tests" \
   Shared/HaneulDefaultsKeys.swift \
-  Sources/AppUIDecisions.swift \
-  Sources/OnboardingScrollData.swift \
+  Sources/App/AppUIDecisions.swift \
+  Sources/Onboarding/OnboardingScrollData.swift \
   Tests/AppUITests.swift
 "$TEST_DIR/app-ui-tests"
 

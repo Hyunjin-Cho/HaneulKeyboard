@@ -37,9 +37,9 @@ swiftc -o "$BIN" \
   IMESources/PersonalDictionary.swift \
   Shared/RemovalPolicy.swift \
   Shared/InputInferencePolicy.swift \
-  Sources/InstallDecisions.swift \
-  Sources/WordSuggestion.swift \
-  Sources/UpdateDecisions.swift \
+  Sources/Install/InstallDecisions.swift \
+  Sources/Settings/WordSuggestion.swift \
+  Sources/Update/UpdateDecisions.swift \
   Tests/EnglishParticleTests.swift Tests/EnglishRulesTests.swift Tests/PhoneticTests.swift \
   Tests/ComposerTests.swift
 

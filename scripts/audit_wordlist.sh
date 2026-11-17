@@ -1,6 +1,6 @@
 #!/bin/bash
 # 영어 사전 후보 검역(스윕) — 실제 IME 코드를 컴파일해 "이 단어를 넣으면
-# 실제로 뭐가 새로 변환되나"를 답한다 (Tools/WordlistAudit.swift 참조).
+# 실제로 뭐가 새로 변환되나"를 답한다 (scripts/WordlistAudit.swift 참조).
 #
 # 사용법:
 #   scripts/audit_wordlist.sh --candidates 후보.txt --role broad|curated \
@@ -94,7 +94,7 @@ swiftc -O -module-cache-path "$WORK/module-cache" -o "$BIN" \
   IMESources/EnglishDetector.swift \
   IMESources/KoreanDictionary.swift \
   IMESources/PersonalDictionary.swift \
-  Tools/WordlistAudit.swift
+  scripts/WordlistAudit.swift
 
 # ── 스모크 테스트: 알려진 단어로 Tier 분류와 자모 플래그를 검증 ──
 # 베이스를 web2 단독으로 고정해 향후 사전 머지와 무관하게 안정적으로 동작.

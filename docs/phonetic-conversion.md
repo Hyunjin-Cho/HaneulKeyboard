@@ -143,7 +143,7 @@
 - `IMESources/ManualToggle.swift` · `resolve`: 발음 조회와 기존 순수 자판 역변환 `manualToggle`을 구분한다.
 - `IMESources/KoreanComposer.swift` · `pendingPhoneticConversion/commitPhonetic/applyToggle`: 원문 쌍과 변환 출처를 유지한다. 발음 변환은 뒤 한국어의 자동 변환 문맥을 만들지 않는다. 수동 변환 왕복은 ‘최근 되돌린 자동 변환’에 기록하지 않는다.
 - `project.yml` · `Embed HaneulKeyboardIM into Contents/Helpers`: 사전 파일만 바뀐 증분 빌드에서 단독 입력기는 최신인데 앱 안의 사본은 이전 JSON을 담는 문제를 재현했다. 복사 단계를 `basedOnDependencyAnalysis: false`로 설정해 빌드마다 최신 입력기를 포함한다. 옵션 근거: [XcodeGen Build Script 명세](https://github.com/yonaskolb/XcodeGen/blob/master/Docs/ProjectSpec.md#build-script).
-- `IMESources/RevertKey.swift`, `Sources/RevertKeySettingsSection.swift`: `haneul.phoneticConversionEnabled` 기본 ON. 기존 모든 단어 자판 토글과 독립적으로 끌 수 있다. 이미 저장된 직전 변환의 되돌리기는 설정 변경 후에도 우선한다.
+- `IMESources/RevertKey.swift`, `Sources/Settings/RevertKeySettingsSection.swift`: `haneul.phoneticConversionEnabled` 기본 ON. 기존 모든 단어 자판 토글과 독립적으로 끌 수 있다. 이미 저장된 직전 변환의 되돌리기는 설정 변경 후에도 우선한다.
 - 개인 사전의 추가/금지와 앱별 자동 변환 OFF는 자동 변환을 제어한다. 사용자가 직접 누르는 발음 변환은 별개의 의도적 조작이다.
 - 읽을 수 없는/잘린 문서 범위, 선택 영역, 거부된 교체는 기존 방어선을 유지한다. 이웃 글자 읽기를 제공하는 앱에서 단어 중간을 피한다. 호스트 앱이 잘못된 범위를 보고하거나 일부 읽기를 거부하는 경우의 실기 검증은 남아 있다.
 - Terminal/Ghostty의 확정 텍스트 교체 제한을 우회하지 않는다. 입력기는 네트워크·AI 호출·입력 학습을 하지 않는다.

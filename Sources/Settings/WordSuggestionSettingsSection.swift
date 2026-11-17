@@ -6,13 +6,13 @@ import SwiftUI
 /// 2026-09-21 (#60): 설정 창 탭 재편으로 **설정 안의 한 절 → 시트**가 됐다(입구는
 /// `PersonalDictionaryTab`의 "단어 제안하기..." 버튼). 입력란 4개짜리 폼이 탭 높이를 혼자
 /// 잡아먹었기 때문이다. 타입 이름은 그대로 둔다 — `PersonalDictionarySettingsSection`의
-/// "제안" 버튼과 `PRIVACY.md`·`Sources/WordSuggestion.swift` 주석이 이 이름을 가리킨다.
+/// "제안" 버튼과 `PRIVACY.md`·`Sources/Settings/WordSuggestion.swift` 주석이 이 이름을 가리킨다.
 ///
 /// 앱이 하는 일은 `NSWorkspace.open(url)`이다. 자동 제출이나 키 입력·문맥 수집은 없다. URL의 값은
 /// 사용자가 이 화면에 직접 적은 것(또는 "최근 되돌린 변환"에서 고른 쌍)과 앱·macOS 버전뿐이다.
 /// 내용 확인과 실제 발송/등록은 사용자가 선택한 앱에서 직접 한다(PRIVACY.md 8번).
 ///
-/// URL 생성 규칙(제목·본문·인코딩·길이 상한)의 정본은 `Sources/WordSuggestion.swift`이고,
+/// URL 생성 규칙(제목·본문·인코딩·길이 상한)의 정본은 `Sources/Settings/WordSuggestion.swift`이고,
 /// 여기는 화면과 "열기"만 한다.
 struct WordSuggestionSettingsSection: View {
     @Environment(\.dismiss) private var dismiss
