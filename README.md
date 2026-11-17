@@ -197,7 +197,8 @@ PACKAGE_ONLY=1 bash scripts/build_notarize_install.sh HaneulKeyboard
 | Wikidata 축구 클럽·선수 | CC0 1.0 |
 | 마루 부리(네이버)·나눔손글씨 펜 | SIL Open Font License 1.1 |
 
-[McBopomofo](https://github.com/openvanilla/McBopomofo)의 입력기 등록·설치 구조, 공개 사전과 글꼴, 오픈소스 기여자들에게 감사드립니다. **[Claude](https://claude.com/claude-code)(Anthropic)**가 설계·개발·검증·문서·그림 작업에 함께했습니다. 출처와 가공 방식은 [감사의 글](ACKNOWLEDGEMENTS.md)에 모았습니다.
+<!-- 2026-11-17 (#265): Codex를 Claude 바로 뒤에 한 줄로 넣었다(감사의 글과 같은 말 — 코드 리뷰 위주). -->
+[McBopomofo](https://github.com/openvanilla/McBopomofo)의 입력기 등록·설치 구조, 공개 사전과 글꼴, 오픈소스 기여자들에게 감사드립니다. <b>[Claude](https://claude.com/claude-code)(Anthropic)</b>가 설계·개발·검증·문서·그림 작업에 함께했습니다. [Codex](https://openai.com/codex/)(OpenAI)는 코드 리뷰 위주로 사용했습니다. 출처와 가공 방식은 [감사의 글](ACKNOWLEDGEMENTS.md)에 모았습니다.
 
 ---
 
@@ -245,6 +246,13 @@ The menu bar app checks GitHub on the 1st of each month (or the next time you tu
 
 Your typing and personal dictionary never leave your Mac. The input method has no networking code; the menu bar app only contacts GitHub for updates. See [Privacy](PRIVACY.md).
 
+<!-- 2026-11-17 (#265): 한국어 「응원하기」 절과 같은 내용을 영어에도 넣었다. -->
+## Support
+
+HaneulKeyboard is free. Open **응원하기** (Support) from the menu bar or Settings to see how to support it. Every feature works the same whether or not you sponsor.
+
+You can also sponsor directly on [GitHub Sponsors](https://github.com/sponsors/Hyunjin-Cho), once or monthly. A GitHub account is required.
+
 ## Requirements and limits
 
 - macOS Sonoma 14 or later, Universal (Apple Silicon and Intel)
@@ -257,4 +265,5 @@ Your typing and personal dictionary never leave your Mac. The input method has n
 
 App code is licensed under **Apache License 2.0** ([LICENSE](LICENSE), [NOTICE](NOTICE)). Earlier MIT releases keep their terms ([legacy notice](LICENSES/HaneulKeyboard-MIT-legacy.txt)). Bundled dictionaries and fonts keep their own licenses: Urimalsaem (CC BY-SA 2.0 KR), NGSL (CC BY-SA 4.0), SCOWL/ESDB (MIT-like), US Census/SSA (public domain), GeoNames (CC BY 4.0), Wikidata (CC0), MaruBuri (NAVER) and Nanum Pen Script (OFL 1.1). See [Acknowledgements](ACKNOWLEDGEMENTS.md).
 
-Thanks to [McBopomofo](https://github.com/openvanilla/McBopomofo), the open-source community, and **[Claude](https://claude.com/claude-code) (Anthropic)** for help with design, development and artwork. Report problems or suggest words in [Issues](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues).
+<!-- 2026-11-17 (#265): Claude 표기를 한국어(설계·개발·검증·문서·그림)와 맞추고 Codex 한 줄을 넣었다. -->
+Thanks to [McBopomofo](https://github.com/openvanilla/McBopomofo), the open-source community, and **[Claude](https://claude.com/claude-code) (Anthropic)** for help with design, development, testing, documentation and artwork. [Codex](https://openai.com/codex/) (OpenAI) was used mainly for code review. Report problems or suggest words in [Issues](https://github.com/Hyunjin-Cho/HaneulKeyboard/issues).
