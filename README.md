@@ -50,7 +50,7 @@ https://github.com/user-attachments/assets/838201b8-b306-4a13-9777-bdeba3387dae
 2. 하늘키보드를 **Applications** 폴더로 끌어다 놓고, 응용 프로그램 폴더에서 실행합니다.
 3. **시작하기** 안내가 열리면 1단계의 **하늘키보드 설치**를 누르고, 2단계에서 입력 소스를 선택합니다.
    - 직접 추가할 때: 시스템 설정 → 키보드 → 텍스트 입력 → 편집 → **+** → 한국어 → **하늘키보드 (두벌식)**
-   - 영어 입력용 **ABC는 남겨 두세요.** Caps Lock 전환은 macOS 기능이라 따로 권한을 요구하지 않습니다.
+   - Caps Lock 전환은 macOS 기능이라 따로 권한을 요구하지 않습니다.
 
 입력 소스 목록에 보이지 않으면 앱의 **키보드 설정 열기**를 눌러 주세요. 오래된 목록을 새로 고칩니다.
 
@@ -237,7 +237,7 @@ Common English names, weekdays, months and country names convert too. Real Korea
 
 1. Download `HaneulKeyboard_<version>.dmg` from [Releases](https://github.com/Hyunjin-Cho/HaneulKeyboard/releases/latest) and open it.
 2. Drag HaneulKeyboard into **Applications** and launch it from there.
-3. In the **시작하기** (Getting Started) guide, press **하늘키보드 설치** in step 1 and select the input source in step 2. Keep **ABC** for English.
+3. In the **시작하기** (Getting Started) guide, press **하늘키보드 설치** in step 1 and select the input source in step 2.
 
 Users of the `2026.07` and older betas need to download the DMG once; those builds have no updater. GitHub's "Source code" archives are not installable apps.
 
