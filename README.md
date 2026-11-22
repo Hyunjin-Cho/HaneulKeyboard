@@ -42,8 +42,6 @@ https://github.com/user-attachments/assets/838201b8-b306-4a13-9777-bdeba3387dae
 | `github에` | 영어 뒤에 조사를 붙여 쳐도 됩니다 |
 | **Caps Lock** | 한글 ↔ 영어를 전환합니다. 길게 누르면 대문자입니다 |
 
-**하늘**키보드는 사랑하는 우리 딸 이름을 따왔습니다.
-
 ## 설치
 
 1. [릴리스 페이지](https://github.com/Hyunjin-Cho/HaneulKeyboard/releases/latest)에서 `HaneulKeyboard_<버전>.dmg`를 받아 엽니다.
@@ -228,8 +226,6 @@ PACKAGE_ONLY=1 bash scripts/build_notarize_install.sh HaneulKeyboard
 | `/help` | English right after a slash. Korean resumes after Space or Enter |
 | `10` + `ㅏㅎ` + Space | `10kg`. Digits are sent immediately |
 | **Caps Lock** | Korean ↔ English. Long press for capitals |
-
-**Haneul**Keyboard is named after our beloved daughter, Haneul. Her name means "sky" in Korean.
 
 Common English names, weekdays, months and country names convert too. Real Korean words, initial-consonant slang and jamo emoticons are protected. Unknown misspellings are left as typed, not guessed. Automatic conversion can be turned off entirely or per app, and a personal dictionary lets you add or block words. Composing text is shown with a gray underline.
 
